@@ -59,7 +59,7 @@ private:
     bool createGraphicsPipeline();
     bool createFrameBuffers();
 
-    /* Shader attributes */
+    /* Model data */
     bool createVertexBuffer(const std::vector<Vertex>& vertices);
     bool createIndexBuffer(const std::vector<uint16_t>& indices);
 
@@ -70,10 +70,20 @@ private:
     bool createDescriptorPool();
     bool createDescriptorSets();
 
+    /* Textures and images */
+    bool createTextureImages();
+
     /* Utilities */
     bool createBuffer(VkDeviceSize buffer_size, VkBufferUsageFlags buffer_usage, VkMemoryPropertyFlags buffer_properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory);
-    bool copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    bool createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    bool copyBufferToBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    bool copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    /* Transition an image from an old layout to a new layout, and wait for the transition to happen */
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+    /* Command buffer recording */
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
 private:
     /* Qt vulkan data */
@@ -110,6 +120,10 @@ private:
     std::vector<VkDeviceMemory> m_uniformBuffersModelMemory;
     VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet> m_descriptorSets;
+
+    /* Texture data */
+    VkImage m_textureImage;
+    VkDeviceMemory m_textureImageMemory;
 
 
     QColor m_clearColor = QColor(1, 0, 0);

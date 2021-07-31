@@ -27,6 +27,10 @@ macro(SetupEnvironment)
     set(GLM_DIR ${LIBS_ROOT}/GLM/glm-0.9.9.8)
     set(GLM_INCLUDE_DIRS ${GLM_DIR}/glm)
     
+    #STB
+    set(STB_DIR ${PROJECT_ROOT}/src/lib/external/stb)
+    set(STB_INCLUDE_DIRS ${STB_DIR})
+    
     # UTILS
     set(UTILS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/utils/)
     set(UTILS_LIBRARIES utils)

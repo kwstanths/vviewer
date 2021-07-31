@@ -1,0 +1,3 @@
+[submodule "src/lib/external/stb"]
+	path = src/lib/external/stb
+	url = https://github.com/nothings/stb.git

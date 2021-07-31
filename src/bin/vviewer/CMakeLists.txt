@@ -16,6 +16,7 @@ include_directories(${QT_INCLUDE_DIRS})
 include_directories(${VULKAN_INCLUDE_DIRS})
 include_directories(${UTILS_INCLUDE_DIRS})
 include_directories(${GLM_INCLUDE_DIRS})
+include_directories(${STB_INCLUDE_DIRS})
 
 # Sources
 file(GLOB ${NAME}_HEADERS *.hpp)
