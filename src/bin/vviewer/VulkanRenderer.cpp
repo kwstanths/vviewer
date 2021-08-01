@@ -38,18 +38,32 @@ void VulkanRenderer::initResources()
     m_physicalDevice = m_window->physicalDevice();
     m_device = m_window->device();
 
+    m_functions->vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
+
     const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+        {{-1.f, -1.f, -1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+        {{ 1.f, -1.f, -1.f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+        {{ 1.f,  1.f, -1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+        {{-1.f,  1.f, -1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+
+        {{-1.f, -1.f,  1.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+        {{ 1.f, -1.f,  1.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+        {{ 1.f,  1.f,  1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+        {{-1.f,  1.f,  1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
     };
     const std::vector<uint16_t> indices = {
-        0, 1, 2, 2, 3, 0
+        0, 1, 3, 3, 1, 2,
+        1, 5, 2, 2, 5, 6,
+        5, 4, 6, 6, 4, 7,
+        4, 0, 7, 7, 0, 3,
+        3, 2, 7, 7, 2, 6,
+        4, 5, 0, 0, 5, 1
     };
     createVertexBuffer(vertices);
     createIndexBuffer(indices);
-    createTextureImages();
+    createTextureImage();
+    createTextureImageView();
+    createTextureSampler();
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -91,6 +105,8 @@ void VulkanRenderer::releaseSwapChainResources()
 
 void VulkanRenderer::releaseResources()
 {
+    m_devFunctions->vkDestroySampler(m_device, m_textureSampler, nullptr);
+    m_devFunctions->vkDestroyImageView(m_device, m_textureImageView, nullptr);
     m_devFunctions->vkDestroyImage(m_device, m_textureImage, nullptr);
     m_devFunctions->vkFreeMemory(m_device, m_textureImageMemory, nullptr);
 
@@ -135,12 +151,17 @@ void VulkanRenderer::startNextFrame()
     m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 
         0, 1, &m_descriptorSets[imageIndex], 0, nullptr);
-    m_devFunctions->vkCmdDrawIndexed(cmdBuf, 6, 1, 0, 0, 0);
+    m_devFunctions->vkCmdDrawIndexed(cmdBuf, 36, 1, 0, 0, 0);
 
     m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     
     m_window->frameReady();
     m_window->requestUpdate(); // render continuously, throttled by the presentation rate
+}
+
+void VulkanRenderer::setCamera(std::shared_ptr<Camera> camera)
+{
+    m_camera = camera;
 }
 
 bool VulkanRenderer::createDebugCallback()
@@ -178,9 +199,10 @@ void VulkanRenderer::destroyDebugCallback()
 
 bool VulkanRenderer::pickPhysicalDevice()
 {
-    auto devices = m_window->availablePhysicalDevices();
-    for (int i = 0; i < devices.size(); i++) {
-        if (isPhysicalDeviceSuitable(devices[i])) {
+    auto deviceProperties = m_window->availablePhysicalDevices();
+    for (int i = 0; i < deviceProperties.size(); i++) {
+        VkPhysicalDeviceProperties properties{};
+        if (isPhysicalDeviceSuitable(deviceProperties[i])) {
             m_window->setPhysicalDeviceIndex(i);
             return true;
         }
@@ -306,7 +328,7 @@ bool VulkanRenderer::createGraphicsPipeline()
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f; // Optional
     rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -488,10 +510,18 @@ bool VulkanRenderer::createDescriptorSetsLayouts()
     modelDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     modelDataLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> setBindings = { cameraDataLayoutBinding, modelDataLayoutBinding };
+    /* Create binding for texture data */
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 2;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 3> setBindings = { cameraDataLayoutBinding, modelDataLayoutBinding, samplerLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 2;
+    layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
     layoutInfo.pBindings = setBindings.data();
 
     if (m_devFunctions->vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
@@ -546,8 +576,8 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
 
     {
         CameraData cameraData;
-        cameraData.m_view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        cameraData.m_projection = glm::perspective(glm::radians(45.0f), (float)m_swapchainExtent.width / (float)m_swapchainExtent.height, 0.1f, 10.0f);
+        cameraData.m_view = m_camera->getViewMatrix();
+        cameraData.m_projection = m_camera->getProjectionMatrix();
         cameraData.m_projection[1][1] *= -1;
 
         void* data;
@@ -558,7 +588,7 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
 
     {
         ModelData modelData;
-        modelData.m_modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelData.m_modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
         void* data;
         m_devFunctions->vkMapMemory(m_device, m_uniformBuffersModelMemory[index], 0, sizeof(ModelData), 0, &data);
@@ -579,10 +609,14 @@ bool VulkanRenderer::createDescriptorPool()
     modelDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     modelDataPoolSize.descriptorCount = static_cast<uint32_t>(m_window->swapChainImageCount());
 
-    std::array<VkDescriptorPoolSize, 2> poolSizes = { cameraDataPoolSize, modelDataPoolSize };
+    VkDescriptorPoolSize texturesPoolSize{};
+    texturesPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    texturesPoolSize.descriptorCount = static_cast<uint32_t>(m_window->swapChainImageCount());
+
+    std::array<VkDescriptorPoolSize, 3> poolSizes = { cameraDataPoolSize, modelDataPoolSize, texturesPoolSize };
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 2;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(m_window->swapChainImageCount());
 
@@ -620,7 +654,6 @@ bool VulkanRenderer::createDescriptorSets()
         bufferInfoCamera.offset = 0;
         bufferInfoCamera.range = sizeof(CameraData);
         bufferInfoCamera.range = sizeof(CameraData);
-        
         VkWriteDescriptorSet descriptorWriteCamera{};
         descriptorWriteCamera.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWriteCamera.dstSet = m_descriptorSets[i];
@@ -636,7 +669,6 @@ bool VulkanRenderer::createDescriptorSets()
         bufferInfoModel.buffer = m_uniformBuffersModel[i];
         bufferInfoModel.offset = 0;
         bufferInfoModel.range = sizeof(ModelData);
-        
         VkWriteDescriptorSet descriptorWriteModel{};
         descriptorWriteModel.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWriteModel.dstSet = m_descriptorSets[i];
@@ -648,15 +680,28 @@ bool VulkanRenderer::createDescriptorSets()
         descriptorWriteModel.pImageInfo = nullptr; // Optional
         descriptorWriteModel.pTexelBufferView = nullptr; // Optional
 
-        std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteCamera, descriptorWriteModel };
-        m_devFunctions->vkUpdateDescriptorSets(m_device, 2, writeSets.data(), 0, nullptr);
+        VkDescriptorImageInfo  imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = m_textureImageView;
+        imageInfo.sampler = m_textureSampler;
+        VkWriteDescriptorSet descriptorWriteImage{};
+        descriptorWriteImage.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWriteImage.dstSet = m_descriptorSets[i];
+        descriptorWriteImage.dstBinding = 2;
+        descriptorWriteImage.dstArrayElement = 0;
+        descriptorWriteImage.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWriteImage.descriptorCount = 1;
+        descriptorWriteImage.pImageInfo = &imageInfo;
+
+        std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteCamera, descriptorWriteModel, descriptorWriteImage };
+        m_devFunctions->vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
         
     }
 
     return true;
 }
 
-bool VulkanRenderer::createTextureImages()
+bool VulkanRenderer::createTextureImage()
 {
     try {
         /* Read image from disk */
@@ -709,6 +754,40 @@ bool VulkanRenderer::createTextureImages()
     }
     catch (std::runtime_error& e) {
         utils::ConsoleCritical("Failed to load a disk image: " + std::string(e.what()));
+        return false;
+    }
+
+    return true;
+}
+
+bool VulkanRenderer::createTextureImageView()
+{
+    m_textureImageView = createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+    return true;
+}
+
+bool VulkanRenderer::createTextureSampler()
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = m_physicalDeviceProperties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    if (m_devFunctions->vkCreateSampler(m_device, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
+        utils::ConsoleCritical("Failed to create a texture sampler");
         return false;
     }
 
@@ -836,6 +915,29 @@ bool VulkanRenderer::createImage(uint32_t width, uint32_t height, VkFormat forma
     }
 
     m_devFunctions->vkBindImageMemory(m_device, image, imageMemory, 0);
+    return true;
+}
+
+VkImageView VulkanRenderer::createImageView(VkImage image, VkFormat format)
+{
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = format;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    VkImageView imageView;
+    if (m_devFunctions->vkCreateImageView(m_device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+        utils::ConsoleCritical("Failed to create an image view");
+        return imageView;
+    }
+
+    return imageView;
 }
 
 uint32_t VulkanRenderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)

@@ -11,6 +11,7 @@
 
 #include "IncludeVulkan.hpp"
 #include "Utils.hpp"
+#include "Camera.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -46,6 +47,8 @@ public:
 
     void startNextFrame() override;
 
+    void setCamera(std::shared_ptr<Camera> camera);
+
 private:
 
     bool createDebugCallback();
@@ -71,11 +74,14 @@ private:
     bool createDescriptorSets();
 
     /* Textures and images */
-    bool createTextureImages();
+    bool createTextureImage();
+    bool createTextureImageView();
+    bool createTextureSampler();
 
     /* Utilities */
     bool createBuffer(VkDeviceSize buffer_size, VkBufferUsageFlags buffer_usage, VkMemoryPropertyFlags buffer_properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory);
     bool createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    VkImageView createImageView(VkImage image, VkFormat format);
     bool copyBufferToBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     bool copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -100,6 +106,7 @@ private:
     VkDebugUtilsMessengerEXT m_debugCallback;
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
+    VkPhysicalDeviceProperties m_physicalDeviceProperties;
 
     /* Graphics pipeline */
     VkRenderPass m_renderPass;
@@ -124,7 +131,10 @@ private:
     /* Texture data */
     VkImage m_textureImage;
     VkDeviceMemory m_textureImageMemory;
+    VkImageView m_textureImageView;
+    VkSampler m_textureSampler;
 
+    std::shared_ptr<Camera> m_camera;
 
     QColor m_clearColor = QColor(1, 0, 0);
 };
