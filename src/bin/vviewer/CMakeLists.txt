@@ -21,11 +21,20 @@ include_directories(${STB_INCLUDE_DIRS})
 # Sources
 file(GLOB ${NAME}_HEADERS *.hpp)
 file(GLOB ${NAME}_SOURCES *.cpp)
+file(GLOB ${NAME}_MATH_HEADERS math/*.hpp)
+file(GLOB ${NAME}_MATH_SOURCES math/*.cpp)
 file(GLOB ${NAME}_RESOURCES *.qrc)
 QT5_ADD_RESOURCES(${NAME}_RESOURCES_RCC ${${NAME}_RESOURCES})
 
 # Target
-add_executable(${NAME} ${GUI_TYPE} ${${NAME}_HEADERS} ${${NAME}_SOURCES} ${${NAME}_RESOURCES_RCC})
+add_executable(${NAME} ${GUI_TYPE} 
+	${${NAME}_HEADERS} ${${NAME}_SOURCES} 
+	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES}
+	${${NAME}_RESOURCES_RCC}
+	)
 
 # Libraries
 target_link_libraries(${NAME} ${QT_LIBRARIES} ${VULKAN_LIBRARIES} ${UTILS_LIBRARIES})
+
+source_group("math\\Headers"		FILES	${${NAME}_MATH_HEADERS})
+source_group("math\\Sources"		FILES	${${NAME}_MATH_SOURCES})

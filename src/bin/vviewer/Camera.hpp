@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "math/Transform.hpp"
+
 class Camera {
 public:
 
@@ -13,13 +15,19 @@ public:
 
     virtual void setWindowSize(int width, int height);
 
+    int getWidth() const;
+    int getHeight() const;
+    float getAspectRatio() const;
+
+    Transform& getTransform();
+
 protected:
     int m_width;
     int m_height;
     float m_aspectRatio;
 
 private:
-
+    Transform m_transform;
 };
 
 class PerspectiveCamera : public Camera {
@@ -27,8 +35,10 @@ public:
 
     glm::mat4 getProjectionMatrix() const;
 
-private:
+    void setFoV(float fov);
 
+private:
+    float m_fov;
 };
 
 class OrthographicCamera : public Camera {
