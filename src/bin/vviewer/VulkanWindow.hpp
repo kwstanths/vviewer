@@ -18,12 +18,18 @@ protected:
     void resizeEvent(QResizeEvent *ev) override;
     void keyPressEvent(QKeyEvent *ev) override;
     void keyReleaseEvent(QKeyEvent *ev) override;
+    void mousePressEvent(QMouseEvent *ev) override;
+    void mouseReleaseEvent(QMouseEvent *ev) override;
+    void mouseMoveEvent(QMouseEvent *ev) override;
 
 private:
 
     std::unordered_map<int, bool> m_keysPressed;
-    std::shared_ptr<Camera> m_camera;
 
+    bool m_mousePosFirst = true;
+    QPointF m_mousePos;
+
+    std::shared_ptr<Camera> m_camera;
     QTimer * m_updateCameraTimer;
 
 private slots:

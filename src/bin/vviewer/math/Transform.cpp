@@ -26,9 +26,30 @@ glm::quat Transform::getRotation() const
     return m_rotation;
 }
 
+glm::vec3 Transform::getForward() const
+{
+    return m_forward;
+}
+
+glm::vec3 Transform::getUp() const
+{
+    return m_up;
+}
+
+glm::vec3 Transform::getRight() const
+{
+    return m_right;
+}
+
 void Transform::setRotation(glm::quat & newRotation)
 {
     m_rotation = newRotation;
+    computeBasisVectors();
+}
+
+void Transform::rotate(glm::vec3 axis, float angle)
+{
+    m_rotation = glm::rotate(m_rotation, angle, axis);
     computeBasisVectors();
 }
 
