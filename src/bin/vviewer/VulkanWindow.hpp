@@ -23,7 +23,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *ev) override;
 
 private:
-
+    
     std::unordered_map<int, bool> m_keysPressed;
 
     bool m_mousePosFirst = true;

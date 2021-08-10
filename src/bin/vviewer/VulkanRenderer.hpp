@@ -12,6 +12,7 @@
 #include "IncludeVulkan.hpp"
 #include "Utils.hpp"
 #include "Camera.hpp"
+#include "Mesh.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -19,7 +20,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) 
 {
-
     //std::cerr << "Debug callback: " << pCallbackData->pMessage << std::endl;
     return VK_FALSE;
 }
@@ -62,9 +62,14 @@ private:
     bool createGraphicsPipeline();
     bool createFrameBuffers();
 
-    /* Model data */
-    bool createVertexBuffer(const std::vector<Vertex>& vertices);
-    bool createIndexBuffer(const std::vector<uint16_t>& indices);
+    /* meshes */
+    Mesh * m_mesh1;
+    Mesh * m_mesh2;
+
+    /* Mesh data */
+    bool prepareMeshData();
+    bool createVertexBuffer(const std::vector<Vertex>& vertices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    bool createIndexBuffer(const std::vector<uint16_t>& indices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
     /* Descriptor resources */
     bool createDescriptorSetsLayouts();
@@ -77,19 +82,6 @@ private:
     bool createTextureImage();
     bool createTextureImageView();
     bool createTextureSampler();
-
-    /* Utilities */
-    bool createBuffer(VkDeviceSize buffer_size, VkBufferUsageFlags buffer_usage, VkMemoryPropertyFlags buffer_properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory);
-    bool createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    VkImageView createImageView(VkImage image, VkFormat format);
-    bool copyBufferToBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    bool copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    /* Transition an image from an old layout to a new layout, and wait for the transition to happen */
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-    /* Command buffer recording */
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
 private:
     /* Qt vulkan data */
@@ -114,10 +106,14 @@ private:
     VkPipeline m_graphicsPipeline;
 
     /* Vertex data */
-    VkBuffer m_vertexBuffer;
-    VkDeviceMemory m_vertexBufferMemory;
-    VkBuffer m_indexBuffer;
-    VkDeviceMemory m_indexBufferMemory;
+    VkBuffer m_vertexBuffer1;
+    VkDeviceMemory m_vertexBufferMemory1;
+    VkBuffer m_indexBuffer1;
+    VkDeviceMemory m_indexBufferMemory1;
+    VkBuffer m_vertexBuffer2;
+    VkDeviceMemory m_vertexBufferMemory2;
+    VkBuffer m_indexBuffer2;
+    VkDeviceMemory m_indexBufferMemory2;
 
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayout;

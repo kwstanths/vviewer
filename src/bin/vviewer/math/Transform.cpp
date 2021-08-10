@@ -11,7 +11,7 @@ Transform::Transform()
     computeBasisVectors();
 }
 
-void Transform::setPosition(glm::vec3 & newPosition)
+void Transform::setPosition(const glm::vec3 & newPosition)
 {
     m_position = newPosition;
 }
@@ -41,13 +41,13 @@ glm::vec3 Transform::getRight() const
     return m_right;
 }
 
-void Transform::setRotation(glm::quat & newRotation)
+void Transform::setRotation(const glm::quat & newRotation)
 {
     m_rotation = newRotation;
     computeBasisVectors();
 }
 
-void Transform::rotate(glm::vec3 axis, float angle)
+void Transform::rotate(const glm::vec3& axis, const float angle)
 {
     m_rotation = glm::rotate(m_rotation, angle, axis);
     computeBasisVectors();

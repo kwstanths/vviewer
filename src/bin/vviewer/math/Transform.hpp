@@ -8,20 +8,17 @@ class Transform {
 public:
     Transform();
 
-    void setPosition(glm::vec3& newPosition);
+    void setPosition(const glm::vec3& newPosition);
     glm::vec3 getPosition() const;
 
     glm::quat getRotation() const;
+    void setRotation(const glm::quat &newRotation);
+
     glm::vec3 getForward() const;
     glm::vec3 getUp() const;
     glm::vec3 getRight() const;
-    void setRotation(glm::quat &newRotation);
 
-    void rotate(glm::vec3 axis, float angle);
-
-    static glm::vec3 getGlobalX() { return glm::vec3(1, 0, 0); };
-    static glm::vec3 getGlobalY() { return glm::vec3(0, 1, 0); };
-    static glm::vec3 getGlobalZ() { return glm::vec3(0, 0, 1); };
+    void rotate(const glm::vec3& axis, const float angle);
 
 private:
     glm::vec3 m_position;

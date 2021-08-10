@@ -97,7 +97,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
     Qt::MouseButtons buttons = ev->buttons();
     Transform& cameraTransform = m_camera->getTransform();
     if (buttons & Qt::MiddleButton) {
-        /* FPS style camera rotation */
+        /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.getRotation();
         glm::quat qPitch = glm::angleAxis((float)-mousePosDiff.y() * mouseSensitivity, glm::vec3(1, 0, 0));
         glm::quat qYaw = glm::angleAxis((float)-mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
