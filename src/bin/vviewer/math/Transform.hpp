@@ -14,15 +14,21 @@ public:
     glm::quat getRotation() const;
     void setRotation(const glm::quat &newRotation);
 
+    glm::vec3 getScale() const;
+    void setScale(const glm::vec3 &newScale);
+
     glm::vec3 getForward() const;
     glm::vec3 getUp() const;
     glm::vec3 getRight() const;
+
+    glm::mat4 getModelMatrix() const;
 
     void rotate(const glm::vec3& axis, const float angle);
 
 private:
     glm::vec3 m_position;
     glm::quat m_rotation;
+    glm::vec3 m_scale;
 
     glm::vec3 m_forward;
     glm::vec3 m_right;

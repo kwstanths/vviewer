@@ -10,6 +10,8 @@
 #include <utils/Console.hpp>
 
 #include "IncludeVulkan.hpp"
+#include "VulkanDynamicUBO.hpp"
+
 #include "Utils.hpp"
 #include "Camera.hpp"
 #include "Mesh.hpp"
@@ -119,10 +121,9 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayout;
     std::vector<VkBuffer> m_uniformBuffersCamera;
     std::vector<VkDeviceMemory> m_uniformBuffersCameraMemory;
-    std::vector<VkBuffer> m_uniformBuffersModel;
-    std::vector<VkDeviceMemory> m_uniformBuffersModelMemory;
     VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet> m_descriptorSets;
+    VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
 
     /* Texture data */
     VkImage m_textureImage;
@@ -132,7 +133,7 @@ private:
 
     std::shared_ptr<Camera> m_camera;
 
-    QColor m_clearColor = QColor(1, 0, 0);
+    QColor m_clearColor = QColor(80, 80, 0);
 };
 
 #endif

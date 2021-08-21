@@ -7,6 +7,7 @@ Transform::Transform()
 {
     m_position = glm::vec3(0, 0, 0);
     m_rotation = glm::quat();
+    m_scale = glm::vec3(1, 1, 1);
 
     computeBasisVectors();
 }
@@ -41,10 +42,25 @@ glm::vec3 Transform::getRight() const
     return m_right;
 }
 
+glm::mat4 Transform::getModelMatrix() const
+{
+    return glm::translate(glm::mat4(1.0f), m_position) * glm::toMat4(m_rotation) * glm::scale(glm::mat4(), m_scale);
+}
+
 void Transform::setRotation(const glm::quat & newRotation)
 {
     m_rotation = newRotation;
     computeBasisVectors();
+}
+
+glm::vec3 Transform::getScale() const
+{
+    return m_scale;
+}
+
+void Transform::setScale(const glm::vec3 & newScale)
+{
+    m_scale = newScale;
 }
 
 void Transform::rotate(const glm::vec3& axis, const float angle)
