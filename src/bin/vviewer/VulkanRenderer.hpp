@@ -11,10 +11,11 @@
 
 #include "IncludeVulkan.hpp"
 #include "VulkanDynamicUBO.hpp"
+#include "VulkanMesh.hpp"
 
+#include "core/Mesh.hpp"
 #include "Utils.hpp"
 #include "Camera.hpp"
-#include "Mesh.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -29,7 +30,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 struct CameraData {
     alignas(16) glm::mat4 m_view;
     alignas(16) glm::mat4 m_projection;
-
 };
 
 struct ModelData {
@@ -64,12 +64,8 @@ private:
     bool createGraphicsPipeline();
     bool createFrameBuffers();
 
-    /* meshes */
-    Mesh * m_mesh1;
-    Mesh * m_mesh2;
-
     /* Mesh data */
-    bool prepareMeshData();
+    VulkanMesh createVulkanMesh(Mesh& mesh);
     bool createVertexBuffer(const std::vector<Vertex>& vertices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     bool createIndexBuffer(const std::vector<uint16_t>& indices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
@@ -108,14 +104,7 @@ private:
     VkPipeline m_graphicsPipeline;
 
     /* Vertex data */
-    VkBuffer m_vertexBuffer1;
-    VkDeviceMemory m_vertexBufferMemory1;
-    VkBuffer m_indexBuffer1;
-    VkDeviceMemory m_indexBufferMemory1;
-    VkBuffer m_vertexBuffer2;
-    VkDeviceMemory m_vertexBufferMemory2;
-    VkBuffer m_indexBuffer2;
-    VkDeviceMemory m_indexBufferMemory2;
+    std::vector<VulkanMesh> m_meshes;
 
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayout;

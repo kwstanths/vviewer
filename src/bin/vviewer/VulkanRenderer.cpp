@@ -8,10 +8,11 @@
 
 #include <utils/Console.hpp>
 
+#include "core/Image.hpp"
+#include "models/AssimpLoadModel.hpp"
 #include "IncludeVulkan.hpp"
 #include "Shader.hpp"
 #include "Utils.hpp"
-#include "Image.hpp"
 
 void VulkanRenderer::preInitResources()
 {
@@ -43,29 +44,31 @@ void VulkanRenderer::initResources()
     m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 10);
 
     /* Prepare a cube */
-    const std::vector<Vertex> vertices = {
-        {{-1.f, -1.f, -1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-        {{ 1.f, -1.f, -1.f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-        {{ 1.f,  1.f, -1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-        {{-1.f,  1.f, -1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-        {{-1.f, -1.f,  1.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-        {{ 1.f, -1.f,  1.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-        {{ 1.f,  1.f,  1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-        {{-1.f,  1.f,  1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-    };
-    const std::vector<uint16_t> indices = {
-        0, 1, 3, 3, 1, 2,
-        1, 5, 2, 2, 5, 6,
-        5, 4, 6, 6, 4, 7,
-        4, 0, 7, 7, 0, 3,
-        3, 2, 7, 7, 2, 6,
-        4, 5, 0, 0, 5, 1,
-    };
+    //const std::vector<Vertex> vertices = {
+    //    {{-1.f, -1.f, -1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+    //    {{ 1.f, -1.f, -1.f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+    //    {{ 1.f,  1.f, -1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+    //    {{-1.f,  1.f, -1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+    //    {{-1.f, -1.f,  1.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+    //    {{ 1.f, -1.f,  1.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+    //    {{ 1.f,  1.f,  1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+    //    {{-1.f,  1.f,  1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+    //};
+    //const std::vector<uint16_t> indices = {
+    //    0, 1, 3, 3, 1, 2,
+    //    1, 5, 2, 2, 5, 6,
+    //    5, 4, 6, 6, 4, 7,
+    //    4, 0, 7, 7, 0, 3,
+    //    3, 2, 7, 7, 2, 6,
+    //    4, 5, 0, 0, 5, 1,
+    //};
 
-    m_mesh1 = new Mesh(vertices, indices);
-    m_mesh2 = new Mesh(vertices, indices);
+    std::vector<Mesh> meshes = assimpLoadModel("dolphin.obj");
+    for (size_t i = 0; i < meshes.size(); i++) {
+        meshes[i].computeNormals();
+        m_meshes.push_back(createVulkanMesh(meshes[i]));
+    }
 
-    prepareMeshData();
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
@@ -118,14 +121,12 @@ void VulkanRenderer::releaseResources()
     m_devFunctions->vkDestroyImage(m_device, m_textureImage, nullptr);
     m_devFunctions->vkFreeMemory(m_device, m_textureImageMemory, nullptr);
 
-    m_devFunctions->vkDestroyBuffer(m_device, m_indexBuffer1, nullptr);
-    m_devFunctions->vkFreeMemory(m_device, m_indexBufferMemory1, nullptr);
-    m_devFunctions->vkDestroyBuffer(m_device, m_vertexBuffer1, nullptr);
-    m_devFunctions->vkFreeMemory(m_device, m_vertexBufferMemory1, nullptr);
-    m_devFunctions->vkDestroyBuffer(m_device, m_indexBuffer2, nullptr);
-    m_devFunctions->vkFreeMemory(m_device, m_indexBufferMemory2, nullptr);
-    m_devFunctions->vkDestroyBuffer(m_device, m_vertexBuffer2, nullptr);
-    m_devFunctions->vkFreeMemory(m_device, m_vertexBufferMemory2, nullptr);
+    for (size_t i = 0; i < m_meshes.size(); i++) {
+        m_devFunctions->vkDestroyBuffer(m_device, m_meshes[i].m_vertexBuffer, nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_meshes[i].m_vertexBufferMemory, nullptr);
+        m_devFunctions->vkDestroyBuffer(m_device, m_meshes[i].m_indexBuffer, nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_meshes[i].m_indexBufferMemory, nullptr);
+    }
 
     destroyDebugCallback();
 }
@@ -156,32 +157,18 @@ void VulkanRenderer::startNextFrame()
     m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     m_devFunctions->vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     
-    {
-        VkBuffer vertexBuffers[] = { m_vertexBuffer1 };
+    for (size_t i = 0; i < m_meshes.size(); i++) {
+        VkBuffer vertexBuffers[] = { m_meshes[i].m_vertexBuffer };
         VkDeviceSize offsets[] = { 0 };
         m_devFunctions->vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-        m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, m_indexBuffer1, 0, VK_INDEX_TYPE_UINT16);
+        m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, m_meshes[i].m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
         
         /* Calculate model data offsets */
-        uint32_t dynamicOffset = static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * 0;
+        uint32_t dynamicOffset = static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * i;
         m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
             0, 1, &m_descriptorSets[imageIndex], 1, &dynamicOffset);
         
-        m_devFunctions->vkCmdDrawIndexed(cmdBuf, m_mesh1->getIndices().size(), 1, 0, 0, 0);
-    }
-
-    {
-        VkBuffer vertexBuffers[] = { m_vertexBuffer2 };
-        VkDeviceSize offsets[] = { 0 };
-        m_devFunctions->vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-        m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, m_indexBuffer2, 0, VK_INDEX_TYPE_UINT16);
-
-        /* Calculate model data offsets */
-        uint32_t dynamicOffset = static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * 1;
-        m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
-            0, 1, &m_descriptorSets[imageIndex], 1, &dynamicOffset);
-
-        m_devFunctions->vkCmdDrawIndexed(cmdBuf, m_mesh2->getIndices().size(), 1, 0, 0, 0);
+        m_devFunctions->vkCmdDrawIndexed(cmdBuf, m_meshes[i].getIndices().size(), 1, 0, 0, 0);
     }
 
     m_devFunctions->vkCmdEndRenderPass(cmdBuf);
@@ -332,8 +319,8 @@ bool VulkanRenderer::createGraphicsPipeline()
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
     /* -------------------- VERTEX INPUT ------------------ */
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    auto bindingDescription = VulkanVertex::getBindingDescription();
+    auto attributeDescriptions = VulkanVertex::getAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -373,7 +360,7 @@ bool VulkanRenderer::createGraphicsPipeline()
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f; // Optional
     rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -493,13 +480,12 @@ bool VulkanRenderer::createFrameBuffers()
     return true;
 }
 
-bool VulkanRenderer::prepareMeshData()
+VulkanMesh VulkanRenderer::createVulkanMesh(Mesh & mesh)
 {
-    createVertexBuffer(m_mesh1->getVertices(), m_vertexBuffer1, m_vertexBufferMemory1);
-    createIndexBuffer(m_mesh1->getIndices(), m_indexBuffer1, m_indexBufferMemory1);
-    createVertexBuffer(m_mesh2->getVertices(), m_vertexBuffer2, m_vertexBufferMemory2);
-    createIndexBuffer(m_mesh2->getIndices(), m_indexBuffer2, m_indexBufferMemory2);
-    return true;
+    VulkanMesh vkmesh(mesh);
+    createVertexBuffer(mesh.getVertices(), vkmesh.m_vertexBuffer, vkmesh.m_vertexBufferMemory);
+    createIndexBuffer(mesh.getIndices(), vkmesh.m_indexBuffer, vkmesh.m_indexBufferMemory);
+    return vkmesh;
 }
 
 bool VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
@@ -647,10 +633,17 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
     }
 
     {
+        Transform transform;
+        transform.setPosition({ 0, 0, 0 });
+        transform.setScale({ 0.01, 0.01, 0.01 });
+        transform.setRotation(glm::quat(glm::vec3(glm::radians(-90.0f), 0, 0)));
+
         ModelData * modelData = m_modelDataDynamicUBO.getBlock(0);
-        modelData->m_modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelData->m_modelMatrix = transform.getModelMatrix();
         modelData = m_modelDataDynamicUBO.getBlock(1);
-        modelData->m_modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-3, 1, 0)) * glm::rotate(glm::mat4(1.0f), time * glm::radians(-30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelData->m_modelMatrix = transform.getModelMatrix();
+        modelData = m_modelDataDynamicUBO.getBlock(2);
+        modelData->m_modelMatrix = transform.getModelMatrix();
     
         void* data;
         m_devFunctions->vkMapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index), 0, m_modelDataDynamicUBO.getBlockSizeAligned() * 2, 0, &data);

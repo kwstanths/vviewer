@@ -7,8 +7,8 @@
 
 VulkanWindow::VulkanWindow()
 {
-    //OrthographicCamera * camera = new OrthographicCamera();
-    //camera->setOrthoWidth(10.f);
+    /*OrthographicCamera * camera = new OrthographicCamera();
+    camera->setOrthoWidth(10.f);*/
     PerspectiveCamera * camera = new PerspectiveCamera();
     camera->setFoV(45.0f);
     

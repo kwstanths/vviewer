@@ -31,6 +31,12 @@ macro(SetupEnvironment)
     set(STB_DIR ${PROJECT_ROOT}/src/lib/external/stb)
     set(STB_INCLUDE_DIRS ${STB_DIR})
     
+    #ASSIMP
+    set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP)
+    set(ASSIMP_INCLUDE_DIRS ${ASSIMP_DIR}/include)
+    set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib)
+    set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc141-mt.lib)
+    
     # UTILS
     set(UTILS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/utils/)
     set(UTILS_LIBRARIES utils)

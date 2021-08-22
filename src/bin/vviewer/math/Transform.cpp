@@ -44,7 +44,7 @@ glm::vec3 Transform::getRight() const
 
 glm::mat4 Transform::getModelMatrix() const
 {
-    return glm::translate(glm::mat4(1.0f), m_position) * glm::toMat4(m_rotation) * glm::scale(glm::mat4(), m_scale);
+    return glm::translate(glm::mat4(1.0f), m_position) * glm::toMat4(m_rotation) * glm::scale(glm::mat4(1.0f), m_scale);
 }
 
 void Transform::setRotation(const glm::quat & newRotation)
