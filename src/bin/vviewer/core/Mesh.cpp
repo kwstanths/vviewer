@@ -1,7 +1,7 @@
 #include "Mesh.hpp"
 
 #include <iostream>
-#include "IncludeVulkan.hpp"
+#include "vulkan/IncludeVulkan.hpp"
 #include <glm/glm.hpp>
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices)

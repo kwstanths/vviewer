@@ -10,9 +10,9 @@
 
 #include "core/Image.hpp"
 #include "models/AssimpLoadModel.hpp"
-#include "IncludeVulkan.hpp"
-#include "Shader.hpp"
-#include "Utils.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/Shader.hpp"
+#include "vulkan/Utils.hpp"
 
 void VulkanRenderer::preInitResources()
 {
@@ -43,30 +43,21 @@ void VulkanRenderer::initResources()
     
     m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 10);
 
-    /* Prepare a cube */
-    //const std::vector<Vertex> vertices = {
-    //    {{-1.f, -1.f, -1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-    //    {{ 1.f, -1.f, -1.f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-    //    {{ 1.f,  1.f, -1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-    //    {{-1.f,  1.f, -1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-    //    {{-1.f, -1.f,  1.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-    //    {{ 1.f, -1.f,  1.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-    //    {{ 1.f,  1.f,  1.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-    //    {{-1.f,  1.f,  1.f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-    //};
-    //const std::vector<uint16_t> indices = {
-    //    0, 1, 3, 3, 1, 2,
-    //    1, 5, 2, 2, 5, 6,
-    //    5, 4, 6, 6, 4, 7,
-    //    4, 0, 7, 7, 0, 3,
-    //    3, 2, 7, 7, 2, 6,
-    //    4, 5, 0, 0, 5, 1,
-    //};
-
-    std::vector<Mesh> meshes = assimpLoadModel("dolphin.obj");
-    for (size_t i = 0; i < meshes.size(); i++) {
-        meshes[i].computeNormals();
-        m_meshes.push_back(createVulkanMesh(meshes[i]));
+    {
+        m_modelDolphin = VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel("dolphin.obj"), true);
+        m_modelDolphinTransform.setPosition({ 0, 0, 0 });
+        m_modelDolphinTransform.setScale({ 0.01, 0.01, 0.01 });
+        m_modelDolphinTransform.setRotation(glm::quat(glm::vec3(glm::radians(-90.0f), 0, 0)));
+        ModelData * modelData = m_modelDataDynamicUBO.getBlock(m_modelDolphinTransformUBOBlock);
+        modelData->m_modelMatrix = m_modelDolphinTransform.getModelMatrix();
+    }
+    {
+        m_modelTeapot = VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel("teapot.obj"), true);
+        m_modelTeapotTransform.setPosition({ -5, 0, 0 });
+        m_modelTeapotTransform.setScale({ 1, 1, 1});
+        m_modelTeapotTransform.setRotation(glm::quat(glm::vec3(glm::radians(0.0f), 0, 0)));
+        ModelData * modelData = m_modelDataDynamicUBO.getBlock(m_modelTeapotTransformUBOBlock);
+        modelData->m_modelMatrix = m_modelTeapotTransform.getModelMatrix();
     }
 
     createTextureImage();
@@ -121,11 +112,25 @@ void VulkanRenderer::releaseResources()
     m_devFunctions->vkDestroyImage(m_device, m_textureImage, nullptr);
     m_devFunctions->vkFreeMemory(m_device, m_textureImageMemory, nullptr);
 
-    for (size_t i = 0; i < m_meshes.size(); i++) {
-        m_devFunctions->vkDestroyBuffer(m_device, m_meshes[i].m_vertexBuffer, nullptr);
-        m_devFunctions->vkFreeMemory(m_device, m_meshes[i].m_vertexBufferMemory, nullptr);
-        m_devFunctions->vkDestroyBuffer(m_device, m_meshes[i].m_indexBuffer, nullptr);
-        m_devFunctions->vkFreeMemory(m_device, m_meshes[i].m_indexBufferMemory, nullptr);
+    {
+        std::vector<Mesh *> meshes = m_modelDolphin.getMeshes();
+        for (size_t i = 0; i < meshes.size(); i++) {
+            VulkanMesh * vkmesh = static_cast<VulkanMesh *>(meshes[i]);
+            m_devFunctions->vkDestroyBuffer(m_device, vkmesh->m_vertexBuffer, nullptr);
+            m_devFunctions->vkFreeMemory(m_device, vkmesh->m_vertexBufferMemory, nullptr);
+            m_devFunctions->vkDestroyBuffer(m_device, vkmesh->m_indexBuffer, nullptr);
+            m_devFunctions->vkFreeMemory(m_device, vkmesh->m_indexBufferMemory, nullptr);
+        }
+    }
+    {
+        std::vector<Mesh *> meshes = m_modelTeapot.getMeshes();
+        for (size_t i = 0; i < meshes.size(); i++) {
+            VulkanMesh * vkmesh = static_cast<VulkanMesh *>(meshes[i]);
+            m_devFunctions->vkDestroyBuffer(m_device, vkmesh->m_vertexBuffer, nullptr);
+            m_devFunctions->vkFreeMemory(m_device, vkmesh->m_vertexBufferMemory, nullptr);
+            m_devFunctions->vkDestroyBuffer(m_device, vkmesh->m_indexBuffer, nullptr);
+            m_devFunctions->vkFreeMemory(m_device, vkmesh->m_indexBufferMemory, nullptr);
+        }
     }
 
     destroyDebugCallback();
@@ -157,18 +162,41 @@ void VulkanRenderer::startNextFrame()
     m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     m_devFunctions->vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     
-    for (size_t i = 0; i < m_meshes.size(); i++) {
-        VkBuffer vertexBuffers[] = { m_meshes[i].m_vertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
-        m_devFunctions->vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-        m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, m_meshes[i].m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-        
-        /* Calculate model data offsets */
-        uint32_t dynamicOffset = static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * i;
-        m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
-            0, 1, &m_descriptorSets[imageIndex], 1, &dynamicOffset);
-        
-        m_devFunctions->vkCmdDrawIndexed(cmdBuf, m_meshes[i].getIndices().size(), 1, 0, 0, 0);
+    {
+        std::vector<Mesh *> meshes = m_modelDolphin.getMeshes();
+        for (size_t i = 0; i < meshes.size(); i++) {
+            VulkanMesh * vkmesh = static_cast<VulkanMesh *>(meshes[i]);
+
+            VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+            VkDeviceSize offsets[] = { 0 };
+            m_devFunctions->vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
+            m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+            /* Calculate model data offsets */
+            uint32_t dynamicOffset = static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * m_modelDolphinTransformUBOBlock;
+            m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
+                0, 1, &m_descriptorSets[imageIndex], 1, &dynamicOffset);
+
+            m_devFunctions->vkCmdDrawIndexed(cmdBuf, vkmesh->getIndices().size(), 1, 0, 0, 0);
+        }
+    }
+    {
+        std::vector<Mesh *> meshes = m_modelTeapot.getMeshes();
+        for (size_t i = 0; i < meshes.size(); i++) {
+            VulkanMesh * vkmesh = static_cast<VulkanMesh *>(meshes[i]);
+
+            VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+            VkDeviceSize offsets[] = { 0 };
+            m_devFunctions->vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
+            m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+            /* Calculate model data offsets */
+            uint32_t dynamicOffset = static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * m_modelTeapotTransformUBOBlock;
+            m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
+                0, 1, &m_descriptorSets[imageIndex], 1, &dynamicOffset);
+
+            m_devFunctions->vkCmdDrawIndexed(cmdBuf, vkmesh->getIndices().size(), 1, 0, 0, 0);
+        }
     }
 
     m_devFunctions->vkCmdEndRenderPass(cmdBuf);
@@ -480,77 +508,6 @@ bool VulkanRenderer::createFrameBuffers()
     return true;
 }
 
-VulkanMesh VulkanRenderer::createVulkanMesh(Mesh & mesh)
-{
-    VulkanMesh vkmesh(mesh);
-    createVertexBuffer(mesh.getVertices(), vkmesh.m_vertexBuffer, vkmesh.m_vertexBufferMemory);
-    createIndexBuffer(mesh.getIndices(), vkmesh.m_indexBuffer, vkmesh.m_indexBufferMemory);
-    return vkmesh;
-}
-
-bool VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
-{
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(m_physicalDevice, m_device, bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        stagingBuffer, 
-        stagingBufferMemory);
-
-    void* data;
-    m_devFunctions->vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferSize);
-    m_devFunctions->vkUnmapMemory(m_device, stagingBufferMemory);
-
-    createBuffer(m_physicalDevice, m_device, bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        buffer,
-        bufferMemory
-    );
-
-    copyBufferToBuffer(m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), stagingBuffer, buffer, bufferSize);
-
-    m_devFunctions->vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-    m_devFunctions->vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-
-    return true;
-}
-
-bool VulkanRenderer::createIndexBuffer(const std::vector<uint16_t>& indices, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
-{
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(m_physicalDevice, m_device, bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        stagingBuffer, 
-        stagingBufferMemory);
-
-    void* data;
-    m_devFunctions->vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), (size_t)bufferSize);
-    m_devFunctions->vkUnmapMemory(m_device, stagingBufferMemory);
-
-    createBuffer(m_physicalDevice, m_device, bufferSize, 
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-        buffer,
-        bufferMemory);
-
-    copyBufferToBuffer(m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), stagingBuffer, buffer, bufferSize);
-
-    m_devFunctions->vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-    m_devFunctions->vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-
-    return true;
-}
-
 bool VulkanRenderer::createDescriptorSetsLayouts()
 {
     /* Create binding for camera data */
@@ -632,24 +589,10 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
         m_devFunctions->vkUnmapMemory(m_device, m_uniformBuffersCameraMemory[index]);
     }
 
-    {
-        Transform transform;
-        transform.setPosition({ 0, 0, 0 });
-        transform.setScale({ 0.01, 0.01, 0.01 });
-        transform.setRotation(glm::quat(glm::vec3(glm::radians(-90.0f), 0, 0)));
-
-        ModelData * modelData = m_modelDataDynamicUBO.getBlock(0);
-        modelData->m_modelMatrix = transform.getModelMatrix();
-        modelData = m_modelDataDynamicUBO.getBlock(1);
-        modelData->m_modelMatrix = transform.getModelMatrix();
-        modelData = m_modelDataDynamicUBO.getBlock(2);
-        modelData->m_modelMatrix = transform.getModelMatrix();
-    
-        void* data;
-        m_devFunctions->vkMapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index), 0, m_modelDataDynamicUBO.getBlockSizeAligned() * 2, 0, &data);
-        memcpy(data, m_modelDataDynamicUBO.getBlock(0), m_modelDataDynamicUBO.getBlockSizeAligned() * 2);
-        m_devFunctions->vkUnmapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index));
-    }
+    void* data;
+    m_devFunctions->vkMapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index), 0, m_modelDataDynamicUBO.getBlockSizeAligned() * 2, 0, &data);
+    memcpy(data, m_modelDataDynamicUBO.getBlock(0), m_modelDataDynamicUBO.getBlockSizeAligned() * 2);
+    m_devFunctions->vkUnmapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index));
 
     return true;
 }

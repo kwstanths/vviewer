@@ -29,6 +29,8 @@ file(GLOB ${NAME}_MODELS_HEADERS models/*.hpp)
 file(GLOB ${NAME}_MODELS_SOURCES models/*.cpp)
 file(GLOB ${NAME}_CORE_HEADERS core/*.hpp)
 file(GLOB ${NAME}_CORE_SOURCES core/*.cpp)
+file(GLOB ${NAME}_VULKAN_HEADERS vulkan/*.hpp)
+file(GLOB ${NAME}_VULKAN_SOURCES vulkan/*.cpp)
 file(GLOB ${NAME}_RESOURCES *.qrc)
 QT5_ADD_RESOURCES(${NAME}_RESOURCES_RCC ${${NAME}_RESOURCES})
 
@@ -38,6 +40,7 @@ add_executable(${NAME} ${GUI_TYPE}
 	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES}
 	${${NAME}_MODELS_HEADERS} ${${NAME}_MODELS_SOURCES}
 	${${NAME}_CORE_HEADERS} ${${NAME}_CORE_SOURCES}
+	${${NAME}_VULKAN_HEADERS} ${${NAME}_VULKAN_SOURCES}
 	${${NAME}_RESOURCES_RCC}
 	)
 
@@ -45,5 +48,6 @@ add_executable(${NAME} ${GUI_TYPE}
 target_link_libraries(${NAME} ${QT_LIBRARIES} ${VULKAN_LIBRARIES} ${UTILS_LIBRARIES} ${ASSIMP_LIBRARIES})
 
 source_group("math\\"		FILES	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES})
-source_group("models\\"			FILES	${${NAME}_MODELS_HEADERS} ${${NAME}_MODELS_SOURCES})
-source_group("core\\"			FILES	${${NAME}_CORE_HEADERS} ${${NAME}_CORE_SOURCES})
+source_group("models\\"		FILES	${${NAME}_MODELS_HEADERS} ${${NAME}_MODELS_SOURCES})
+source_group("core\\"		FILES	${${NAME}_CORE_HEADERS} ${${NAME}_CORE_SOURCES})
+source_group("vulkan\\"		FILES	${${NAME}_VULKAN_HEADERS} ${${NAME}_VULKAN_SOURCES})

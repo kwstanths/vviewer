@@ -9,12 +9,12 @@
 
 #include <utils/Console.hpp>
 
-#include "IncludeVulkan.hpp"
-#include "VulkanDynamicUBO.hpp"
-#include "VulkanMesh.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanDynamicUBO.hpp"
+#include "vulkan/VulkanMesh.hpp"
+#include "vulkan/Utils.hpp"
 
-#include "core/Mesh.hpp"
-#include "Utils.hpp"
+#include "core/MeshModel.hpp"
 #include "Camera.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -64,11 +64,6 @@ private:
     bool createGraphicsPipeline();
     bool createFrameBuffers();
 
-    /* Mesh data */
-    VulkanMesh createVulkanMesh(Mesh& mesh);
-    bool createVertexBuffer(const std::vector<Vertex>& vertices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    bool createIndexBuffer(const std::vector<uint16_t>& indices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-
     /* Descriptor resources */
     bool createDescriptorSetsLayouts();
     bool createUniformBuffers();
@@ -103,9 +98,6 @@ private:
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
 
-    /* Vertex data */
-    std::vector<VulkanMesh> m_meshes;
-
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayout;
     std::vector<VkBuffer> m_uniformBuffersCamera;
@@ -119,6 +111,14 @@ private:
     VkDeviceMemory m_textureImageMemory;
     VkImageView m_textureImageView;
     VkSampler m_textureSampler;
+
+    /* Asset data */
+    MeshModel m_modelDolphin;
+    Transform m_modelDolphinTransform;
+    int m_modelDolphinTransformUBOBlock = 0;
+    MeshModel m_modelTeapot;
+    Transform m_modelTeapotTransform;
+    int m_modelTeapotTransformUBOBlock = 1;
 
     std::shared_ptr<Camera> m_camera;
 

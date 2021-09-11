@@ -7,7 +7,7 @@
 
 #include <glm/glm.hpp>
 #include "core/Mesh.hpp"
-#include "IncludeVulkan.hpp"
+#include "vulkan/IncludeVulkan.hpp"
 
 class VulkanVertex {
 public:
@@ -55,6 +55,16 @@ bool createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize
 /**
 
 */
+bool createVertexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, const std::vector<Vertex>& vertices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+/**
+
+*/
+bool createIndexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, const std::vector<uint16_t>& indices, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+/**
+
+*/
 bool createImage(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
 /**
@@ -86,6 +96,7 @@ void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue q
 
 */
 void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+
 
 static std::vector<char> readSPIRV(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);

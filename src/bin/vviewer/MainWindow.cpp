@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     widget_main->setLayout(layout_main);
 
     setCentralWidget(widget_main);
-    resize(1600, 900);
+    resize(1600, 1000);
 }
 
 MainWindow::~MainWindow() {
