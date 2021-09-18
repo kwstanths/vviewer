@@ -3,8 +3,6 @@
 #include <qevent.h>
 #include <qapplication.h>
 
-#include "math/Transform.hpp"
-
 VulkanWindow::VulkanWindow()
 {
     /*OrthographicCamera * camera = new OrthographicCamera();
@@ -25,13 +23,30 @@ VulkanWindow::VulkanWindow()
     m_updateCameraTimer->start();
 }
 
+VulkanWindow::~VulkanWindow()
+{
+
+}
+
 QVulkanWindowRenderer * VulkanWindow::createRenderer()
 {
-    VulkanRenderer * renderer = new VulkanRenderer(this);
+    m_renderer = new VulkanRenderer(this);
 
-    renderer->setCamera(m_camera);
+    m_renderer->setCamera(m_camera);
 
-    return renderer;
+    return m_renderer;
+}
+
+bool VulkanWindow::ImportMeshModel(std::string filename)
+{
+    return m_renderer->createVulkanMeshModel(filename);
+}
+
+bool VulkanWindow::AddSceneObject(std::string filename, Transform transform)
+{
+    auto ret = m_renderer->addSceneObject(filename, transform);
+
+    return ret != nullptr;
 }
 
 void VulkanWindow::resizeEvent(QResizeEvent * ev)

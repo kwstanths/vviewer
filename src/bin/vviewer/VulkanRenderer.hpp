@@ -10,12 +10,15 @@
 #include <utils/Console.hpp>
 
 #include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanDataStructs.hpp"
 #include "vulkan/VulkanDynamicUBO.hpp"
 #include "vulkan/VulkanMesh.hpp"
 #include "vulkan/Utils.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
 
 #include "core/MeshModel.hpp"
-#include "Camera.hpp"
+#include "core/Camera.hpp"
+#include "core/AssetManager.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -26,15 +29,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     //std::cerr << "Debug callback: " << pCallbackData->pMessage << std::endl;
     return VK_FALSE;
 }
-
-struct CameraData {
-    alignas(16) glm::mat4 m_view;
-    alignas(16) glm::mat4 m_projection;
-};
-
-struct ModelData {
-    alignas(16) glm::mat4 m_modelMatrix;
-};
 
 class VulkanRenderer : public QVulkanWindowRenderer {
 public:
@@ -50,6 +44,10 @@ public:
     void startNextFrame() override;
 
     void setCamera(std::shared_ptr<Camera> camera);
+
+    bool createVulkanMeshModel(std::string filename);
+
+    VulkanSceneObject * addSceneObject(std::string meshModel, Transform transform);
 
 private:
 
@@ -75,6 +73,9 @@ private:
     bool createTextureImage();
     bool createTextureImageView();
     bool createTextureSampler();
+    
+    /* */
+    void destroyVulkanMeshModel(MeshModel model);
 
 private:
     /* Qt vulkan data */
@@ -113,12 +114,11 @@ private:
     VkSampler m_textureSampler;
 
     /* Asset data */
-    MeshModel m_modelDolphin;
-    Transform m_modelDolphinTransform;
-    int m_modelDolphinTransformUBOBlock = 0;
-    MeshModel m_modelTeapot;
-    Transform m_modelTeapotTransform;
-    int m_modelTeapotTransformUBOBlock = 1;
+    AssetManager<std::string, MeshModel *> m_meshModels;
+
+    std::vector<VulkanSceneObject *> m_objects;
+    // keeps the index of block for the next added object
+    size_t m_transformIndexUBO = 0;
 
     std::shared_ptr<Camera> m_camera;
 

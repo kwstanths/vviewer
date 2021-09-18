@@ -30,7 +30,7 @@ public:
     }
 
     /**
-        Creates nBuffers GPU buffers to hold the allocated blocks, on buffer for each swapchain image
+        Creates nBuffers GPU buffers to hold the allocated blocks, one buffer for each swapchain image
         @param physicalDevice The physical device
         @param device The logical device
         @param nBuffers The number of buffers to allocate
@@ -88,6 +88,14 @@ public:
     Block * getBlock(size_t index)
     {
         return (Block *)((uint64_t)m_dataTransferSpace + (index * m_blockAlignment));
+    }
+
+    /**
+        Get total number of blocks allocated
+    */
+    uint32_t getNBlocks()
+    {
+        return m_nBlocks;
     }
 
     /**

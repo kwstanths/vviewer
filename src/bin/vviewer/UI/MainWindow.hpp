@@ -14,13 +14,19 @@ public:
     virtual ~MainWindow();
 
 private:
+    QWidget * initVulkanWindowWidget();
+    QWidget * initControlsWidget();
     QVulkanInstance * m_vulkanInstance;
     VulkanWindow * m_vulkanWindow;
 
-    QSlider * m_sliderClearColor;
+    void createMenu();
+    QMenu * m_menuFile;
+    QAction * m_actionImport;
+    QAction * m_actionAddSceneObject;
 
-    QWidget * initVulkanWindowWidget();
-    QWidget * initControlsWidget();
+private slots:
+    void importModelSlot();
+    void addSceneObjectSlot();
 };
 
 #endif

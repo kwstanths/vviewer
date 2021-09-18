@@ -34,21 +34,24 @@ namespace utils {
 
     /**
         Print something to console as info
-        @param importance The importance of the message
         @param text The text to print
     */
     void ConsoleInfo(std::string text);
 
     /**
+        Print something to console as warning
+        @param text The text to print
+    */
+    void ConsoleWarning(std::string text);
+
+    /**
         Print something to console as fatal
-        @param importance The importance of the message
         @param text The text to print
     */
     void ConsoleFatal(std::string text);
     
     /**
         Print something to console as critical
-        @param importance The importance of the message
         @param text The text to print
     */
     void ConsoleCritical(std::string text);

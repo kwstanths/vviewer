@@ -2,7 +2,7 @@
 
 #include <qapplication.h>
 
-#include "MainWindow.hpp"
+#include "UI/MainWindow.hpp"
 
 int main(int argc, char ** argv) {
 

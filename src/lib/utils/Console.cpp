@@ -30,6 +30,16 @@ namespace utils {
         std::cout << std::endl;
     }
 
+    void ConsoleWarning(std::string text)
+    {
+        std::pair<std::string, TerminalColor> level_info = GetLevelInfo(DebugLevel::WARNING);
+        std::cout << GetStringTimestamp() << " [";
+        CustomPrint(std::cout, level_info.first, level_info.second);
+        std::cout << "] : ";
+        CustomPrint(std::cout, text, TerminalColor::DEF_FG);
+        std::cout << std::endl;
+    }
+
     void ConsoleFatal(std::string text)
     {
         std::pair<std::string, TerminalColor> level_info = GetLevelInfo(DebugLevel::FATAL);

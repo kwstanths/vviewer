@@ -3,6 +3,8 @@
 #include <qvulkaninstance.h>
 #include <qlayout.h>
 #include <qlabel.h>
+#include <qmenubar.h>
+#include <qfiledialog.h>
 
 #include <utils/Console.hpp>
 
@@ -18,8 +20,11 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     QWidget * widget_main = new QWidget();
     widget_main->setLayout(layout_main);
 
+    createMenu();
+
     setCentralWidget(widget_main);
     resize(1600, 1000);
+
 }
 
 MainWindow::~MainWindow() {
@@ -89,3 +94,39 @@ QWidget * MainWindow::initControlsWidget()
     widget_controls->setFixedWidth(100);
     return widget_controls;
 }
+
+void MainWindow::createMenu()
+{
+    m_actionImport = new QAction(tr("&Import a model"), this);
+    m_actionImport->setStatusTip(tr("Import a model"));
+    connect(m_actionImport, &QAction::triggered, this, &MainWindow::importModelSlot);
+
+    m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
+    m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
+    connect(m_actionAddSceneObject, &QAction::triggered, this, &MainWindow::addSceneObjectSlot);
+
+    m_menuFile = menuBar()->addMenu(tr("&File"));
+    m_menuFile->addAction(m_actionImport);
+    m_menuFile->addAction(m_actionAddSceneObject);
+}
+
+void MainWindow::importModelSlot()
+{   
+    QString filename = QFileDialog::getOpenFileName(this,
+        tr("Import model"), "",
+        tr("Model (*.obj);;All Files (*)"));
+
+    bool ret = m_vulkanWindow->ImportMeshModel(filename.toStdString());
+ 
+    if (ret) utils::ConsoleInfo("Model imported");
+}
+
+void MainWindow::addSceneObjectSlot()
+{
+    /* TODO open dialog, pick model from the imported ones, set transform */
+
+    bool ret = m_vulkanWindow->AddSceneObject("F:/Documents/dev/vviewer/build/src/bin/vviewer/teapot.obj", Transform());
+ 
+    if (!ret) utils::ConsoleWarning("Model not present");
+}
+

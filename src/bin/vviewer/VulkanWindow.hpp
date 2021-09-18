@@ -5,14 +5,23 @@
 #include <qwindow.h>
 #include <qtimer.h>
 
+#include <math/Transform.hpp>
+#include <core/Camera.hpp>
+#include <core/AssetManager.hpp>
+#include <core/MeshModel.hpp>
+
 #include "VulkanRenderer.hpp"
-#include "Camera.hpp"
 
 class VulkanWindow : public QVulkanWindow {
     Q_OBJECT
 public:
     VulkanWindow();
+    ~VulkanWindow();
     QVulkanWindowRenderer * createRenderer() override;
+
+    bool ImportMeshModel(std::string filename);
+
+    bool AddSceneObject(std::string filename, Transform transform);
 
 protected:
     void resizeEvent(QResizeEvent *ev) override;
@@ -23,7 +32,8 @@ protected:
     void mouseMoveEvent(QMouseEvent *ev) override;
 
 private:
-    
+    VulkanRenderer * m_renderer = nullptr;
+
     std::unordered_map<int, bool> m_keysPressed;
 
     bool m_mousePosFirst = true;
