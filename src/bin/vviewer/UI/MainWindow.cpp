@@ -8,6 +8,8 @@
 
 #include <utils/Console.hpp>
 
+#include "DialogAddSceneObject.hpp"
+
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     
     QWidget * widgetControls = initControlsWidget();
@@ -86,6 +88,7 @@ QWidget * MainWindow::initVulkanWindowWidget()
 
 QWidget * MainWindow::initControlsWidget()
 {
+    /* Test */
     QVBoxLayout * layout_controls = new QVBoxLayout();
     layout_controls->addWidget(new QLabel("test"));
     QWidget * widget_controls = new QWidget();
@@ -99,18 +102,18 @@ void MainWindow::createMenu()
 {
     m_actionImport = new QAction(tr("&Import a model"), this);
     m_actionImport->setStatusTip(tr("Import a model"));
-    connect(m_actionImport, &QAction::triggered, this, &MainWindow::importModelSlot);
+    connect(m_actionImport, &QAction::triggered, this, &MainWindow::onImportModelSlot);
 
     m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
     m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
-    connect(m_actionAddSceneObject, &QAction::triggered, this, &MainWindow::addSceneObjectSlot);
+    connect(m_actionAddSceneObject, &QAction::triggered, this, &MainWindow::onAddSceneObjectSlot);
 
     m_menuFile = menuBar()->addMenu(tr("&File"));
     m_menuFile->addAction(m_actionImport);
     m_menuFile->addAction(m_actionAddSceneObject);
 }
 
-void MainWindow::importModelSlot()
+void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
         tr("Import model"), "",
@@ -118,14 +121,22 @@ void MainWindow::importModelSlot()
 
     bool ret = m_vulkanWindow->ImportMeshModel(filename.toStdString());
  
-    if (ret) utils::ConsoleInfo("Model imported");
+    if (ret) {
+        utils::ConsoleInfo("Model imported");
+        m_importedModels.append(filename);
+    }
 }
 
-void MainWindow::addSceneObjectSlot()
+void MainWindow::onAddSceneObjectSlot()
 {
     /* TODO open dialog, pick model from the imported ones, set transform */
+    DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", m_importedModels);
+    dialog->exec();
 
-    bool ret = m_vulkanWindow->AddSceneObject("F:/Documents/dev/vviewer/build/src/bin/vviewer/teapot.obj", Transform());
+    std::string selectedModel = dialog->getSelectedModel();
+    if (selectedModel == "") return;
+
+    bool ret = m_vulkanWindow->AddSceneObject(selectedModel, dialog->getTransform());
  
     if (!ret) utils::ConsoleWarning("Model not present");
 }

@@ -17,6 +17,11 @@ void Transform::setPosition(const glm::vec3 & newPosition)
     m_position = newPosition;
 }
 
+void Transform::setPosition(float x, float y, float z)
+{
+    m_position = glm::vec3(x, y, z);
+}
+
 glm::vec3 Transform::getPosition() const
 {
     return m_position;
@@ -53,6 +58,12 @@ void Transform::setRotation(const glm::quat & newRotation)
     computeBasisVectors();
 }
 
+void Transform::setRotationEuler(float x, float y, float z)
+{
+    m_rotation = glm::quat(glm::vec3(x, y, z));
+    computeBasisVectors();
+}
+
 glm::vec3 Transform::getScale() const
 {
     return m_scale;
@@ -61,6 +72,11 @@ glm::vec3 Transform::getScale() const
 void Transform::setScale(const glm::vec3 & newScale)
 {
     m_scale = newScale;
+}
+
+void Transform::setScale(float x, float y, float z)
+{
+    m_scale = glm::vec3(x, y, z);
 }
 
 void Transform::rotate(const glm::vec3& axis, const float angle)

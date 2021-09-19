@@ -9,13 +9,16 @@ public:
     Transform();
 
     void setPosition(const glm::vec3& newPosition);
+    void setPosition(float x, float y, float z);
     glm::vec3 getPosition() const;
 
-    glm::quat getRotation() const;
     void setRotation(const glm::quat &newRotation);
+    void setRotationEuler(float x, float y, float z);
+    glm::quat getRotation() const;
 
-    glm::vec3 getScale() const;
     void setScale(const glm::vec3 &newScale);
+    void setScale(float x, float y, float z);
+    glm::vec3 getScale() const;
 
     glm::vec3 getForward() const;
     glm::vec3 getUp() const;

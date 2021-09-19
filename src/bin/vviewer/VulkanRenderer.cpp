@@ -164,9 +164,14 @@ void VulkanRenderer::setCamera(std::shared_ptr<Camera> camera)
 bool VulkanRenderer::createVulkanMeshModel(std::string filename)
 {
     if (m_meshModels.isPresent(filename)) return false;
-
-    VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel(filename), true);
-    m_meshModels.Add(filename, vkmesh);
+    
+    try {
+        VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel(filename), true);
+        m_meshModels.Add(filename, vkmesh);
+    }
+    catch (std::runtime_error& e) {
+        return false;
+    }
 
     return true;
 }

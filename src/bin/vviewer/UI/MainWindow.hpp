@@ -24,9 +24,11 @@ private:
     QAction * m_actionImport;
     QAction * m_actionAddSceneObject;
 
+    QStringList m_importedModels;
+
 private slots:
-    void importModelSlot();
-    void addSceneObjectSlot();
+    void onImportModelSlot();
+    void onAddSceneObjectSlot();
 };
 
 #endif
