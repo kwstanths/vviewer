@@ -42,11 +42,9 @@ bool VulkanWindow::ImportMeshModel(std::string filename)
     return m_renderer->createVulkanMeshModel(filename);
 }
 
-bool VulkanWindow::AddSceneObject(std::string filename, Transform transform)
+SceneObject * VulkanWindow::AddSceneObject(std::string filename, Transform transform)
 {
-    auto ret = m_renderer->addSceneObject(filename, transform);
-
-    return ret != nullptr;
+    return m_renderer->addSceneObject(filename, transform);
 }
 
 void VulkanWindow::resizeEvent(QResizeEvent * ev)
@@ -56,35 +54,12 @@ void VulkanWindow::resizeEvent(QResizeEvent * ev)
 
 void VulkanWindow::keyPressEvent(QKeyEvent * ev)
 {
-    if (ev->key() == Qt::Key_W) {
-        m_keysPressed[Qt::Key_W] = true;
-    }
-    if (ev->key() == Qt::Key_A) {
-        m_keysPressed[Qt::Key_A] = true;
-    }
-    if (ev->key() == Qt::Key_S) {
-        m_keysPressed[Qt::Key_S] = true;
-    }
-    if (ev->key() == Qt::Key_D) {
-        m_keysPressed[Qt::Key_D] = true;
-    }
-
+    m_keysPressed[ev->key()] = true;
 }
 
 void VulkanWindow::keyReleaseEvent(QKeyEvent * ev)
 {
-    if (ev->key() == Qt::Key_W) {
-        m_keysPressed[Qt::Key_W] = false;
-    }
-    if (ev->key() == Qt::Key_A) {
-        m_keysPressed[Qt::Key_A] = false;
-    }
-    if (ev->key() == Qt::Key_S) {
-        m_keysPressed[Qt::Key_S] = false;
-    }
-    if (ev->key() == Qt::Key_D) {
-        m_keysPressed[Qt::Key_D] = false;
-    }
+    m_keysPressed[ev->key()] = false;
 }
 
 void VulkanWindow::mousePressEvent(QMouseEvent * ev)
@@ -130,4 +105,6 @@ void VulkanWindow::onUpdateCamera()
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * cameraSpeed);
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * cameraSpeed);
     cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * cameraSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_Q]) * cameraTransform.getUp() * cameraSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * cameraSpeed);
 }

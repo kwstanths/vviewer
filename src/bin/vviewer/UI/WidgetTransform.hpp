@@ -14,10 +14,12 @@ public:
 
     Transform getTransform() const;
 
-private:
+    void setTransform(const Transform& transform);
+
     QDoubleSpinBox *m_positionX, *m_positionY, *m_positionZ;
     QDoubleSpinBox *m_scaleX, *m_scaleY, *m_scaleZ;
     QDoubleSpinBox *m_rotationX, *m_rotationY, *m_rotationZ;
+private:
 
     QWidget * createRow(QString name, QDoubleSpinBox ** X, QDoubleSpinBox ** Y, QDoubleSpinBox ** Z);
 

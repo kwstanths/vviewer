@@ -11,7 +11,11 @@ public:
 
     SceneObject(const MeshModel * meshModel, Transform transform);
 
-    Transform& getTransform();
+    std::string m_name = "";
+
+    Transform getTransform();
+
+    virtual void setTransform(const Transform& transform);
 
     const MeshModel * getMeshModel();
 

@@ -1,15 +1,21 @@
 #include "VulkanSceneObject.hpp"
 
 VulkanSceneObject::VulkanSceneObject(const MeshModel * meshModel, Transform transform, VulkanDynamicUBO<ModelData>& transformDynamicUBO, int transformUBOBlock)
-    : SceneObject(meshModel, transform)
+    : SceneObject(meshModel, transform), m_transformDataSotrage(transformDynamicUBO)
 {
     m_transformUBOBlock = transformUBOBlock;
-    updateModelMatrixData(transformDynamicUBO);
+    updateModelMatrixData();
 }
 
-void VulkanSceneObject::updateModelMatrixData(VulkanDynamicUBO<ModelData>& transformDynamicUBO)
+void VulkanSceneObject::setTransform(const Transform & transform)
 {
-    ModelData * modelData = transformDynamicUBO.getBlock(m_transformUBOBlock);
+    m_transform = transform;
+    updateModelMatrixData();
+}
+
+void VulkanSceneObject::updateModelMatrixData()
+{
+    ModelData * modelData = m_transformDataSotrage.getBlock(m_transformUBOBlock);
     modelData->m_modelMatrix = m_transform.getModelMatrix();
 }
 

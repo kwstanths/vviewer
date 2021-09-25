@@ -21,7 +21,7 @@ public:
 
     bool ImportMeshModel(std::string filename);
 
-    bool AddSceneObject(std::string filename, Transform transform);
+    SceneObject * AddSceneObject(std::string filename, Transform transform);
 
 protected:
     void resizeEvent(QResizeEvent *ev) override;

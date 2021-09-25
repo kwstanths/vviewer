@@ -11,11 +11,14 @@ class VulkanSceneObject : public SceneObject
 public:
     VulkanSceneObject(const MeshModel * meshModel, Transform transform, VulkanDynamicUBO<ModelData>& transformDynamicUBO, int transformUBOBlock);
 
-    void updateModelMatrixData(VulkanDynamicUBO<ModelData>& transformDynamicUBO);
+    void setTransform(const Transform& transform) override;
+
+    void updateModelMatrixData();
 
     int getTransformUBOBlock() const;
 
 private:
+    VulkanDynamicUBO<ModelData>& m_transformDataSotrage;
     int m_transformUBOBlock = -1;
 };
 

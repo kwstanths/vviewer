@@ -5,6 +5,7 @@
 #include <qlabel.h>
 #include <qmenubar.h>
 #include <qfiledialog.h>
+#include <QVariant>
 
 #include <utils/Console.hpp>
 
@@ -16,6 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     QWidget * widgetVulkan = initVulkanWindowWidget();
 
     QHBoxLayout * layout_main = new QHBoxLayout();
+    layout_main->addWidget(initLeftPanel());
     layout_main->addWidget(widgetVulkan);
     layout_main->addWidget(widgetControls);
 
@@ -31,6 +33,23 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
 
 MainWindow::~MainWindow() {
 
+}
+
+QWidget * MainWindow::initLeftPanel()
+{
+    m_sceneObjects = new QListWidget();
+    m_sceneObjects->setStyleSheet("background-color: rgba(240, 240, 240, 255);");
+    connect(m_sceneObjects, &QListWidget::itemSelectionChanged, this, &MainWindow::onSelectedSceneObjectChangedSlot);
+
+    QVBoxLayout * layout_main = new QVBoxLayout();
+    layout_main->addWidget(new QLabel("Scene:"));
+    layout_main->addWidget(m_sceneObjects); 
+    
+    QWidget * widget_main = new QWidget();
+    widget_main->setLayout(layout_main);
+
+    widget_main->setFixedWidth(200);
+    return widget_main;
 }
 
 QWidget * MainWindow::initVulkanWindowWidget()
@@ -88,13 +107,13 @@ QWidget * MainWindow::initVulkanWindowWidget()
 
 QWidget * MainWindow::initControlsWidget()
 {
-    /* Test */
-    QVBoxLayout * layout_controls = new QVBoxLayout();
-    layout_controls->addWidget(new QLabel("test"));
-    QWidget * widget_controls = new QWidget();
-    widget_controls->setLayout(layout_controls);
+    m_layoutControls = new QVBoxLayout();
+    m_layoutControls->setAlignment(Qt::AlignTop);
 
-    widget_controls->setFixedWidth(100);
+    QWidget * widget_controls = new QWidget();
+    widget_controls->setLayout(m_layoutControls);
+
+    widget_controls->setFixedWidth(250);
     return widget_controls;
 }
 
@@ -129,15 +148,74 @@ void MainWindow::onImportModelSlot()
 
 void MainWindow::onAddSceneObjectSlot()
 {
-    /* TODO open dialog, pick model from the imported ones, set transform */
     DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", m_importedModels);
     dialog->exec();
 
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    bool ret = m_vulkanWindow->AddSceneObject(selectedModel, dialog->getTransform());
- 
-    if (!ret) utils::ConsoleWarning("Model not present");
+    SceneObject * object = m_vulkanWindow->AddSceneObject(selectedModel, dialog->getTransform());
+    
+    /* TODO set a some other way name */
+    object->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
+
+    if (object == nullptr) utils::ConsoleWarning("Model not present");
+    else {
+        QListWidgetItem * item = new QListWidgetItem(QString(object->m_name.c_str()));
+        QVariant data;
+        data.setValue(object);
+        item->setData(Qt::UserRole, data);
+        m_sceneObjects->addItem(item);
+    }
+}
+
+void MainWindow::onSelectedSceneObjectChangedSlot()
+{
+    if (m_selectedObjectWidgetName != nullptr) {
+        delete m_selectedObjectWidgetName;
+        delete m_selectedObjectWidgetTransform;
+    }
+
+    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
+    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
+    
+    m_selectedObjectWidgetName = new WidgetName(nullptr, QString(object->m_name.c_str()));
+    connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
+
+    m_selectedObjectWidgetTransform = new WidgetTransform(nullptr);
+    m_selectedObjectWidgetTransform->setTransform(object->getTransform());
+    connect(m_selectedObjectWidgetTransform->m_positionX, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_positionY, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_positionZ, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_scaleX, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_scaleY, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_scaleZ, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_rotationX, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    connect(m_selectedObjectWidgetTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+
+    m_layoutControls->addWidget(m_selectedObjectWidgetName);
+    m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
+}
+
+void MainWindow::onSelectedSceneObjectNameChangedSlot()
+{
+    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
+
+    QString newName = m_selectedObjectWidgetName->m_text->toPlainText();
+    selectedItem->setText(newName);
+
+    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
+    object->m_name = newName.toStdString();
+}
+
+void MainWindow::onSelectedSceneObjectTransformChangedSlot(double d)
+{
+    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
+
+    Transform newTransform = m_selectedObjectWidgetTransform->getTransform();
+
+    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
+    object->setTransform(newTransform);
 }
 

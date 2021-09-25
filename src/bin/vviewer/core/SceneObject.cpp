@@ -6,9 +6,14 @@ SceneObject::SceneObject(const MeshModel * meshModel, Transform transform)
     m_transform = transform;
 }
 
-Transform & SceneObject::getTransform()
+Transform SceneObject::getTransform()
 {
     return m_transform;
+}
+
+void SceneObject::setTransform(const Transform & transform)
+{
+    m_transform = transform;
 }
 
 const MeshModel * SceneObject::getMeshModel()
