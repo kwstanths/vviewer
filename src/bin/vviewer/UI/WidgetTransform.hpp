@@ -6,6 +6,7 @@
 
 #include "math/Transform.hpp"
 
+/* A UI widget to represent a transform */
 class WidgetTransform : public QWidget
 {
     Q_OBJECT

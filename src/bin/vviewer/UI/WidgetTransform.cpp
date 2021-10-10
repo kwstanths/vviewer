@@ -20,13 +20,12 @@ WidgetTransform::WidgetTransform(QWidget * parent) : QWidget(parent)
     m_scaleZ->setValue(1.0f);
 
     groupBox->setLayout(layoutTest);
-    groupBox->setFixedHeight(125);
 
-    QHBoxLayout * layoutMain = new QHBoxLayout();
+    QVBoxLayout * layoutMain = new QVBoxLayout();
     layoutMain->addWidget(groupBox);
     layoutMain->setContentsMargins(0, 0, 0, 0);
-    layoutMain->setAlignment(Qt::AlignTop);
     setLayout(layoutMain);
+    setFixedHeight(130);
 }
 
 Transform WidgetTransform::getTransform() const
@@ -59,7 +58,7 @@ void WidgetTransform::setTransform(const Transform& transform)
 QWidget * WidgetTransform::createRow(QString name, QDoubleSpinBox ** X, QDoubleSpinBox ** Y, QDoubleSpinBox ** Z)
 {
     QLabel * labelTitle = new QLabel(name);
-    labelTitle->setFixedWidth(10);
+    labelTitle->setFixedWidth(20);
 
     *X = new QDoubleSpinBox();
     *Y = new QDoubleSpinBox();
@@ -76,18 +75,21 @@ QWidget * WidgetTransform::createRow(QString name, QDoubleSpinBox ** X, QDoubleS
     layoutX->addWidget(new QLabel("X:"));
     layoutX->addWidget(*X);
     layoutX->setContentsMargins(0, 0, 0, 0);
+    layoutX->setAlignment(Qt::AlignLeft);
     QWidget * widgetX = new QWidget();
     widgetX->setLayout(layoutX);
     QHBoxLayout * layoutY = new QHBoxLayout();
     layoutY->addWidget(new QLabel("Y:"));
     layoutY->addWidget(*Y);
     layoutY->setContentsMargins(0, 0, 0, 0);
+    layoutY->setAlignment(Qt::AlignLeft);
     QWidget * widgetY = new QWidget();
     widgetY->setLayout(layoutY);
     QHBoxLayout * layoutZ = new QHBoxLayout();
     layoutZ->addWidget(new QLabel("Z:"));
     layoutZ->addWidget(*Z);
     layoutZ->setContentsMargins(0, 0, 0, 0);
+    layoutZ->setAlignment(Qt::AlignLeft);
     QWidget * widgetZ = new QWidget();
     widgetZ->setLayout(layoutZ);
 

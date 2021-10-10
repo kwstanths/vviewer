@@ -113,9 +113,6 @@ private:
     VkImageView m_textureImageView;
     VkSampler m_textureSampler;
 
-    /* Asset data */
-    AssetManager<std::string, MeshModel *> m_meshModels;
-
     std::vector<VulkanSceneObject *> m_objects;
     // keeps the index of block for the next added object
     size_t m_transformIndexUBO = 0;

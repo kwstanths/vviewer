@@ -4,6 +4,7 @@
 #include <qwidget.h>
 #include <qtextedit.h>
 
+/* A UI widget with a text edit */
 class WidgetName : public QWidget
 {
     Q_OBJECT

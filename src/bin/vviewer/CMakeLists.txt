@@ -50,6 +50,7 @@ add_executable(${NAME} ${GUI_TYPE}
 # Libraries
 target_link_libraries(${NAME} ${QT_LIBRARIES} ${VULKAN_LIBRARIES} ${UTILS_LIBRARIES} ${ASSIMP_LIBRARIES})
 
+source_group("top_level\\"	FILES	${${NAME}_HEADERS} ${${NAME}_SOURCES})
 source_group("math\\"		FILES	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES})
 source_group("models\\"		FILES	${${NAME}_MODELS_HEADERS} ${${NAME}_MODELS_SOURCES})
 source_group("core\\"		FILES	${${NAME}_CORE_HEADERS} ${${NAME}_CORE_SOURCES})

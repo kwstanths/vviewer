@@ -9,6 +9,7 @@
 
 #include "WidgetName.hpp"
 #include "WidgetTransform.hpp"
+#include "WidgetMeshModel.hpp"
 
 #include "VulkanWindow.hpp"
 
@@ -21,26 +22,29 @@ public:
     virtual ~MainWindow();
 
 private:
+    /* UI */
     QWidget * initLeftPanel();
     QWidget * initVulkanWindowWidget();
-    
     QWidget * initControlsWidget();
     QVBoxLayout * m_layoutControls;
-
+    /* UI vulkan */
     QVulkanInstance * m_vulkanInstance;
     VulkanWindow * m_vulkanWindow;
-
+    /* UI menu things */
     void createMenu();
     QMenu * m_menuFile;
     QAction * m_actionImport;
     QAction * m_actionAddSceneObject;
 
+    /* A list with all the imported models */
     QStringList m_importedModels;
 
+    /* A UI list widget with all the scene objects*/
     QListWidget * m_sceneObjects;
     int m_nObjects = 0;
     WidgetName * m_selectedObjectWidgetName = nullptr;
     WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
+    WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
 
 private slots:
     void onImportModelSlot();
@@ -48,6 +52,7 @@ private slots:
     void onSelectedSceneObjectChangedSlot();
     void onSelectedSceneObjectNameChangedSlot();
     void onSelectedSceneObjectTransformChangedSlot(double d);
+    void onSelectedSceneObjectMeshModelChangedSlot(int);
 };
 
 #endif

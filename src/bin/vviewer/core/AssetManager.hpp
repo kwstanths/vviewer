@@ -3,9 +3,20 @@
 
 #include <unordered_map>
 
+/**
+    A singleton class that wraps an unordered map to store an AssetID -> Asset relationship
+*/
 template<typename AssetID, typename Asset>
 class AssetManager {
 public:
+    static AssetManager& getInstance()
+    {
+        static AssetManager instance;
+        return instance;
+    }
+    AssetManager(AssetManager const&) = delete;
+    void operator=(AssetManager const&) = delete;
+
     typedef typename std::unordered_map<AssetID, Asset>::iterator Iterator;
 
     bool isPresent(AssetID id) {
@@ -20,7 +31,11 @@ public:
     }
 
     Asset Get(AssetID id) {
-        return m_assets[id];
+        auto itr = m_assets.find(id);
+        if (itr != m_assets.end()) {
+            return itr->second;
+        }
+        throw std::runtime_error("Asset not found");
     }
 
     Iterator begin() {
@@ -32,6 +47,8 @@ public:
     }
 
 private:
+    AssetManager() {}
+
     std::unordered_map<AssetID, Asset> m_assets;
 };
 

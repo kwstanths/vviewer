@@ -28,7 +28,6 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
 
     setCentralWidget(widget_main);
     resize(1600, 1000);
-
 }
 
 MainWindow::~MainWindow() {
@@ -143,6 +142,12 @@ void MainWindow::onImportModelSlot()
     if (ret) {
         utils::ConsoleInfo("Model imported");
         m_importedModels.append(filename);
+        if (m_selectedObjectWidgetMeshModel != nullptr) {
+            m_selectedObjectWidgetMeshModel->m_models->blockSignals(true);
+            m_selectedObjectWidgetMeshModel->m_models->clear();
+            m_selectedObjectWidgetMeshModel->m_models->addItems(m_importedModels);
+            m_selectedObjectWidgetMeshModel->m_models->blockSignals(false);
+        }
     }
 }
 
@@ -155,15 +160,18 @@ void MainWindow::onAddSceneObjectSlot()
     if (selectedModel == "") return;
 
     SceneObject * object = m_vulkanWindow->AddSceneObject(selectedModel, dialog->getTransform());
-    
-    /* TODO set a some other way name */
-    object->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
-    if (object == nullptr) utils::ConsoleWarning("Model not present");
+    if (object == nullptr) utils::ConsoleWarning("Unable to import model: " + selectedModel);
     else {
+        /* Set a name for the object */
+        /* TODO set a some other way name */
+        object->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
+
+        /* Add it on the UI list of objects */
         QListWidgetItem * item = new QListWidgetItem(QString(object->m_name.c_str()));
         QVariant data;
         data.setValue(object);
+        /* Connect the UI entry with the SceneObject item */
         item->setData(Qt::UserRole, data);
         m_sceneObjects->addItem(item);
     }
@@ -171,14 +179,21 @@ void MainWindow::onAddSceneObjectSlot()
 
 void MainWindow::onSelectedSceneObjectChangedSlot()
 {
+    /* When the selected object on the scene list changes, remove previous widgets from the controls, and new */
     if (m_selectedObjectWidgetName != nullptr) {
         delete m_selectedObjectWidgetName;
         delete m_selectedObjectWidgetTransform;
+        delete m_selectedObjectWidgetMeshModel;
+        m_selectedObjectWidgetName = nullptr;
+        m_selectedObjectWidgetTransform = nullptr;
+        m_selectedObjectWidgetMeshModel = nullptr;
     }
 
+    /* Get currently selected object, and the corresponding SceneObject */
     QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
     SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
     
+    /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
     m_selectedObjectWidgetName = new WidgetName(nullptr, QString(object->m_name.c_str()));
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
 
@@ -194,28 +209,46 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     connect(m_selectedObjectWidgetTransform->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
     connect(m_selectedObjectWidgetTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
 
+    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, m_importedModels);
+    connect(m_selectedObjectWidgetMeshModel->m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onSelectedSceneObjectMeshModelChangedSlot(int)));
+    
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
+    m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
 }
 
 void MainWindow::onSelectedSceneObjectNameChangedSlot()
 {
-    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
-
+    /* Selected object name widget changed */
     QString newName = m_selectedObjectWidgetName->m_text->toPlainText();
-    selectedItem->setText(newName);
+
+    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
 
     SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
     object->m_name = newName.toStdString();
+    selectedItem->setText(newName);
 }
 
 void MainWindow::onSelectedSceneObjectTransformChangedSlot(double d)
 {
-    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
-
+    /* Selected object transform component changed */
     Transform newTransform = m_selectedObjectWidgetTransform->getTransform();
+
+    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
 
     SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
     object->setTransform(newTransform);
+}
+
+void MainWindow::onSelectedSceneObjectMeshModelChangedSlot(int)
+{
+    /* Selected object name widget changed */
+    std::string newModel = m_selectedObjectWidgetMeshModel->getSelectedModel();
+
+    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
+
+    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
+    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
+    object->setMeshModel(instance.Get(newModel));
 }
 

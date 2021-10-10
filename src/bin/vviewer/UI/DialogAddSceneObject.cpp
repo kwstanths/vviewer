@@ -7,12 +7,7 @@ DialogAddSceneObject::DialogAddSceneObject(QWidget *parent, const char *name, QS
 {
     setWindowTitle(QString(name));
 
-    QGroupBox * boxPickModel = new QGroupBox(tr("Model"));
-    m_models = new QComboBox();
-    m_models->addItems(availableModels);
-    QVBoxLayout * layoutPickModel = new QVBoxLayout();
-    layoutPickModel->addWidget(m_models);
-    boxPickModel->setLayout(layoutPickModel);
+    m_widgetMeshModel = new WidgetMeshModel(nullptr, availableModels);
 
     m_buttonOk = new QPushButton(tr("Ok"));
     connect(m_buttonOk, &QPushButton::released, this, &DialogAddSceneObject::onButtonOk);
@@ -28,11 +23,12 @@ DialogAddSceneObject::DialogAddSceneObject(QWidget *parent, const char *name, QS
     m_widgetTransform = new WidgetTransform(nullptr);
 
     QVBoxLayout * layoutMain = new QVBoxLayout();
-    layoutMain->addWidget(boxPickModel);
+    layoutMain->addWidget(m_widgetMeshModel);
     layoutMain->addWidget(m_widgetTransform);
     layoutMain->addWidget(widgetButtons);
 
     setLayout(layoutMain);
+    setFixedSize(350, 250);
 }
 
 std::string DialogAddSceneObject::getSelectedModel() const
@@ -47,7 +43,7 @@ Transform DialogAddSceneObject::getTransform() const
 
 void DialogAddSceneObject::onButtonOk()
 {
-    m_pickedModel = m_models->currentText().toStdString();
+    m_pickedModel = m_widgetMeshModel->getSelectedModel();
     close();
 }
 

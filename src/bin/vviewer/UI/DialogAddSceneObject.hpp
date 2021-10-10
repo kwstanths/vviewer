@@ -7,7 +7,9 @@
 #include <qpushbutton.h>
 
 #include "WidgetTransform.hpp"
+#include "WidgetMeshModel.hpp"
 
+/* A dialog to add an object in a scene */
 class DialogAddSceneObject : public QDialog
 {
     Q_OBJECT
@@ -18,13 +20,12 @@ public:
     Transform getTransform() const;
 
 private:
-    QComboBox * m_models = nullptr;
+    WidgetMeshModel * m_widgetMeshModel = nullptr;
     QPushButton * m_buttonOk = nullptr;
     QPushButton * m_buttonCancel = nullptr;
     WidgetTransform * m_widgetTransform = nullptr;
 
     std::string m_pickedModel = "";
-
 
 private slots:
     void onButtonOk();

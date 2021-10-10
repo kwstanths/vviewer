@@ -95,7 +95,8 @@ void VulkanRenderer::releaseResources()
     m_devFunctions->vkDestroyImage(m_device, m_textureImage, nullptr);
     m_devFunctions->vkFreeMemory(m_device, m_textureImageMemory, nullptr);
 
-    for (auto itr = m_meshModels.begin(); itr != m_meshModels.end(); ++itr) {
+    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
         destroyVulkanMeshModel(*itr->second);
     }
 
@@ -163,11 +164,13 @@ void VulkanRenderer::setCamera(std::shared_ptr<Camera> camera)
 
 bool VulkanRenderer::createVulkanMeshModel(std::string filename)
 {
-    if (m_meshModels.isPresent(filename)) return false;
+    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
+
+    if (instance.isPresent(filename)) return false;
     
     try {
         VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel(filename), true);
-        m_meshModels.Add(filename, vkmesh);
+        instance.Add(filename, vkmesh);
     }
     catch (std::runtime_error& e) {
         return false;
@@ -178,9 +181,11 @@ bool VulkanRenderer::createVulkanMeshModel(std::string filename)
 
 VulkanSceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transform transform)
 {
-    if (!m_meshModels.isPresent(meshModel)) return nullptr;
+    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
 
-    MeshModel * vkmesh = m_meshModels.Get(meshModel);
+    if (!instance.isPresent(meshModel)) return nullptr;
+
+    MeshModel * vkmesh = instance.Get(meshModel);
 
     VulkanSceneObject * object = new VulkanSceneObject(vkmesh, transform, m_modelDataDynamicUBO, m_transformIndexUBO++);
     m_objects.push_back(object);

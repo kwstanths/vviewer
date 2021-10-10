@@ -14,10 +14,10 @@ public:
     std::string m_name = "";
 
     Transform getTransform();
-
     virtual void setTransform(const Transform& transform);
 
-    const MeshModel * getMeshModel();
+    const MeshModel * getMeshModel() const;
+    void setMeshModel(const MeshModel * newMeshModel);
 
 protected:
     const MeshModel * m_meshModel = nullptr;

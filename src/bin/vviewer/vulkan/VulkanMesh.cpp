@@ -8,6 +8,7 @@ VulkanMesh::VulkanMesh(const Mesh & mesh) : Mesh(mesh)
 
 VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes, bool computeNormals)
 {
+    /* Create a VulkanMesh for every mesh, allocate gpu buffers for vertices and indices and push it back to the mesh vector */
     for (size_t i = 0; i < meshes.size(); i++) {
 
         Mesh& mesh = meshes[i];
