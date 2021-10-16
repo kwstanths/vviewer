@@ -6,10 +6,45 @@
 Transform::Transform()
 {
     m_position = glm::vec3(0, 0, 0);
-    m_rotation = glm::quat();
     m_scale = glm::vec3(1, 1, 1);
+    m_rotation = glm::quat();
 
     computeBasisVectors();
+}
+
+Transform::Transform(glm::vec3 pos)
+{
+    m_position = pos;
+    m_scale = glm::vec3(1, 1, 1);
+    m_rotation = glm::quat();
+}
+
+Transform::Transform(glm::vec3 pos, glm::vec3 scale)
+{
+    m_position = pos;
+    m_scale = scale;
+    m_rotation = glm::quat();
+}
+
+Transform::Transform(glm::vec3 pos, glm::quat rotation)
+{
+    m_position = pos;
+    m_scale = glm::vec3(1, 1, 1);
+    m_rotation = rotation;
+}
+
+Transform::Transform(glm::vec3 pos, glm::vec3 scale, glm::quat rotation)
+{
+    m_position = pos;
+    m_scale = scale;
+    m_rotation = rotation;
+}
+
+Transform::Transform(glm::vec3 pos, glm::vec3 scale, glm::vec3 eulerAngles)
+{
+    m_position = pos;
+    m_scale = scale;
+    m_rotation = glm::quat(eulerAngles);
 }
 
 void Transform::setPosition(const glm::vec3 & newPosition)

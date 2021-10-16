@@ -23,15 +23,11 @@ public:
 
 private:
     /* UI */
-    QWidget * initLeftPanel();
-    QWidget * initVulkanWindowWidget();
-    QWidget * initControlsWidget();
     QVBoxLayout * m_layoutControls;
     /* UI vulkan */
     QVulkanInstance * m_vulkanInstance;
     VulkanWindow * m_vulkanWindow;
     /* UI menu things */
-    void createMenu();
     QMenu * m_menuFile;
     QAction * m_actionImport;
     QAction * m_actionAddSceneObject;
@@ -45,6 +41,11 @@ private:
     WidgetName * m_selectedObjectWidgetName = nullptr;
     WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
     WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
+
+    QWidget * initLeftPanel();
+    QWidget * initVulkanWindowWidget();
+    QWidget * initControlsWidget();
+    void createMenu();
 
 private slots:
     void onImportModelSlot();

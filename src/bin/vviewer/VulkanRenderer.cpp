@@ -41,11 +41,17 @@ void VulkanRenderer::initResources()
 
     m_functions->vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
     
-    m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 10);
+    m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
 
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
+
+    /* Add a sphere in the scene, where the light is */
+    createVulkanMeshModel("sphere.obj");
+    std::string selectedModel = "sphere.obj";
+    SceneObject * object = addSceneObject(selectedModel, Transform({ 3, 3, 3 }, { 0.2, 0.2, 0.2 }));
+    object->m_name = "hidden";
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -510,7 +516,7 @@ bool VulkanRenderer::createDescriptorSetsLayouts()
     cameraDataLayoutBinding.binding = 0;
     cameraDataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     cameraDataLayoutBinding.descriptorCount = 1;    /* If we have an array of uniform buffers */
-    cameraDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    cameraDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     cameraDataLayoutBinding.pImmutableSamplers = nullptr;
 
     /* Create binding for model data */

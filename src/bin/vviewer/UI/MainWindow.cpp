@@ -112,7 +112,7 @@ QWidget * MainWindow::initControlsWidget()
     QWidget * widget_controls = new QWidget();
     widget_controls->setLayout(m_layoutControls);
 
-    widget_controls->setFixedWidth(250);
+    widget_controls->setFixedWidth(280);
     return widget_controls;
 }
 
@@ -161,7 +161,7 @@ void MainWindow::onAddSceneObjectSlot()
 
     SceneObject * object = m_vulkanWindow->AddSceneObject(selectedModel, dialog->getTransform());
 
-    if (object == nullptr) utils::ConsoleWarning("Unable to import model: " + selectedModel);
+    if (object == nullptr) utils::ConsoleWarning("Unable to add objec to scene: " + selectedModel);
     else {
         /* Set a name for the object */
         /* TODO set a some other way name */

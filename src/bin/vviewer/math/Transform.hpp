@@ -7,6 +7,11 @@
 class Transform {
 public:
     Transform();
+    Transform(glm::vec3 pos);
+    Transform(glm::vec3 pos, glm::vec3 scale);
+    Transform(glm::vec3 pos, glm::quat rotation);
+    Transform(glm::vec3 pos, glm::vec3 scale, glm::quat rotation);
+    Transform(glm::vec3 pos, glm::vec3 scale, glm::vec3 eulerAngles);
 
     void setPosition(const glm::vec3& newPosition);
     void setPosition(float x, float y, float z);
