@@ -12,7 +12,7 @@ WidgetName::WidgetName(QWidget * parent, QString textName) : QWidget(parent)
     QGroupBox * groupBox = new QGroupBox(tr("Name"));
     QVBoxLayout * layoutTest = new QVBoxLayout();
     layoutTest->addWidget(m_text);
-    layoutTest->setContentsMargins(0, 0, 0, 0);
+    layoutTest->setContentsMargins(5, 5, 5, 5);
 
     groupBox->setLayout(layoutTest);
 
@@ -21,5 +21,5 @@ WidgetName::WidgetName(QWidget * parent, QString textName) : QWidget(parent)
     layoutMain->setContentsMargins(0, 0, 0, 0);
     layoutMain->setAlignment(Qt::AlignTop);
     setLayout(layoutMain);
-    setFixedHeight(45);
+    setFixedHeight(55);
 }

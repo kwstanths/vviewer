@@ -11,7 +11,7 @@ VulkanWindow::VulkanWindow()
     camera->setFoV(45.0f);
     
     Transform cameraTransform;
-    cameraTransform.setPosition(glm::vec3(5, 1, 0));
+    cameraTransform.setPosition(glm::vec3(10, 3, 0));
     cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(-90.0f), 0)));
     
     m_camera = std::shared_ptr<Camera>(camera);
@@ -44,7 +44,12 @@ bool VulkanWindow::ImportMeshModel(std::string filename)
 
 SceneObject * VulkanWindow::AddSceneObject(std::string filename, Transform transform)
 {
-    return m_renderer->addSceneObject(filename, transform);
+    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+
+    SceneObject * temp = m_renderer->addSceneObject(filename, transform);
+    temp->setMaterial(instance.Get("defaultMaterial"));
+
+    return temp;
 }
 
 void VulkanWindow::resizeEvent(QResizeEvent * ev)

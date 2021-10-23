@@ -21,6 +21,6 @@ void main() {
     vec4 worldPos = modelData.model * vec4(inPosition, 1.0);
     gl_Position = cameraData.projection * cameraData.view * worldPos;
     fragWorldPos = worldPos.xyz;
-    fragWorldNormal = mat3(modelData.model) * inNormal;
+    fragWorldNormal = normalize(mat3(modelData.model) * inNormal);
     fragUV = inUV;
 }

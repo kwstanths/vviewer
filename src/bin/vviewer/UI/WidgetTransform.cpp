@@ -6,18 +6,30 @@
 
 #include <glm/glm.hpp>
 
-WidgetTransform::WidgetTransform(QWidget * parent) : QWidget(parent)
+WidgetTransform::WidgetTransform(QWidget * parent, SceneObject * object) : QWidget(parent)
 {
+    m_object = object;
+
     QGroupBox * groupBox = new QGroupBox(tr("Transform"));
     QVBoxLayout * layoutTest = new QVBoxLayout();
     layoutTest->addWidget(createRow("P:", &m_positionX, &m_positionY, &m_positionZ));
     layoutTest->addWidget(createRow("S:", &m_scaleX, &m_scaleY, &m_scaleZ));
     layoutTest->addWidget(createRow("R:", &m_rotationX, &m_rotationY, &m_rotationZ));
-    layoutTest->setContentsMargins(0, 0, 0, 0);
+    layoutTest->setContentsMargins(5, 5, 5, 5);
 
     m_scaleX->setValue(1.0f);
     m_scaleY->setValue(1.0f);
     m_scaleZ->setValue(1.0f);
+
+    connect(m_positionX, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_positionY, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_positionZ, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_scaleX, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_scaleY, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_scaleZ, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_rotationX, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
+    connect(m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
 
     groupBox->setLayout(layoutTest);
 
@@ -26,6 +38,8 @@ WidgetTransform::WidgetTransform(QWidget * parent) : QWidget(parent)
     layoutMain->setContentsMargins(0, 0, 0, 0);
     setLayout(layoutMain);
     setFixedHeight(130);
+
+    if (m_object != nullptr) setTransform(m_object->getTransform());
 }
 
 Transform WidgetTransform::getTransform() const
@@ -109,4 +123,8 @@ QWidget * WidgetTransform::createRow(QString name, QDoubleSpinBox ** X, QDoubleS
     widgetMain->setLayout(layoutMain);
 
     return widgetMain;
+}
+
+void WidgetTransform::onTransformChangedSlot(double d) {
+    if (m_object != nullptr) m_object->setTransform(getTransform());
 }

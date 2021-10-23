@@ -15,10 +15,12 @@
 #include "vulkan/VulkanMesh.hpp"
 #include "vulkan/Utils.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
+#include "vulkan/VulkanMaterials.hpp"
 
 #include "core/MeshModel.hpp"
 #include "core/Camera.hpp"
 #include "core/AssetManager.hpp"
+#include "core/Materials.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -48,6 +50,8 @@ public:
     bool createVulkanMeshModel(std::string filename);
 
     VulkanSceneObject * addSceneObject(std::string meshModel, Transform transform);
+
+    Material * createMaterial(glm::vec4 albedo, float metallic, float roughness, float ao, float emissive);
 
 private:
 
@@ -101,11 +105,15 @@ private:
 
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayout;
-    std::vector<VkBuffer> m_uniformBuffersCamera;
-    std::vector<VkDeviceMemory> m_uniformBuffersCameraMemory;
     VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<VkBuffer> m_uniformBuffersCamera;
+    std::vector<VkDeviceMemory> m_uniformBuffersCameraMemory;
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
+    // keeps the index of block for the next added object
+    size_t m_transformIndexUBO = 0;
+    VulkanDynamicUBO<MaterialPBRData> m_materialsUBO;
+    size_t m_materialsIndexUBO = 0;
 
     /* Texture data */
     VkImage m_textureImage;
@@ -114,8 +122,6 @@ private:
     VkSampler m_textureSampler;
 
     std::vector<VulkanSceneObject *> m_objects;
-    // keeps the index of block for the next added object
-    size_t m_transformIndexUBO = 0;
 
     std::shared_ptr<Camera> m_camera;
 

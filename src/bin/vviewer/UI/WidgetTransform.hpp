@@ -5,13 +5,14 @@
 #include <qspinbox.h>
 
 #include "math/Transform.hpp"
+#include "core/SceneObject.hpp"
 
 /* A UI widget to represent a transform */
 class WidgetTransform : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetTransform(QWidget * parent);
+    WidgetTransform(QWidget * parent, SceneObject * object);
 
     Transform getTransform() const;
 
@@ -23,6 +24,11 @@ public:
 private:
 
     QWidget * createRow(QString name, QDoubleSpinBox ** X, QDoubleSpinBox ** Y, QDoubleSpinBox ** Z);
+
+    SceneObject * m_object;
+
+private slots:
+    void onTransformChangedSlot(double d);
 
 };
 

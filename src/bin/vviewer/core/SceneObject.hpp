@@ -2,8 +2,8 @@
 #define __SceneObject_hpp__
 
 #include <math/Transform.hpp>
-
 #include "MeshModel.hpp"
+#include "Materials.hpp"
 
 class SceneObject {
 public:
@@ -19,9 +19,13 @@ public:
     const MeshModel * getMeshModel() const;
     void setMeshModel(const MeshModel * newMeshModel);
 
+    Material * getMaterial() const;
+    void setMaterial(Material * newMaterial);
+
 protected:
     const MeshModel * m_meshModel = nullptr;
     Transform m_transform;
+    Material * m_material = nullptr;
 };
 
 #endif

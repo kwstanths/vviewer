@@ -131,6 +131,16 @@ void MainWindow::createMenu()
     m_menuFile->addAction(m_actionAddSceneObject);
 }
 
+QStringList MainWindow::getImportedModels()
+{
+    QStringList importedModels;
+    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        importedModels.push_back(QString::fromStdString(itr->first));
+    }
+    return importedModels;
+}
+
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
@@ -141,11 +151,10 @@ void MainWindow::onImportModelSlot()
  
     if (ret) {
         utils::ConsoleInfo("Model imported");
-        m_importedModels.append(filename);
         if (m_selectedObjectWidgetMeshModel != nullptr) {
             m_selectedObjectWidgetMeshModel->m_models->blockSignals(true);
             m_selectedObjectWidgetMeshModel->m_models->clear();
-            m_selectedObjectWidgetMeshModel->m_models->addItems(m_importedModels);
+            m_selectedObjectWidgetMeshModel->m_models->addItems(getImportedModels());
             m_selectedObjectWidgetMeshModel->m_models->blockSignals(false);
         }
     }
@@ -153,7 +162,7 @@ void MainWindow::onImportModelSlot()
 
 void MainWindow::onAddSceneObjectSlot()
 {
-    DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", m_importedModels);
+    DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", getImportedModels());
     dialog->exec();
 
     std::string selectedModel = dialog->getSelectedModel();
@@ -184,9 +193,11 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
         delete m_selectedObjectWidgetName;
         delete m_selectedObjectWidgetTransform;
         delete m_selectedObjectWidgetMeshModel;
+        delete m_selectedObjectWidgetMaterial;
         m_selectedObjectWidgetName = nullptr;
         m_selectedObjectWidgetTransform = nullptr;
         m_selectedObjectWidgetMeshModel = nullptr;
+        m_selectedObjectWidgetMaterial = nullptr;
     }
 
     /* Get currently selected object, and the corresponding SceneObject */
@@ -197,24 +208,17 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     m_selectedObjectWidgetName = new WidgetName(nullptr, QString(object->m_name.c_str()));
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
 
-    m_selectedObjectWidgetTransform = new WidgetTransform(nullptr);
-    m_selectedObjectWidgetTransform->setTransform(object->getTransform());
-    connect(m_selectedObjectWidgetTransform->m_positionX, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_positionY, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_positionZ, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_scaleX, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_scaleY, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_scaleZ, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_rotationX, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
-    connect(m_selectedObjectWidgetTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onSelectedSceneObjectTransformChangedSlot(double)));
+    m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, object);
 
-    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, m_importedModels);
+    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, getImportedModels());
     connect(m_selectedObjectWidgetMeshModel->m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onSelectedSceneObjectMeshModelChangedSlot(int)));
     
+    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, static_cast<MaterialPBR *>(object->getMaterial()));
+
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
     m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
+    m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
 }
 
 void MainWindow::onSelectedSceneObjectNameChangedSlot()
@@ -227,17 +231,6 @@ void MainWindow::onSelectedSceneObjectNameChangedSlot()
     SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
     object->m_name = newName.toStdString();
     selectedItem->setText(newName);
-}
-
-void MainWindow::onSelectedSceneObjectTransformChangedSlot(double d)
-{
-    /* Selected object transform component changed */
-    Transform newTransform = m_selectedObjectWidgetTransform->getTransform();
-
-    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
-
-    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
-    object->setTransform(newTransform);
 }
 
 void MainWindow::onSelectedSceneObjectMeshModelChangedSlot(int)

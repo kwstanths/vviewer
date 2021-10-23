@@ -42,16 +42,34 @@ void VulkanRenderer::initResources()
     m_functions->vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
     
     m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
+    m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
 
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
 
+    createDescriptorSetsLayouts();
+
+    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+    VulkanMaterialPBR * defaultMaterial = new VulkanMaterialPBR(glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, m_materialsUBO, m_materialsIndexUBO++);
+    instance.Add("defaultMaterial", defaultMaterial);
+
+    VulkanMaterialPBR * lightMaterial = new VulkanMaterialPBR(glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, m_materialsUBO, m_materialsIndexUBO++);
+    instance.Add("lightMaterial", defaultMaterial);
+
     /* Add a sphere in the scene, where the light is */
-    createVulkanMeshModel("sphere.obj");
-    std::string selectedModel = "sphere.obj";
-    SceneObject * object = addSceneObject(selectedModel, Transform({ 3, 3, 3 }, { 0.2, 0.2, 0.2 }));
-    object->m_name = "hidden";
+    {
+        createVulkanMeshModel("sphere.obj");
+        SceneObject * object = addSceneObject("sphere.obj", Transform({ 3, 3, 3 }, { 0.1, 0.1, 0.1 }));
+        object->m_name = "hidden";
+        object->setMaterial(lightMaterial);
+    }
+    {
+        createVulkanMeshModel("teapot.obj");
+        SceneObject * object = addSceneObject("teapot.obj", Transform({ 0, 0, 0 }));
+        object->m_name = "hidden";
+        object->setMaterial(defaultMaterial);
+    }
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -63,7 +81,6 @@ void VulkanRenderer::initSwapChainResources()
     m_swapchainFormat = m_window->colorFormat();
 
     createRenderPass();
-    createDescriptorSetsLayouts();
     createGraphicsPipeline();
     createFrameBuffers();
     createUniformBuffers();
@@ -79,10 +96,12 @@ void VulkanRenderer::releaseSwapChainResources()
 
         m_devFunctions->vkDestroyBuffer(m_device, m_modelDataDynamicUBO.getBuffer(i), nullptr);
         m_devFunctions->vkFreeMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
+
+        m_devFunctions->vkDestroyBuffer(m_device, m_materialsUBO.getBuffer(i), nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_materialsUBO.getBufferMemory(i), nullptr);
     }
 
     m_devFunctions->vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
-    m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
 
     for (auto framebuffer : m_swapChainFramebuffers) {
         m_devFunctions->vkDestroyFramebuffer(m_device, framebuffer, nullptr);
@@ -95,11 +114,14 @@ void VulkanRenderer::releaseSwapChainResources()
 void VulkanRenderer::releaseResources()
 {
     m_modelDataDynamicUBO.destroy();
+    m_materialsUBO.destroy();
 
     m_devFunctions->vkDestroySampler(m_device, m_textureSampler, nullptr);
     m_devFunctions->vkDestroyImageView(m_device, m_textureImageView, nullptr);
     m_devFunctions->vkDestroyImage(m_device, m_textureImage, nullptr);
     m_devFunctions->vkFreeMemory(m_device, m_textureImageMemory, nullptr);
+
+    m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
 
     AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
@@ -138,6 +160,7 @@ void VulkanRenderer::startNextFrame()
     for (size_t i = 0; i < m_objects.size(); i++)
     {
         VulkanSceneObject * object = m_objects[i];
+        VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(object->getMaterial());
 
         std::vector<Mesh *> meshes = object->getMeshModel()->getMeshes();
         for (size_t i = 0; i < meshes.size(); i++) {
@@ -149,9 +172,12 @@ void VulkanRenderer::startNextFrame()
             m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
             /* Calculate model data offsets */
-            uint32_t dynamicOffset = static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * object->getTransformUBOBlock();
+            uint32_t dynamicOffsets[2] = {
+                static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * object->getTransformUBOBlock(),
+                static_cast<uint32_t>(m_materialsUBO.getBlockSizeAligned()) * material->getUBOBlockIndex()
+            };
             m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
-                0, 1, &m_descriptorSets[imageIndex], 1, &dynamicOffset);
+                0, 1, &m_descriptorSets[imageIndex], 2, &dynamicOffsets[0]);
 
             m_devFunctions->vkCmdDrawIndexed(cmdBuf, vkmesh->getIndices().size(), 1, 0, 0, 0);
         }
@@ -197,6 +223,11 @@ VulkanSceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transf
     m_objects.push_back(object);
 
     return object;
+}
+
+Material * VulkanRenderer::createMaterial(glm::vec4 albedo, float metallic, float roughness, float ao, float emissive)
+{
+    return new VulkanMaterialPBR(albedo, metallic, roughness, ao, emissive, m_materialsUBO, m_materialsIndexUBO++);
 }
 
 void VulkanRenderer::destroyVulkanMeshModel(MeshModel model)
@@ -528,14 +559,14 @@ bool VulkanRenderer::createDescriptorSetsLayouts()
     modelDataLayoutBinding.pImmutableSamplers = nullptr;
 
     /* Create binding for texture data */
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorCount = 1;   /* If we have an array of uniform buffers */
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding materialLayoutBinding{};
+    materialLayoutBinding.binding = 2;
+    materialLayoutBinding.descriptorCount = 1;   /* If we have an array of uniform buffers */
+    materialLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    materialLayoutBinding.pImmutableSamplers = nullptr;
+    materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> setBindings = { cameraDataLayoutBinding, modelDataLayoutBinding, samplerLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 3> setBindings = { cameraDataLayoutBinding, modelDataLayoutBinding, materialLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
@@ -567,6 +598,7 @@ bool VulkanRenderer::createUniformBuffers()
     }
 
     m_modelDataDynamicUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
+    m_materialsUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
 
     return true;
 }
@@ -577,7 +609,7 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    /* Copy camera data */
+    /* Flush camera data to GPU */
     {
         CameraData cameraData;
         cameraData.m_view = m_camera->getViewMatrix();
@@ -590,10 +622,21 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
         m_devFunctions->vkUnmapMemory(m_device, m_uniformBuffersCameraMemory[index]);
     }
 
-    void* data;
-    m_devFunctions->vkMapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index), 0, m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks(), 0, &data);
-    memcpy(data, m_modelDataDynamicUBO.getBlock(0), m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks());
-    m_devFunctions->vkUnmapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index));
+    /* Flush Transform changes to GPU */
+    {
+        void* data;
+        m_devFunctions->vkMapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index), 0, m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks(), 0, &data);
+        memcpy(data, m_modelDataDynamicUBO.getBlock(0), m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks());
+        m_devFunctions->vkUnmapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index));
+    }
+
+    /* Flush material changes to GPU */
+    {
+        void* data;
+        m_devFunctions->vkMapMemory(m_device, m_materialsUBO.getBufferMemory(index), 0, m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks(), 0, &data);
+        memcpy(data, m_materialsUBO.getBlock(0), m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks());
+        m_devFunctions->vkUnmapMemory(m_device, m_materialsUBO.getBufferMemory(index));
+    }
 
     return true;
 }
@@ -610,11 +653,11 @@ bool VulkanRenderer::createDescriptorPool()
     modelDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     modelDataPoolSize.descriptorCount = nImages;
 
-    VkDescriptorPoolSize texturesPoolSize{};
-    texturesPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    texturesPoolSize.descriptorCount = nImages;
+    VkDescriptorPoolSize materialsPoolSize{};
+    materialsPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    materialsPoolSize.descriptorCount = nImages;
 
-    std::array<VkDescriptorPoolSize, 3> poolSizes = { cameraDataPoolSize, modelDataPoolSize, texturesPoolSize };
+    std::array<VkDescriptorPoolSize, 3> poolSizes = { cameraDataPoolSize, modelDataPoolSize, materialsPoolSize };
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -677,20 +720,22 @@ bool VulkanRenderer::createDescriptorSets()
         descriptorWriteModel.pImageInfo = nullptr; // Optional
         descriptorWriteModel.pTexelBufferView = nullptr; // Optional
 
-        VkDescriptorImageInfo  imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_textureImageView;
-        imageInfo.sampler = m_textureSampler;
-        VkWriteDescriptorSet descriptorWriteImage{};
-        descriptorWriteImage.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWriteImage.dstSet = m_descriptorSets[i];
-        descriptorWriteImage.dstBinding = 2;
-        descriptorWriteImage.dstArrayElement = 0;
-        descriptorWriteImage.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWriteImage.descriptorCount = 1;
-        descriptorWriteImage.pImageInfo = &imageInfo;
+        VkDescriptorBufferInfo bufferInfoMaterial{};
+        bufferInfoMaterial.buffer = m_materialsUBO.getBuffer(i);
+        bufferInfoMaterial.offset = 0;
+        bufferInfoMaterial.range = m_materialsUBO.getBlockSizeAligned();
+        VkWriteDescriptorSet descriptorWriteMaterial{};
+        descriptorWriteMaterial.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWriteMaterial.dstSet = m_descriptorSets[i];
+        descriptorWriteMaterial.dstBinding = 2;
+        descriptorWriteMaterial.dstArrayElement = 0;
+        descriptorWriteMaterial.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+        descriptorWriteMaterial.descriptorCount = 1;
+        descriptorWriteMaterial.pBufferInfo = &bufferInfoMaterial;
+        descriptorWriteMaterial.pImageInfo = nullptr; // Optional
+        descriptorWriteMaterial.pTexelBufferView = nullptr; // Optional
 
-        std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteCamera, descriptorWriteModel, descriptorWriteImage };
+        std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteCamera, descriptorWriteModel, descriptorWriteMaterial };
         m_devFunctions->vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
         
     }

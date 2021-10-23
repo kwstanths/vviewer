@@ -11,7 +11,7 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, QStringList availableModels) 
     QGroupBox * boxPickModel = new QGroupBox(tr("Mesh Model"));
     QVBoxLayout * layoutPickModel = new QVBoxLayout();
     layoutPickModel->addWidget(m_models);
-    layoutPickModel->setContentsMargins(0, 0, 0, 0);
+    layoutPickModel->setContentsMargins(5, 5, 5, 5);
     layoutPickModel->setAlignment(Qt::AlignTop);
 
     boxPickModel->setLayout(layoutPickModel);
@@ -21,7 +21,7 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, QStringList availableModels) 
     layoutMain->setContentsMargins(0, 0, 0, 0);
     layoutMain->setAlignment(Qt::AlignTop);
     setLayout(layoutMain);
-    setFixedHeight(45);
+    setFixedHeight(55);
 }
 
 std::string WidgetMeshModel::getSelectedModel() const

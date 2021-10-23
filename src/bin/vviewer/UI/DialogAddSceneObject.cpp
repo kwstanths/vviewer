@@ -20,7 +20,7 @@ DialogAddSceneObject::DialogAddSceneObject(QWidget *parent, const char *name, QS
     QWidget * widgetButtons = new QWidget();
     widgetButtons->setLayout(layoutButtons);
 
-    m_widgetTransform = new WidgetTransform(nullptr);
+    m_widgetTransform = new WidgetTransform(nullptr, nullptr);
 
     QVBoxLayout * layoutMain = new QVBoxLayout();
     layoutMain->addWidget(m_widgetMeshModel);
