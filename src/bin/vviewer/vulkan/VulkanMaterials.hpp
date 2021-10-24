@@ -28,7 +28,14 @@ protected:
 
 class VulkanMaterialPBR : public MaterialPBR, public VulkanMaterialStorage<MaterialPBRData> {
 public:
-    VulkanMaterialPBR(glm::vec4 albedo, float metallic, float roughness, float ao, float emissive, VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, int materialsUBOBlock);
+    VulkanMaterialPBR(std::string name, 
+        glm::vec4 albedo, 
+        float metallic, 
+        float roughness, 
+        float ao, 
+        float emissive, 
+        VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, 
+        int materialsUBOBlock);
 
     glm::vec4& getAlbedo() override;
 

@@ -1,5 +1,7 @@
 #include "WidgetMaterialPBR.hpp"
 
+#include <iostream>
+
 #include <qgroupbox.h>
 #include <qlabel.h>
 #include <qlayout.h>
@@ -7,22 +9,34 @@
 
 #include <glm/glm.hpp>
 
-#include <iostream>
+#include "core/AssetManager.hpp"
 
-WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBR * material) : QWidget(parent)
+WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject, MaterialPBR * material, QStringList availableMaterials) : QWidget(parent)
 {
+    m_sceneObject = sceneObject;
     m_material = material;
+
+    m_comboBoxAvailableMaterials = new QComboBox();
+    m_comboBoxAvailableMaterials->addItems(availableMaterials);
+    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(material->m_name));
+    connect(m_comboBoxAvailableMaterials, SIGNAL(currentIndexChanged(int)), this, SLOT(onMaterialChanged(int)));
+
+    QGroupBox * groupBoxMaterials = new QGroupBox(tr("Material"));
+    QVBoxLayout * layoutMaterials = new QVBoxLayout();
+    layoutMaterials->addWidget(m_comboBoxAvailableMaterials);
+    layoutMaterials->setContentsMargins(5, 5, 5, 5);
+    groupBoxMaterials->setLayout(layoutMaterials);
 
     m_colorButton = new QPushButton();
     m_colorButton->setFixedWidth(60);
     setColorButtonColor();
-    QHBoxLayout * layout_albedo = new QHBoxLayout();
-    layout_albedo->addWidget(new QLabel("Albedo:"));
-    layout_albedo->addWidget(m_colorButton);
-    layout_albedo->setContentsMargins(0, 0, 0, 0);
-    QWidget * widget_albedo = new QWidget();
-    widget_albedo->setLayout(layout_albedo);
-    widget_albedo->setContentsMargins(0, 0, 0, 0);
+    QHBoxLayout * layoutAlbedo = new QHBoxLayout();
+    layoutAlbedo->addWidget(new QLabel("Albedo:"));
+    layoutAlbedo->addWidget(m_colorButton);
+    layoutAlbedo->setContentsMargins(0, 0, 0, 0);
+    QWidget * widgetAlbedo = new QWidget();
+    widgetAlbedo->setLayout(layoutAlbedo);
+    widgetAlbedo->setContentsMargins(0, 0, 0, 0);
 
     m_metallic = new QSlider(Qt::Horizontal);
     m_metallic->setMaximum(100);
@@ -30,13 +44,13 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBR * material) :
     m_metallic->setSingleStep(1);
     m_metallic->setValue(material->getMetallic() * 100);
     m_metallic->setFixedWidth(150);
-    QHBoxLayout * layout_metallic = new QHBoxLayout();
-    layout_metallic->addWidget(new QLabel("Metallic:"));
-    layout_metallic->setContentsMargins(0, 0, 0, 0);
-    layout_metallic->addWidget(m_metallic);
-    QWidget * widget_metallic = new QWidget();
-    widget_metallic->setLayout(layout_metallic);
-    widget_metallic->setContentsMargins(0, 0, 0, 0);
+    QHBoxLayout * layoutMetallic = new QHBoxLayout();
+    layoutMetallic->addWidget(new QLabel("Metallic:"));
+    layoutMetallic->setContentsMargins(0, 0, 0, 0);
+    layoutMetallic->addWidget(m_metallic);
+    QWidget * widgetMetallic = new QWidget();
+    widgetMetallic->setLayout(layoutMetallic);
+    widgetMetallic->setContentsMargins(0, 0, 0, 0);
 
     m_roughness = new QSlider(Qt::Horizontal);
     m_roughness->setMaximum(100);
@@ -44,12 +58,12 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBR * material) :
     m_roughness->setSingleStep(1);
     m_roughness->setValue(material->getRoughness() * 100);
     m_roughness->setFixedWidth(150);
-    QHBoxLayout * layout_roughness = new QHBoxLayout();
-    layout_roughness->addWidget(new QLabel("Roughness:"));
-    layout_roughness->addWidget(m_roughness);
-    layout_roughness->setContentsMargins(0, 0, 0, 0);
-    QWidget * widget_roughness = new QWidget();
-    widget_roughness->setLayout(layout_roughness);
+    QHBoxLayout * layoutRoughness = new QHBoxLayout();
+    layoutRoughness->addWidget(new QLabel("Roughness:"));
+    layoutRoughness->addWidget(m_roughness);
+    layoutRoughness->setContentsMargins(0, 0, 0, 0);
+    QWidget * widgetRoughness = new QWidget();
+    widgetRoughness->setLayout(layoutRoughness);
 
     m_ao = new QSlider(Qt::Horizontal);
     m_ao->setMaximum(100);
@@ -57,12 +71,12 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBR * material) :
     m_ao->setSingleStep(1);
     m_ao->setValue(material->getAO() * 100);
     m_ao->setFixedWidth(150);
-    QHBoxLayout * layout_ao = new QHBoxLayout();
-    layout_ao->addWidget(new QLabel("Ambient:"));
-    layout_ao->addWidget(m_ao);
-    layout_ao->setContentsMargins(0, 0, 0, 0);
-    QWidget * widget_ao = new QWidget();
-    widget_ao->setLayout(layout_ao);
+    QHBoxLayout * layoutAo = new QHBoxLayout();
+    layoutAo->addWidget(new QLabel("Ambient:"));
+    layoutAo->addWidget(m_ao);
+    layoutAo->setContentsMargins(0, 0, 0, 0);
+    QWidget * widgetAo = new QWidget();
+    widgetAo->setLayout(layoutAo);
 
     m_emissive = new QSlider(Qt::Horizontal);
     m_emissive->setMaximum(100);
@@ -70,20 +84,21 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBR * material) :
     m_emissive->setSingleStep(1);
     m_emissive->setValue(material->getEmissive() * 100);
     m_emissive->setFixedWidth(150);
-    QHBoxLayout * layout_emissive = new QHBoxLayout();
-    layout_emissive->addWidget(new QLabel("Emissive:"));
-    layout_emissive->addWidget(m_emissive);
-    layout_emissive->setContentsMargins(0, 0, 0, 0);
-    QWidget * widget_emissive = new QWidget();
-    widget_emissive->setLayout(layout_emissive);
+    QHBoxLayout * layoutEmissive = new QHBoxLayout();
+    layoutEmissive->addWidget(new QLabel("Emissive:"));
+    layoutEmissive->addWidget(m_emissive);
+    layoutEmissive->setContentsMargins(0, 0, 0, 0);
+    QWidget * widgetEmissive = new QWidget();
+    widgetEmissive->setLayout(layoutEmissive);
 
     QGroupBox * groupBox = new QGroupBox(tr("Material"));
     QVBoxLayout * layoutTest = new QVBoxLayout();
-    layoutTest->addWidget(widget_albedo);
-    layoutTest->addWidget(widget_metallic);
-    layoutTest->addWidget(widget_roughness);
-    layoutTest->addWidget(widget_ao);
-    layoutTest->addWidget(widget_emissive);
+    layoutTest->addWidget(groupBoxMaterials);
+    layoutTest->addWidget(widgetAlbedo);
+    layoutTest->addWidget(widgetMetallic);
+    layoutTest->addWidget(widgetRoughness);
+    layoutTest->addWidget(widgetAo);
+    layoutTest->addWidget(widgetEmissive);
     layoutTest->setContentsMargins(5, 5, 5, 5);
     layoutTest->setAlignment(Qt::AlignTop);
 
@@ -93,13 +108,31 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBR * material) :
     layoutMain->addWidget(groupBox);
     layoutMain->setContentsMargins(0, 0, 0, 0);
     setLayout(layoutMain);
-    setFixedHeight(145);
+    setFixedHeight(200);
 
     connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onColorButton()));
     connect(m_metallic, &QSlider::valueChanged, this, &WidgetMaterialPBR::onMetallicChanged);
     connect(m_roughness, &QSlider::valueChanged, this, &WidgetMaterialPBR::onRoughnessChanged);
     connect(m_ao, &QSlider::valueChanged, this, &WidgetMaterialPBR::onAOChanged);
     connect(m_emissive, &QSlider::valueChanged, this, &WidgetMaterialPBR::onEmissiveChanged);
+}
+
+void WidgetMaterialPBR::onMaterialChanged(int)
+{
+    std::string newMaterial = m_comboBoxAvailableMaterials->currentText().toStdString();
+
+    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+    Material * material = instance.Get(newMaterial);
+
+    m_sceneObject->setMaterial(material);
+    m_material = static_cast<MaterialPBR *>(material);
+    /* TODO what if it's not this kind of material? */
+
+    setColorButtonColor();
+    m_metallic->setValue(m_material->getMetallic() * 100);
+    m_roughness->setValue(m_material->getRoughness() * 100);
+    m_ao->setValue(m_material->getAO() * 100);
+    m_emissive->setValue(m_material->getEmissive() * 100);
 }
 
 void WidgetMaterialPBR::onColorButton()

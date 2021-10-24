@@ -50,25 +50,19 @@ void VulkanRenderer::initResources()
 
     createDescriptorSetsLayouts();
 
-    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
-    VulkanMaterialPBR * defaultMaterial = new VulkanMaterialPBR(glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, m_materialsUBO, m_materialsIndexUBO++);
-    instance.Add("defaultMaterial", defaultMaterial);
-
-    VulkanMaterialPBR * lightMaterial = new VulkanMaterialPBR(glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, m_materialsUBO, m_materialsIndexUBO++);
-    instance.Add("lightMaterial", defaultMaterial);
+    createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f);
+    createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f);
 
     /* Add a sphere in the scene, where the light is */
     {
         createVulkanMeshModel("sphere.obj");
-        SceneObject * object = addSceneObject("sphere.obj", Transform({ 3, 3, 3 }, { 0.1, 0.1, 0.1 }));
+        SceneObject * object = addSceneObject("sphere.obj", Transform({ 3, 3, 3 }, { 0.01, 0.01, 0.01 }), "lightMaterial");
         object->m_name = "hidden";
-        object->setMaterial(lightMaterial);
     }
     {
         createVulkanMeshModel("teapot.obj");
-        SceneObject * object = addSceneObject("teapot.obj", Transform({ 0, 0, 0 }));
+        SceneObject * object = addSceneObject("teapot.obj", Transform({ 0, 0, 0 }), "defaultMaterial");
         object->m_name = "hidden";
-        object->setMaterial(defaultMaterial);
     }
 }
 
@@ -211,23 +205,31 @@ bool VulkanRenderer::createVulkanMeshModel(std::string filename)
     return true;
 }
 
-VulkanSceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transform transform)
+VulkanSceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transform transform, std::string material)
 {
-    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
+    AssetManager<std::string, MeshModel *>& instanceModels = AssetManager<std::string, MeshModel *>::getInstance();
+    if (!instanceModels.isPresent(meshModel)) return nullptr;
+    AssetManager<std::string, Material *>& instanceMaterials = AssetManager<std::string, Material *>::getInstance();
+    if (!instanceMaterials.isPresent(material)) return nullptr;
 
-    if (!instance.isPresent(meshModel)) return nullptr;
+    MeshModel * vkmeshModel = instanceModels.Get(meshModel);
+    VulkanSceneObject * object = new VulkanSceneObject(vkmeshModel, transform, m_modelDataDynamicUBO, m_transformIndexUBO++);
 
-    MeshModel * vkmesh = instance.Get(meshModel);
+    object->setMaterial(instanceMaterials.Get(material));
 
-    VulkanSceneObject * object = new VulkanSceneObject(vkmesh, transform, m_modelDataDynamicUBO, m_transformIndexUBO++);
     m_objects.push_back(object);
-
     return object;
 }
 
-Material * VulkanRenderer::createMaterial(glm::vec4 albedo, float metallic, float roughness, float ao, float emissive)
+Material * VulkanRenderer::createMaterial(std::string name, glm::vec4 albedo, float metallic, float roughness, float ao, float emissive)
 {
-    return new VulkanMaterialPBR(albedo, metallic, roughness, ao, emissive, m_materialsUBO, m_materialsIndexUBO++);
+    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+    if (instance.isPresent(name)) return nullptr;
+    
+    VulkanMaterialPBR * temp = new VulkanMaterialPBR(name, albedo, metallic, roughness, ao, emissive, m_materialsUBO, m_materialsIndexUBO++);
+    instance.Add(temp->m_name, temp);
+
+    return temp;
 }
 
 void VulkanRenderer::destroyVulkanMeshModel(MeshModel model)

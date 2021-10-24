@@ -32,6 +32,7 @@ private:
     QMenu * m_menuFile;
     QAction * m_actionImport;
     QAction * m_actionAddSceneObject;
+    QAction * m_actionCreateMaterial;
 
     /* A UI list widget with all the scene objects*/
     QListWidget * m_sceneObjects;
@@ -45,15 +46,17 @@ private:
     QWidget * initVulkanWindowWidget();
     QWidget * initControlsWidget();
     void createMenu();
+
     QStringList getImportedModels();
+    QStringList getCreatedMaterials();
 
 private slots:
     void onImportModelSlot();
     void onAddSceneObjectSlot();
+    void onCreateMaterialSlot();
     void onSelectedSceneObjectChangedSlot();
     
     void onSelectedSceneObjectNameChangedSlot();
-    void onSelectedSceneObjectMeshModelChangedSlot(int);
 };
 
 #endif

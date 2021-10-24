@@ -3,10 +3,15 @@
 #include <qgroupbox.h>
 #include <qlayout.h>
 
-WidgetMeshModel::WidgetMeshModel(QWidget * parent, QStringList availableModels) : QWidget(parent)
+#include "core/AssetManager.hpp"
+
+WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject, QStringList availableModels) : QWidget(parent)
 {
+    m_sceneObject = sceneObject;
+
     m_models = new QComboBox();
     m_models->addItems(availableModels);
+    connect(m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshModelChangedSlot(int)));
 
     QGroupBox * boxPickModel = new QGroupBox(tr("Mesh Model"));
     QVBoxLayout * layoutPickModel = new QVBoxLayout();
@@ -27,4 +32,15 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, QStringList availableModels) 
 std::string WidgetMeshModel::getSelectedModel() const
 {
     return m_models->currentText().toStdString();
+}
+
+void WidgetMeshModel::onMeshModelChangedSlot(int)
+{
+    if (m_sceneObject == nullptr) return;
+
+    /* Selected object name widget changed */
+    std::string newModel = getSelectedModel();
+
+    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
+    m_sceneObject->setMeshModel(instance.Get(newModel));
 }

@@ -19,9 +19,7 @@ public:
     ~VulkanWindow();
     QVulkanWindowRenderer * createRenderer() override;
 
-    bool ImportMeshModel(std::string filename);
-
-    SceneObject * AddSceneObject(std::string filename, Transform transform);
+    VulkanRenderer * m_renderer = nullptr;
 
 protected:
     void resizeEvent(QResizeEvent *ev) override;
@@ -32,7 +30,6 @@ protected:
     void mouseMoveEvent(QMouseEvent *ev) override;
 
 private:
-    VulkanRenderer * m_renderer = nullptr;
 
     std::unordered_map<int, bool> m_keysPressed;
 

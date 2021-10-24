@@ -49,9 +49,9 @@ public:
 
     bool createVulkanMeshModel(std::string filename);
 
-    VulkanSceneObject * addSceneObject(std::string meshModel, Transform transform);
+    VulkanSceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
 
-    Material * createMaterial(glm::vec4 albedo, float metallic, float roughness, float ao, float emissive);
+    Material * createMaterial(std::string name, glm::vec4 albedo, float metallic, float roughness, float ao, float emissive);
 
 private:
 

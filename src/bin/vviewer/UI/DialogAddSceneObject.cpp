@@ -2,12 +2,13 @@
 
 #include <qlayout.h>
 #include <qgroupbox.h>
+#include <qlabel.h>
 
-DialogAddSceneObject::DialogAddSceneObject(QWidget *parent, const char *name, QStringList availableModels) : QDialog(parent)
+DialogAddSceneObject::DialogAddSceneObject(QWidget *parent, const char *name, QStringList availableModels, QStringList availableMaterials) : QDialog(parent)
 {
     setWindowTitle(QString(name));
 
-    m_widgetMeshModel = new WidgetMeshModel(nullptr, availableModels);
+    m_widgetMeshModel = new WidgetMeshModel(nullptr, nullptr, availableModels);
 
     m_buttonOk = new QPushButton(tr("Ok"));
     connect(m_buttonOk, &QPushButton::released, this, &DialogAddSceneObject::onButtonOk);
@@ -22,13 +23,23 @@ DialogAddSceneObject::DialogAddSceneObject(QWidget *parent, const char *name, QS
 
     m_widgetTransform = new WidgetTransform(nullptr, nullptr);
 
+    m_comboBoxAvailableMaterials = new QComboBox();
+    m_comboBoxAvailableMaterials->addItems(availableMaterials);
+
+    QGroupBox * groupBoxMaterials = new QGroupBox(tr("Material"));
+    QVBoxLayout * layoutMaterials = new QVBoxLayout();
+    layoutMaterials->addWidget(m_comboBoxAvailableMaterials);
+    layoutMaterials->setContentsMargins(5, 5, 5, 5);
+    groupBoxMaterials->setLayout(layoutMaterials);
+
     QVBoxLayout * layoutMain = new QVBoxLayout();
     layoutMain->addWidget(m_widgetMeshModel);
     layoutMain->addWidget(m_widgetTransform);
+    layoutMain->addWidget(groupBoxMaterials);
     layoutMain->addWidget(widgetButtons);
 
     setLayout(layoutMain);
-    setFixedSize(350, 250);
+    setFixedSize(350, 330);
 }
 
 std::string DialogAddSceneObject::getSelectedModel() const
@@ -41,9 +52,15 @@ Transform DialogAddSceneObject::getTransform() const
     return m_widgetTransform->getTransform();
 }
 
+std::string DialogAddSceneObject::getSelectedMaterial() const
+{
+    return m_pickedMaterial;
+}
+
 void DialogAddSceneObject::onButtonOk()
 {
     m_pickedModel = m_widgetMeshModel->getSelectedModel();
+    m_pickedMaterial = m_comboBoxAvailableMaterials->currentText().toStdString();
     close();
 }
 

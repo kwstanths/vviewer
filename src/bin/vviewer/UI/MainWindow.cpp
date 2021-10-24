@@ -10,6 +10,7 @@
 #include <utils/Console.hpp>
 
 #include "DialogAddSceneObject.hpp"
+#include "DialogCreateMaterial.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     
@@ -126,9 +127,14 @@ void MainWindow::createMenu()
     m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
     connect(m_actionAddSceneObject, &QAction::triggered, this, &MainWindow::onAddSceneObjectSlot);
 
+    m_actionCreateMaterial = new QAction(tr("&Create a material"), this);
+    m_actionCreateMaterial->setStatusTip(tr("Create a material"));
+    connect(m_actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
+
     m_menuFile = menuBar()->addMenu(tr("&File"));
     m_menuFile->addAction(m_actionImport);
     m_menuFile->addAction(m_actionAddSceneObject);
+    m_menuFile->addAction(m_actionCreateMaterial);
 }
 
 QStringList MainWindow::getImportedModels()
@@ -141,13 +147,23 @@ QStringList MainWindow::getImportedModels()
     return importedModels;
 }
 
+QStringList MainWindow::getCreatedMaterials()
+{
+    QStringList createdMaterials;
+    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        createdMaterials.push_back(QString::fromStdString(itr->first));
+    }
+    return createdMaterials;
+}
+
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
         tr("Import model"), "",
         tr("Model (*.obj);;All Files (*)"));
 
-    bool ret = m_vulkanWindow->ImportMeshModel(filename.toStdString());
+    bool ret = m_vulkanWindow->m_renderer->createVulkanMeshModel(filename.toStdString());
  
     if (ret) {
         utils::ConsoleInfo("Model imported");
@@ -162,15 +178,15 @@ void MainWindow::onImportModelSlot()
 
 void MainWindow::onAddSceneObjectSlot()
 {
-    DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", getImportedModels());
+    DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", getImportedModels(), getCreatedMaterials());
     dialog->exec();
 
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    SceneObject * object = m_vulkanWindow->AddSceneObject(selectedModel, dialog->getTransform());
+    SceneObject * object = m_vulkanWindow->m_renderer->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
 
-    if (object == nullptr) utils::ConsoleWarning("Unable to add objec to scene: " + selectedModel);
+    if (object == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
     else {
         /* Set a name for the object */
         /* TODO set a some other way name */
@@ -183,6 +199,20 @@ void MainWindow::onAddSceneObjectSlot()
         /* Connect the UI entry with the SceneObject item */
         item->setData(Qt::UserRole, data);
         m_sceneObjects->addItem(item);
+    }
+}
+
+void MainWindow::onCreateMaterialSlot()
+{
+    DialogCreateMaterial * dialog = new DialogCreateMaterial(nullptr, "Create a material", getImportedModels());
+    dialog->exec();
+
+    std::string selectedModel = dialog->m_selectedName.toStdString();
+    if (dialog->m_selectedMaterial == MaterialType::MATERIAL_NOT_SET) return;
+
+    Material * material = m_vulkanWindow->m_renderer->createMaterial(dialog->m_selectedName.toStdString(), glm::vec4(0.5, 0.5, 0.5, 1), 0.5, 0.5, 1, 0);
+    if (material == nullptr) {
+        utils::ConsoleWarning("Failed to create material");
     }
 }
 
@@ -209,11 +239,8 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
 
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, object);
-
-    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, getImportedModels());
-    connect(m_selectedObjectWidgetMeshModel->m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onSelectedSceneObjectMeshModelChangedSlot(int)));
-    
-    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, static_cast<MaterialPBR *>(object->getMaterial()));
+    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, object, getImportedModels());
+    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, object, static_cast<MaterialPBR *>(object->getMaterial()), getCreatedMaterials());
 
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
@@ -232,16 +259,3 @@ void MainWindow::onSelectedSceneObjectNameChangedSlot()
     object->m_name = newName.toStdString();
     selectedItem->setText(newName);
 }
-
-void MainWindow::onSelectedSceneObjectMeshModelChangedSlot(int)
-{
-    /* Selected object name widget changed */
-    std::string newModel = m_selectedObjectWidgetMeshModel->getSelectedModel();
-
-    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
-
-    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
-    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
-    object->setMeshModel(instance.Get(newModel));
-}
-

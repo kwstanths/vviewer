@@ -1,12 +1,13 @@
 #include "VulkanMaterials.hpp"
 
-VulkanMaterialPBR::VulkanMaterialPBR(glm::vec4 albedo, 
+VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
+    glm::vec4 albedo,
     float metallic, 
     float roughness, 
     float ao, 
     float emissive,
     VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, int materialsUBOBlock)
-    : VulkanMaterialStorage<MaterialPBRData>(materialsDynamicUBO, materialsUBOBlock)
+    : VulkanMaterialStorage<MaterialPBRData>(materialsDynamicUBO, materialsUBOBlock), MaterialPBR(name)
 {
     getAlbedo() = albedo;
     getMetallic() = metallic;

@@ -37,21 +37,6 @@ QVulkanWindowRenderer * VulkanWindow::createRenderer()
     return m_renderer;
 }
 
-bool VulkanWindow::ImportMeshModel(std::string filename)
-{
-    return m_renderer->createVulkanMeshModel(filename);
-}
-
-SceneObject * VulkanWindow::AddSceneObject(std::string filename, Transform transform)
-{
-    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
-
-    SceneObject * temp = m_renderer->addSceneObject(filename, transform);
-    temp->setMaterial(instance.Get("defaultMaterial"));
-
-    return temp;
-}
-
 void VulkanWindow::resizeEvent(QResizeEvent * ev)
 {
     m_camera->setWindowSize(ev->size().width(), ev->size().height());
