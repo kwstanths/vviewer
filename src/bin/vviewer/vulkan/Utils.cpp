@@ -302,7 +302,7 @@ void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool command
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;   /* Before the fragment shader */
     }
     else {
-        throw std::invalid_argument("unsupported layout transition!");
+        throw std::invalid_argument("Unsupported layout transition!");
     }
 
     barrier.srcAccessMask = 0; // TODO

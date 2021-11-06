@@ -44,14 +44,20 @@ void VulkanRenderer::initResources()
     m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
     m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
 
-    createTextureImage();
-    createTextureImageView();
-    createTextureSampler();
-
     createDescriptorSetsLayouts();
 
-    createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f);
-    createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f);
+    Texture * whiteTexture = createTexture("white", new Image(Image::Color::WHITE));
+
+    MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f));
+    MaterialPBR * lightMaterial = static_cast<MaterialPBR *>(createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f));
+    
+    defaultMaterial->setAlbedoTexture(createTexture("assets/rustediron/basecolor.png"));
+    defaultMaterial->setMetallicTexture(createTexture("assets/rustediron/metallic.png"));
+    defaultMaterial->setRoughnessTexture(createTexture("assets/rustediron/roughness.png"));
+    defaultMaterial->setAOTexture(whiteTexture);
+    defaultMaterial->setEmissiveTexture(whiteTexture);
+    
+    createTextureSampler();
 
     /* Add a sphere in the scene, where the light is */
     {
@@ -110,16 +116,25 @@ void VulkanRenderer::releaseResources()
     m_modelDataDynamicUBO.destroy();
     m_materialsUBO.destroy();
 
-    m_devFunctions->vkDestroySampler(m_device, m_textureSampler, nullptr);
-    m_devFunctions->vkDestroyImageView(m_device, m_textureImageView, nullptr);
-    m_devFunctions->vkDestroyImage(m_device, m_textureImage, nullptr);
-    m_devFunctions->vkFreeMemory(m_device, m_textureImageMemory, nullptr);
+    {
+        m_devFunctions->vkDestroySampler(m_device, m_albedoTextureSampler, nullptr);
+        AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
+        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+            VulkanTexture * vkTexture = static_cast<VulkanTexture *>(itr->second);
+
+            m_devFunctions->vkDestroyImageView(m_device, vkTexture->getImageView(), nullptr);
+            m_devFunctions->vkDestroyImage(m_device, vkTexture->getImage(), nullptr);
+            m_devFunctions->vkFreeMemory(m_device, vkTexture->getImageMemory(), nullptr);
+        }
+    }
 
     m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
 
-    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
-    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-        destroyVulkanMeshModel(*itr->second);
+    {
+        AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
+        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+            destroyVulkanMeshModel(*itr->second);
+        }
     }
 
     destroyDebugCallback();
@@ -195,17 +210,17 @@ bool VulkanRenderer::createVulkanMeshModel(std::string filename)
     if (instance.isPresent(filename)) return false;
     
     try {
-        VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel(filename), true);
+        VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel(filename));
         instance.Add(filename, vkmesh);
-    }
-    catch (std::runtime_error& e) {
+    } catch (std::runtime_error& e) {
+        utils::Console(utils::DebugLevel::WARNING, "Failed to create a Vulkan Mesh Model: " + std::string(e.what()));
         return false;
     }
 
     return true;
 }
 
-VulkanSceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transform transform, std::string material)
+SceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transform transform, std::string material)
 {
     AssetManager<std::string, MeshModel *>& instanceModels = AssetManager<std::string, MeshModel *>::getInstance();
     if (!instanceModels.isPresent(meshModel)) return nullptr;
@@ -230,6 +245,50 @@ Material * VulkanRenderer::createMaterial(std::string name, glm::vec4 albedo, fl
     instance.Add(temp->m_name, temp);
 
     return temp;
+}
+
+Texture * VulkanRenderer::createTexture(std::string imagePath)
+{
+    try {
+        AssetManager<std::string, Image *>& instance = AssetManager<std::string, Image *>::getInstance();
+        
+        Image * image = nullptr;
+        if (instance.isPresent(imagePath)) {
+            image = instance.Get(imagePath);
+        }
+        else {
+            image = new Image(imagePath);
+            instance.Add(imagePath, image);
+        }
+
+        return createTexture(imagePath, image);
+    } catch (std::runtime_error& e) {
+        utils::ConsoleCritical("Failed to create a vulkan texture: " + std::string(e.what()));
+        return nullptr;
+    }
+
+    return nullptr;
+}
+
+Texture * VulkanRenderer::createTexture(std::string id, Image * image)
+{
+    try {
+        AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
+        
+        if (instance.isPresent(id)) {
+            return instance.Get(id);
+        }
+
+        VulkanTexture * temp = new VulkanTexture(image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+        instance.Add(id, temp);
+        return temp;
+    }
+    catch (std::runtime_error& e) {
+        utils::ConsoleCritical("Failed to create a vulkan texture: " + std::string(e.what()));
+        return nullptr;
+    }
+
+    return nullptr;
 }
 
 void VulkanRenderer::destroyVulkanMeshModel(MeshModel model)
@@ -560,7 +619,7 @@ bool VulkanRenderer::createDescriptorSetsLayouts()
     modelDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     modelDataLayoutBinding.pImmutableSamplers = nullptr;
 
-    /* Create binding for texture data */
+    /* Create binding for material data */
     VkDescriptorSetLayoutBinding materialLayoutBinding{};
     materialLayoutBinding.binding = 2;
     materialLayoutBinding.descriptorCount = 1;   /* If we have an array of uniform buffers */
@@ -568,7 +627,14 @@ bool VulkanRenderer::createDescriptorSetsLayouts()
     materialLayoutBinding.pImmutableSamplers = nullptr;
     materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> setBindings = { cameraDataLayoutBinding, modelDataLayoutBinding, materialLayoutBinding };
+    VkDescriptorSetLayoutBinding albedoSamplerLayoutBinding{};
+    albedoSamplerLayoutBinding.binding = 3;
+    albedoSamplerLayoutBinding.descriptorCount = 5;   /* If we have an array */
+    albedoSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    albedoSamplerLayoutBinding.pImmutableSamplers = nullptr;
+    albedoSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 4> setBindings = { cameraDataLayoutBinding, modelDataLayoutBinding, materialLayoutBinding, albedoSamplerLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
@@ -659,7 +725,11 @@ bool VulkanRenderer::createDescriptorPool()
     materialsPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     materialsPoolSize.descriptorCount = nImages;
 
-    std::array<VkDescriptorPoolSize, 3> poolSizes = { cameraDataPoolSize, modelDataPoolSize, materialsPoolSize };
+    VkDescriptorPoolSize texturesPoolSize{};
+    texturesPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    texturesPoolSize.descriptorCount = 5 * nImages;
+
+    std::array<VkDescriptorPoolSize, 4> poolSizes = { cameraDataPoolSize, modelDataPoolSize, materialsPoolSize, texturesPoolSize };
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -737,78 +807,33 @@ bool VulkanRenderer::createDescriptorSets()
         descriptorWriteMaterial.pImageInfo = nullptr; // Optional
         descriptorWriteMaterial.pTexelBufferView = nullptr; // Optional
 
-        std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteCamera, descriptorWriteModel, descriptorWriteMaterial };
+        AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+        MaterialPBR * material = static_cast<VulkanMaterialPBR *>(instance.Get("defaultMaterial"));
+        VkDescriptorImageInfo  albedoTexInfo[5];
+        for (size_t i = 0; i < 5; i++) {
+            albedoTexInfo[i] = VkDescriptorImageInfo();
+            albedoTexInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            albedoTexInfo[i].sampler = m_albedoTextureSampler;
+        }
+        albedoTexInfo[0].imageView = static_cast<VulkanTexture *>(material->getAlbedoTexture())->getImageView();
+        albedoTexInfo[1].imageView = static_cast<VulkanTexture *>(material->getMetallicTexture())->getImageView();
+        albedoTexInfo[2].imageView = static_cast<VulkanTexture *>(material->getRoughnessTexture())->getImageView();
+        albedoTexInfo[3].imageView = static_cast<VulkanTexture *>(material->getAOTexture())->getImageView();
+        albedoTexInfo[4].imageView = static_cast<VulkanTexture *>(material->getEmissiveTexture())->getImageView();
+
+        VkWriteDescriptorSet descriptorWriteAlbedoTex{};
+        descriptorWriteAlbedoTex.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWriteAlbedoTex.dstSet = m_descriptorSets[i];
+        descriptorWriteAlbedoTex.dstBinding = 3;
+        descriptorWriteAlbedoTex.dstArrayElement = 0;
+        descriptorWriteAlbedoTex.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWriteAlbedoTex.descriptorCount = 5;
+        descriptorWriteAlbedoTex.pImageInfo = albedoTexInfo;
+
+        std::array<VkWriteDescriptorSet, 4> writeSets = { descriptorWriteCamera, descriptorWriteModel, descriptorWriteMaterial, descriptorWriteAlbedoTex };
         m_devFunctions->vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
-        
     }
 
-    return true;
-}
-
-bool VulkanRenderer::createTextureImage()
-{
-    try {
-        /* Read image from disk */
-        Image image("assets/texture.jpg");
-        VkDeviceSize imageSize = image.getWidth() * image.getHeight() * image.getChannels();
-
-        /* Create staging buffer */
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(m_physicalDevice, m_device, imageSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-            stagingBuffer, 
-            stagingBufferMemory);
-
-        /* Copy image data to staging buffer */
-        void* data;
-        m_devFunctions->vkMapMemory(m_device, stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, image.getData(), static_cast<size_t>(imageSize));
-        m_devFunctions->vkUnmapMemory(m_device, stagingBufferMemory);
-
-        /* Create vulkan image and memory */
-        createImage(m_physicalDevice, m_device, image.getWidth(), 
-            image.getHeight(), 
-            VK_FORMAT_R8G8B8A8_SRGB, 
-            VK_IMAGE_TILING_OPTIMAL, 
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-            m_textureImage, 
-            m_textureImageMemory);
-
-        /* Transition image to DST_OPTIMAL in order to transfer the data */
-        transitionImageLayout(m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), 
-            m_textureImage, 
-            VK_FORMAT_R8G8B8A8_SRGB, 
-            VK_IMAGE_LAYOUT_UNDEFINED, 
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-        /* copy data fronm staging buffer to image */
-        copyBufferToImage(m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), stagingBuffer, m_textureImage, static_cast<uint32_t>(image.getWidth()), static_cast<uint32_t>(image.getHeight()));
-
-        /* Transition to SHADER_READ_ONLY layout */
-        transitionImageLayout(m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), 
-            m_textureImage,
-            VK_FORMAT_R8G8B8A8_SRGB, 
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        /* Cleanup staging buffer */
-        m_devFunctions->vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-        m_devFunctions->vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-    }
-    catch (std::runtime_error& e) {
-        utils::ConsoleCritical("Failed to load a disk image: " + std::string(e.what()));
-        return false;
-    }
-
-    return true;
-}
-
-bool VulkanRenderer::createTextureImageView()
-{
-    m_textureImageView = createImageView(m_device, m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     return true;
 }
 
@@ -832,7 +857,7 @@ bool VulkanRenderer::createTextureSampler()
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
 
-    if (m_devFunctions->vkCreateSampler(m_device, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
+    if (m_devFunctions->vkCreateSampler(m_device, &samplerInfo, nullptr, &m_albedoTextureSampler) != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to create a texture sampler");
         return false;
     }

@@ -38,15 +38,19 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
 {
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
+    bool hasNormals = mesh->HasNormals();
 
     vertices.resize(mesh->mNumVertices);
     for (size_t i = 0; i < mesh->mNumVertices; i++) {
         vertices[i].position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 
+        if (hasNormals) {
+            vertices[i].normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+        }
+
         if (mesh->mTextureCoords[0]) {
             vertices[i].uv = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-        }
-        else {
+        } else {
             vertices[i].uv = { 0, 0 };
         }
 
@@ -61,5 +65,5 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
         }
     }
 
-    return Mesh(vertices, indices);
+    return Mesh(vertices, indices, hasNormals);
 }

@@ -6,6 +6,8 @@
 
 #include <glm/glm.hpp>
 
+#include "Texture.hpp"
+
 enum MaterialType {
     MATERIAL_NOT_SET = -1,
     MATERIAL_PBR_STANDARD = 0,
@@ -38,14 +40,29 @@ public:
     }
 
     virtual glm::vec4& getAlbedo() = 0;
-
     virtual float& getMetallic() = 0;
-
     virtual float& getRoughness() = 0;
-
     virtual float& getAO() = 0;
-
     virtual float& getEmissive() = 0;
+
+    virtual void setAlbedoTexture(Texture * texture);
+    virtual void setMetallicTexture(Texture * texture);
+    virtual void setRoughnessTexture(Texture * texture);
+    virtual void setAOTexture(Texture * texture);
+    virtual void setEmissiveTexture(Texture * texture);
+
+    Texture * getAlbedoTexture() const;
+    Texture * getMetallicTexture() const;
+    Texture * getRoughnessTexture() const;
+    Texture * getAOTexture() const;
+    Texture * getEmissiveTexture() const;
+
+protected:
+    Texture * m_albedoTexture = nullptr;
+    Texture * m_metallicTexture = nullptr;
+    Texture * m_roughnessTexture = nullptr;
+    Texture * m_aoTexture = nullptr;
+    Texture * m_emissiveTexture = nullptr;
 };
 
 #endif

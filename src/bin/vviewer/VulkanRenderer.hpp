@@ -16,6 +16,7 @@
 #include "vulkan/Utils.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
+#include "vulkan/VulkanTexture.hpp"
 
 #include "core/MeshModel.hpp"
 #include "core/Camera.hpp"
@@ -49,9 +50,12 @@ public:
 
     bool createVulkanMeshModel(std::string filename);
 
-    VulkanSceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
+    SceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
 
     Material * createMaterial(std::string name, glm::vec4 albedo, float metallic, float roughness, float ao, float emissive);
+
+    Texture * createTexture(std::string imagePath);
+    Texture * createTexture(std::string id, Image * image);
 
 private:
 
@@ -74,8 +78,6 @@ private:
     bool createDescriptorSets();
 
     /* Textures and images */
-    bool createTextureImage();
-    bool createTextureImageView();
     bool createTextureSampler();
     
     /* */
@@ -116,10 +118,7 @@ private:
     size_t m_materialsIndexUBO = 0;
 
     /* Texture data */
-    VkImage m_textureImage;
-    VkDeviceMemory m_textureImageMemory;
-    VkImageView m_textureImageView;
-    VkSampler m_textureSampler;
+    VkSampler m_albedoTextureSampler;
 
     std::vector<VulkanSceneObject *> m_objects;
 

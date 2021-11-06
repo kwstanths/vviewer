@@ -1,13 +1,23 @@
-#ifndef __Texture_hpp__
-#define __Texture_hpp__
+#ifndef __Image_hpp__
+#define __Image_hpp__
 
 #include <string>
 
 #include <stb_image.h>
 
+
 class Image {
 public:
+    enum class Color {
+        BLACK = 0,
+        WHITE = 1,
+        RED = 2,
+        GREEN = 3,
+        BLUE = 4,
+    };
+
     Image(std::string filename);
+    Image(Color color);
     ~Image();
 
     stbi_uc* getData();

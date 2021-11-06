@@ -18,7 +18,7 @@ layout(set = 0, binding = 2) uniform PBRMaterialData {
     vec4 metallicRoughnessAOEmissive;
 } pbrMaterialData;
 
-//layout(set = 0, binding = 2) uniform sampler2D texSampler;
+layout(set = 0, binding = 3) uniform sampler2D albedoSampler[5];
 
 vec3 getCameraPosition(mat4 invViewMatrix)
 {
@@ -41,11 +41,11 @@ void main() {
     vec3 radiance     = lightColor * attenuation; 
     
     PBRStandard pbr;
-    pbr.albedo = pbrMaterialData.albedo.rgb;
-    pbr.metallic = pbrMaterialData.metallicRoughnessAOEmissive.r;
-    pbr.roughness = pbrMaterialData.metallicRoughnessAOEmissive.g;
-    float ao = pbrMaterialData.metallicRoughnessAOEmissive.b;
-    float emissive = pbrMaterialData.metallicRoughnessAOEmissive.a;
+    pbr.albedo = pbrMaterialData.albedo.rgb * texture(albedoSampler[0], fragUV).rgb;
+    pbr.metallic = pbrMaterialData.metallicRoughnessAOEmissive.r * texture(albedoSampler[1], fragUV).r;
+    pbr.roughness = pbrMaterialData.metallicRoughnessAOEmissive.g * texture(albedoSampler[2], fragUV).r;
+    float ao = pbrMaterialData.metallicRoughnessAOEmissive.b * texture(albedoSampler[3], fragUV).r;
+    float emissive = pbrMaterialData.metallicRoughnessAOEmissive.a * texture(albedoSampler[4], fragUV).r;
     
     vec3 ambient = vec3(0.03) * pbr.albedo * ao;
     vec3 pbrShading = radiance * calculatePBRStandardShading(pbr, fragWorldPos, fragNormal, V, L, H);

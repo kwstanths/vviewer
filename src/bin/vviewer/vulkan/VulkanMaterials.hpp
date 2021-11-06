@@ -38,14 +38,16 @@ public:
         int materialsUBOBlock);
 
     glm::vec4& getAlbedo() override;
-
     float& getMetallic() override;
-
     float& getRoughness() override;
-
     float& getAO() override;
-
     float& getEmissive() override;
+
+    void setAlbedoTexture(Texture * texture) override;
+    void setMetallicTexture(Texture * texture) override;
+    void setRoughnessTexture(Texture * texture) override;
+    void setAOTexture(Texture * texture) override;
+    void setEmissiveTexture(Texture * texture) override;
 
 private:
 

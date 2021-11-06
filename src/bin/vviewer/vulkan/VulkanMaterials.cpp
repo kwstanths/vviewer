@@ -1,5 +1,7 @@
 #include "VulkanMaterials.hpp"
 
+#include <core/AssetManager.hpp>
+
 VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
     glm::vec4 albedo,
     float metallic, 
@@ -14,6 +16,19 @@ VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
     getRoughness() = roughness;
     getAO() = ao;
     getEmissive() = emissive;
+
+    AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
+    if (!instance.isPresent("white")) {
+        throw std::runtime_error("White texture not present");
+    }
+
+    Texture * white = instance.Get("white");
+
+    setAlbedoTexture(white);
+    setMetallicTexture(white);
+    setRoughnessTexture(white);
+    setAOTexture(white);
+    setEmissiveTexture(white);
 }
 
 glm::vec4 & VulkanMaterialPBR::getAlbedo()
@@ -39,4 +54,29 @@ float & VulkanMaterialPBR::getAO()
 float & VulkanMaterialPBR::getEmissive()
 {
     return m_data->metallicRoughnessAOEmissive.a;
+}
+
+void VulkanMaterialPBR::setAlbedoTexture(Texture * texture)
+{
+    MaterialPBR::setAlbedoTexture(texture);
+}
+
+void VulkanMaterialPBR::setMetallicTexture(Texture * texture)
+{
+    MaterialPBR::setMetallicTexture(texture);
+}
+
+void VulkanMaterialPBR::setRoughnessTexture(Texture * texture)
+{
+    MaterialPBR::setRoughnessTexture(texture);
+}
+
+void VulkanMaterialPBR::setAOTexture(Texture * texture)
+{
+    MaterialPBR::setAOTexture(texture);
+}
+
+void VulkanMaterialPBR::setEmissiveTexture(Texture * texture)
+{
+    MaterialPBR::setEmissiveTexture(texture);
 }

@@ -8,6 +8,50 @@ Image::Image(std::string filename) {
     if (m_data == nullptr) throw std::runtime_error("File not found: " + filename);
 }
 
+Image::Image(Color color)
+{
+    m_width = 1;
+    m_height = 1;
+    m_channels = 4;
+
+    m_data = new stbi_uc[4];
+    switch (color)
+    {
+    case Image::Color::BLACK:
+        m_data[0] = 0x00;
+        m_data[1] = 0x00;
+        m_data[2] = 0x00;
+        m_data[3] = 0xFF;
+        break;
+    case Image::Color::WHITE:
+        m_data[0] = 0xFF;
+        m_data[1] = 0xFF;
+        m_data[2] = 0xFF;
+        m_data[3] = 0xFF;
+        break;
+    case Image::Color::RED:
+        m_data[0] = 0xFF;
+        m_data[1] = 0x00;
+        m_data[2] = 0x00;
+        m_data[3] = 0xFF;
+        break;
+    case Image::Color::GREEN:
+        m_data[0] = 0x00;
+        m_data[1] = 0xFF;
+        m_data[2] = 0x00;
+        m_data[3] = 0xFF;
+        break;
+    case Image::Color::BLUE:
+        m_data[0] = 0x00;
+        m_data[1] = 0x00;
+        m_data[2] = 0xFF;
+        m_data[3] = 0xFF;
+        break;
+    default:
+        break;
+    }
+}
+
 Image::~Image()
 {
     stbi_image_free(m_data);

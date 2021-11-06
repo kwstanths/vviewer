@@ -14,16 +14,19 @@ struct Vertex {
 
 class Mesh {
 public:
-    Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices);
+    Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, bool hasNormals = false);
 
     const std::vector<Vertex>& getVertices() const;
     const std::vector<uint16_t>& getIndices() const;
+
+    bool hasNormals() const;
 
     void computeNormals();
 
 private:
     std::vector<Vertex> m_vertices;
     std::vector<uint16_t> m_indices;
+    bool m_hasNormals = false;
 };
 
 #endif

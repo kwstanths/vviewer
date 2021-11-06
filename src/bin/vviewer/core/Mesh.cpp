@@ -4,10 +4,11 @@
 #include "vulkan/IncludeVulkan.hpp"
 #include <glm/glm.hpp>
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices)
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, bool hasNormals)
 {
     m_vertices = vertices;
     m_indices = indices;
+    m_hasNormals = hasNormals;
 }
 
 const std::vector<Vertex>& Mesh::getVertices() const
@@ -18,6 +19,11 @@ const std::vector<Vertex>& Mesh::getVertices() const
 const std::vector<uint16_t>& Mesh::getIndices() const
 {
     return m_indices;
+}
+
+bool Mesh::hasNormals() const
+{
+    return m_hasNormals;
 }
 
 void Mesh::computeNormals()
