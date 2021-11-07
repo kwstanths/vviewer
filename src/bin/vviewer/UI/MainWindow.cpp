@@ -119,22 +119,26 @@ QWidget * MainWindow::initControlsWidget()
 
 void MainWindow::createMenu()
 {
-    m_actionImport = new QAction(tr("&Import a model"), this);
-    m_actionImport->setStatusTip(tr("Import a model"));
-    connect(m_actionImport, &QAction::triggered, this, &MainWindow::onImportModelSlot);
+    QAction * m_actionImportModel = new QAction(tr("&Import a model"), this);
+    m_actionImportModel->setStatusTip(tr("Import a model"));
+    connect(m_actionImportModel, &QAction::triggered, this, &MainWindow::onImportModelSlot);
+    QAction * m_actionImportTexture = new QAction(tr("&Import textures"), this);
+    m_actionImportTexture->setStatusTip(tr("Import textures"));
+    connect(m_actionImportTexture, &QAction::triggered, this, &MainWindow::onImportTextureSlot);
 
-    m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
+    QAction * m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
     m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
     connect(m_actionAddSceneObject, &QAction::triggered, this, &MainWindow::onAddSceneObjectSlot);
-
-    m_actionCreateMaterial = new QAction(tr("&Create a material"), this);
-    m_actionCreateMaterial->setStatusTip(tr("Create a material"));
+    QAction * m_actionCreateMaterial = new QAction(tr("&Add a material"), this);
+    m_actionCreateMaterial->setStatusTip(tr("Add a material"));
     connect(m_actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
 
-    m_menuFile = menuBar()->addMenu(tr("&File"));
-    m_menuFile->addAction(m_actionImport);
-    m_menuFile->addAction(m_actionAddSceneObject);
-    m_menuFile->addAction(m_actionCreateMaterial);
+    QMenu * m_menuImport = menuBar()->addMenu(tr("&Import"));
+    m_menuImport->addAction(m_actionImportModel);
+    m_menuImport->addAction(m_actionImportTexture);
+    QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
+    m_menuAdd->addAction(m_actionAddSceneObject);
+    m_menuAdd->addAction(m_actionCreateMaterial);
 }
 
 QStringList MainWindow::getImportedModels()
@@ -157,6 +161,16 @@ QStringList MainWindow::getCreatedMaterials()
     return createdMaterials;
 }
 
+QStringList MainWindow::getImportedTextures()
+{
+    QStringList importedTextures;
+    AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        importedTextures.push_back(QString::fromStdString(itr->first));
+    }
+    return importedTextures;
+}
+
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
@@ -172,6 +186,21 @@ void MainWindow::onImportModelSlot()
             m_selectedObjectWidgetMeshModel->m_models->clear();
             m_selectedObjectWidgetMeshModel->m_models->addItems(getImportedModels());
             m_selectedObjectWidgetMeshModel->m_models->blockSignals(false);
+        }
+    }
+}
+
+void MainWindow::onImportTextureSlot()
+{
+    QStringList filenames = QFileDialog::getOpenFileNames(this,
+        tr("Import textures"), "",
+        tr("Textures (*.png);;All Files (*)"));
+
+    for (const auto& texture : filenames)
+    {
+        Texture * tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString());
+        if (tex) {
+            utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
         }
     }
 }
@@ -240,7 +269,7 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
 
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, object);
     m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, object, getImportedModels());
-    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, object, static_cast<MaterialPBR *>(object->getMaterial()), getCreatedMaterials());
+    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, object, static_cast<MaterialPBR *>(object->getMaterial()), getCreatedMaterials(), getImportedTextures());
 
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);

@@ -38,6 +38,10 @@ public:
         throw std::runtime_error("Asset not found");
     }
 
+    void Reset() {
+        m_assets.clear();
+    }
+
     Iterator begin() {
         return m_assets.begin();
     }

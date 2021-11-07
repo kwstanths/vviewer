@@ -52,7 +52,10 @@ public:
 
     SceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
 
-    Material * createMaterial(std::string name, glm::vec4 albedo, float metallic, float roughness, float ao, float emissive);
+    Material * createMaterial(std::string name, 
+        glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
+        bool createDescriptors = true
+    );
 
     Texture * createTexture(std::string imagePath);
     Texture * createTexture(std::string id, Image * image);
@@ -74,11 +77,8 @@ private:
     bool createDescriptorSetsLayouts();
     bool createUniformBuffers();
     bool updateUniformBuffers(size_t index);
-    bool createDescriptorPool();
+    bool createDescriptorPool(size_t nMaterials);
     bool createDescriptorSets();
-
-    /* Textures and images */
-    bool createTextureSampler();
     
     /* */
     void destroyVulkanMeshModel(MeshModel model);
@@ -106,25 +106,24 @@ private:
     VkPipeline m_graphicsPipeline;
 
     /* Descriptor data */
-    VkDescriptorSetLayout m_descriptorSetLayout;
+    VkDescriptorSetLayout m_descriptorSetLayoutCamera;
+    VkDescriptorSetLayout m_descriptorSetLayoutModel;
+    VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
     VkDescriptorPool m_descriptorPool;
-    std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<VkDescriptorSet> m_descriptorSetsCamera;
+    std::vector<VkDescriptorSet> m_descriptorSetsModel;
     std::vector<VkBuffer> m_uniformBuffersCamera;
     std::vector<VkDeviceMemory> m_uniformBuffersCameraMemory;
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
-    // keeps the index of block for the next added object
     size_t m_transformIndexUBO = 0;
     VulkanDynamicUBO<MaterialPBRData> m_materialsUBO;
     size_t m_materialsIndexUBO = 0;
-
-    /* Texture data */
-    VkSampler m_albedoTextureSampler;
 
     std::vector<VulkanSceneObject *> m_objects;
 
     std::shared_ptr<Camera> m_camera;
 
-    QColor m_clearColor = QColor(80, 80, 0);
+    QColor m_clearColor = QColor(0, 102, 102);
 };
 
 #endif

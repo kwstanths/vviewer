@@ -15,11 +15,19 @@ class WidgetMaterialPBR : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject, MaterialPBR * material, QStringList availableMaterials);
+    WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject, MaterialPBR * material, 
+        QStringList availableMaterials,
+        QStringList availableTextures);
 
     QComboBox * m_comboBoxAvailableMaterials;
     QPushButton * m_colorButton;
     QSlider *m_metallic, *m_roughness, *m_ao, *m_emissive;
+
+    QComboBox * m_comboBoxAlbedo;
+    QComboBox * m_comboBoxMetallic;
+    QComboBox * m_comboBoxRoughness;
+    QComboBox * m_comboBoxAO;
+    QComboBox * m_comboBoxEmissive;
     
 private:
     MaterialPBR * m_material = nullptr;
@@ -31,10 +39,15 @@ private slots:
     void onMaterialChanged(int);
     void onColorButton();
     void onColorChanged(QColor color);
+    void onColorTextureChanged(int);
     void onMetallicChanged();
+    void onMetallicTextureChanged(int);
     void onRoughnessChanged();
+    void onRoughnessTextureChanged(int);
     void onAOChanged();
+    void onAOTextureChanged(int);
     void onEmissiveChanged();
+    void onEmissiveTextureChanged(int);
 
 };
 

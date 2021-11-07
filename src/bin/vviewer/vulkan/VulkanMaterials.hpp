@@ -6,7 +6,7 @@
 #include "VulkanDynamicUBO.hpp"
 #include "VulkanDataStructs.hpp"
 
-/* A class to handle the dynamic UBO storage of a material */
+/* A class to handle the dynamic UBO storage for a material */
 template<typename T> 
 class VulkanMaterialStorage {
 public:
@@ -25,8 +25,29 @@ protected:
     T * m_data = nullptr;
 };
 
+/* A class that wraps descriptor creation for a material, needs to be implemented by each material */
+class VulkanMaterialDescriptor {
+public:
+    virtual bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) = 0;
+    virtual bool updateDescriptorSets(VkDevice device, size_t images) = 0;
+    virtual bool updateDescriptorSet(VkDevice device, size_t index) = 0;
 
-class VulkanMaterialPBR : public MaterialPBR, public VulkanMaterialStorage<MaterialPBRData> {
+    VkDescriptorSet getDescriptor(size_t index);
+    bool needsUpdate(size_t index) const;
+protected:
+    std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<bool> m_descirptorsNeedUpdate;
+};
+
+
+/** MATERIALS **/
+
+/* Default PBR material */
+class VulkanMaterialPBR : 
+    public MaterialPBR, 
+    public VulkanMaterialStorage<MaterialPBRData>,
+    public VulkanMaterialDescriptor
+{
 public:
     VulkanMaterialPBR(std::string name, 
         glm::vec4 albedo, 
@@ -34,6 +55,7 @@ public:
         float roughness, 
         float ao, 
         float emissive, 
+        VkDevice device,
         VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, 
         int materialsUBOBlock);
 
@@ -49,6 +71,13 @@ public:
     void setAOTexture(Texture * texture) override;
     void setEmissiveTexture(Texture * texture) override;
 
+    bool createSampler(VkDevice device);
+    
+    bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) override;
+    bool updateDescriptorSets(VkDevice device, size_t images) override;
+    bool updateDescriptorSet(VkDevice device, size_t index) override;
+
+    VkSampler m_sampler;
 private:
 
 };

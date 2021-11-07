@@ -3,7 +3,8 @@
 #include "Utils.hpp"
 #include "utils/Console.hpp"
 
-VulkanTexture::VulkanTexture(Image * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
+VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
+    :Texture(name)
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();

@@ -1,14 +1,17 @@
 #include "Mesh.hpp"
 
-#include <iostream>
-#include "vulkan/IncludeVulkan.hpp"
+#include <utils/Console.hpp>
+
 #include <glm/glm.hpp>
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, bool hasNormals)
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, bool hasNormals, bool hasUVs)
 {
     m_vertices = vertices;
     m_indices = indices;
     m_hasNormals = hasNormals;
+    m_hasUVs = hasNormals;
+
+    if (!hasUVs) utils::ConsoleWarning("Mesh doesn't have UV coordinates");
 }
 
 const std::vector<Vertex>& Mesh::getVertices() const
@@ -24,6 +27,11 @@ const std::vector<uint16_t>& Mesh::getIndices() const
 bool Mesh::hasNormals() const
 {
     return m_hasNormals;
+}
+
+bool Mesh::hasUVs() const
+{
+    return m_hasUVs;
 }
 
 void Mesh::computeNormals()

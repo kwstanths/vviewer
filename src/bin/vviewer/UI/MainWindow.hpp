@@ -28,11 +28,6 @@ private:
     /* UI vulkan */
     QVulkanInstance * m_vulkanInstance;
     VulkanWindow * m_vulkanWindow;
-    /* UI menu things */
-    QMenu * m_menuFile;
-    QAction * m_actionImport;
-    QAction * m_actionAddSceneObject;
-    QAction * m_actionCreateMaterial;
 
     /* A UI list widget with all the scene objects*/
     QListWidget * m_sceneObjects;
@@ -49,9 +44,11 @@ private:
 
     QStringList getImportedModels();
     QStringList getCreatedMaterials();
+    QStringList getImportedTextures();
 
 private slots:
     void onImportModelSlot();
+    void onImportTextureSlot();
     void onAddSceneObjectSlot();
     void onCreateMaterialSlot();
     void onSelectedSceneObjectChangedSlot();

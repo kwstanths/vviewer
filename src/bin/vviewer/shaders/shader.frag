@@ -13,12 +13,12 @@ layout(set = 0, binding = 0) uniform CameraData {
     mat4 projection;
 } cameraData;
 
-layout(set = 0, binding = 2) uniform PBRMaterialData {
+layout(set = 2, binding = 0) uniform PBRMaterialData {
     vec4 albedo;
     vec4 metallicRoughnessAOEmissive;
 } pbrMaterialData;
 
-layout(set = 0, binding = 3) uniform sampler2D albedoSampler[5];
+layout(set = 2, binding = 1) uniform sampler2D albedoSampler[5];
 
 vec3 getCameraPosition(mat4 invViewMatrix)
 {
@@ -47,7 +47,7 @@ void main() {
     float ao = pbrMaterialData.metallicRoughnessAOEmissive.b * texture(albedoSampler[3], fragUV).r;
     float emissive = pbrMaterialData.metallicRoughnessAOEmissive.a * texture(albedoSampler[4], fragUV).r;
     
-    vec3 ambient = vec3(0.03) * pbr.albedo * ao;
+    vec3 ambient = vec3(0.05) * pbr.albedo * ao;
     vec3 pbrShading = radiance * calculatePBRStandardShading(pbr, fragWorldPos, fragNormal, V, L, H);
     vec3 emission = pbr.albedo * emissive;
     outColor =  vec4(ambient + pbrShading + emission, 1);

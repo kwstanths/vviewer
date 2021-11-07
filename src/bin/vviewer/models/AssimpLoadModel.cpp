@@ -39,6 +39,7 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
     bool hasNormals = mesh->HasNormals();
+    bool hasUVs = mesh->HasTextureCoords(0);
 
     vertices.resize(mesh->mNumVertices);
     for (size_t i = 0; i < mesh->mNumVertices; i++) {
@@ -65,5 +66,5 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
         }
     }
 
-    return Mesh(vertices, indices, hasNormals);
+    return Mesh(vertices, indices, hasNormals, hasUVs);
 }
