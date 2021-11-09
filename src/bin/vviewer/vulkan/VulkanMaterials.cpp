@@ -35,14 +35,19 @@ VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
     if (!instance.isPresent("white")) {
         throw std::runtime_error("White texture not present");
     }
+    if (!instance.isPresent("normalmapdefault")) {
+        throw std::runtime_error("Normal default texture not present");
+    }
 
     Texture * white = instance.Get("white");
+    Texture * normalmap = instance.Get("normalmapdefault");
 
     setAlbedoTexture(white);
     setMetallicTexture(white);
     setRoughnessTexture(white);
     setAOTexture(white);
     setEmissiveTexture(white);
+    setNormalTexture(normalmap);
 
     createSampler(device);
 }
@@ -102,6 +107,12 @@ void VulkanMaterialPBR::setEmissiveTexture(Texture * texture)
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
+void VulkanMaterialPBR::setNormalTexture(Texture * texture)
+{
+    MaterialPBR::setNormalTexture(texture);
+    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+}
+
 bool VulkanMaterialPBR::createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images)
 {
     m_descriptorSets.resize(images);
@@ -146,8 +157,8 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
     descriptorWriteMaterial.pImageInfo = nullptr; // Optional
     descriptorWriteMaterial.pTexelBufferView = nullptr; // Optional
 
-    VkDescriptorImageInfo  texInfo[5];
-    for (size_t t = 0; t < 5; t++) {
+    VkDescriptorImageInfo  texInfo[6];
+    for (size_t t = 0; t < 6; t++) {
         texInfo[t] = VkDescriptorImageInfo();
         texInfo[t].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         texInfo[t].sampler = m_sampler;
@@ -157,6 +168,7 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
     texInfo[2].imageView = static_cast<VulkanTexture *>(m_roughnessTexture)->getImageView();
     texInfo[3].imageView = static_cast<VulkanTexture *>(m_aoTexture)->getImageView();
     texInfo[4].imageView = static_cast<VulkanTexture *>(m_emissiveTexture)->getImageView();
+    texInfo[5].imageView = static_cast<VulkanTexture *>(m_normalTexture)->getImageView();
 
     VkWriteDescriptorSet descriptorWriteTextures{};
     descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -164,7 +176,7 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
     descriptorWriteTextures.dstBinding = 1;
     descriptorWriteTextures.dstArrayElement = 0;
     descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWriteTextures.descriptorCount = 5;
+    descriptorWriteTextures.descriptorCount = 6;
     descriptorWriteTextures.pImageInfo = texInfo;
 
     std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteMaterial, descriptorWriteTextures };

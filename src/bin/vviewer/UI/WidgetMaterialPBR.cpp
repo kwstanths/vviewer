@@ -20,12 +20,6 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
     m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(material->m_name));
     connect(m_comboBoxAvailableMaterials, SIGNAL(currentIndexChanged(int)), this, SLOT(onMaterialChanged(int)));
-    QGroupBox * groupBoxMaterials = new QGroupBox(tr("Material"));
-    QVBoxLayout * layoutMaterials = new QVBoxLayout();
-    layoutMaterials->addWidget(m_comboBoxAvailableMaterials);
-    layoutMaterials->setContentsMargins(5, 5, 5, 5);
-    groupBoxMaterials->setLayout(layoutMaterials);
-
 
     m_comboBoxAlbedo = new QComboBox();
     m_comboBoxAlbedo->addItems(availableTextures);
@@ -34,20 +28,13 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
     m_colorButton = new QPushButton();
     m_colorButton->setFixedWidth(25);
     setColorButtonColor();
-    QHBoxLayout * layoutAlbedoWidgets = new QHBoxLayout();
-    layoutAlbedoWidgets->addWidget(m_colorButton);
-    layoutAlbedoWidgets->addWidget(m_comboBoxAlbedo);
-    layoutAlbedoWidgets->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetAlbedoWdigets = new QWidget();
-    widgetAlbedoWdigets->setLayout(layoutAlbedoWidgets);
-    widgetAlbedoWdigets->setContentsMargins(0, 0, 0, 0);
-    QVBoxLayout * layoutAlbedo = new QVBoxLayout();
-    layoutAlbedo->addWidget(new QLabel("Albedo:"));
-    layoutAlbedo->addWidget(widgetAlbedoWdigets);
-    layoutAlbedo->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetAlbedo = new QWidget();
-    widgetAlbedo->setLayout(layoutAlbedo);
-    widgetAlbedo->setContentsMargins(5, 5, 5, 5);
+    QGroupBox * groupBoxAlbedo = new QGroupBox(tr("Albedo"));
+    QHBoxLayout * layoutAlbedo = new QHBoxLayout();
+    layoutAlbedo->addWidget(m_colorButton);
+    layoutAlbedo->addWidget(m_comboBoxAlbedo);
+    layoutAlbedo->setContentsMargins(5, 5, 5, 5);
+    groupBoxAlbedo->setLayout(layoutAlbedo);
+
 
     m_comboBoxMetallic = new QComboBox();
     m_comboBoxMetallic->addItems(availableTextures);
@@ -58,14 +45,12 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
     m_metallic->setMinimum(0);
     m_metallic->setSingleStep(1);
     m_metallic->setValue(material->getMetallic() * 100);
+    QGroupBox * groupBoxMetallic = new QGroupBox(tr("Metallic"));
     QVBoxLayout * layoutMetallic = new QVBoxLayout();
-    layoutMetallic->addWidget(new QLabel("Metallic:"));
     layoutMetallic->addWidget(m_metallic);
     layoutMetallic->addWidget(m_comboBoxMetallic);
-    layoutMetallic->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetMetallic = new QWidget();
-    widgetMetallic->setLayout(layoutMetallic);
-    widgetMetallic->setContentsMargins(5, 5, 5, 5);
+    layoutMetallic->setContentsMargins(5, 5, 5, 5);
+    groupBoxMetallic->setLayout(layoutMetallic);
 
 
     m_comboBoxRoughness = new QComboBox();
@@ -77,33 +62,29 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
     m_roughness->setMinimum(0);
     m_roughness->setSingleStep(1);
     m_roughness->setValue(material->getRoughness() * 100);
+    QGroupBox * groupBoxRoughness = new QGroupBox(tr("Roughness"));
     QVBoxLayout * layoutRoughness = new QVBoxLayout();
-    layoutRoughness->addWidget(new QLabel("Roughness:"));
     layoutRoughness->addWidget(m_roughness);
     layoutRoughness->addWidget(m_comboBoxRoughness);
-    layoutRoughness->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetRoughness = new QWidget();
-    widgetRoughness->setLayout(layoutRoughness);
-    widgetRoughness->setContentsMargins(5, 5, 5, 5);
+    layoutRoughness->setContentsMargins(5, 5, 5, 5);
+    groupBoxRoughness->setLayout(layoutRoughness);
 
 
     m_comboBoxAO = new QComboBox();
     m_comboBoxAO->addItems(availableTextures);
     m_comboBoxAO->setCurrentText(QString::fromStdString(material->getAOTexture()->m_name));
-    connect(m_comboBoxRoughness, SIGNAL(currentIndexChanged(int)), this, SLOT(onAOTextureChanged(int)));
+    connect(m_comboBoxAO, SIGNAL(currentIndexChanged(int)), this, SLOT(onAOTextureChanged(int)));
     m_ao = new QSlider(Qt::Horizontal);
     m_ao->setMaximum(100);
     m_ao->setMinimum(0);
     m_ao->setSingleStep(1);
     m_ao->setValue(material->getAO() * 100);
-    QVBoxLayout * layoutAo = new QVBoxLayout();
-    layoutAo->addWidget(new QLabel("Ambient:"));
-    layoutAo->addWidget(m_ao);
-    layoutAo->addWidget(m_comboBoxAO);
-    layoutAo->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetAo = new QWidget();
-    widgetAo->setLayout(layoutAo);
-    widgetAo->setContentsMargins(5, 5, 5, 5);
+    QGroupBox * groupBoxAO = new QGroupBox(tr("Ambient"));
+    QVBoxLayout * layoutAO = new QVBoxLayout();
+    layoutAO->addWidget(m_ao);
+    layoutAO->addWidget(m_comboBoxAO);
+    layoutAO->setContentsMargins(5, 5, 5, 5);
+    groupBoxAO->setLayout(layoutAO);
 
 
     m_comboBoxEmissive = new QComboBox();
@@ -115,25 +96,36 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
     m_emissive->setMinimum(0);
     m_emissive->setSingleStep(1);
     m_emissive->setValue(material->getEmissive() * 100);
+    QGroupBox * groupBoxEmssive = new QGroupBox(tr("Emissive"));
     QVBoxLayout * layoutEmissive = new QVBoxLayout();
-    layoutEmissive->addWidget(new QLabel("Emissive:"));
     layoutEmissive->addWidget(m_emissive);
     layoutEmissive->addWidget(m_comboBoxEmissive);
-    layoutEmissive->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetEmissive = new QWidget();
-    widgetEmissive->setLayout(layoutEmissive);
-    widgetEmissive->setContentsMargins(5, 5, 5, 5);
+    layoutEmissive->setContentsMargins(5, 5, 5, 5);
+    groupBoxEmssive->setLayout(layoutEmissive);
+
+
+    m_comboBoxNormal = new QComboBox();
+    m_comboBoxNormal->addItems(availableTextures);
+    m_comboBoxNormal->setCurrentText(QString::fromStdString(material->getNormalTexture()->m_name));
+    connect(m_comboBoxNormal, SIGNAL(currentIndexChanged(int)), this, SLOT(onNormalTextureChanged(int)));
+    QGroupBox * groupBoxNormal = new QGroupBox(tr("Normal"));
+    QVBoxLayout * layoutNormal = new QVBoxLayout();
+    layoutNormal->addWidget(m_comboBoxNormal);
+    layoutNormal->setContentsMargins(5, 5, 5, 5);
+    groupBoxNormal->setLayout(layoutNormal);
 
 
     QGroupBox * groupBox = new QGroupBox(tr("Material"));
     QVBoxLayout * layoutTest = new QVBoxLayout();
     layoutTest->addWidget(m_comboBoxAvailableMaterials);
-    layoutTest->addWidget(widgetAlbedo);
-    layoutTest->addWidget(widgetMetallic);
-    layoutTest->addWidget(widgetRoughness);
-    layoutTest->addWidget(widgetAo);
-    layoutTest->addWidget(widgetEmissive);
+    layoutTest->addWidget(groupBoxAlbedo);
+    layoutTest->addWidget(groupBoxMetallic);
+    layoutTest->addWidget(groupBoxRoughness);
+    layoutTest->addWidget(groupBoxAO);
+    layoutTest->addWidget(groupBoxEmssive);
+    layoutTest->addWidget(groupBoxNormal);
     layoutTest->setContentsMargins(5, 5, 5, 5);
+    layoutTest->setSpacing(15);
     layoutTest->setAlignment(Qt::AlignTop);
 
     groupBox->setLayout(layoutTest);
@@ -266,6 +258,16 @@ void WidgetMaterialPBR::onEmissiveTextureChanged(int)
     Texture * texture = instance.Get(newTexture);
 
     m_material->setEmissiveTexture(texture);
+}
+
+void WidgetMaterialPBR::onNormalTextureChanged(int)
+{
+    std::string newTexture = m_comboBoxNormal->currentText().toStdString();
+
+    AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
+    Texture * texture = instance.Get(newTexture);
+
+    m_material->setNormalTexture(texture);
 }
 
 

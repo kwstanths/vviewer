@@ -3,7 +3,7 @@
 #include "Utils.hpp"
 #include "utils/Console.hpp"
 
-VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
+VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format)
     :Texture(name)
 {
     int imageWidth = image->getWidth();
@@ -30,7 +30,7 @@ VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice p
     /* Create vulkan image and memory */
     createImage(physicalDevice, device, imageWidth,
         imageHeight,
-        VK_FORMAT_R8G8B8A8_SRGB,
+        format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -40,7 +40,7 @@ VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice p
     /* Transition image to DST_OPTIMAL in order to transfer the data */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        VK_FORMAT_R8G8B8A8_SRGB,
+        format,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     
@@ -50,7 +50,7 @@ VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice p
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        VK_FORMAT_R8G8B8A8_SRGB,
+        format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     
@@ -59,7 +59,7 @@ VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice p
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
     /* Create view */
-    m_imageView = createImageView(device, m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_imageView = createImageView(device, m_image, format, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 VkImage VulkanTexture::getImage() const

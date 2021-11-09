@@ -122,9 +122,12 @@ void MainWindow::createMenu()
     QAction * m_actionImportModel = new QAction(tr("&Import a model"), this);
     m_actionImportModel->setStatusTip(tr("Import a model"));
     connect(m_actionImportModel, &QAction::triggered, this, &MainWindow::onImportModelSlot);
-    QAction * m_actionImportTexture = new QAction(tr("&Import textures"), this);
-    m_actionImportTexture->setStatusTip(tr("Import textures"));
-    connect(m_actionImportTexture, &QAction::triggered, this, &MainWindow::onImportTextureSlot);
+    QAction * m_actionImportColorTexture = new QAction(tr("&Import color textures"), this);
+    m_actionImportColorTexture->setStatusTip(tr("Import color textures"));
+    connect(m_actionImportColorTexture, &QAction::triggered, this, &MainWindow::onImportColorTextureSlot);
+    QAction * m_actionImportOtherTexture = new QAction(tr("&Import other textures"), this);
+    m_actionImportOtherTexture->setStatusTip(tr("Import other textures"));
+    connect(m_actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportOtherTextureSlot);
 
     QAction * m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
     m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
@@ -135,7 +138,8 @@ void MainWindow::createMenu()
 
     QMenu * m_menuImport = menuBar()->addMenu(tr("&Import"));
     m_menuImport->addAction(m_actionImportModel);
-    m_menuImport->addAction(m_actionImportTexture);
+    m_menuImport->addAction(m_actionImportColorTexture);
+    m_menuImport->addAction(m_actionImportOtherTexture);
     QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
     m_menuAdd->addAction(m_actionAddSceneObject);
     m_menuAdd->addAction(m_actionCreateMaterial);
@@ -190,7 +194,7 @@ void MainWindow::onImportModelSlot()
     }
 }
 
-void MainWindow::onImportTextureSlot()
+void MainWindow::onImportColorTextureSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
         tr("Import textures"), "",
@@ -198,7 +202,22 @@ void MainWindow::onImportTextureSlot()
 
     for (const auto& texture : filenames)
     {
-        Texture * tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString());
+        Texture * tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
+        if (tex) {
+            utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
+        }
+    }
+}
+
+void MainWindow::onImportOtherTextureSlot()
+{
+    QStringList filenames = QFileDialog::getOpenFileNames(this,
+        tr("Import textures"), "",
+        tr("Textures (*.png);;All Files (*)"));
+
+    for (const auto& texture : filenames)
+    {
+        Texture * tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
         if (tex) {
             utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
         }

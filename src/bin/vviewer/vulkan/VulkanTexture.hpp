@@ -10,7 +10,7 @@
 
 class VulkanTexture : public Texture {
 public:
-    VulkanTexture(std::string name, Image * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
+    VulkanTexture(std::string name, Image * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format);
 
     VkImage getImage() const;
     VkImageView getImageView() const;

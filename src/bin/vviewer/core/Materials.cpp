@@ -25,6 +25,11 @@ void MaterialPBR::setEmissiveTexture(Texture * texture)
     m_emissiveTexture = texture;
 }
 
+void MaterialPBR::setNormalTexture(Texture * texture)
+{
+    m_normalTexture = texture;
+}
+
 Texture * MaterialPBR::getAlbedoTexture() const
 {
     return m_albedoTexture;
@@ -48,4 +53,9 @@ Texture * MaterialPBR::getAOTexture() const
 Texture * MaterialPBR::getEmissiveTexture() const
 {
     return m_emissiveTexture;
+}
+
+Texture * MaterialPBR::getNormalTexture() const
+{
+    return m_normalTexture;
 }

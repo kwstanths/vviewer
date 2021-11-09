@@ -34,6 +34,12 @@ bool Mesh::hasUVs() const
     return m_hasUVs;
 }
 
+bool Mesh::hasTangents() const
+{
+    /* If mesh doesn't have uvs, it doesn't have tangents either */
+    return m_hasUVs;
+}
+
 void Mesh::computeNormals()
 {
     /* Make all normals zero */

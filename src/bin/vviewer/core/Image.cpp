@@ -47,6 +47,12 @@ Image::Image(Color color)
         m_data[2] = 0xFF;
         m_data[3] = 0xFF;
         break;
+    case Image::Color::NORMAL_MAP:
+        m_data[0] = 0x80;
+        m_data[1] = 0x80;
+        m_data[2] = 0xFF;
+        m_data[3] = 0xFF;
+        break;
     default:
         break;
     }

@@ -50,12 +50,14 @@ public:
     virtual void setRoughnessTexture(Texture * texture);
     virtual void setAOTexture(Texture * texture);
     virtual void setEmissiveTexture(Texture * texture);
+    virtual void setNormalTexture(Texture * texture);
 
     Texture * getAlbedoTexture() const;
     Texture * getMetallicTexture() const;
     Texture * getRoughnessTexture() const;
     Texture * getAOTexture() const;
     Texture * getEmissiveTexture() const;
+    Texture * getNormalTexture() const;
 
 protected:
     Texture * m_albedoTexture = nullptr;
@@ -63,6 +65,7 @@ protected:
     Texture * m_roughnessTexture = nullptr;
     Texture * m_aoTexture = nullptr;
     Texture * m_emissiveTexture = nullptr;
+    Texture * m_normalTexture = nullptr;
 };
 
 #endif

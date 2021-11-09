@@ -8,7 +8,7 @@ std::vector<Mesh> assimpLoadModel(std::string filename)
 {
     Assimp::Importer importer;
 
-    const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
+    const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace);
     if (!scene) {
         throw std::runtime_error("Failed to load model: " + filename);
     }
@@ -40,6 +40,7 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
     std::vector<uint16_t> indices;
     bool hasNormals = mesh->HasNormals();
     bool hasUVs = mesh->HasTextureCoords(0);
+    bool hasTangents = mesh->HasTangentsAndBitangents();
 
     vertices.resize(mesh->mNumVertices);
     for (size_t i = 0; i < mesh->mNumVertices; i++) {
@@ -56,6 +57,11 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
         }
 
         vertices[i].color = { 1, 1, 1 };
+
+        if (hasTangents) {
+            vertices[i].tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+            vertices[i].bitangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+        }
     }
 
     /* Iterate over faces */

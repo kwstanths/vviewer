@@ -70,6 +70,7 @@ public:
     void setRoughnessTexture(Texture * texture) override;
     void setAOTexture(Texture * texture) override;
     void setEmissiveTexture(Texture * texture) override;
+    void setNormalTexture(Texture * texture) override;
 
     bool createSampler(VkDevice device);
     

@@ -14,6 +14,7 @@ public:
         RED = 2,
         GREEN = 3,
         BLUE = 4,
+        NORMAL_MAP = 5,
     };
 
     Image(std::string filename);

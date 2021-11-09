@@ -10,6 +10,8 @@ struct Vertex {
     glm::vec2 uv;
     glm::vec3 normal;
     glm::vec3 color;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
 };
 
 class Mesh {
@@ -21,6 +23,7 @@ public:
 
     bool hasNormals() const;
     bool hasUVs() const;
+    bool hasTangents() const;
 
     void computeNormals();
 

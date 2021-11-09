@@ -46,18 +46,20 @@ void VulkanRenderer::initResources()
 
     createDescriptorSetsLayouts();
 
-    Texture * whiteTexture = createTexture("white", new Image(Image::Color::WHITE));
+    Texture * whiteTexture = createTexture("white", new Image(Image::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
+    Texture * normalmap = createTexture("normalmapdefault", new Image(Image::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
 
     MaterialPBR * lightMaterial = static_cast<MaterialPBR *>(createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, false));
     MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
     MaterialPBR * ironMaterial = static_cast<MaterialPBR *>(createMaterial("ironMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
     
-    ironMaterial->setAlbedoTexture(createTexture("assets/rustediron/basecolor.png"));
-    ironMaterial->setMetallicTexture(createTexture("assets/rustediron/metallic.png"));
-    ironMaterial->setRoughnessTexture(createTexture("assets/rustediron/roughness.png"));
+    ironMaterial->setAlbedoTexture(createTexture("assets/rustediron/basecolor.png", VK_FORMAT_R8G8B8A8_SRGB));
+    ironMaterial->setMetallicTexture(createTexture("assets/rustediron/metallic.png", VK_FORMAT_R8G8B8A8_UNORM));
+    ironMaterial->setRoughnessTexture(createTexture("assets/rustediron/roughness.png", VK_FORMAT_R8G8B8A8_UNORM));
     ironMaterial->setAOTexture(whiteTexture);
     ironMaterial->setEmissiveTexture(whiteTexture);
-    
+    ironMaterial->setNormalTexture(createTexture("assets/rustediron/normal.png", VK_FORMAT_R8G8B8A8_UNORM));
+
     /* Add a sphere in the scene, where the light is */
     {
         createVulkanMeshModel("sphere.obj");
@@ -65,8 +67,8 @@ void VulkanRenderer::initResources()
         object->m_name = "hidden";
     }
     {
-        createVulkanMeshModel("teapot.obj");
-        SceneObject * object = addSceneObject("teapot.obj", Transform({ 0, 0, 0 }), "defaultMaterial");
+        createVulkanMeshModel("uvsphere.obj");
+        SceneObject * object = addSceneObject("uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
         object->m_name = "hidden";
     }
 }
@@ -169,7 +171,7 @@ void VulkanRenderer::startNextFrame()
     updateUniformBuffers(imageIndex);
 
     std::array<VkClearValue, 2> clearValues{};
-    VkClearColorValue clearColor = { { m_clearColor.redF(), m_clearColor.greenF(), m_clearColor.blueF(), 1.0f } };
+    VkClearColorValue clearColor = { { m_clearColor.r, m_clearColor.g, m_clearColor.b, m_clearColor.a } };
     clearValues[0].color = clearColor;
     clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -284,7 +286,7 @@ Material * VulkanRenderer::createMaterial(std::string name,
     return temp;
 }
 
-Texture * VulkanRenderer::createTexture(std::string imagePath)
+Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format)
 {
     try {
         AssetManager<std::string, Image *>& instance = AssetManager<std::string, Image *>::getInstance();
@@ -298,7 +300,7 @@ Texture * VulkanRenderer::createTexture(std::string imagePath)
             instance.Add(imagePath, image);
         }
 
-        return createTexture(imagePath, image);
+        return createTexture(imagePath, image, format);
     } catch (std::runtime_error& e) {
         utils::ConsoleCritical("Failed to create a vulkan texture: " + std::string(e.what()));
         return nullptr;
@@ -307,7 +309,7 @@ Texture * VulkanRenderer::createTexture(std::string imagePath)
     return nullptr;
 }
 
-Texture * VulkanRenderer::createTexture(std::string id, Image * image)
+Texture * VulkanRenderer::createTexture(std::string id, Image * image, VkFormat format)
 {
     try {
         AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
@@ -316,7 +318,7 @@ Texture * VulkanRenderer::createTexture(std::string id, Image * image)
             return instance.Get(id);
         }
 
-        VulkanTexture * temp = new VulkanTexture(id, image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+        VulkanTexture * temp = new VulkanTexture(id, image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), format);
         instance.Add(id, temp);
         return temp;
     }
@@ -692,7 +694,7 @@ bool VulkanRenderer::createDescriptorSetsLayouts()
 
         VkDescriptorSetLayoutBinding materialTexturesLayoutBinding{};
         materialTexturesLayoutBinding.binding = 1;
-        materialTexturesLayoutBinding.descriptorCount = 5;  /* An array of 5 textures */
+        materialTexturesLayoutBinding.descriptorCount = 6;  /* An array of 6 textures */
         materialTexturesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         materialTexturesLayoutBinding.pImmutableSamplers = nullptr;
         materialTexturesLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -791,7 +793,7 @@ bool VulkanRenderer::createDescriptorPool(size_t nMaterials)
 
     VkDescriptorPoolSize materialTexturesPoolSize{};
     materialTexturesPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    materialTexturesPoolSize.descriptorCount = nMaterials * 5 * nImages;
+    materialTexturesPoolSize.descriptorCount = nMaterials * 6 * nImages;
 
     std::array<VkDescriptorPoolSize, 4> poolSizes = { cameraDataPoolSize, modelDataPoolSize, materialDataPoolSize, materialTexturesPoolSize };
     VkDescriptorPoolCreateInfo poolInfo{};

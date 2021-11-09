@@ -28,6 +28,7 @@ public:
     QComboBox * m_comboBoxRoughness;
     QComboBox * m_comboBoxAO;
     QComboBox * m_comboBoxEmissive;
+    QComboBox * m_comboBoxNormal;
     
 private:
     MaterialPBR * m_material = nullptr;
@@ -48,6 +49,7 @@ private slots:
     void onAOTextureChanged(int);
     void onEmissiveChanged();
     void onEmissiveTextureChanged(int);
+    void onNormalTextureChanged(int);
 
 };
 

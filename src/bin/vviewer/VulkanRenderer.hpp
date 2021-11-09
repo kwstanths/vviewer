@@ -57,8 +57,8 @@ public:
         bool createDescriptors = true
     );
 
-    Texture * createTexture(std::string imagePath);
-    Texture * createTexture(std::string id, Image * image);
+    Texture * createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+    Texture * createTexture(std::string id, Image * image, VkFormat format);
 
 private:
 
@@ -123,7 +123,7 @@ private:
 
     std::shared_ptr<Camera> m_camera;
 
-    QColor m_clearColor = QColor(0, 102, 102);
+    glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
 };
 
 #endif
