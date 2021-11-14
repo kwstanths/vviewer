@@ -16,6 +16,7 @@ struct Vertex {
 
 class Mesh {
 public:
+    Mesh();
     Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, bool hasNormals = false, bool hasUVs = false);
 
     const std::vector<Vertex>& getVertices() const;

@@ -7,14 +7,17 @@
 #include <glm/glm.hpp>
 
 #include "Texture.hpp"
+#include "Cubemap.hpp"
 
 enum MaterialType {
     MATERIAL_NOT_SET = -1,
     MATERIAL_PBR_STANDARD = 0,
+    MATERIAL_SKYBOX = 1,
 };
 
 static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
-    { MaterialType::MATERIAL_PBR_STANDARD, "PBR standard" }
+    { MaterialType::MATERIAL_PBR_STANDARD, "PBR standard" },
+    { MaterialType::MATERIAL_SKYBOX, "Skybox" }
 };
 
 class Material {
@@ -66,6 +69,21 @@ protected:
     Texture * m_aoTexture = nullptr;
     Texture * m_emissiveTexture = nullptr;
     Texture * m_normalTexture = nullptr;
+};
+
+class MaterialSkybox : public Material {
+public:
+    MaterialSkybox() {};
+    MaterialSkybox(std::string name) : Material(name) {};
+
+    MaterialType getType() override {
+        return MaterialType::MATERIAL_SKYBOX;
+    }
+
+    virtual void setCubemap(Cubemap * cubemap);
+
+protected:
+    Cubemap * m_cubemap = nullptr;
 };
 
 #endif

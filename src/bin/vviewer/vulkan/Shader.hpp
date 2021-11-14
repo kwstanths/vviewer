@@ -1,11 +1,13 @@
 #ifndef __Shader_hpp__
 #define __Shader_hpp__
 
-#include <qvulkaninstance.h>
+#include <vector>
+
+#include "IncludeVulkan.hpp"
 
 class Shader {
 public:
-    static VkShaderModule load(QVulkanInstance * instance, VkDevice device, std::vector<char>& spvCode);
+    static VkShaderModule load(VkDevice device, std::vector<char>& spvCode);
 
 private:
 

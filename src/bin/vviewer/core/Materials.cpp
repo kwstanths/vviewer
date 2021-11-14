@@ -59,3 +59,8 @@ Texture * MaterialPBR::getNormalTexture() const
 {
     return m_normalTexture;
 }
+
+void MaterialSkybox::setCubemap(Cubemap * cubemap)
+{
+    m_cubemap = cubemap;
+}

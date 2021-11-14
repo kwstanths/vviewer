@@ -83,4 +83,20 @@ private:
 
 };
 
+class VulkanMaterialSkybox : 
+    public MaterialSkybox, 
+    public VulkanMaterialDescriptor 
+{
+public:
+    VulkanMaterialSkybox(std::string name, Cubemap * cubemap);
+
+    virtual void setCubemap(Cubemap * cubemap) override;
+
+    bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) override;
+    bool updateDescriptorSets(VkDevice device, size_t images) override;
+    bool updateDescriptorSet(VkDevice device, size_t index) override;
+private:
+    Cubemap * m_cubemap = nullptr;
+};
+
 #endif

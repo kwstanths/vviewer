@@ -1,6 +1,6 @@
 #include "VulkanMesh.hpp"
 
-#include "Utils.hpp"
+#include "VulkanUtils.hpp"
 
 VulkanMesh::VulkanMesh(const Mesh & mesh) : Mesh(mesh)
 {
@@ -21,4 +21,40 @@ VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice devic
         m_meshes.push_back(vkmesh);
     }
     
+}
+
+VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool)
+{
+    std::vector<Vertex> vertices = {
+    {{-1.0, -1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+    {{1.0, -1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+    {{ 1.0,  1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+    {{-1.0,  1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+    {{-1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+    {{1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+    {{1.0,  1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+    {{-1.0,  1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)}
+    };
+
+    std::vector<uint16_t> indices = {
+        0, 1, 2,
+        2, 3, 0,
+        1, 5, 6,
+        6, 2, 1,
+        7, 6, 5,
+        5, 4, 7,
+        4, 0, 3,
+        3, 7, 4,
+        4, 5, 1,
+        1, 0, 4,
+        3, 2, 6,
+        6, 7, 3
+    };
+
+    Mesh mesh(vertices, indices, false, false);
+    VulkanMesh * vkmesh = new VulkanMesh(mesh);
+    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), vkmesh->m_vertexBuffer, vkmesh->m_vertexBufferMemory);
+    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), vkmesh->m_indexBuffer, vkmesh->m_indexBufferMemory);
+     
+    m_meshes.push_back(vkmesh);
 }

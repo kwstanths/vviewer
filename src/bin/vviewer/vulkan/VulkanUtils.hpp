@@ -1,5 +1,5 @@
-#ifndef __Utils_hpp__
-#define __Utils_hpp__
+#ifndef __VulkanUtils_hpp__
+#define __VulkanUtils_hpp__
 
 #include <vector>
 #include <fstream>
@@ -8,49 +8,6 @@
 #include <glm/glm.hpp>
 #include "core/Mesh.hpp"
 #include "vulkan/IncludeVulkan.hpp"
-
-class VulkanVertex {
-public:
-    static VkVertexInputBindingDescription getBindingDescription() 
-    {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions() 
-    {
-        std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, position);
-        
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, uv);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, normal);
-
-        attributeDescriptions[3].binding = 0;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[3].offset = offsetof(Vertex, tangent);
-
-        attributeDescriptions[4].binding = 0;
-        attributeDescriptions[4].location = 4;
-        attributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[4].offset = offsetof(Vertex, bitangent);
-
-        return attributeDescriptions;
-    }
-};
 
 /**
 
@@ -90,7 +47,7 @@ bool copyBufferToBuffer(VkDevice device, VkQueue transferQueue, VkCommandPool tr
 /**
 
 */
-bool copyBufferToImage(VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+bool copyBufferToImage(VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, VkBuffer buffer, VkImage image, std::vector<VkBufferImageCopy> regions);
 
 /**
 
@@ -103,9 +60,9 @@ VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPo
 void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer);
 
 /**
-
+    Submit a command to transition the layout of an image from oldLayout to newLayout
 */
-void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayers = 1);
 
 
 static std::vector<char> readSPIRV(const std::string& filename) {

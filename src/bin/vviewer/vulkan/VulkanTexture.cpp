@@ -1,6 +1,6 @@
 #include "VulkanTexture.hpp"
 
-#include "Utils.hpp"
+#include "VulkanUtils.hpp"
 #include "utils/Console.hpp"
 
 VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format)
@@ -45,7 +45,21 @@ VulkanTexture::VulkanTexture(std::string name, Image * image, VkPhysicalDevice p
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     
     /* copy data fronm staging buffer to image */
-    copyBufferToImage(device, queue, commandPool, stagingBuffer, m_image, static_cast<uint32_t>(imageWidth), static_cast<uint32_t>(imageHeight));
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = {
+        static_cast<uint32_t>(imageWidth),
+        static_cast<uint32_t>(imageHeight),
+        1
+    };
+    copyBufferToImage(device, queue, commandPool, stagingBuffer, m_image, { region });
     
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,

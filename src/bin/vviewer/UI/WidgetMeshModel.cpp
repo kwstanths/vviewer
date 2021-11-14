@@ -11,6 +11,9 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject, QS
 
     m_models = new QComboBox();
     m_models->addItems(availableModels);
+    if (sceneObject != nullptr) {
+        m_models->setCurrentText(QString::fromStdString(sceneObject->getMeshModel()->getName()));
+    }
     connect(m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshModelChangedSlot(int)));
 
     QGroupBox * boxPickModel = new QGroupBox(tr("Mesh Model"));

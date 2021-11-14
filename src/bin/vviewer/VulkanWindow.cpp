@@ -8,7 +8,7 @@ VulkanWindow::VulkanWindow()
     /*OrthographicCamera * camera = new OrthographicCamera();
     camera->setOrthoWidth(10.f);*/
     PerspectiveCamera * camera = new PerspectiveCamera();
-    camera->setFoV(45.0f);
+    camera->setFoV(60.0f);
     
     Transform cameraTransform;
     cameraTransform.setPosition(glm::vec3(10, 3, 0));

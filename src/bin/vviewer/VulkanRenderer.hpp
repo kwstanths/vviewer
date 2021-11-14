@@ -13,10 +13,12 @@
 #include "vulkan/VulkanDataStructs.hpp"
 #include "vulkan/VulkanDynamicUBO.hpp"
 #include "vulkan/VulkanMesh.hpp"
-#include "vulkan/Utils.hpp"
+#include "vulkan/VulkanUtils.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanTexture.hpp"
+#include "vulkan/VulkanRendererPBR.hpp"
+#include "vulkan/VulkanRendererSkybox.hpp"
 
 #include "core/MeshModel.hpp"
 #include "core/Camera.hpp"
@@ -51,14 +53,13 @@ public:
     bool createVulkanMeshModel(std::string filename);
 
     SceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
-
     Material * createMaterial(std::string name, 
         glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
         bool createDescriptors = true
     );
-
     Texture * createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
     Texture * createTexture(std::string id, Image * image, VkFormat format);
+    Cubemap * createCubemap(std::string directory);
 
 private:
 
@@ -70,7 +71,6 @@ private:
 
     /* Graphics pipeline */
     bool createRenderPass();
-    bool createGraphicsPipeline();
     bool createFrameBuffers();
 
     /* Descriptor resources */
@@ -102,16 +102,19 @@ private:
 
     /* Graphics pipeline */
     VkRenderPass m_renderPass;
-    VkPipelineLayout m_pipelineLayout;
-    VkPipeline m_graphicsPipeline;
+
+    /* Renderers */
+    VulkanRendererPBR m_rendererPBR;
+    VulkanRendererSkybox m_rendererSkybox;
+
+    VulkanMaterialSkybox * m_skybox = nullptr;
 
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayoutCamera;
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
-    VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
-    VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet> m_descriptorSetsCamera;
     std::vector<VkDescriptorSet> m_descriptorSetsModel;
+    VkDescriptorPool m_descriptorPool;
     std::vector<VkBuffer> m_uniformBuffersCamera;
     std::vector<VkDeviceMemory> m_uniformBuffersCameraMemory;
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;

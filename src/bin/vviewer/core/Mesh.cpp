@@ -4,6 +4,10 @@
 
 #include <glm/glm.hpp>
 
+Mesh::Mesh()
+{
+}
+
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, bool hasNormals, bool hasUVs)
 {
     m_vertices = vertices;

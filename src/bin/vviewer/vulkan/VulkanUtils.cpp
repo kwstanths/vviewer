@@ -1,4 +1,4 @@
-#include "Utils.hpp"
+#include "VulkanUtils.hpp"
 
 #include <utils/Console.hpp>
 
@@ -194,34 +194,17 @@ bool copyBufferToBuffer(VkDevice device, VkQueue transferQueue, VkCommandPool tr
     return true;
 }
 
-bool copyBufferToImage(VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+bool copyBufferToImage(VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, VkBuffer buffer, VkImage image, std::vector<VkBufferImageCopy> regions)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, transferCommandPool);
-
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-
-    region.imageOffset = { 0, 0, 0 };
-    region.imageExtent = {
-        width,
-        height,
-        1
-    };
 
     vkCmdCopyBufferToImage(
         commandBuffer,
         buffer,
         image,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
+        static_cast<uint32_t>(regions.size()),
+        regions.data()
     );
 
     endSingleTimeCommands(device, transferCommandPool, transferQueue, commandBuffer);
@@ -266,7 +249,7 @@ void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue q
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
-void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayers)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
 
@@ -282,7 +265,7 @@ void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool command
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.layerCount = nLayers;
 
     VkPipelineStageFlags sourceStage;
     VkPipelineStageFlags destinationStage;
@@ -304,9 +287,6 @@ void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool command
     else {
         throw std::invalid_argument("Unsupported layout transition!");
     }
-
-    barrier.srcAccessMask = 0; // TODO
-    barrier.dstAccessMask = 0; // TODO
 
     vkCmdPipelineBarrier(
         commandBuffer,

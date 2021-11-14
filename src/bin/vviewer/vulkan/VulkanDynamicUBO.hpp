@@ -2,7 +2,7 @@
 #define __VulkanDynamicUBO_hpp__
 
 #include "IncludeVulkan.hpp"
-#include "Utils.hpp"
+#include "VulkanUtils.hpp"
 
 template<typename Block>
 class VulkanDynamicUBO {

@@ -1,7 +1,9 @@
 #include "VulkanMaterials.hpp"
 
 #include <core/AssetManager.hpp>
+
 #include "VulkanTexture.hpp"
+#include "VulkanCubemap.hpp"
 
 #include <utils/Console.hpp>
 
@@ -215,3 +217,63 @@ bool VulkanMaterialPBR::createSampler(VkDevice device)
     return true;
 }
 
+VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, Cubemap * cubemap) : MaterialSkybox(name)
+{
+    m_cubemap = cubemap;
+}
+
+void VulkanMaterialSkybox::setCubemap(Cubemap * cubemap)
+{
+    m_cubemap = cubemap;
+    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+}
+
+bool VulkanMaterialSkybox::createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images)
+{
+    /* Create descriptor sets */
+    m_descriptorSets.resize(images);
+    m_descirptorsNeedUpdate.resize(images, false);
+
+    std::vector<VkDescriptorSetLayout> layouts(images, layout);
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = pool;
+    allocInfo.descriptorSetCount = images;
+    allocInfo.pSetLayouts = layouts.data();
+    if (vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+        utils::ConsoleCritical("Failed to allocate descriptor sets for cubemap data");
+        return false;
+    }
+
+    return true;
+}
+
+bool VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
+{
+    /* Write descriptor sets */
+    for (size_t i = 0; i < images; i++) {
+        updateDescriptorSet(device, i);
+    }
+    return true;
+}
+
+bool VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
+{
+    VkDescriptorImageInfo cubemapInfo;
+    cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    cubemapInfo.sampler = static_cast<VulkanCubemap *>(m_cubemap)->getSampler();
+    cubemapInfo.imageView = static_cast<VulkanCubemap *>(m_cubemap)->getImageView();
+    VkWriteDescriptorSet descriptorWriteTextures{};
+    descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWriteTextures.dstSet = m_descriptorSets[index];
+    descriptorWriteTextures.dstBinding = 0;
+    descriptorWriteTextures.dstArrayElement = 0;
+    descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWriteTextures.descriptorCount = 1;
+    descriptorWriteTextures.pImageInfo = &cubemapInfo;
+    
+    std::array<VkWriteDescriptorSet, 1> writeSets = { descriptorWriteTextures };
+    vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
+
+    return true;
+}
