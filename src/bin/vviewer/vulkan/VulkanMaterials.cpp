@@ -217,14 +217,16 @@ bool VulkanMaterialPBR::createSampler(VkDevice device)
     return true;
 }
 
-VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, Cubemap * cubemap) : MaterialSkybox(name)
+VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, Texture * hdriMap, VkDevice device) : MaterialSkybox(name)
 {
-    m_cubemap = cubemap;
+    m_hdriMap = hdriMap;
+
+    createSampler(device);
 }
 
-void VulkanMaterialSkybox::setCubemap(Cubemap * cubemap)
+void VulkanMaterialSkybox::setHDRIMap(Texture * hdriMap)
 {
-    m_cubemap = cubemap;
+    m_hdriMap = hdriMap;
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
@@ -259,10 +261,10 @@ bool VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
 
 bool VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
 {
-    VkDescriptorImageInfo cubemapInfo;
-    cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    cubemapInfo.sampler = static_cast<VulkanCubemap *>(m_cubemap)->getSampler();
-    cubemapInfo.imageView = static_cast<VulkanCubemap *>(m_cubemap)->getImageView();
+    VkDescriptorImageInfo textureInfo;
+    textureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    textureInfo.sampler = m_sampler;
+    textureInfo.imageView = static_cast<VulkanTexture *>(m_hdriMap)->getImageView();
     VkWriteDescriptorSet descriptorWriteTextures{};
     descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWriteTextures.dstSet = m_descriptorSets[index];
@@ -270,10 +272,38 @@ bool VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
     descriptorWriteTextures.dstArrayElement = 0;
     descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWriteTextures.descriptorCount = 1;
-    descriptorWriteTextures.pImageInfo = &cubemapInfo;
+    descriptorWriteTextures.pImageInfo = &textureInfo;
     
     std::array<VkWriteDescriptorSet, 1> writeSets = { descriptorWriteTextures };
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
+
+    return true;
+}
+
+bool VulkanMaterialSkybox::createSampler(VkDevice device)
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = 0.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
+        utils::ConsoleCritical("Failed to create a texture sampler");
+        return false;
+    }
 
     return true;
 }

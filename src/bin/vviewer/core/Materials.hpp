@@ -7,7 +7,6 @@
 #include <glm/glm.hpp>
 
 #include "Texture.hpp"
-#include "Cubemap.hpp"
 
 enum MaterialType {
     MATERIAL_NOT_SET = -1,
@@ -80,10 +79,10 @@ public:
         return MaterialType::MATERIAL_SKYBOX;
     }
 
-    virtual void setCubemap(Cubemap * cubemap);
+    virtual void setHDRIMap(Texture * hdriMap);
 
 protected:
-    Cubemap * m_cubemap = nullptr;
+    Texture * m_hdriMap = nullptr;
 };
 
 #endif

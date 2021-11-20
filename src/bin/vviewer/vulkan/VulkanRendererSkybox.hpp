@@ -34,7 +34,7 @@ private:
     VkExtent2D m_swapchainExtent;
 
     VkDescriptorSetLayout m_descriptorSetLayoutCamera;
-    VkDescriptorSetLayout m_descriptorSetLayoutCubemap;
+    VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
 
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;

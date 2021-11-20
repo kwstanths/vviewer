@@ -60,7 +60,7 @@ Texture * MaterialPBR::getNormalTexture() const
     return m_normalTexture;
 }
 
-void MaterialSkybox::setCubemap(Cubemap * cubemap)
+void MaterialSkybox::setHDRIMap(Texture * hdriMap)
 {
-    m_cubemap = cubemap;
+    m_hdriMap = hdriMap;
 }

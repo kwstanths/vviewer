@@ -40,7 +40,7 @@ void VulkanRendererSkybox::releaseSwapChainResources()
 
 void VulkanRendererSkybox::releaseResources()
 {
-    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutCubemap, nullptr);
+    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutSkybox, nullptr);
 
     VulkanMesh * vkmesh = static_cast<VulkanMesh *>(m_cube->getMeshes()[0]);
     vkDestroyBuffer(m_device, vkmesh->m_vertexBuffer, nullptr);
@@ -61,7 +61,7 @@ VkPipelineLayout VulkanRendererSkybox::getPipelineLayout() const
 
 VkDescriptorSetLayout VulkanRendererSkybox::getDescriptorSetLayout() const
 {
-    return m_descriptorSetLayoutCubemap;
+    return m_descriptorSetLayoutSkybox;
 }
 
 void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet cameraDescriptorSet, int imageIndex, VulkanMaterialSkybox * skybox) const
@@ -89,21 +89,21 @@ void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet 
 bool VulkanRendererSkybox::createDescriptorSetsLayouts()
 {
     {
-        VkDescriptorSetLayoutBinding materialTexturesLayoutBinding{};
-        materialTexturesLayoutBinding.binding = 0;
-        materialTexturesLayoutBinding.descriptorCount = 1;  /* An array of 6 textures */
-        materialTexturesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        materialTexturesLayoutBinding.pImmutableSamplers = nullptr;
-        materialTexturesLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        VkDescriptorSetLayoutBinding skyboxTextureLayoutBinding{};
+        skyboxTextureLayoutBinding.binding = 0;
+        skyboxTextureLayoutBinding.descriptorCount = 1; 
+        skyboxTextureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        skyboxTextureLayoutBinding.pImmutableSamplers = nullptr;
+        skyboxTextureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 1> setBindings = { materialTexturesLayoutBinding };
+        std::array<VkDescriptorSetLayoutBinding, 1> setBindings = { skyboxTextureLayoutBinding };
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
         layoutInfo.pBindings = setBindings.data();
 
-        if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayoutCubemap) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to create a descriptor set layout for the skybox material");
+        if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayoutSkybox) != VK_SUCCESS) {
+            utils::ConsoleCritical("Failed to create a descriptor set layout for the skybox");
             return false;
         }
     }
@@ -225,7 +225,7 @@ bool VulkanRendererSkybox::createGraphicsPipeline()
     colorBlending.blendConstants[3] = 0.0f; // Optional
 
     /* ------------------- PIPELINE LAYOUT ----------------- */
-    std::array<VkDescriptorSetLayout, 2> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutCubemap };
+    std::array<VkDescriptorSetLayout, 2> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutSkybox };
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetsLayouts.size());

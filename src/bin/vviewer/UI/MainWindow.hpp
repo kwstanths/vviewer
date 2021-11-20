@@ -48,8 +48,8 @@ private:
 
 private slots:
     void onImportModelSlot();
-    void onImportColorTextureSlot();
-    void onImportOtherTextureSlot();
+    void onImportTextureColorSlot();
+    void onImportTextureOtherSlot();
     void onAddSceneObjectSlot();
     void onCreateMaterialSlot();
     void onSelectedSceneObjectChangedSlot();

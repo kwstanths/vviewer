@@ -53,8 +53,8 @@ void VulkanRenderer::initResources()
     m_rendererPBR.initResources(m_device, m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
 
     /* Initialize some data */
-    Texture * whiteTexture = createTexture("white", new Image(Image::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
-    createTexture("normalmapdefault", new Image(Image::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
+    Texture * whiteTexture = createTexture("white", new Image<stbi_uc>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
+    createTexture("normalmapdefault", new Image<stbi_uc>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
 
     MaterialPBR * lightMaterial = static_cast<MaterialPBR *>(createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, false));
     MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
@@ -79,7 +79,7 @@ void VulkanRenderer::initResources()
         object->m_name = "hidden";
     }
 
-    m_skybox = new VulkanMaterialSkybox("redeclipse", createCubemap("assets/cubemaps/redeclipse"));
+    m_skybox = new VulkanMaterialSkybox("ennisSkybox", createTextureHDR("assets/HDR/ennis/ennis.hdr"), m_device);
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -161,6 +161,9 @@ void VulkanRenderer::releaseResources()
         }
         instance.Reset();
     }
+
+    /* skybox materials samplers */
+    m_devFunctions->vkDestroySampler(m_device, m_skybox->m_sampler, nullptr);
 
     /* Destroy cubemaps */
     {
@@ -324,14 +327,14 @@ Material * VulkanRenderer::createMaterial(std::string name,
 Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format)
 {
     try {
-        AssetManager<std::string, Image *>& instance = AssetManager<std::string, Image *>::getInstance();
+        AssetManager<std::string, Image<stbi_uc> *>& instance = AssetManager<std::string, Image<stbi_uc> *>::getInstance();
         
-        Image * image = nullptr;
+        Image<stbi_uc> * image = nullptr;
         if (instance.isPresent(imagePath)) {
             image = instance.Get(imagePath);
         }
         else {
-            image = new Image(imagePath);
+            image = new Image<stbi_uc>(imagePath);
             instance.Add(imagePath, image);
         }
 
@@ -344,7 +347,7 @@ Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format)
     return nullptr;
 }
 
-Texture * VulkanRenderer::createTexture(std::string id, Image * image, VkFormat format)
+Texture * VulkanRenderer::createTexture(std::string id, Image<stbi_uc> * image, VkFormat format)
 {
     try {
         AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
@@ -363,6 +366,39 @@ Texture * VulkanRenderer::createTexture(std::string id, Image * image, VkFormat 
     }
 
     return nullptr;
+}
+
+Texture * VulkanRenderer::createTextureHDR(std::string imagePath)
+{
+    try {
+        
+        Image<float> * image = nullptr;
+        {
+            AssetManager<std::string, Image<float> *>& instance = AssetManager<std::string, Image<float> *>::getInstance();
+            if (instance.isPresent(imagePath)) {
+                image = instance.Get(imagePath);
+            }
+            else {
+                image = new Image<float>(imagePath);
+                instance.Add(imagePath, image);
+            }
+        }
+
+        AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
+        if (instance.isPresent(imagePath)) {
+            return instance.Get(imagePath);
+        }
+        VulkanTexture * temp = new VulkanTexture("ennis", image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+        instance.Add(imagePath, temp);
+        return temp;
+    }
+    catch (std::runtime_error& e) {
+        utils::ConsoleCritical("Failed to create a vulkan HDR texture: " + std::string(e.what()));
+        return nullptr;
+    }
+
+    return nullptr;
+
 }
 
 Cubemap * VulkanRenderer::createCubemap(std::string directory)

@@ -1,4 +1,3 @@
-
 struct PBRStandard {
     vec3 albedo;
     float metallic;

@@ -124,10 +124,10 @@ void MainWindow::createMenu()
     connect(m_actionImportModel, &QAction::triggered, this, &MainWindow::onImportModelSlot);
     QAction * m_actionImportColorTexture = new QAction(tr("&Import color textures"), this);
     m_actionImportColorTexture->setStatusTip(tr("Import color textures"));
-    connect(m_actionImportColorTexture, &QAction::triggered, this, &MainWindow::onImportColorTextureSlot);
+    connect(m_actionImportColorTexture, &QAction::triggered, this, &MainWindow::onImportTextureColorSlot);
     QAction * m_actionImportOtherTexture = new QAction(tr("&Import other textures"), this);
     m_actionImportOtherTexture->setStatusTip(tr("Import other textures"));
-    connect(m_actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportOtherTextureSlot);
+    connect(m_actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportTextureOtherSlot);
 
     QAction * m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
     m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
@@ -194,7 +194,7 @@ void MainWindow::onImportModelSlot()
     }
 }
 
-void MainWindow::onImportColorTextureSlot()
+void MainWindow::onImportTextureColorSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
         tr("Import textures"), "",
@@ -209,7 +209,7 @@ void MainWindow::onImportColorTextureSlot()
     }
 }
 
-void MainWindow::onImportOtherTextureSlot()
+void MainWindow::onImportTextureOtherSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
         tr("Import textures"), "",

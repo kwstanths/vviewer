@@ -10,12 +10,12 @@ public:
     std::string m_name;
 
 protected:
-    Image * m_image_back = nullptr;
-    Image * m_image_bottom = nullptr;
-    Image * m_image_front = nullptr;
-    Image * m_image_left = nullptr;
-    Image * m_image_right = nullptr;
-    Image * m_image_top = nullptr;
+    Image<stbi_uc> * m_image_back = nullptr;
+    Image<stbi_uc> * m_image_bottom = nullptr;
+    Image<stbi_uc> * m_image_front = nullptr;
+    Image<stbi_uc> * m_image_left = nullptr;
+    Image<stbi_uc> * m_image_right = nullptr;
+    Image<stbi_uc> * m_image_top = nullptr;
 };
 
 #endif
