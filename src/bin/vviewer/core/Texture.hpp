@@ -10,7 +10,6 @@ public:
     std::string m_name = "";
 
 private:
-
 };
 
 #endif

@@ -10,7 +10,7 @@ VkShaderModule Shader::load(VkDevice device, std::vector<char>& spvCode)
     createInfo.pCode = reinterpret_cast<const uint32_t*>(spvCode.data());
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        return false;
+        return VK_NULL_HANDLE;
     }
 
     return shaderModule;

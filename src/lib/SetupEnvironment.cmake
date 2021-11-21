@@ -8,19 +8,21 @@ macro(SetupEnvironment)
     CHECK_CXX_COMPILER_FLAG("/std:c++latest" _cpp_latest_flag_supported)
     if (_cpp_latest_flag_supported)
         add_compile_options("/std:c++latest")
+        add_compile_options("/Zc:__cplusplus")
     endif()
 	
     set(INTERNAL_LIBRARIES_ROOT ${PROJECT_ROOT}/src/lib)
     
     # QT
-    find_package(Qt5 COMPONENTS Widgets Xml REQUIRED)
-    set(QT_INCLUDE_DIRS ${Qt5Widgets_INCLUDE_DIRS})
-    set(QT_LIBRARIES Qt5::Widgets Qt5::Xml)
+    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{Qt6_DIR})
+    find_package(Qt6 COMPONENTS Widgets REQUIRED)
+    set(QT_INCLUDE_DIRS ${Qt6Widgets_INCLUDE_DIRS})
+    set(QT_LIBRARIES Qt6::Widgets)
     
     # VULKAN
     set(VULKAN_DIR ${LIBS_ROOT}/VulkanSDK/1.2.162.0)
     set(VULKAN_INCLUDE_DIRS ${VULKAN_DIR}/Include)
-    set(VULKAN_LIBS_DIR ${VULKAN_DIR}/Lib32)
+    set(VULKAN_LIBS_DIR ${VULKAN_DIR}/Lib)
     set(VULKAN_LIBRARIES ${VULKAN_LIBS_DIR}/vulkan-1.lib)
     
     # GLM
@@ -32,10 +34,10 @@ macro(SetupEnvironment)
     set(STB_INCLUDE_DIRS ${STB_DIR})
     
     #ASSIMP
-    set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP)
+    set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP_LIBS)
     set(ASSIMP_INCLUDE_DIRS ${ASSIMP_DIR}/include)
-    set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib)
-    set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc141-mt.lib)
+    set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib64)
+    set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc143-mt.lib)
     
     # UTILS
     set(UTILS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/utils/)

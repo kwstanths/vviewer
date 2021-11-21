@@ -2,6 +2,7 @@
 #define __AssetManager_hpp__
 
 #include <unordered_map>
+#include <stdexcept>
 
 /**
     A singleton class that wraps an unordered map to store an AssetID -> Asset relationship

@@ -50,6 +50,7 @@ private slots:
     void onImportModelSlot();
     void onImportTextureColorSlot();
     void onImportTextureOtherSlot();
+    void onImportTextureHDRSlot();
     void onAddSceneObjectSlot();
     void onCreateMaterialSlot();
     void onSelectedSceneObjectChangedSlot();

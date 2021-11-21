@@ -4,6 +4,9 @@
 #include "IncludeVulkan.hpp"
 #include "VulkanUtils.hpp"
 
+/**
+    A class to manage a dynamic uniform buffer that stores data of type Block
+*/
 template<typename Block>
 class VulkanDynamicUBO {
     friend class VulkanRenderer;
@@ -68,7 +71,7 @@ public:
         Get an allocated buffer's memory
         @param Buffer memory to get 
     */
-    VkBuffer getBufferMemory(size_t index)
+    VkDeviceMemory getBufferMemory(size_t index)
     {
         assert(index < m_bufferMemory.size());
         return m_bufferMemory[index];

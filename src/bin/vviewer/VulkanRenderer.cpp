@@ -69,17 +69,17 @@ void VulkanRenderer::initResources()
 
     /* Add a sphere in the scene, where the light is */
     {
-        createVulkanMeshModel("sphere.obj");
-        SceneObject * object = addSceneObject("sphere.obj", Transform({ 3, 3, 3 }, { 0.01, 0.01, 0.01 }), "lightMaterial");
+        createVulkanMeshModel("assets/models/sphere.obj");
+        SceneObject * object = addSceneObject("assets/models/sphere.obj", Transform({ 3, 3, 3 }, { 0.01, 0.01, 0.01 }), "lightMaterial");
         object->m_name = "hidden";
     }
     {
-        createVulkanMeshModel("uvsphere.obj");
-        SceneObject * object = addSceneObject("uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
+        createVulkanMeshModel("assets/models/uvsphere.obj");
+        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
         object->m_name = "hidden";
     }
 
-    m_skybox = new VulkanMaterialSkybox("ennisSkybox", createTextureHDR("assets/HDR/ennis/ennis.hdr"), m_device);
+    m_skybox = new VulkanMaterialSkybox("pisa", createTextureHDR("assets/ennis.hdr"), m_device);
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -278,7 +278,8 @@ bool VulkanRenderer::createVulkanMeshModel(std::string filename)
     if (instance.isPresent(filename)) return false;
     
     try {
-        VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), assimpLoadModel(filename));
+        std::vector<Mesh> meshes = assimpLoadModel(filename);
+        VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), meshes);
         vkmesh->setName(filename);
         instance.Add(filename, vkmesh);
     } catch (std::runtime_error& e) {
@@ -388,7 +389,7 @@ Texture * VulkanRenderer::createTextureHDR(std::string imagePath)
         if (instance.isPresent(imagePath)) {
             return instance.Get(imagePath);
         }
-        VulkanTexture * temp = new VulkanTexture("ennis", image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+        VulkanTexture * temp = new VulkanTexture(imagePath, image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
         instance.Add(imagePath, temp);
         return temp;
     }

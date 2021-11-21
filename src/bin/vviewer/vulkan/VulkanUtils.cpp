@@ -44,7 +44,7 @@ bool createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize
 
     res = vkAllocateMemory(device, &allocateInfo, nullptr, &bufferMemory);
     if (res != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to allocate device memory");
+        utils::ConsoleCritical("Failed to allocate device memory: " + std::to_string(res));
         return false;
     }
     /* Bind memory to buffer */

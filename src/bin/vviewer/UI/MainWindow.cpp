@@ -128,6 +128,9 @@ void MainWindow::createMenu()
     QAction * m_actionImportOtherTexture = new QAction(tr("&Import other textures"), this);
     m_actionImportOtherTexture->setStatusTip(tr("Import other textures"));
     connect(m_actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportTextureOtherSlot);
+    QAction * m_actionImportHDRTexture = new QAction(tr("&Import HDR texture"), this);
+    m_actionImportHDRTexture->setStatusTip(tr("Import HDR texture"));
+    connect(m_actionImportHDRTexture, &QAction::triggered, this, &MainWindow::onImportTextureHDRSlot);
 
     QAction * m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
     m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
@@ -140,6 +143,7 @@ void MainWindow::createMenu()
     m_menuImport->addAction(m_actionImportModel);
     m_menuImport->addAction(m_actionImportColorTexture);
     m_menuImport->addAction(m_actionImportOtherTexture);
+    m_menuImport->addAction(m_actionImportHDRTexture);
     QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
     m_menuAdd->addAction(m_actionAddSceneObject);
     m_menuAdd->addAction(m_actionCreateMaterial);
@@ -221,6 +225,18 @@ void MainWindow::onImportTextureOtherSlot()
         if (tex) {
             utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
         }
+    }
+}
+
+void MainWindow::onImportTextureHDRSlot()
+{
+    QString filename = QFileDialog::getOpenFileName(this,
+        tr("Import HDR texture"), "",
+        tr("Model (*.hdr);;All Files (*)"));
+
+    Texture * tex = m_vulkanWindow->m_renderer->createTextureHDR(filename.toStdString());
+    if (tex) {
+        utils::ConsoleInfo("Texture: " + filename.toStdString() + " imported");
     }
 }
 

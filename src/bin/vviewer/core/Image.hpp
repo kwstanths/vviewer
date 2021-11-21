@@ -2,6 +2,7 @@
 #define __Image_hpp__
 
 #include <string>
+#include <stdexcept>
 
 #include <stb_image.h>
 
@@ -19,7 +20,7 @@ public:
 
     Image(std::string filename) {
         m_data = loadDiskImage(filename, m_width, m_height, m_channels);
-        if (m_data == nullptr) throw std::runtime_error("File not found: " + filename);
+        if (m_data == nullptr) throw std::runtime_error("Unable to load image from disk: " + filename);
     }
 
     Image(Color color) {
@@ -71,7 +72,7 @@ public:
         }
     }
     ~Image() {
-        stbi_image_free(data);
+        stbi_image_free(m_data);
     }
 
     T * getData() {
@@ -90,7 +91,7 @@ public:
         return m_channels >= 4;
     }
 
-    T * loadDiskImage(std::string filename, int& width, int& height, int& channels);
+    static T * loadDiskImage(std::string filename, int& width, int& height, int& channels);
 
 private:
     int m_width, m_height, m_channels;
