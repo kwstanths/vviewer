@@ -8,7 +8,7 @@
 
 #include "Texture.hpp"
 
-enum MaterialType {
+enum class MaterialType {
     MATERIAL_NOT_SET = -1,
     MATERIAL_PBR_STANDARD = 0,
     MATERIAL_SKYBOX = 1,

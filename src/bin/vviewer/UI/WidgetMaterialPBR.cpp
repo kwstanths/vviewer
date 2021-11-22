@@ -134,7 +134,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
     layoutMain->addWidget(groupBox);
     layoutMain->setContentsMargins(0, 0, 0, 0);
     setLayout(layoutMain);
-    setFixedHeight(500);
+    setFixedHeight(530);
 
     connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onColorButton()));
     connect(m_metallic, &QSlider::valueChanged, this, &WidgetMaterialPBR::onMetallicChanged);

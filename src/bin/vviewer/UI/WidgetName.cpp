@@ -21,5 +21,5 @@ WidgetName::WidgetName(QWidget * parent, QString textName) : QWidget(parent)
     layoutMain->setContentsMargins(0, 0, 0, 0);
     layoutMain->setAlignment(Qt::AlignTop);
     setLayout(layoutMain);
-    setFixedHeight(55);
+    setFixedHeight(60);
 }

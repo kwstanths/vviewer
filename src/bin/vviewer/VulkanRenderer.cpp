@@ -75,11 +75,11 @@ void VulkanRenderer::initResources()
     }
     {
         createVulkanMeshModel("assets/models/uvsphere.obj");
-        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
-        object->m_name = "hidden";
+        //SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
+        //object->m_name = "hidden";
     }
 
-    m_skybox = new VulkanMaterialSkybox("pisa", createTextureHDR("assets/ennis.hdr"), m_device);
+    m_skybox = new VulkanMaterialSkybox("ennis", createTextureHDR("assets/HDR/ennis.hdr"), m_device);
 }
 
 void VulkanRenderer::initSwapChainResources()
