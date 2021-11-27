@@ -124,7 +124,7 @@ bool VulkanMaterialPBR::createDescriptors(VkDevice device, VkDescriptorSetLayout
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = pool;
-    allocInfo.descriptorSetCount = images;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(images);
     allocInfo.pSetLayouts = layouts.data();
     if (vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to allocate PBR material descriptor sets");
@@ -240,7 +240,7 @@ bool VulkanMaterialSkybox::createDescriptors(VkDevice device, VkDescriptorSetLay
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = pool;
-    allocInfo.descriptorSetCount = images;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(images);
     allocInfo.pSetLayouts = layouts.data();
     if (vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to allocate descriptor sets for cubemap data");

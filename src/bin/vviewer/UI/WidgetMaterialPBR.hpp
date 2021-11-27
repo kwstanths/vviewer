@@ -10,14 +10,12 @@
 #include "core/Materials.hpp"
 #include "core/SceneObject.hpp"
 
-/* A UI widget to represent a transform */
+/* A UI widget to represent a material */
 class WidgetMaterialPBR : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject, MaterialPBR * material, 
-        QStringList availableMaterials,
-        QStringList availableTextures);
+    WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject, MaterialPBR * material);
 
     QComboBox * m_comboBoxAvailableMaterials;
     QPushButton * m_colorButton;

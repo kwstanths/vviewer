@@ -66,6 +66,12 @@ VkDescriptorSetLayout VulkanRendererSkybox::getDescriptorSetLayout() const
 
 void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet cameraDescriptorSet, int imageIndex, VulkanMaterialSkybox * skybox) const
 {
+    /* If material parameters have changed, update descriptor */
+    if (skybox->needsUpdate(imageIndex))
+    {
+        skybox->updateDescriptorSet(m_device, imageIndex);
+    }
+
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     {
         VulkanMesh * vkmesh = static_cast<VulkanMesh *>(m_cube->getMeshes()[0]);
@@ -82,7 +88,7 @@ void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet 
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
             0, 2, &descriptorSets[0], 0, nullptr);
 
-        vkCmdDrawIndexed(cmdBuf, vkmesh->getIndices().size(), 1, 0, 0, 0);
+        vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
     }
 }
 

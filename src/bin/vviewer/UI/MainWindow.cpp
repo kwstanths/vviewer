@@ -11,16 +11,17 @@
 
 #include "DialogAddSceneObject.hpp"
 #include "DialogCreateMaterial.hpp"
+#include "UIUtils.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     
-    QWidget * widgetControls = initControlsWidget();
     QWidget * widgetVulkan = initVulkanWindowWidget();
 
     QHBoxLayout * layout_main = new QHBoxLayout();
     layout_main->addWidget(initLeftPanel());
     layout_main->addWidget(widgetVulkan);
-    layout_main->addWidget(widgetControls);
+    layout_main->addWidget(initControlsWidget());
+
 
     QWidget * widget_main = new QWidget();
     widget_main->setLayout(layout_main);
@@ -109,12 +110,18 @@ QWidget * MainWindow::initControlsWidget()
 {
     m_layoutControls = new QVBoxLayout();
     m_layoutControls->setAlignment(Qt::AlignTop);
-
     QWidget * widget_controls = new QWidget();
     widget_controls->setLayout(m_layoutControls);
-
     widget_controls->setFixedWidth(280);
-    return widget_controls;
+
+    m_widgetEnvironment = new WidgetEnvironment(nullptr);
+
+    QTabWidget* widget_tab = new QTabWidget();
+    widget_tab->insertTab(0, widget_controls, "Scene object");
+    widget_tab->insertTab(1, m_widgetEnvironment, "Environment");
+
+    widget_tab->setFixedWidth(280);
+    return widget_tab;
 }
 
 void MainWindow::createMenu()
@@ -149,41 +156,13 @@ void MainWindow::createMenu()
     m_menuAdd->addAction(m_actionCreateMaterial);
 }
 
-QStringList MainWindow::getImportedModels()
-{
-    QStringList importedModels;
-    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
-    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-        importedModels.push_back(QString::fromStdString(itr->first));
-    }
-    return importedModels;
-}
-
-QStringList MainWindow::getCreatedMaterials()
-{
-    QStringList createdMaterials;
-    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
-    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-        createdMaterials.push_back(QString::fromStdString(itr->first));
-    }
-    return createdMaterials;
-}
-
-QStringList MainWindow::getImportedTextures()
-{
-    QStringList importedTextures;
-    AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
-    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-        importedTextures.push_back(QString::fromStdString(itr->first));
-    }
-    return importedTextures;
-}
-
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
         tr("Import model"), "",
         tr("Model (*.obj);;All Files (*)"));
+
+    if (filename == "") return;
 
     bool ret = m_vulkanWindow->m_renderer->createVulkanMeshModel(filename.toStdString());
  
@@ -234,9 +213,12 @@ void MainWindow::onImportTextureHDRSlot()
         tr("Import HDR texture"), "",
         tr("Model (*.hdr);;All Files (*)"));
 
+    if (filename == "") return;
+
     Texture * tex = m_vulkanWindow->m_renderer->createTextureHDR(filename.toStdString());
     if (tex) {
         utils::ConsoleInfo("Texture: " + filename.toStdString() + " imported");
+        m_widgetEnvironment->updateMaps();
     }
 }
 
@@ -304,7 +286,7 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
 
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, object);
     m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, object, getImportedModels());
-    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, object, static_cast<MaterialPBR *>(object->getMaterial()), getCreatedMaterials(), getImportedTextures());
+    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, object, static_cast<MaterialPBR *>(object->getMaterial()));
 
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);

@@ -41,7 +41,7 @@ void VulkanRenderer::initResources()
 
     m_functions->vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
     
-    /* Initialize dynamic uniform buffers */
+    /* Initialize dynamic uniform buffers, max 100 items */
     m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
     m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
 
@@ -75,11 +75,13 @@ void VulkanRenderer::initResources()
     }
     {
         createVulkanMeshModel("assets/models/uvsphere.obj");
-        //SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
-        //object->m_name = "hidden";
+        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
+        object->m_name = "hidden";
     }
 
-    m_skybox = new VulkanMaterialSkybox("ennis", createTextureHDR("assets/HDR/ennis.hdr"), m_device);
+    m_skybox = new VulkanMaterialSkybox("skybox", createTextureHDR("assets/HDR/harbor.hdr"), m_device);
+    AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
+    instance.Add(m_skybox->m_name, m_skybox);
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -99,14 +101,23 @@ void VulkanRenderer::initSwapChainResources()
     m_rendererPBR.initSwapChainResources(m_swapchainExtent, m_renderPass);
 
     /* Update descriptor sets */
-    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
-    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-        VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(itr->second);
-        material->createDescriptors(m_device, m_rendererPBR.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
-        material->updateDescriptorSets(m_device, m_window->swapChainImageCount());
+    {
+        AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+            VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(itr->second);
+            material->createDescriptors(m_device, m_rendererPBR.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
+            material->updateDescriptorSets(m_device, m_window->swapChainImageCount());
+        }
     }
-    m_skybox->createDescriptors(m_device, m_rendererSkybox.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
-    m_skybox->updateDescriptorSets(m_device, m_window->swapChainImageCount());
+
+    {
+        AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
+        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+            VulkanMaterialSkybox* material = static_cast<VulkanMaterialSkybox*>(itr->second);
+            material->createDescriptors(m_device, m_rendererSkybox.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
+            material->updateDescriptorSets(m_device, m_window->swapChainImageCount());
+        }
+    }
 }
 
 void VulkanRenderer::releaseSwapChainResources()
@@ -154,16 +165,21 @@ void VulkanRenderer::releaseResources()
 
     /* Destroy material data */
     {
-        AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+        AssetManager<std::string, Material*>& instance = AssetManager<std::string, Material*>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(itr->second);
             m_devFunctions->vkDestroySampler(m_device, material->m_sampler, nullptr);
         }
         instance.Reset();
     }
-
-    /* skybox materials samplers */
-    m_devFunctions->vkDestroySampler(m_device, m_skybox->m_sampler, nullptr);
+    {
+        AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
+        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+            VulkanMaterialSkybox* material = static_cast<VulkanMaterialSkybox*>(itr->second);
+            m_devFunctions->vkDestroySampler(m_device, material->m_sampler, nullptr);
+        }
+        instance.Reset();
+    }
 
     /* Destroy cubemaps */
     {
@@ -256,7 +272,7 @@ void VulkanRenderer::startNextFrame()
             m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rendererPBR.getPipelineLayout(),
                 0, 4, &descriptorSets[0], 2, &dynamicOffsets[0]);
 
-            m_devFunctions->vkCmdDrawIndexed(cmdBuf, vkmesh->getIndices().size(), 1, 0, 0, 0);
+            m_devFunctions->vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
         }
     }
 
@@ -357,7 +373,11 @@ Texture * VulkanRenderer::createTexture(std::string id, Image<stbi_uc> * image, 
             return instance.Get(id);
         }
 
-        VulkanTexture * temp = new VulkanTexture(id, image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), format);
+        TextureType type = TextureType::NO_TYPE;
+        if (format == VK_FORMAT_R8G8B8A8_SRGB) type = TextureType::COLOR;
+        else if (format == VK_FORMAT_R8G8B8A8_UNORM) type = TextureType::LINEAR;
+
+        VulkanTexture * temp = new VulkanTexture(id, image, type, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), format);
         instance.Add(id, temp);
         return temp;
     }
@@ -389,7 +409,7 @@ Texture * VulkanRenderer::createTextureHDR(std::string imagePath)
         if (instance.isPresent(imagePath)) {
             return instance.Get(imagePath);
         }
-        VulkanTexture * temp = new VulkanTexture(imagePath, image, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+        VulkanTexture * temp = new VulkanTexture(imagePath, image, TextureType::HDR, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
         instance.Add(imagePath, temp);
         return temp;
     }
@@ -639,9 +659,9 @@ bool VulkanRenderer::createUniformBuffers()
 
 bool VulkanRenderer::updateUniformBuffers(size_t index)
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    //static auto startTime = std::chrono::high_resolution_clock::now();
+    //auto currentTime = std::chrono::high_resolution_clock::now();
+    //float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     /* Flush camera data to GPU */
     {
@@ -689,18 +709,18 @@ bool VulkanRenderer::createDescriptorPool(size_t nMaterials)
 
     VkDescriptorPoolSize materialDataPoolSize{};
     materialDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    materialDataPoolSize.descriptorCount = nMaterials * nImages;
+    materialDataPoolSize.descriptorCount = static_cast<uint32_t>(nMaterials * nImages);
 
     VkDescriptorPoolSize materialTexturesPoolSize{};
     materialTexturesPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    materialTexturesPoolSize.descriptorCount = nMaterials * 6 * nImages;
+    materialTexturesPoolSize.descriptorCount = static_cast<uint32_t>(nMaterials * 6 * nImages);
 
     std::array<VkDescriptorPoolSize, 4> poolSizes = { cameraDataPoolSize, modelDataPoolSize, materialDataPoolSize, materialTexturesPoolSize };
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 2 * nImages + nMaterials * nImages;
+    poolInfo.maxSets = static_cast<uint32_t>(2 * nImages + nMaterials * nImages);
 
     if (m_devFunctions->vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to create a descriptor pool");

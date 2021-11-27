@@ -3,8 +3,8 @@
 #include "VulkanUtils.hpp"
 #include "utils/Console.hpp"
 
-VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format)
-    :Texture(name)
+VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format)
+    :Texture(name, type)
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
@@ -77,8 +77,8 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, VkPhysica
 }
 
 
-VulkanTexture::VulkanTexture(std::string name, Image<float> * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
-    :Texture(name)
+VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
+    :Texture(name, type)
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();

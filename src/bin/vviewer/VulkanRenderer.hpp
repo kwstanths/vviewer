@@ -103,10 +103,8 @@ private:
     VkDevice m_device;
     VkPhysicalDeviceProperties m_physicalDeviceProperties;
 
-    /* Graphics pipeline */
-    VkRenderPass m_renderPass;
-
     /* Renderers */
+    VkRenderPass m_renderPass;
     VulkanRendererPBR m_rendererPBR;
     VulkanRendererSkybox m_rendererSkybox;
 
@@ -115,20 +113,19 @@ private:
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayoutCamera;
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
-    std::vector<VkDescriptorSet> m_descriptorSetsCamera;
-    std::vector<VkDescriptorSet> m_descriptorSetsModel;
     VkDescriptorPool m_descriptorPool;
+    std::vector<VkDescriptorSet> m_descriptorSetsCamera;
     std::vector<VkBuffer> m_uniformBuffersCamera;
     std::vector<VkDeviceMemory> m_uniformBuffersCameraMemory;
+    std::vector<VkDescriptorSet> m_descriptorSetsModel;
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
     size_t m_transformIndexUBO = 0;
+    /* This probably needs to be moved to the VulkanRendererPBR */
     VulkanDynamicUBO<MaterialPBRData> m_materialsUBO;
     size_t m_materialsIndexUBO = 0;
 
     std::vector<VulkanSceneObject *> m_objects;
-
     std::shared_ptr<Camera> m_camera;
-
     glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
 };
 

@@ -11,6 +11,7 @@
 #include "WidgetTransform.hpp"
 #include "WidgetMeshModel.hpp"
 #include "WidgetMaterialPBR.hpp"
+#include "WidgetEnvironment.hpp"
 
 #include "VulkanWindow.hpp"
 
@@ -36,15 +37,12 @@ private:
     WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
     WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
     QWidget * m_selectedObjectWidgetMaterial = nullptr;
+    WidgetEnvironment * m_widgetEnvironment = nullptr;
 
     QWidget * initLeftPanel();
     QWidget * initVulkanWindowWidget();
     QWidget * initControlsWidget();
     void createMenu();
-
-    QStringList getImportedModels();
-    QStringList getCreatedMaterials();
-    QStringList getImportedTextures();
 
 private slots:
     void onImportModelSlot();

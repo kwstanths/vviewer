@@ -10,8 +10,8 @@
 
 class VulkanTexture : public Texture {
 public:
-    VulkanTexture(std::string name, Image<stbi_uc> * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format);
-    VulkanTexture(std::string name, Image<float> * image, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
+    VulkanTexture(std::string name, Image<stbi_uc> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format);
+    VulkanTexture(std::string name, Image<float> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
 
     VkImage getImage() const;
     VkImageView getImageView() const;

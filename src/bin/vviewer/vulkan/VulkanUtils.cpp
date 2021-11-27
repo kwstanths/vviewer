@@ -299,3 +299,22 @@ void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool command
 
     endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 }
+
+std::vector<char> readSPIRV(const std::string& filename)
+{
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open()) {
+        utils::ConsoleFatal("Failed to parse shader: " + filename);
+        exit(-1);
+    }
+
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+
+    file.close();
+    return buffer;
+}

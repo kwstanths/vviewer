@@ -11,18 +11,24 @@
 
 #include "core/AssetManager.hpp"
 
-WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject, MaterialPBR * material, 
-    QStringList availableMaterials, QStringList availableTextures) : QWidget(parent)
+#include "UIUtils.hpp"
+
+WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject, MaterialPBR * material) : QWidget(parent)
 {
     m_sceneObject = sceneObject;
     m_material = material;
+
+    QStringList availableMaterials = getCreatedMaterials();
+    QStringList availableColorTextures = getImportedTextures(TextureType::COLOR);
+    QStringList availableLinearTextures = getImportedTextures(TextureType::LINEAR);
+
     m_comboBoxAvailableMaterials = new QComboBox();
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
     m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(material->m_name));
     connect(m_comboBoxAvailableMaterials, SIGNAL(currentIndexChanged(int)), this, SLOT(onMaterialChanged(int)));
 
     m_comboBoxAlbedo = new QComboBox();
-    m_comboBoxAlbedo->addItems(availableTextures);
+    m_comboBoxAlbedo->addItems(availableColorTextures);
     m_comboBoxAlbedo->setCurrentText(QString::fromStdString(material->getAlbedoTexture()->m_name));
     connect(m_comboBoxAlbedo, SIGNAL(currentIndexChanged(int)), this, SLOT(onColorTextureChanged(int)));
     m_colorButton = new QPushButton();
@@ -37,7 +43,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
 
 
     m_comboBoxMetallic = new QComboBox();
-    m_comboBoxMetallic->addItems(availableTextures);
+    m_comboBoxMetallic->addItems(availableLinearTextures);
     m_comboBoxMetallic->setCurrentText(QString::fromStdString(material->getMetallicTexture()->m_name));
     connect(m_comboBoxMetallic, SIGNAL(currentIndexChanged(int)), this, SLOT(onMetallicTextureChanged(int)));
     m_metallic = new QSlider(Qt::Horizontal);
@@ -54,7 +60,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
 
 
     m_comboBoxRoughness = new QComboBox();
-    m_comboBoxRoughness->addItems(availableTextures);
+    m_comboBoxRoughness->addItems(availableLinearTextures);
     m_comboBoxRoughness->setCurrentText(QString::fromStdString(material->getRoughnessTexture()->m_name));
     connect(m_comboBoxRoughness, SIGNAL(currentIndexChanged(int)), this, SLOT(onRoughnessTextureChanged(int)));
     m_roughness = new QSlider(Qt::Horizontal);
@@ -71,7 +77,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
 
 
     m_comboBoxAO = new QComboBox();
-    m_comboBoxAO->addItems(availableTextures);
+    m_comboBoxAO->addItems(availableLinearTextures);
     m_comboBoxAO->setCurrentText(QString::fromStdString(material->getAOTexture()->m_name));
     connect(m_comboBoxAO, SIGNAL(currentIndexChanged(int)), this, SLOT(onAOTextureChanged(int)));
     m_ao = new QSlider(Qt::Horizontal);
@@ -88,7 +94,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
 
 
     m_comboBoxEmissive = new QComboBox();
-    m_comboBoxEmissive->addItems(availableTextures);
+    m_comboBoxEmissive->addItems(availableLinearTextures);
     m_comboBoxEmissive->setCurrentText(QString::fromStdString(material->getEmissiveTexture()->m_name));
     connect(m_comboBoxEmissive, SIGNAL(currentIndexChanged(int)), this, SLOT(onEmissiveTextureChanged(int)));
     m_emissive = new QSlider(Qt::Horizontal);
@@ -105,7 +111,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
 
 
     m_comboBoxNormal = new QComboBox();
-    m_comboBoxNormal->addItems(availableTextures);
+    m_comboBoxNormal->addItems(availableLinearTextures);
     m_comboBoxNormal->setCurrentText(QString::fromStdString(material->getNormalTexture()->m_name));
     connect(m_comboBoxNormal, SIGNAL(currentIndexChanged(int)), this, SLOT(onNormalTextureChanged(int)));
     QGroupBox * groupBoxNormal = new QGroupBox(tr("Normal"));
