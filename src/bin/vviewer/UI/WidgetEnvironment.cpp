@@ -12,7 +12,7 @@
 WidgetEnvironment::WidgetEnvironment(QWidget* parent) : QWidget(parent) 
 {
     m_comboMaps = new QComboBox();
-    m_comboMaps->addItems(getImportedTextures(TextureType::HDR));
+    m_comboMaps->addItems(getImportedCubemaps());
     connect(m_comboMaps, SIGNAL(currentIndexChanged(int)), this, SLOT(onMapChanged(int)));
 
     QVBoxLayout * layoutMain = new QVBoxLayout();
@@ -34,13 +34,13 @@ void WidgetEnvironment::updateMaps()
 
 void WidgetEnvironment::onMapChanged(int) 
 {
-    std::string newTexture = m_comboMaps->currentText().toStdString();
+    std::string newCubemap = m_comboMaps->currentText().toStdString();
     
-    AssetManager<std::string, Texture*>& textures = AssetManager<std::string, Texture*>::getInstance();
-    Texture* texture = textures.Get(newTexture);
+    AssetManager<std::string, Cubemap*>& cubemaps = AssetManager<std::string, Cubemap*>::getInstance();
+    Cubemap* cubemap = cubemaps.Get(newCubemap);
 
     AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
     MaterialSkybox* material = materials.Get("skybox");
 
-    material->setHDRIMap(texture);
+    material->setMap(cubemap);
 }

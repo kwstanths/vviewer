@@ -1,5 +1,9 @@
 #include "Cubemap.hpp"
 
+Cubemap::Cubemap()
+{
+}
+
 Cubemap::Cubemap(std::string directory)
 {
     m_name = directory;

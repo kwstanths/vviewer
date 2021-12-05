@@ -91,8 +91,8 @@ bool VulkanRendererPBR::createGraphicsPipeline()
 {
     /* ----------------- SHADERS STAGE ------------------- */
     /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/pbrVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/pbrFrag.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/pbrVert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/pbrFrag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */

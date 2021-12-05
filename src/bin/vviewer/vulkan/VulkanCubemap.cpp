@@ -10,6 +10,12 @@ VulkanCubemap::VulkanCubemap(std::string directory, VkPhysicalDevice physicalDev
     if (!ret) throw std::runtime_error("Failed to create a vulkan cubemap");
 }
 
+VulkanCubemap::VulkanCubemap(std::string name, VkImage cubemapImage, VkDeviceMemory cubemapMemory, VkImageView cubemapImageView, VkSampler cubemapSampler):
+    m_cubemapImage(cubemapImage), m_cubemapMemory(cubemapMemory), m_cubemapImageView(cubemapImageView), m_cubemapSampler(cubemapSampler)
+{
+    m_name = name;
+}
+
 VkImage VulkanCubemap::getImage() const
 {
     return m_cubemapImage;

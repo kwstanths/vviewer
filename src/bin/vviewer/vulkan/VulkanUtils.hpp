@@ -63,6 +63,7 @@ void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue q
     Submit a command to transition the layout of an image from oldLayout to newLayout
 */
 void transitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayers = 1);
+void transitionImageLayout(VkCommandBuffer cmdBuf, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t nLayers = 1);
 
 /**
     

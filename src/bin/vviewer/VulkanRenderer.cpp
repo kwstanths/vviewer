@@ -79,9 +79,12 @@ void VulkanRenderer::initResources()
         object->m_name = "hidden";
     }
 
-    m_skybox = new VulkanMaterialSkybox("skybox", createTextureHDR("assets/HDR/harbor.hdr"), m_device);
-    AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
-    instance.Add(m_skybox->m_name, m_skybox);
+    {
+        Cubemap * cubemap = createCubemapFromEnvironmentMap("assets/HDR/harbor.hdr");
+        m_skybox = new VulkanMaterialSkybox("skybox", cubemap, m_device);
+        AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
+        instance.Add(m_skybox->m_name, m_skybox);
+    }
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -109,7 +112,6 @@ void VulkanRenderer::initSwapChainResources()
             material->updateDescriptorSets(m_device, m_window->swapChainImageCount());
         }
     }
-
     {
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
@@ -168,14 +170,6 @@ void VulkanRenderer::releaseResources()
         AssetManager<std::string, Material*>& instance = AssetManager<std::string, Material*>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(itr->second);
-            m_devFunctions->vkDestroySampler(m_device, material->m_sampler, nullptr);
-        }
-        instance.Reset();
-    }
-    {
-        AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            VulkanMaterialSkybox* material = static_cast<VulkanMaterialSkybox*>(itr->second);
             m_devFunctions->vkDestroySampler(m_device, material->m_sampler, nullptr);
         }
         instance.Reset();
@@ -429,9 +423,31 @@ Cubemap * VulkanRenderer::createCubemap(std::string directory)
         return instance.Get(directory);
     }
 
-    VulkanCubemap * cubemap = new VulkanCubemap("assets/cubemaps/redeclipse", m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+    VulkanCubemap * cubemap = new VulkanCubemap(directory, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
     instance.Add(directory, cubemap);
     return cubemap;
+}
+
+Cubemap* VulkanRenderer::createCubemapFromEnvironmentMap(std::string imagePath)
+{
+    try {
+        AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
+        if (instance.isPresent(imagePath)) {
+            return instance.Get(imagePath);
+        }
+
+        Texture* hdrImage = createTextureHDR(imagePath);
+
+        VulkanCubemap* cubemap = m_rendererSkybox.createCubemap(static_cast<VulkanTexture*>(hdrImage));
+        instance.Add(imagePath, cubemap);
+        return cubemap;
+    }
+    catch (std::runtime_error& e) {
+        utils::ConsoleCritical("Failed to create a vulkan environment map: " + std::string(e.what()));
+        return nullptr;
+    }
+
+    return nullptr;
 }
 
 void VulkanRenderer::destroyVulkanMeshModel(MeshModel model)

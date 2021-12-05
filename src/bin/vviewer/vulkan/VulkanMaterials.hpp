@@ -89,16 +89,13 @@ class VulkanMaterialSkybox :
     public VulkanMaterialDescriptor 
 {
 public:
-    VulkanMaterialSkybox(std::string name, Texture * hdriMap, VkDevice device);
+    VulkanMaterialSkybox(std::string name, Cubemap * cubemap, VkDevice device);
 
-    virtual void setHDRIMap(Texture * hdriMap) override;
+    virtual void setMap(Cubemap * cubemap) override;
 
     bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;
     bool updateDescriptorSet(VkDevice device, size_t index) override;
-
-    VkSampler m_sampler;
-    bool createSampler(VkDevice device);
 private:
 
 };

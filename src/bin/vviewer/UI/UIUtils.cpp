@@ -37,3 +37,13 @@ QStringList getImportedTextures(TextureType type)
     }
     return importedTextures;
 }
+
+QStringList getImportedCubemaps()
+{
+    QStringList importedCubemaps;
+    AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        importedCubemaps.push_back(QString::fromStdString(itr->first));
+    }
+    return importedCubemaps;
+}

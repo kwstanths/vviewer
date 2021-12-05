@@ -4,10 +4,12 @@
 #include "utils/Console.hpp"
 
 VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format)
-    :Texture(name, type)
+    :Texture(name, type, image->getWidth(), image->getHeight())
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
+
+    m_format = format;
 
     /* Size of image in bytes  */
     VkDeviceSize imageSize = imageWidth * imageHeight * image->getChannels();
@@ -30,7 +32,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     /* Create vulkan image and memory */
     createImage(physicalDevice, device, imageWidth,
         imageHeight,
-        format,
+        m_format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -40,7 +42,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     /* Transition image to DST_OPTIMAL in order to transfer the data */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        format,
+        m_format,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
@@ -64,7 +66,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        format,
+        m_format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -73,17 +75,17 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
     /* Create view */
-    m_imageView = createImageView(device, m_image, format, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 
 VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
-    :Texture(name, type)
+    :Texture(name, type, image->getWidth(), image->getHeight())
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
 
-    VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    m_format = VK_FORMAT_R32G32B32A32_SFLOAT;
     /* Size of image in bytes  */
     VkDeviceSize imageSize = imageWidth * imageHeight * image->getChannels() * 4;
 
@@ -105,7 +107,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     /* Create vulkan image and memory */
     createImage(physicalDevice, device, imageWidth,
         imageHeight,
-        format,
+        m_format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -115,7 +117,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     /* Transition image to DST_OPTIMAL in order to transfer the data */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        format,
+        m_format,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
@@ -139,7 +141,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        format,
+        m_format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -148,7 +150,13 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
     /* Create view */
-    m_imageView = createImageView(device, m_image, format, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+VulkanTexture::VulkanTexture(std::string name, TextureType type, VkFormat format, size_t width, size_t height, VkImage& image, VkDeviceMemory& imageMemory, VkImageView& imageView):
+    Texture(name, type, width, height), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView), m_format(format)
+{
+
 }
 
 VkImage VulkanTexture::getImage() const
@@ -164,4 +172,9 @@ VkImageView VulkanTexture::getImageView() const
 VkDeviceMemory VulkanTexture::getImageMemory() const
 {
     return m_imageMemory;
+}
+
+VkFormat VulkanTexture::getFormat() const
+{
+    return m_format;
 }

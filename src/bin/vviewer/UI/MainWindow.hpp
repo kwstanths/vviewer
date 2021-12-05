@@ -49,10 +49,11 @@ private slots:
     void onImportTextureColorSlot();
     void onImportTextureOtherSlot();
     void onImportTextureHDRSlot();
+    void onImportEnvironmentMap();
     void onAddSceneObjectSlot();
     void onCreateMaterialSlot();
-    void onSelectedSceneObjectChangedSlot();
     
+    void onSelectedSceneObjectChangedSlot();
     void onSelectedSceneObjectNameChangedSlot();
 };
 

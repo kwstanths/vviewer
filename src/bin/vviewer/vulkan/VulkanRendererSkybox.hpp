@@ -9,6 +9,7 @@
 #include "VulkanCubemap.hpp"
 #include "VulkanMesh.hpp"
 #include "VulkanMaterials.hpp"
+#include "VulkanTexture.hpp"
 
 class VulkanRendererSkybox {
 public:
@@ -24,7 +25,15 @@ public:
     VkPipelineLayout getPipelineLayout() const;
     VkDescriptorSetLayout getDescriptorSetLayout() const;
 
+    /**
+        Render a skybox 
+    */
     void renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet cameraDescriptorSet, int imageIndex, VulkanMaterialSkybox * skybox) const;
+    
+    /**
+        Create a cubemap from an image, inputImage should be an equirectangular projection
+    */
+    VulkanCubemap* createCubemap(VulkanTexture* inputImage) const;
 
 private:
     VkPhysicalDevice m_physicalDevice;
@@ -33,17 +42,16 @@ private:
     VkCommandPool m_commandPool;
     VkExtent2D m_swapchainExtent;
 
+    /* Skybox rendering pipeline */
     VkDescriptorSetLayout m_descriptorSetLayoutCamera;
     VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
-
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     VkRenderPass m_renderPass;
-
-    VulkanCube * m_cube;
-
     bool createGraphicsPipeline();
     bool createDescriptorSetsLayouts();
+
+    VulkanCube * m_cube;
 };
 
 #endif

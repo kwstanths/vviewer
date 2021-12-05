@@ -12,10 +12,13 @@ enum class TextureType {
 
 class Texture {
 public:
-    Texture(std::string name, TextureType type) : m_name(name), m_type(type) {};
+    Texture(std::string name, TextureType type, size_t width, size_t height) : 
+        m_name(name), m_type(type), m_width(width), m_height(height) {};
 
     TextureType m_type;
     std::string m_name = "";
+    size_t m_width;
+    size_t m_height;
 
 private:
 

@@ -55,11 +55,12 @@ public:
 
     SceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
 
-    Texture * createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
-    Texture * createTexture(std::string id, Image<stbi_uc> * image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
-    Texture * createTextureHDR(std::string imagePath);
-    Cubemap * createCubemap(std::string directory);
-    Material * createMaterial(std::string name,
+    Texture* createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* createTexture(std::string id, Image<stbi_uc>* image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* createTextureHDR(std::string imagePath);
+    Cubemap* createCubemap(std::string directory);
+    Cubemap* createCubemapFromEnvironmentMap(std::string imagePath);
+    Material* createMaterial(std::string name,
         glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
         bool createDescriptors = true
     );

@@ -22,7 +22,7 @@ layout(set = 2, binding = 0) uniform PBRMaterialData {
 } pbrMaterialData;
 layout(set = 2, binding = 1) uniform sampler2D materialTextures[6];
 
-layout(set = 3, binding = 0) uniform sampler2D skybox;
+layout(set = 3, binding = 0) uniform samplerCube skybox;
 
 vec3 getCameraPosition(mat4 invViewMatrix)
 {
@@ -63,5 +63,5 @@ void main() {
     
     //vec3 I = normalize(fragWorldPos - cameraPosition);
     //vec3 R = reflect(I, normalize(N));
-    //outColor = vec4(texture(skybox, sampleEquirectangularMap(R)).rgb, 1.0);
+    //outColor = vec4(texture(skybox, R).rgb, 1.0);
 }
