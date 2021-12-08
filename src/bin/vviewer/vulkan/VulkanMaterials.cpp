@@ -219,14 +219,14 @@ bool VulkanMaterialPBR::createSampler(VkDevice device)
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, Cubemap * cubemap, VkDevice device) : MaterialSkybox(name)
+VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, EnvironmentMap * envMap, VkDevice device) : MaterialSkybox(name)
 {
-    m_cubemap = cubemap;
+    m_envMap = envMap;
 }
 
-void VulkanMaterialSkybox::setMap(Cubemap * cubemap)
+void VulkanMaterialSkybox::setMap(EnvironmentMap* envMap)
 {
-    m_cubemap = cubemap;
+    m_envMap = envMap;
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
@@ -261,20 +261,33 @@ bool VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
 
 bool VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
 {
-    VkDescriptorImageInfo textureInfo;
-    textureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    textureInfo.sampler = static_cast<VulkanCubemap*>(m_cubemap)->getSampler();
-    textureInfo.imageView = static_cast<VulkanCubemap*>(m_cubemap)->getImageView();
-    VkWriteDescriptorSet descriptorWriteTextures{};
-    descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWriteTextures.dstSet = m_descriptorSets[index];
-    descriptorWriteTextures.dstBinding = 0;
-    descriptorWriteTextures.dstArrayElement = 0;
-    descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWriteTextures.descriptorCount = 1;
-    descriptorWriteTextures.pImageInfo = &textureInfo;
+    VkDescriptorImageInfo skyboxInfo;
+    skyboxInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    skyboxInfo.sampler = static_cast<VulkanCubemap*>(m_envMap->getSkyboxMap())->getSampler();
+    skyboxInfo.imageView = static_cast<VulkanCubemap*>(m_envMap->getSkyboxMap())->getImageView();
+    VkWriteDescriptorSet descriptorWriteSkybox{};
+    descriptorWriteSkybox.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWriteSkybox.dstSet = m_descriptorSets[index];
+    descriptorWriteSkybox.dstBinding = 0;
+    descriptorWriteSkybox.dstArrayElement = 0;
+    descriptorWriteSkybox.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWriteSkybox.descriptorCount = 1;
+    descriptorWriteSkybox.pImageInfo = &skyboxInfo;
+
+    VkDescriptorImageInfo irradianceInfo;
+    irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    irradianceInfo.sampler = static_cast<VulkanCubemap*>(m_envMap->getIrradianceMap())->getSampler();
+    irradianceInfo.imageView = static_cast<VulkanCubemap*>(m_envMap->getIrradianceMap())->getImageView();
+    VkWriteDescriptorSet descriptorWriteIrradiance{};
+    descriptorWriteIrradiance.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWriteIrradiance.dstSet = m_descriptorSets[index];
+    descriptorWriteIrradiance.dstBinding = 1;
+    descriptorWriteIrradiance.dstArrayElement = 0;
+    descriptorWriteIrradiance.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWriteIrradiance.descriptorCount = 1;
+    descriptorWriteIrradiance.pImageInfo = &irradianceInfo;
     
-    std::array<VkWriteDescriptorSet, 1> writeSets = { descriptorWriteTextures };
+    std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteSkybox, descriptorWriteIrradiance};
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 
     return true;

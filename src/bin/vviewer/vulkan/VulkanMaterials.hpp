@@ -89,9 +89,9 @@ class VulkanMaterialSkybox :
     public VulkanMaterialDescriptor 
 {
 public:
-    VulkanMaterialSkybox(std::string name, Cubemap * cubemap, VkDevice device);
+    VulkanMaterialSkybox(std::string name, EnvironmentMap * envMap, VkDevice device);
 
-    virtual void setMap(Cubemap * cubemap) override;
+    virtual void setMap(EnvironmentMap * envMap) override;
 
     bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;

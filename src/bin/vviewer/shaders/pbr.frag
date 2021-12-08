@@ -22,7 +22,7 @@ layout(set = 2, binding = 0) uniform PBRMaterialData {
 } pbrMaterialData;
 layout(set = 2, binding = 1) uniform sampler2D materialTextures[6];
 
-layout(set = 3, binding = 0) uniform samplerCube skybox;
+layout(set = 3, binding = 1) uniform samplerCube skyboxIrradiance;
 
 vec3 getCameraPosition(mat4 invViewMatrix)
 {
@@ -45,6 +45,7 @@ void main() {
     vec3 V = normalize(cameraPosition - fragWorldPos);
     vec3 H = normalize(V + L);
     
+    /* Calculate PBR components */
     PBRStandard pbr;
     pbr.albedo = pbrMaterialData.albedo.rgb * texture(materialTextures[0], fragUV).rgb;
     pbr.metallic = pbrMaterialData.metallicRoughnessAOEmissive.r * texture(materialTextures[1], fragUV).r;
@@ -52,16 +53,22 @@ void main() {
     float ao = pbrMaterialData.metallicRoughnessAOEmissive.b * texture(materialTextures[3], fragUV).r;
     float emissive = pbrMaterialData.metallicRoughnessAOEmissive.a * texture(materialTextures[4], fragUV).r;
     
+    /* Calculate attenuation */
     float distance    = length(lightPosition - fragWorldPos);
     float attenuation = 1.0 / (distance * distance);
     vec3 radiance     = lightColor * attenuation; 
     
-    vec3 ambient = vec3(0.05) * pbr.albedo * ao;
+    /* Calculate ambient IBL */
+    vec3 F0 = vec3(0.04); 
+    F0      = mix(F0, pbr.albedo, pbr.metallic);
+    vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, pbr.roughness); 
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - pbr.metallic;
+    vec3 irradiance = texture(skyboxIrradiance, N).rgb;
+    vec3 diffuse    = irradiance * pbr.albedo;
+    vec3 ambient    = kD * diffuse * ao; 
+    
     vec3 pbrShading = radiance * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
     vec3 emission = pbr.albedo * emissive;
     outColor = vec4(ambient + pbrShading + emission, 1);
-    
-    //vec3 I = normalize(fragWorldPos - cameraPosition);
-    //vec3 R = reflect(I, normalize(N));
-    //outColor = vec4(texture(skybox, R).rgb, 1.0);
 }

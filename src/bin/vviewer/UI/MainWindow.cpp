@@ -234,8 +234,8 @@ void MainWindow::onImportEnvironmentMap()
 
     if (filename == "") return;
 
-    Cubemap* tex = m_vulkanWindow->m_renderer->createCubemapFromEnvironmentMap(filename.toStdString());
-    if (tex) {
+    EnvironmentMap* envMap = m_vulkanWindow->m_renderer->createCubemapFromEnvironmentMap(filename.toStdString());
+    if (envMap) {
         utils::ConsoleInfo("Environment map: " + filename.toStdString() + " imported");
         m_widgetEnvironment->updateMaps();
     }

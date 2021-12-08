@@ -31,9 +31,14 @@ public:
     void renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet cameraDescriptorSet, int imageIndex, VulkanMaterialSkybox * skybox) const;
     
     /**
-        Create a cubemap from an image, inputImage should be an equirectangular projection
+        Create a cubemap from an image, inputImage should be an HDR equirectangular projection
     */
     VulkanCubemap* createCubemap(VulkanTexture* inputImage) const;
+
+    /**
+        Create an irradiance map for a cubemap
+    */
+    VulkanCubemap* createIrradianceMap(VulkanCubemap* inputMap, uint32_t resolution = 32) const;
 
 private:
     VkPhysicalDevice m_physicalDevice;

@@ -9,6 +9,7 @@ QStringList getImportedModels();
 QStringList getCreatedMaterials();
 QStringList getImportedTextures(TextureType type);
 QStringList getImportedCubemaps();
+QStringList getImportedEnvironmentMaps();
 
 
 #endif

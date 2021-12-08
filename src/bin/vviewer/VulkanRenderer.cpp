@@ -9,6 +9,7 @@
 #include <utils/Console.hpp>
 
 #include "core/Image.hpp"
+#include "core/EnvironmentMap.hpp"
 #include "models/AssimpLoadModel.hpp"
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/Shader.hpp"
@@ -80,8 +81,8 @@ void VulkanRenderer::initResources()
     }
 
     {
-        Cubemap * cubemap = createCubemapFromEnvironmentMap("assets/HDR/harbor.hdr");
-        m_skybox = new VulkanMaterialSkybox("skybox", cubemap, m_device);
+        EnvironmentMap * envMap = createCubemapFromEnvironmentMap("assets/HDR/harbor.hdr");
+        m_skybox = new VulkanMaterialSkybox("skybox", envMap, m_device);
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
         instance.Add(m_skybox->m_name, m_skybox);
     }
@@ -428,19 +429,29 @@ Cubemap * VulkanRenderer::createCubemap(std::string directory)
     return cubemap;
 }
 
-Cubemap* VulkanRenderer::createCubemapFromEnvironmentMap(std::string imagePath)
+EnvironmentMap* VulkanRenderer::createCubemapFromEnvironmentMap(std::string imagePath)
 {
     try {
-        AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
-        if (instance.isPresent(imagePath)) {
-            return instance.Get(imagePath);
+        /* Check if an environment map for that imagePath already exists */
+        AssetManager<std::string, EnvironmentMap*>& envMaps = AssetManager<std::string, EnvironmentMap*>::getInstance();
+        if (envMaps.isPresent(imagePath)) {
+            return envMaps.Get(imagePath);
         }
 
         Texture* hdrImage = createTextureHDR(imagePath);
 
+        /* Transform input texture into a cubemap */
         VulkanCubemap* cubemap = m_rendererSkybox.createCubemap(static_cast<VulkanTexture*>(hdrImage));
-        instance.Add(imagePath, cubemap);
-        return cubemap;
+        /* Compute irradiance map */
+        VulkanCubemap* irradiance = m_rendererSkybox.createIrradianceMap(cubemap);
+        AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
+        instance.Add(cubemap->m_name, cubemap);
+        instance.Add(irradiance->m_name, irradiance);
+
+        EnvironmentMap* envMap = new EnvironmentMap(imagePath, cubemap, irradiance);
+        envMaps.Add(imagePath, envMap);
+
+        return envMap;
     }
     catch (std::runtime_error& e) {
         utils::ConsoleCritical("Failed to create a vulkan environment map: " + std::string(e.what()));

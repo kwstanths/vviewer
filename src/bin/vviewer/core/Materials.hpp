@@ -8,6 +8,7 @@
 
 #include "Texture.hpp"
 #include "Cubemap.hpp"
+#include "EnvironmentMap.hpp"
 
 enum class MaterialType {
     MATERIAL_NOT_SET = -1,
@@ -80,10 +81,10 @@ public:
         return MaterialType::MATERIAL_SKYBOX;
     }
 
-    virtual void setMap(Cubemap * cubemap);
+    virtual void setMap(EnvironmentMap* cubemap);
 
 protected:
-    Cubemap * m_cubemap = nullptr;
+    EnvironmentMap* m_envMap = nullptr;
 };
 
 #endif

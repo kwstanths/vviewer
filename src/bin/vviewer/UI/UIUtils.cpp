@@ -5,6 +5,7 @@
 #include <core/AssetManager.hpp>
 #include <core/MeshModel.hpp>
 #include <core/Materials.hpp>
+#include <core/EnvironmentMap.hpp>
 
 QStringList getImportedModels()
 {
@@ -46,4 +47,14 @@ QStringList getImportedCubemaps()
         importedCubemaps.push_back(QString::fromStdString(itr->first));
     }
     return importedCubemaps;
+}
+
+QStringList getImportedEnvironmentMaps()
+{
+    QStringList importedEnvMaps;
+    AssetManager<std::string, EnvironmentMap*>& instance = AssetManager<std::string, EnvironmentMap*>::getInstance();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        importedEnvMaps.push_back(QString::fromStdString(itr->first));
+    }
+    return importedEnvMaps;
 }

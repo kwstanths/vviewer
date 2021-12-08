@@ -6,5 +6,6 @@ F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skybox.frag -o SPIRV/sky
 
 F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxFilterCube.vert -o SPIRV/skyboxFilterCubeVert.spv
 F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapWrite.frag -o SPIRV/skyboxCubemapWriteFrag.spv
+F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapIrradiance.frag -o SPIRV/skyboxCubemapIrradianceFrag.spv
 
 pause

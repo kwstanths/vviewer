@@ -12,7 +12,7 @@
 WidgetEnvironment::WidgetEnvironment(QWidget* parent) : QWidget(parent) 
 {
     m_comboMaps = new QComboBox();
-    m_comboMaps->addItems(getImportedCubemaps());
+    m_comboMaps->addItems(getImportedEnvironmentMaps());
     connect(m_comboMaps, SIGNAL(currentIndexChanged(int)), this, SLOT(onMapChanged(int)));
 
     QVBoxLayout * layoutMain = new QVBoxLayout();
@@ -28,19 +28,19 @@ void WidgetEnvironment::updateMaps()
 {
     m_comboMaps->blockSignals(true);
     m_comboMaps->clear();
-    m_comboMaps->addItems(getImportedTextures(TextureType::HDR));
+    m_comboMaps->addItems(getImportedEnvironmentMaps());
     m_comboMaps->blockSignals(false);
 }
 
 void WidgetEnvironment::onMapChanged(int) 
 {
-    std::string newCubemap = m_comboMaps->currentText().toStdString();
+    std::string newEnvMap = m_comboMaps->currentText().toStdString();
     
-    AssetManager<std::string, Cubemap*>& cubemaps = AssetManager<std::string, Cubemap*>::getInstance();
-    Cubemap* cubemap = cubemaps.Get(newCubemap);
+    AssetManager<std::string, EnvironmentMap*>& envMaps = AssetManager<std::string, EnvironmentMap*>::getInstance();
+    EnvironmentMap* envMap = envMaps.Get(newEnvMap);
 
     AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
     MaterialSkybox* material = materials.Get("skybox");
 
-    material->setMap(cubemap);
+    material->setMap(envMap);
 }
