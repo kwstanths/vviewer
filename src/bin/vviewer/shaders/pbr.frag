@@ -1,7 +1,7 @@
 #version 450
 
 #include "pbr.glsl"
-#include "environmentMap.glsl"
+#include "ibl.glsl"
 
 layout(location = 0) in vec3 fragWorldPos;
 layout(location = 1) in vec3 fragWorldNormal;
@@ -23,6 +23,7 @@ layout(set = 2, binding = 0) uniform PBRMaterialData {
 layout(set = 2, binding = 1) uniform sampler2D materialTextures[6];
 
 layout(set = 3, binding = 1) uniform samplerCube skyboxIrradiance;
+layout(set = 3, binding = 2) uniform samplerCube skyboxPrefiltered;
 
 vec3 getCameraPosition(mat4 invViewMatrix)
 {
@@ -58,17 +59,11 @@ void main() {
     float attenuation = 1.0 / (distance * distance);
     vec3 radiance     = lightColor * attenuation; 
     
-    /* Calculate ambient IBL */
-    vec3 F0 = vec3(0.04); 
-    F0      = mix(F0, pbr.albedo, pbr.metallic);
-    vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, pbr.roughness); 
-    vec3 kD = 1.0 - kS;
-    kD *= 1.0 - pbr.metallic;
-    vec3 irradiance = texture(skyboxIrradiance, N).rgb;
-    vec3 diffuse    = irradiance * pbr.albedo;
-    vec3 ambient    = kD * diffuse * ao; 
-    
-    vec3 pbrShading = radiance * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
+    vec3 ambient = ao * calculateIBLContribution(pbr, N, V, skyboxIrradiance, skyboxPrefiltered);
+    vec3 Lo = radiance * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
     vec3 emission = pbr.albedo * emissive;
-    outColor = vec4(ambient + pbrShading + emission, 1);
+    
+    vec3 color = ambient + Lo + emission;
+    
+    outColor = vec4(color, 1);
 }

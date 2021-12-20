@@ -286,8 +286,21 @@ bool VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
     descriptorWriteIrradiance.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWriteIrradiance.descriptorCount = 1;
     descriptorWriteIrradiance.pImageInfo = &irradianceInfo;
+
+    VkDescriptorImageInfo prefilteredMapInfo;
+    prefilteredMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    prefilteredMapInfo.sampler = static_cast<VulkanCubemap*>(m_envMap->getPrefilteredMap())->getSampler();
+    prefilteredMapInfo.imageView = static_cast<VulkanCubemap*>(m_envMap->getPrefilteredMap())->getImageView();
+    VkWriteDescriptorSet descriptorWritePrefiltered{};
+    descriptorWritePrefiltered.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWritePrefiltered.dstSet = m_descriptorSets[index];
+    descriptorWritePrefiltered.dstBinding = 2;
+    descriptorWritePrefiltered.dstArrayElement = 0;
+    descriptorWritePrefiltered.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWritePrefiltered.descriptorCount = 1;
+    descriptorWritePrefiltered.pImageInfo = &prefilteredMapInfo;
     
-    std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteSkybox, descriptorWriteIrradiance};
+    std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteSkybox, descriptorWriteIrradiance, descriptorWritePrefiltered};
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 
     return true;

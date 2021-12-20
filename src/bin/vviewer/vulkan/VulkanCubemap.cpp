@@ -104,7 +104,6 @@ bool VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice devi
     /* Transition image to DST_OPTIMAL in order to transfer the data from the staging buffer */
     transitionImageLayout(device, queue, commandPool,
         m_cubemapImage,
-        VK_FORMAT_R8G8B8A8_SRGB,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         6);
@@ -131,7 +130,6 @@ bool VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice devi
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,
         m_cubemapImage,
-        VK_FORMAT_R8G8B8A8_SRGB,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         6);

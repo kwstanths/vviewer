@@ -9,6 +9,8 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
 
+    m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight)))) + 1;
+
     m_format = format;
 
     /* Size of image in bytes  */
@@ -32,6 +34,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     /* Create vulkan image and memory */
     createImage(physicalDevice, device, imageWidth,
         imageHeight,
+        1,
         m_format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -42,9 +45,9 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     /* Transition image to DST_OPTIMAL in order to transfer the data */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        m_format,
         VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1);
 
     /* copy data fronm staging buffer to image */
     VkBufferImageCopy region{};
@@ -66,16 +69,16 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        m_format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        1);
 
     /* Cleanup staging buffer */
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
     /* Create view */
-    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
 
@@ -84,6 +87,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
+    m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight)))) + 1;
 
     m_format = VK_FORMAT_R32G32B32A32_SFLOAT;
     /* Size of image in bytes  */
@@ -107,6 +111,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     /* Create vulkan image and memory */
     createImage(physicalDevice, device, imageWidth,
         imageHeight,
+        1,
         m_format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -117,9 +122,9 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     /* Transition image to DST_OPTIMAL in order to transfer the data */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        m_format,
         VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1);
 
     /* copy data fronm staging buffer to image */
     VkBufferImageCopy region{};
@@ -141,16 +146,16 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,
         m_image,
-        m_format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        1);
 
     /* Cleanup staging buffer */
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
     /* Create view */
-    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
 VulkanTexture::VulkanTexture(std::string name, TextureType type, VkFormat format, size_t width, size_t height, VkImage& image, VkDeviceMemory& imageMemory, VkImageView& imageView):

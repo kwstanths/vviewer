@@ -54,7 +54,9 @@ void VulkanRenderer::initResources()
     m_rendererPBR.initResources(m_device, m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
 
     /* Initialize some data */
-    Texture * whiteTexture = createTexture("white", new Image<stbi_uc>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* whiteTexture = createTexture("white", new Image<stbi_uc>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* whiteColor = createTexture("whiteColor", new Image<stbi_uc>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_SRGB);
+
     createTexture("normalmapdefault", new Image<stbi_uc>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
 
     MaterialPBR * lightMaterial = static_cast<MaterialPBR *>(createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, false));
@@ -81,7 +83,7 @@ void VulkanRenderer::initResources()
     }
 
     {
-        EnvironmentMap * envMap = createCubemapFromEnvironmentMap("assets/HDR/harbor.hdr");
+        EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
         m_skybox = new VulkanMaterialSkybox("skybox", envMap, m_device);
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
         instance.Add(m_skybox->m_name, m_skybox);
@@ -429,7 +431,7 @@ Cubemap * VulkanRenderer::createCubemap(std::string directory)
     return cubemap;
 }
 
-EnvironmentMap* VulkanRenderer::createCubemapFromEnvironmentMap(std::string imagePath)
+EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath)
 {
     try {
         /* Check if an environment map for that imagePath already exists */
@@ -443,12 +445,16 @@ EnvironmentMap* VulkanRenderer::createCubemapFromEnvironmentMap(std::string imag
         /* Transform input texture into a cubemap */
         VulkanCubemap* cubemap = m_rendererSkybox.createCubemap(static_cast<VulkanTexture*>(hdrImage));
         /* Compute irradiance map */
-        VulkanCubemap* irradiance = m_rendererSkybox.createIrradianceMap(cubemap);
+        VulkanCubemap* irradiance = m_rendererSkybox.createIrradianceMap(cubemap, cubemap->getSampler());
+        /* Compute prefiltered map */
+        VulkanCubemap* prefiltered = m_rendererSkybox.createPrefilteredCubemap(cubemap, cubemap->getSampler());
+
         AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
         instance.Add(cubemap->m_name, cubemap);
         instance.Add(irradiance->m_name, irradiance);
+        instance.Add(prefiltered->m_name, prefiltered);
 
-        EnvironmentMap* envMap = new EnvironmentMap(imagePath, cubemap, irradiance);
+        EnvironmentMap* envMap = new EnvironmentMap(imagePath, cubemap, irradiance, prefiltered);
         envMaps.Add(imagePath, envMap);
 
         return envMap;

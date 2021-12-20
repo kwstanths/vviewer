@@ -9,5 +9,5 @@ layout(set = 1, binding = 0) uniform samplerCube skybox;
 
 void main()
 {
-    outColor = texture(skybox, normalize(direction));
+    outColor = textureLod(skybox, normalize(direction), 0);
 }
