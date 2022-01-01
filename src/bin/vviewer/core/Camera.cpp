@@ -42,7 +42,7 @@ int Camera::getHeight() const
 
 glm::mat4 PerspectiveCamera::getProjectionMatrix() const
 {
-    return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.1f, 100.0f);
+    return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.01f, 50.0f);
 }
 
 void PerspectiveCamera::setFoV(float fov)

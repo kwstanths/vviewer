@@ -20,7 +20,7 @@ layout(set = 2, binding = 0) uniform PBRMaterialData {
     vec4 albedo;
     vec4 metallicRoughnessAOEmissive;
 } pbrMaterialData;
-layout(set = 2, binding = 1) uniform sampler2D materialTextures[6];
+layout(set = 2, binding = 1) uniform sampler2D materialTextures[7];
 
 layout(set = 3, binding = 1) uniform samplerCube skyboxIrradiance;
 layout(set = 3, binding = 2) uniform samplerCube skyboxPrefiltered;
@@ -59,7 +59,7 @@ void main() {
     float attenuation = 1.0 / (distance * distance);
     vec3 radiance     = lightColor * attenuation; 
     
-    vec3 ambient = ao * calculateIBLContribution(pbr, N, V, skyboxIrradiance, skyboxPrefiltered);
+    vec3 ambient = ao * calculateIBLContribution(pbr, N, V, skyboxIrradiance, skyboxPrefiltered, materialTextures[6]);
     vec3 Lo = radiance * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
     vec3 emission = pbr.albedo * emissive;
     

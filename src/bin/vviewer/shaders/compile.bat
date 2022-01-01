@@ -8,5 +8,7 @@ F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxFilterCube.vert -o
 F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapWrite.frag -o SPIRV/skyboxCubemapWriteFrag.spv
 F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapIrradiance.frag -o SPIRV/skyboxCubemapIrradianceFrag.spv
 F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapPrefilteredMap.frag -o SPIRV/skyboxCubemapPrefilteredMapFrag.spv
+F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe quad.vert -o SPIRV/quadVert.spv
+F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe genBRDFLUT.frag -o SPIRV/genBRDFLUTFrag.spv
 
 pause

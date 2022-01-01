@@ -12,6 +12,19 @@ struct Vertex {
     glm::vec3 color;
     glm::vec3 tangent;
     glm::vec3 bitangent;
+
+    Vertex() 
+    {
+        position = glm::vec3(0, 0, 0);
+        uv = glm::vec3(0, 0, 0);
+        normal = glm::vec3(0, 0, 1);
+        color = glm::vec3(1, 0, 0);
+        tangent = glm::vec3(1, 0, 0);
+        bitangent = glm::vec3(0, 1, 0);
+    };
+
+    Vertex(glm::vec3 _position, glm::vec2 _uv, glm::vec3 _normal, glm::vec3 _color, glm::vec3 _tangent, glm::vec3 _bitangent) :
+        position(_position), uv(_uv), normal(_normal), color(_color), tangent(_tangent), bitangent(_bitangent) {};
 };
 
 class Mesh {

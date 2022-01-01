@@ -49,20 +49,19 @@ void VulkanRenderer::initResources()
     /* Create descriptor set layouts for camera and model data */
     createDescriptorSetsLayouts();
 
-    /* Initialize renderers */
-    m_rendererSkybox.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutCamera);
-    m_rendererPBR.initResources(m_device, m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
-
     /* Initialize some data */
     Texture* whiteTexture = createTexture("white", new Image<stbi_uc>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
     Texture* whiteColor = createTexture("whiteColor", new Image<stbi_uc>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_SRGB);
-
     createTexture("normalmapdefault", new Image<stbi_uc>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
+
+    /* Initialize renderers */
+    m_rendererSkybox.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutCamera);
+    m_rendererPBR.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
+
 
     MaterialPBR * lightMaterial = static_cast<MaterialPBR *>(createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, false));
     MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
     MaterialPBR * ironMaterial = static_cast<MaterialPBR *>(createMaterial("ironMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
-    
     ironMaterial->setAlbedoTexture(createTexture("assets/materials/rustediron/basecolor.png", VK_FORMAT_R8G8B8A8_SRGB));
     ironMaterial->setMetallicTexture(createTexture("assets/materials/rustediron/metallic.png", VK_FORMAT_R8G8B8A8_UNORM));
     ironMaterial->setRoughnessTexture(createTexture("assets/materials/rustediron/roughness.png", VK_FORMAT_R8G8B8A8_UNORM));

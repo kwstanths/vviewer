@@ -5,6 +5,7 @@
 
 #include "VulkanDynamicUBO.hpp"
 #include "VulkanDataStructs.hpp"
+#include "VulkanTexture.hpp"
 
 /* A class to handle the dynamic UBO storage for a material */
 template<typename T> 
@@ -80,7 +81,7 @@ public:
 
     VkSampler m_sampler;
 private:
-
+    VulkanTexture* m_BRDFLUT = nullptr;
 };
 
 

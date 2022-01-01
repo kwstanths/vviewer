@@ -51,6 +51,11 @@ VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
     setEmissiveTexture(white);
     setNormalTexture(normalmap);
 
+    if (!instance.isPresent("PBR_BRDF_LUT")) {
+        throw std::runtime_error("PBR_BRDF_LUT texture not present");
+    }
+    m_BRDFLUT = static_cast<VulkanTexture*>(instance.Get("PBR_BRDF_LUT"));
+
     createSampler(device);
 }
 
@@ -159,8 +164,8 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
     descriptorWriteMaterial.pImageInfo = nullptr; // Optional
     descriptorWriteMaterial.pTexelBufferView = nullptr; // Optional
 
-    VkDescriptorImageInfo  texInfo[6];
-    for (size_t t = 0; t < 6; t++) {
+    VkDescriptorImageInfo  texInfo[7];
+    for (size_t t = 0; t < 7; t++) {
         texInfo[t] = VkDescriptorImageInfo();
         texInfo[t].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         texInfo[t].sampler = m_sampler;
@@ -170,7 +175,8 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
     texInfo[2].imageView = static_cast<VulkanTexture *>(m_roughnessTexture)->getImageView();
     texInfo[3].imageView = static_cast<VulkanTexture *>(m_aoTexture)->getImageView();
     texInfo[4].imageView = static_cast<VulkanTexture *>(m_emissiveTexture)->getImageView();
-    texInfo[5].imageView = static_cast<VulkanTexture *>(m_normalTexture)->getImageView();
+    texInfo[5].imageView = static_cast<VulkanTexture*>(m_normalTexture)->getImageView();
+    texInfo[6].imageView = m_BRDFLUT->getImageView();
 
     VkWriteDescriptorSet descriptorWriteTextures{};
     descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -178,7 +184,7 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
     descriptorWriteTextures.dstBinding = 1;
     descriptorWriteTextures.dstArrayElement = 0;
     descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWriteTextures.descriptorCount = 6;
+    descriptorWriteTextures.descriptorCount = 7;
     descriptorWriteTextures.pImageInfo = texInfo;
 
     std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteMaterial, descriptorWriteTextures };

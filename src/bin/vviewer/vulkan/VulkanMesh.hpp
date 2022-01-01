@@ -80,12 +80,14 @@ private:
 
 };
 
+/* ---------- Some shapes ---------- */
+
 class VulkanCube : public MeshModel {
 public:
     VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool);
-
 private:
 
 };
+
 
 #endif

@@ -1,6 +1,7 @@
 #include "VulkanMesh.hpp"
 
 #include "VulkanUtils.hpp"
+#include "math/Constants.hpp"
 
 VulkanMesh::VulkanMesh(const Mesh & mesh) : Mesh(mesh)
 {

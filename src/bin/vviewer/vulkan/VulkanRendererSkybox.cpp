@@ -581,13 +581,13 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
             vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
             VkViewport viewport = {};
-            viewport.width = cubemapWidth;
-            viewport.height = cubemapHeight;
+            viewport.width = static_cast<float>(cubemapWidth);
+            viewport.height = static_cast<float>(cubemapHeight);
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             VkRect2D scissor = {};
-            scissor.extent.width = cubemapWidth;
-            scissor.extent.height = cubemapHeight;
+            scissor.extent.width = static_cast<float>(cubemapWidth);
+            scissor.extent.height = static_cast<float>(cubemapHeight);
             scissor.offset.x = 0;
             scissor.offset.y = 0;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -675,7 +675,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
             /* Generate mip map levels for cubemap image */
             for (int f = 0; f < 6; f++)
             {
-                for (int32_t m = 1; m < numMips; m++)
+                for (uint32_t m = 1; m < numMips; m++)
                 {
 
                     VkImageBlit imageBlit{};
@@ -785,7 +785,6 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
 VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap, VkSampler inputSampler, uint32_t resolution) const
 {
     try {
-
         /* Cubemap data */
         VkImage cubemapImage;
         VkDeviceMemory cubemapMemory;
@@ -1020,7 +1019,7 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
 
         /* Push constant to hold the mvp matrix for each cubemap face render, and the delta phi and delta theta for the convolution */
         struct PushBlock {
-            glm::mat4 mvp;
+            glm::mat4 mvp = glm::mat4(1.0f);
 
             float deltaPhi = (2.0f * float(PI)) / 180.0f;
             float deltaTheta = (0.5f * float(PI)) / 64.0f;
@@ -1626,8 +1625,8 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
 
         /* Push constant to hold the mvp matrix for each cubemap face render, the roughness value and the number of samples */
         struct PushBlock {
-            glm::mat4 mvp;
-            float roughness;
+            glm::mat4 mvp = glm::mat4(1.0f);
+            float roughness = 0.0f;
             uint32_t numSamples = 32u;
         } pushBlock;
 
@@ -1872,13 +1871,13 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
             vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
             VkViewport viewport = {};
-            viewport.width = cubemapWidth;
-            viewport.height = cubemapHeight;
+            viewport.width = static_cast<float>(cubemapWidth);
+            viewport.height = static_cast<float>(cubemapHeight);
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             VkRect2D scissor = {};
-            scissor.extent.width = cubemapWidth;
-            scissor.extent.height = cubemapHeight;
+            scissor.extent.width = static_cast<float>(cubemapWidth);
+            scissor.extent.height = static_cast<float>(cubemapHeight);
             scissor.offset.x = 0;
             scissor.offset.y = 0;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);

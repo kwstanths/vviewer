@@ -2,6 +2,8 @@
 
 #include <utils/Console.hpp>
 
+#include "core/AssetManager.hpp"
+
 #include "VulkanUtils.hpp"
 #include "Shader.hpp"
 #include "VulkanMesh.hpp"
@@ -10,14 +12,21 @@ VulkanRendererPBR::VulkanRendererPBR()
 {
 }
 
-void VulkanRendererPBR::initResources(VkDevice device, VkDescriptorSetLayout cameraDescriptorLayout, VkDescriptorSetLayout modelDescriptorLayout, VkDescriptorSetLayout skyboxDescriptorLayout)
+void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkDescriptorSetLayout cameraDescriptorLayout, VkDescriptorSetLayout modelDescriptorLayout, VkDescriptorSetLayout skyboxDescriptorLayout)
 {
+    m_physicalDevice = physicalDevice;
     m_device = device;
+    m_commandPool = commandPool;
+    m_queue = queue;
     m_descriptorSetLayoutCamera = cameraDescriptorLayout;
     m_descriptorSetLayoutModel = modelDescriptorLayout;
     m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
 
     createDescriptorSetsLayouts();
+
+    Texture * texture = createBRDFLUT();
+    AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
+    instance.Add(texture->m_name, texture);
 }
 
 void VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass)
@@ -54,6 +63,344 @@ VkDescriptorSetLayout VulkanRendererPBR::getDescriptorSetLayout() const
     return m_descriptorSetLayoutMaterial;
 }
 
+VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
+{
+    try {
+        VkImage image;
+        VkDeviceMemory imageMemory;
+        VkImageView imageView;
+
+        uint32_t imageWidth = resolution;
+        uint32_t imageHeight = resolution;
+        VkFormat format = VK_FORMAT_R16G16_SFLOAT;
+
+        /* Initialize image data */
+        {
+            // Create image
+            VkImageCreateInfo imageCreateInfo = {};
+            imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+            imageCreateInfo.format = format;
+            imageCreateInfo.extent = { static_cast<uint32_t>(imageWidth), static_cast<uint32_t>(imageHeight), 1 };
+            imageCreateInfo.mipLevels = 1;
+            imageCreateInfo.arrayLayers = 1;
+            imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;;
+            if (vkCreateImage(m_device, &imageCreateInfo, nullptr, &image) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create a vulkan image");
+            }
+        }
+
+        {
+            /* Allocate required memory for the image */
+            VkMemoryRequirements memRequirements;
+            vkGetImageMemoryRequirements(m_device, image, &memRequirements);
+            VkMemoryAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.allocationSize = memRequirements.size;
+            allocInfo.memoryTypeIndex = findMemoryType(m_physicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            if (vkAllocateMemory(m_device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate memory for a vulkan image");
+            }
+            vkBindImageMemory(m_device, image, imageMemory, 0);
+        }
+
+        {
+            /* Create image view */
+            VkImageViewCreateInfo viewInfo{};
+            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            viewInfo.image = image;
+            viewInfo.format = format;
+            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.baseMipLevel = 0;
+            viewInfo.subresourceRange.levelCount = 1;
+            viewInfo.subresourceRange.baseArrayLayer = 0;
+            viewInfo.subresourceRange.layerCount = 1;
+            if (vkCreateImageView(m_device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create an image view");
+            }
+        }
+
+        /* Create render pass to render each face of the irradiance cubemap to an offscreen render target */
+        VkRenderPass renderPass;
+        {
+            VkAttachmentDescription colorAttachment{};
+            colorAttachment.format = format;
+            colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;  /* Before the subpass */
+            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  /* After the subpass */
+            VkAttachmentReference colorAttachmentRef{};
+            colorAttachmentRef.attachment = 0;
+            colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   /* During the subpass */
+
+            VkSubpassDescription subpass{};
+            subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpass.colorAttachmentCount = 1;
+            subpass.pColorAttachments = &colorAttachmentRef;    /* Same as shader locations */
+
+            std::array<VkSubpassDependency, 2> dependencies;
+            dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            dependencies[0].dstSubpass = 0;
+            dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+            dependencies[1].srcSubpass = 0;
+            dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+            dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+            // Renderpass
+            VkRenderPassCreateInfo renderPassCreateInfo = VkRenderPassCreateInfo{};
+            renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+            renderPassCreateInfo.attachmentCount = 1;
+            renderPassCreateInfo.pAttachments = &colorAttachment;
+            renderPassCreateInfo.subpassCount = 1;
+            renderPassCreateInfo.pSubpasses = &subpass;
+            renderPassCreateInfo.dependencyCount = 2;
+            renderPassCreateInfo.pDependencies = dependencies.data();
+            if (vkCreateRenderPass(m_device, &renderPassCreateInfo, nullptr, &renderPass) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create the brdf LUT render pass");
+            }
+        }
+
+        VkFramebuffer framebuffer;
+        {
+            /* Create the framebuffer */
+            VkFramebufferCreateInfo framebufferInfo = {};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = &imageView;
+            framebufferInfo.width = imageWidth;
+            framebufferInfo.height = imageHeight;
+            framebufferInfo.layers = 1;
+            if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &framebuffer) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create a framebuffer");
+            }
+        }
+
+        /* Descriptor set layout for the renders, the only input would be the input texture */
+        VkDescriptorSetLayout descriptorSetlayout;
+        {
+            VkDescriptorSetLayoutCreateInfo descriptorsetlayoutCreateInfo = {};
+            descriptorsetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            descriptorsetlayoutCreateInfo.bindingCount = 0;
+            descriptorsetlayoutCreateInfo.pBindings = nullptr;
+            if (vkCreateDescriptorSetLayout(m_device, &descriptorsetlayoutCreateInfo, nullptr, &descriptorSetlayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create a descriptor set layout");
+            }
+        }
+
+        /* Prepare graphics pipeline */
+        VkPipeline pipeline;
+        VkPipelineLayout pipelinelayout;
+        {
+            VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+            pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+            pipelineLayoutCreateInfo.setLayoutCount = 1;
+            pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetlayout;
+            if (vkCreatePipelineLayout(m_device, &pipelineLayoutCreateInfo, nullptr, &pipelinelayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create a pipeline layout");
+            }
+
+            /* Pipeline stages */
+            VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+            inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+            inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            inputAssembly.primitiveRestartEnable = VK_FALSE;
+            VkPipelineRasterizationStateCreateInfo rasterizer{};
+            rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+            rasterizer.depthClampEnable = VK_FALSE;
+            rasterizer.rasterizerDiscardEnable = VK_FALSE;
+            rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+            rasterizer.lineWidth = 1.0f;
+            rasterizer.cullMode = VK_CULL_MODE_NONE;
+            rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+            rasterizer.depthBiasEnable = VK_FALSE;
+            VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+            colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT;
+            colorBlendAttachment.blendEnable = VK_FALSE;
+            VkPipelineColorBlendStateCreateInfo colorBlending{};
+            colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+            colorBlending.logicOpEnable = VK_FALSE;
+            colorBlending.attachmentCount = 1;
+            colorBlending.pAttachments = &colorBlendAttachment;
+            VkPipelineDepthStencilStateCreateInfo depthStencil{};
+            depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+            depthStencil.depthTestEnable = VK_FALSE;
+            depthStencil.depthWriteEnable = VK_FALSE;
+            depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+            depthStencil.depthBoundsTestEnable = VK_FALSE;
+            depthStencil.stencilTestEnable = VK_FALSE;
+            VkPipelineViewportStateCreateInfo viewportState{};
+            viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+            viewportState.viewportCount = 1;
+            viewportState.scissorCount = 1;
+            VkPipelineMultisampleStateCreateInfo multisampling{};
+            multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+            multisampling.sampleShadingEnable = VK_FALSE;
+            multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+            std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+            VkPipelineDynamicStateCreateInfo dynamicStates{};
+            dynamicStates.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+            dynamicStates.pDynamicStates = dynamicStateEnables.data();
+            dynamicStates.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+            dynamicStates.flags = 0;
+            /* Shaders */
+            auto vertexShaderCode = readSPIRV("shaders/SPIRV/quadVert.spv");
+            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/genBRDFLUTFrag.spv");
+            VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+            vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            vertShaderStageInfo.module = Shader::load(m_device, vertexShaderCode);
+            vertShaderStageInfo.pName = "main";
+            VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+            fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            fragShaderStageInfo.module = Shader::load(m_device, fragmentShaderCode);
+            fragShaderStageInfo.pName = "main";
+            std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStageInfo, fragShaderStageInfo };
+            /* Vertex input, quad rendering no input */
+            auto bindingDescription = VulkanVertex::getBindingDescription();
+            auto attributeDescriptions = VulkanVertex::getAttributeDescriptionsPos();
+            VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+            vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+            vertexInputInfo.vertexBindingDescriptionCount = 0;
+            vertexInputInfo.pVertexBindingDescriptions = nullptr;
+            vertexInputInfo.vertexAttributeDescriptionCount = 0;
+            vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+
+            VkGraphicsPipelineCreateInfo pipelineInfo{};
+            pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+            pipelineInfo.stageCount = 2;
+            pipelineInfo.pStages = shaderStages.data();
+            pipelineInfo.pVertexInputState = &vertexInputInfo;
+            pipelineInfo.pInputAssemblyState = &inputAssembly;
+            pipelineInfo.pViewportState = &viewportState;
+            pipelineInfo.pRasterizationState = &rasterizer;
+            pipelineInfo.pMultisampleState = &multisampling;
+            pipelineInfo.pDepthStencilState = &depthStencil;
+            pipelineInfo.pColorBlendState = &colorBlending;
+            pipelineInfo.pDynamicState = &dynamicStates; // Optional
+            pipelineInfo.layout = pipelinelayout;
+            pipelineInfo.renderPass = renderPass;
+            pipelineInfo.subpass = 0;
+            pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+            pipelineInfo.basePipelineIndex = -1; // Optional
+
+            VkResult ret = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline);
+            if (ret != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create a vulkan graphics pipeline");
+            }
+
+            vkDestroyShaderModule(m_device, vertShaderStageInfo.module, nullptr);
+            vkDestroyShaderModule(m_device, fragShaderStageInfo.module, nullptr);
+        }
+
+        /* Render BRDF LUT texture */
+        {
+            VkClearValue clearValues[1];
+            clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+
+            VkRenderPassBeginInfo renderPassBeginInfo = {};
+            renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassBeginInfo.renderPass = renderPass;
+            renderPassBeginInfo.framebuffer = framebuffer;
+            renderPassBeginInfo.renderArea.extent.width = imageWidth;
+            renderPassBeginInfo.renderArea.extent.height = imageHeight;
+            renderPassBeginInfo.clearValueCount = 1;
+            renderPassBeginInfo.pClearValues = clearValues;
+
+            /* Create command buffer */
+            VkCommandBufferAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocInfo.commandPool = m_commandPool;
+            allocInfo.commandBufferCount = 1;
+            VkCommandBuffer commandBuffer;
+            vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
+            /* Start recording commands */
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+            /* Set viewport and scissor values */
+            VkViewport viewport = {};
+            viewport.width = (float)imageWidth;
+            viewport.height = (float)imageHeight;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            VkRect2D scissor = {};
+            scissor.extent.width = imageWidth;
+            scissor.extent.height = imageHeight;
+            scissor.offset.x = 0;
+            scissor.offset.y = 0;
+
+            /* Rener texture */
+            vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+            
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            /* Render quad */
+            vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+            vkCmdEndRenderPass(commandBuffer);
+
+            transitionImageLayout(commandBuffer,
+                image,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                1);
+
+            vkEndCommandBuffer(commandBuffer);
+            /* Submit and wait for end */
+            VkSubmitInfo submitInfo = {};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &commandBuffer;
+
+            // Create fence to ensure that the command buffer has finished executing
+            VkFenceCreateInfo fenceInfo = {};
+            fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            fenceInfo.flags = 0;
+            VkFence fence;
+            vkCreateFence(m_device, &fenceInfo, nullptr, &fence);
+            vkQueueSubmit(m_queue, 1, &submitInfo, fence);
+            vkWaitForFences(m_device, 1, &fence, VK_TRUE, 100000000000);
+
+            vkQueueWaitIdle(m_queue);
+
+            vkDestroyFence(m_device, fence, nullptr);
+            vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+        }
+
+        vkDestroyPipeline(m_device, pipeline, nullptr);
+        vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
+        vkDestroyRenderPass(m_device, renderPass, nullptr);
+        vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+        vkDestroyDescriptorSetLayout(m_device, descriptorSetlayout, nullptr);
+
+        return new VulkanTexture("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView);
+    }
+    catch (std::runtime_error& e) {
+        utils::ConsoleCritical("Failed to create the PBR BRDF LUT texture: " + std::string(e.what()));
+        return nullptr;
+    }
+}
+
 bool VulkanRendererPBR::createDescriptorSetsLayouts()
 {
     {
@@ -67,7 +414,7 @@ bool VulkanRendererPBR::createDescriptorSetsLayouts()
 
         VkDescriptorSetLayoutBinding materialTexturesLayoutBinding{};
         materialTexturesLayoutBinding.binding = 1;
-        materialTexturesLayoutBinding.descriptorCount = 6;  /* An array of 6 textures */
+        materialTexturesLayoutBinding.descriptorCount = 7;  /* An array of 7 textures */
         materialTexturesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         materialTexturesLayoutBinding.pImmutableSamplers = nullptr;
         materialTexturesLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
