@@ -9,6 +9,7 @@
 #include <core/Camera.hpp>
 #include <core/AssetManager.hpp>
 #include <core/MeshModel.hpp>
+#include <core/Lights.hpp>
 
 #include "VulkanRenderer.hpp"
 
@@ -21,6 +22,7 @@ public:
 
     VulkanRenderer * m_renderer = nullptr;
 
+    std::shared_ptr<DirectionalLight> m_directionalLight;
 protected:
     void resizeEvent(QResizeEvent *ev) override;
     void keyPressEvent(QKeyEvent *ev) override;
@@ -30,9 +32,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *ev) override;
 
 private:
-
     std::unordered_map<int, bool> m_keysPressed;
-
     bool m_mousePosFirst = true;
     QPointF m_mousePos;
 

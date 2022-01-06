@@ -3,18 +3,20 @@
 
 #include <glm/glm.hpp>
 
-struct CameraData {
-    alignas(16) glm::mat4 m_view;
-    alignas(16) glm::mat4 m_projection;
+struct SceneData {
+    glm::mat4 m_view;
+    glm::mat4 m_projection;
+    glm::vec4 m_directionalLightDir;
+    glm::vec4 m_directionalLightColor;
 };
 
 struct ModelData {
-    alignas(16) glm::mat4 m_modelMatrix;
+    glm::mat4 m_modelMatrix;
 };
 
 struct MaterialPBRData {
-    alignas(16) glm::vec4 albedo;
-    alignas(16) glm::vec4 metallicRoughnessAOEmissive;
+    glm::vec4 albedo;
+    glm::vec4 metallicRoughnessAOEmissive;
 };
 
 #endif

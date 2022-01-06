@@ -41,7 +41,7 @@ float GeometrySchlickGGX(float NdotV, float roughness)
     return num / denom;
 }
 
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+float GeometrySmithGGX(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
@@ -66,7 +66,7 @@ vec3 calculatePBRStandardShading(PBRStandard pbr, vec3 worldPos, vec3 normal, ve
     vec3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
     
     float NDF = DistributionGGX(normal, H, pbr.roughness);       
-    float G   = GeometrySmith(normal, V, L, pbr.roughness);  
+    float G   = GeometrySmithGGX(normal, V, L, pbr.roughness);  
     
     vec3 numerator    = NDF * G * F;
     float denominator = 4.0 * max(dot(normal, V), 0.0) * max(dot(normal, L), 0.0)  + 0.0001;

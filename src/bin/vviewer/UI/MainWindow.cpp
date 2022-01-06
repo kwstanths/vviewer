@@ -114,7 +114,11 @@ QWidget * MainWindow::initControlsWidget()
     widget_controls->setLayout(m_layoutControls);
     widget_controls->setFixedWidth(280);
 
-    m_widgetEnvironment = new WidgetEnvironment(nullptr);
+    Transform lightTransform;
+    lightTransform.setRotationEuler(0, 0, 0);
+    auto light = std::make_shared<DirectionalLight>(lightTransform, glm::vec3(1, 0.9, 0.8));
+    m_vulkanWindow->m_directionalLight = light;
+    m_widgetEnvironment = new WidgetEnvironment(nullptr, light);
 
     QTabWidget* widget_tab = new QTabWidget();
     widget_tab->insertTab(0, widget_controls, "Scene object");

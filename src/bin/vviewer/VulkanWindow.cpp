@@ -33,6 +33,7 @@ QVulkanWindowRenderer * VulkanWindow::createRenderer()
     m_renderer = new VulkanRenderer(this);
 
     m_renderer->setCamera(m_camera);
+    m_renderer->setDirectionalLight(m_directionalLight);
 
     return m_renderer;
 }

@@ -25,6 +25,7 @@
 #include "core/AssetManager.hpp"
 #include "core/Materials.hpp"
 #include "core/EnvironmentMap.hpp"
+#include "core/Lights.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -50,6 +51,7 @@ public:
     void startNextFrame() override;
 
     void setCamera(std::shared_ptr<Camera> camera);
+    void setDirectionalLight(std::shared_ptr<DirectionalLight> light);
 
     bool createVulkanMeshModel(std::string filename);
 
@@ -113,12 +115,12 @@ private:
     VulkanMaterialSkybox * m_skybox = nullptr;
 
     /* Descriptor data */
-    VkDescriptorSetLayout m_descriptorSetLayoutCamera;
+    VkDescriptorSetLayout m_descriptorSetLayoutScene;
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
     VkDescriptorPool m_descriptorPool;
-    std::vector<VkDescriptorSet> m_descriptorSetsCamera;
-    std::vector<VkBuffer> m_uniformBuffersCamera;
-    std::vector<VkDeviceMemory> m_uniformBuffersCameraMemory;
+    std::vector<VkDescriptorSet> m_descriptorSetsScene;
+    std::vector<VkBuffer> m_uniformBuffersScene;
+    std::vector<VkDeviceMemory> m_uniformBuffersSceneMemory;
     std::vector<VkDescriptorSet> m_descriptorSetsModel;
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
     size_t m_transformIndexUBO = 0;
@@ -128,6 +130,7 @@ private:
 
     std::vector<VulkanSceneObject *> m_objects;
     std::shared_ptr<Camera> m_camera;
+    std::shared_ptr<DirectionalLight> m_directionalLight;
     glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
 };
 

@@ -12,10 +12,10 @@ layout(location = 2) out vec3 fragWorldTangent;
 layout(location = 3) out vec3 fragWorldBiTangent;
 layout(location = 4) out vec2 fragUV;
 
-layout(set = 0, binding = 0) uniform CameraData {
+layout(set = 0, binding = 0) uniform SceneData {
     mat4 view;
     mat4 projection;
-} cameraData;
+} sceneData;
 
 layout(set = 1, binding = 0) uniform ModelData {
     mat4 model;
@@ -23,7 +23,7 @@ layout(set = 1, binding = 0) uniform ModelData {
 
 void main() {
     vec4 worldPos = modelData.model * vec4(inPosition, 1.0);
-    gl_Position = cameraData.projection * cameraData.view * worldPos;
+    gl_Position = sceneData.projection * sceneData.view * worldPos;
     
     fragWorldPos = worldPos.xyz;
     fragWorldNormal = normalize(vec3(modelData.model * vec4(inNormal, 0.0)));

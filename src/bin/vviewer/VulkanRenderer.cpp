@@ -46,7 +46,7 @@ void VulkanRenderer::initResources()
     m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
     m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
 
-    /* Create descriptor set layouts for camera and model data */
+    /* Create descriptor set layouts for scene and model data */
     createDescriptorSetsLayouts();
 
     /* Initialize some data */
@@ -55,8 +55,8 @@ void VulkanRenderer::initResources()
     createTexture("normalmapdefault", new Image<stbi_uc>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
 
     /* Initialize renderers */
-    m_rendererSkybox.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutCamera);
-    m_rendererPBR.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
+    m_rendererSkybox.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene);
+    m_rendererPBR.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
 
 
     MaterialPBR * lightMaterial = static_cast<MaterialPBR *>(createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, false));
@@ -127,8 +127,8 @@ void VulkanRenderer::initSwapChainResources()
 void VulkanRenderer::releaseSwapChainResources()
 {
     for (int i = 0; i < m_window->swapChainImageCount(); i++) {
-        m_devFunctions->vkDestroyBuffer(m_device, m_uniformBuffersCamera[i], nullptr);
-        m_devFunctions->vkFreeMemory(m_device, m_uniformBuffersCameraMemory[i], nullptr);
+        m_devFunctions->vkDestroyBuffer(m_device, m_uniformBuffersScene[i], nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_uniformBuffersSceneMemory[i], nullptr);
 
         m_devFunctions->vkDestroyBuffer(m_device, m_modelDataDynamicUBO.getBuffer(i), nullptr);
         m_devFunctions->vkFreeMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
@@ -191,7 +191,7 @@ void VulkanRenderer::releaseResources()
     }
 
     /* Destroy descriptor sets layouts */
-    m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutCamera, nullptr);
+    m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutScene, nullptr);
     m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutModel, nullptr);
     m_rendererSkybox.releaseResources();
     m_rendererPBR.releaseResources();
@@ -234,7 +234,7 @@ void VulkanRenderer::startNextFrame()
     m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     /* Draw skybox */
-    if (m_skybox != nullptr) m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsCamera[imageIndex], imageIndex, m_skybox);
+    if (m_skybox != nullptr) m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsScene[imageIndex], imageIndex, m_skybox);
 
     /* Draw PBR material objects */
     m_devFunctions->vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rendererPBR.getPipeline());
@@ -259,7 +259,7 @@ void VulkanRenderer::startNextFrame()
                 static_cast<uint32_t>(m_materialsUBO.getBlockSizeAligned()) * material->getUBOBlockIndex()
             };
             VkDescriptorSet descriptorSets[4] = {
-                m_descriptorSetsCamera[imageIndex],
+                m_descriptorSetsScene[imageIndex],
                 m_descriptorSetsModel[imageIndex],
                 material->getDescriptor(imageIndex),
                 m_skybox->getDescriptor(imageIndex)
@@ -281,6 +281,11 @@ void VulkanRenderer::startNextFrame()
 void VulkanRenderer::setCamera(std::shared_ptr<Camera> camera)
 {
     m_camera = camera;
+}
+
+void VulkanRenderer::setDirectionalLight(std::shared_ptr<DirectionalLight> light)
+{
+    m_directionalLight = light;
 }
 
 bool VulkanRenderer::createVulkanMeshModel(std::string filename)
@@ -623,22 +628,22 @@ bool VulkanRenderer::createFrameBuffers()
 
 bool VulkanRenderer::createDescriptorSetsLayouts()
 {
-    /* Create binding for camera data */
+    /* Create binding for scene data */
     {
-        VkDescriptorSetLayoutBinding cameraDataLayoutBinding{};
-        cameraDataLayoutBinding.binding = 0;
-        cameraDataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        cameraDataLayoutBinding.descriptorCount = 1;    /* If we have an array of uniform buffers */
-        cameraDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        cameraDataLayoutBinding.pImmutableSamplers = nullptr;
+        VkDescriptorSetLayoutBinding sceneDataLayoutBinding{};
+        sceneDataLayoutBinding.binding = 0;
+        sceneDataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        sceneDataLayoutBinding.descriptorCount = 1;    /* If we have an array of uniform buffers */
+        sceneDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        sceneDataLayoutBinding.pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &cameraDataLayoutBinding;
+        layoutInfo.pBindings = &sceneDataLayoutBinding;
 
-        if (m_devFunctions->vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayoutCamera) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to create a descriptor set layout for the camera data");
+        if (m_devFunctions->vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayoutScene) != VK_SUCCESS) {
+            utils::ConsoleCritical("Failed to create a descriptor set layout for the scene data");
             return false;
         }
     }
@@ -669,17 +674,17 @@ bool VulkanRenderer::createDescriptorSetsLayouts()
 bool VulkanRenderer::createUniformBuffers()
 {
     {
-        VkDeviceSize bufferSize = sizeof(CameraData);
+        VkDeviceSize bufferSize = sizeof(SceneData);
 
-        m_uniformBuffersCamera.resize(m_window->swapChainImageCount());
-        m_uniformBuffersCameraMemory.resize(m_window->swapChainImageCount());
+        m_uniformBuffersScene.resize(m_window->swapChainImageCount());
+        m_uniformBuffersSceneMemory.resize(m_window->swapChainImageCount());
 
         for (int i = 0; i < m_window->swapChainImageCount(); i++) {
             createBuffer(m_physicalDevice, m_device, bufferSize,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                m_uniformBuffersCamera[i], 
-                m_uniformBuffersCameraMemory[i]);
+                m_uniformBuffersScene[i], 
+                m_uniformBuffersSceneMemory[i]);
         }
     }
 
@@ -691,21 +696,23 @@ bool VulkanRenderer::createUniformBuffers()
 
 bool VulkanRenderer::updateUniformBuffers(size_t index)
 {
-    //static auto startTime = std::chrono::high_resolution_clock::now();
-    //auto currentTime = std::chrono::high_resolution_clock::now();
-    //float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    /* Flush camera data to GPU */
+    /* Flush scene data to GPU */
     {
-        CameraData cameraData;
-        cameraData.m_view = m_camera->getViewMatrix();
-        cameraData.m_projection = m_camera->getProjectionMatrix();
-        cameraData.m_projection[1][1] *= -1;
+        SceneData sceneData;
+        sceneData.m_view = m_camera->getViewMatrix();
+        sceneData.m_projection = m_camera->getProjectionMatrix();
+        sceneData.m_projection[1][1] *= -1;
+        if (m_directionalLight != nullptr) {
+            sceneData.m_directionalLightDir = glm::vec4(m_directionalLight->transform.getForward(), 0);
+            sceneData.m_directionalLightColor = glm::vec4(m_directionalLight->color, 0);
+        } else {
+            sceneData.m_directionalLightColor = glm::vec4(0, 0, 0, 0);
+        }
 
         void* data;
-        m_devFunctions->vkMapMemory(m_device, m_uniformBuffersCameraMemory[index], 0, sizeof(CameraData), 0, &data);
-        memcpy(data, &cameraData, sizeof(cameraData));
-        m_devFunctions->vkUnmapMemory(m_device, m_uniformBuffersCameraMemory[index]);
+        m_devFunctions->vkMapMemory(m_device, m_uniformBuffersSceneMemory[index], 0, sizeof(SceneData), 0, &data);
+        memcpy(data, &sceneData, sizeof(sceneData));
+        m_devFunctions->vkUnmapMemory(m_device, m_uniformBuffersSceneMemory[index]);
     }
 
     /* Flush Transform changes to GPU */
@@ -731,9 +738,9 @@ bool VulkanRenderer::createDescriptorPool(size_t nMaterials)
 {
     uint32_t nImages = static_cast<uint32_t>(m_window->swapChainImageCount());
 
-    VkDescriptorPoolSize cameraDataPoolSize{};
-    cameraDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    cameraDataPoolSize.descriptorCount = nImages;
+    VkDescriptorPoolSize sceneDataPoolSize{};
+    sceneDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    sceneDataPoolSize.descriptorCount = nImages;
 
     VkDescriptorPoolSize modelDataPoolSize{};
     modelDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -747,7 +754,7 @@ bool VulkanRenderer::createDescriptorPool(size_t nMaterials)
     materialTexturesPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     materialTexturesPoolSize.descriptorCount = static_cast<uint32_t>(nMaterials * 6 * nImages);
 
-    std::array<VkDescriptorPoolSize, 4> poolSizes = { cameraDataPoolSize, modelDataPoolSize, materialDataPoolSize, materialTexturesPoolSize };
+    std::array<VkDescriptorPoolSize, 4> poolSizes = { sceneDataPoolSize, modelDataPoolSize, materialDataPoolSize, materialTexturesPoolSize };
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -768,16 +775,16 @@ bool VulkanRenderer::createDescriptorSets()
     
     /* Create descriptor sets */
     {
-        m_descriptorSetsCamera.resize(nImages);
+        m_descriptorSetsScene.resize(nImages);
 
-        std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayoutCamera);
+        std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayoutScene);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_descriptorPool;
         allocInfo.descriptorSetCount = nImages;
         allocInfo.pSetLayouts = layouts.data();
-        if (m_devFunctions->vkAllocateDescriptorSets(m_device, &allocInfo, m_descriptorSetsCamera.data()) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to allocate descriptor sets for camera data");
+        if (m_devFunctions->vkAllocateDescriptorSets(m_device, &allocInfo, m_descriptorSetsScene.data()) != VK_SUCCESS) {
+            utils::ConsoleCritical("Failed to allocate descriptor sets for the scene data");
             return false;
         }
     }
@@ -800,20 +807,20 @@ bool VulkanRenderer::createDescriptorSets()
     /* Write descriptor sets */
     for (size_t i = 0; i < nImages; i++) {
 
-        VkDescriptorBufferInfo bufferInfoCamera{};
-        bufferInfoCamera.buffer = m_uniformBuffersCamera[i];
-        bufferInfoCamera.offset = 0;
-        bufferInfoCamera.range = sizeof(CameraData);
-        VkWriteDescriptorSet descriptorWriteCamera{};
-        descriptorWriteCamera.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWriteCamera.dstSet = m_descriptorSetsCamera[i];
-        descriptorWriteCamera.dstBinding = 0;
-        descriptorWriteCamera.dstArrayElement = 0;
-        descriptorWriteCamera.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWriteCamera.descriptorCount = 1;
-        descriptorWriteCamera.pBufferInfo = &bufferInfoCamera;
-        descriptorWriteCamera.pImageInfo = nullptr; // Optional
-        descriptorWriteCamera.pTexelBufferView = nullptr; // Optional
+        VkDescriptorBufferInfo bufferInfoScene{};
+        bufferInfoScene.buffer = m_uniformBuffersScene[i];
+        bufferInfoScene.offset = 0;
+        bufferInfoScene.range = sizeof(SceneData);
+        VkWriteDescriptorSet descriptorWriteScene{};
+        descriptorWriteScene.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWriteScene.dstSet = m_descriptorSetsScene[i];
+        descriptorWriteScene.dstBinding = 0;
+        descriptorWriteScene.dstArrayElement = 0;
+        descriptorWriteScene.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWriteScene.descriptorCount = 1;
+        descriptorWriteScene.pBufferInfo = &bufferInfoScene;
+        descriptorWriteScene.pImageInfo = nullptr; // Optional
+        descriptorWriteScene.pTexelBufferView = nullptr; // Optional
         
         VkDescriptorBufferInfo bufferInfoModel{};
         bufferInfoModel.buffer = m_modelDataDynamicUBO.getBuffer(i);
@@ -830,7 +837,7 @@ bool VulkanRenderer::createDescriptorSets()
         descriptorWriteModel.pImageInfo = nullptr; // Optional
         descriptorWriteModel.pTexelBufferView = nullptr; // Optional
 
-        std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteCamera, descriptorWriteModel };
+        std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteScene, descriptorWriteModel };
         m_devFunctions->vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
     }
 

@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 
 #include "core/AssetManager.hpp"
+#include "core/Materials.hpp"
 
 #include "UIUtils.hpp"
 

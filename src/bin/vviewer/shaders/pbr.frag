@@ -2,6 +2,7 @@
 
 #include "pbr.glsl"
 #include "ibl.glsl"
+#include "lighting.glsl"
 
 layout(location = 0) in vec3 fragWorldPos;
 layout(location = 1) in vec3 fragWorldNormal;
@@ -11,10 +12,12 @@ layout(location = 4) in vec2 fragUV;
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 0, binding = 0) uniform CameraData {
+layout(set = 0, binding = 0) uniform SceneData {
     mat4 view;
     mat4 projection;
-} cameraData;
+    vec4 directionalLightDir;
+    vec4 directionalLightColor;
+} sceneData;
 
 layout(set = 2, binding = 0) uniform PBRMaterialData {
     vec4 albedo;
@@ -32,9 +35,7 @@ vec3 getCameraPosition(mat4 invViewMatrix)
 
 void main() {
 
-    vec3 lightColor = vec3(20, 20, 20);
-    vec3 lightPosition = vec3(3, 3, 3);
-    vec3 L = normalize(lightPosition - fragWorldPos);
+    vec3 L = -sceneData.directionalLightDir.xyz;
     
     /* Normal mapping */
     mat3 TBN = mat3(fragWorldTangent, fragWorldBiTangent, fragWorldNormal);
@@ -42,7 +43,7 @@ void main() {
     N = N * 2.0 - 1.0;
     N = normalize(TBN * N);
     
-    vec3 cameraPosition = getCameraPosition(inverse(cameraData.view));
+    vec3 cameraPosition = getCameraPosition(inverse(sceneData.view));
     vec3 V = normalize(cameraPosition - fragWorldPos);
     vec3 H = normalize(V + L);
     
@@ -54,13 +55,9 @@ void main() {
     float ao = pbrMaterialData.metallicRoughnessAOEmissive.b * texture(materialTextures[3], fragUV).r;
     float emissive = pbrMaterialData.metallicRoughnessAOEmissive.a * texture(materialTextures[4], fragUV).r;
     
-    /* Calculate attenuation */
-    float distance    = length(lightPosition - fragWorldPos);
-    float attenuation = 1.0 / (distance * distance);
-    vec3 radiance     = lightColor * attenuation; 
     
     vec3 ambient = ao * calculateIBLContribution(pbr, N, V, skyboxIrradiance, skyboxPrefiltered, materialTextures[6]);
-    vec3 Lo = radiance * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
+    vec3 Lo = sceneData.directionalLightColor.xyz * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
     vec3 emission = pbr.albedo * emissive;
     
     vec3 color = ambient + Lo + emission;
