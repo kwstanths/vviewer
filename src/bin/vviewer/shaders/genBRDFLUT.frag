@@ -19,7 +19,7 @@ vec2 BRDF(float NoV, float roughness)
 	for(uint i = 0u; i < NUM_SAMPLES; i++) {
 		vec2 Xi = hammersley2d(i, NUM_SAMPLES);
 		vec3 H = importanceSample_GGX(Xi, roughness, N);
-		vec3 L = 2.0 * dot(V, H) * H - V;
+		vec3 L = normalize(2.0 * dot(V, H) * H - V);
 
 		float dotNL = max(dot(N, L), 0.0);
 		float dotNV = max(dot(N, V), 0.0);
@@ -38,5 +38,5 @@ vec2 BRDF(float NoV, float roughness)
 
 void main() 
 {
-	outColor = vec4(BRDF(inUV.s, 1.0-inUV.t), 0.0, 1.0);
+	outColor = vec4(BRDF(inUV.s, 1.0 - inUV.t), 0.0, 1.0);
 }

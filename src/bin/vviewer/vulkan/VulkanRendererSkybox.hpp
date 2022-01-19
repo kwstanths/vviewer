@@ -38,12 +38,12 @@ public:
     /**
         Create an irradiance map for a cubemap
     */
-    VulkanCubemap* createIrradianceMap(VulkanCubemap* inputMap, VkSampler inputSampler, uint32_t resolution = 32) const;
+    VulkanCubemap* createIrradianceMap(VulkanCubemap* inputMap, uint32_t resolution = 32) const;
 
     /**
         Create a prefiltered cubemap for different rougness values for the input cubemap     
     */
-    VulkanCubemap* createPrefilteredCubemap(VulkanCubemap* inputMap, VkSampler inputSampler, uint32_t resolution = 512) const;
+    VulkanCubemap* createPrefilteredCubemap(VulkanCubemap* inputMap, uint32_t resolution = 512) const;
 
 private:
     VkPhysicalDevice m_physicalDevice;

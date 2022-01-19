@@ -69,6 +69,7 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
         VkImage image;
         VkDeviceMemory imageMemory;
         VkImageView imageView;
+        VkSampler imageSampler;
 
         uint32_t imageWidth = resolution;
         uint32_t imageHeight = resolution;
@@ -122,6 +123,24 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
             viewInfo.subresourceRange.layerCount = 1;
             if (vkCreateImageView(m_device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create an image view");
+            }
+        }
+
+        {
+            /* Create a sampler */
+            VkSamplerCreateInfo samplerInfo = {};
+            samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+            samplerInfo.magFilter = VK_FILTER_LINEAR;
+            samplerInfo.minFilter = VK_FILTER_LINEAR;
+            samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+            samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.minLod = 0.0f;
+            samplerInfo.maxLod = 1.0f;
+            samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+            if (vkCreateSampler(m_device, &samplerInfo, nullptr, &imageSampler) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create a texture sampler");
             }
         }
 
@@ -393,7 +412,8 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
         vkDestroyFramebuffer(m_device, framebuffer, nullptr);
         vkDestroyDescriptorSetLayout(m_device, descriptorSetlayout, nullptr);
 
-        return new VulkanTexture("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView);
+        VulkanTexture * temp = new VulkanTexture("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler);
+        return temp;
     }
     catch (std::runtime_error& e) {
         utils::ConsoleCritical("Failed to create the PBR BRDF LUT texture: " + std::string(e.what()));

@@ -73,13 +73,10 @@ public:
     void setEmissiveTexture(Texture * texture) override;
     void setNormalTexture(Texture * texture) override;
 
-    bool createSampler(VkDevice device);
-    
     bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;
     bool updateDescriptorSet(VkDevice device, size_t index) override;
 
-    VkSampler m_sampler;
 private:
     VulkanTexture* m_BRDFLUT = nullptr;
 };

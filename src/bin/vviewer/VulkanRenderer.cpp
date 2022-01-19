@@ -58,28 +58,19 @@ void VulkanRenderer::initResources()
     m_rendererSkybox.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene);
     m_rendererPBR.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
 
-
-    MaterialPBR * lightMaterial = static_cast<MaterialPBR *>(createMaterial("lightMaterial", glm::vec4(1, 1, 1, 1), 0, 0, 1.0, 1.0f, false));
     MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
-    MaterialPBR * ironMaterial = static_cast<MaterialPBR *>(createMaterial("ironMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
-    ironMaterial->setAlbedoTexture(createTexture("assets/materials/rustediron/basecolor.png", VK_FORMAT_R8G8B8A8_SRGB));
-    ironMaterial->setMetallicTexture(createTexture("assets/materials/rustediron/metallic.png", VK_FORMAT_R8G8B8A8_UNORM));
-    ironMaterial->setRoughnessTexture(createTexture("assets/materials/rustediron/roughness.png", VK_FORMAT_R8G8B8A8_UNORM));
-    ironMaterial->setAOTexture(whiteTexture);
-    ironMaterial->setEmissiveTexture(whiteTexture);
-    ironMaterial->setNormalTexture(createTexture("assets/materials/rustediron/normal.png", VK_FORMAT_R8G8B8A8_UNORM));
 
-    /* Add a sphere in the scene, where the light is */
-    {
-        createVulkanMeshModel("assets/models/sphere.obj");
-        SceneObject * object = addSceneObject("assets/models/sphere.obj", Transform({ 3, 3, 3 }, { 0.01, 0.01, 0.01 }), "lightMaterial");
-        object->m_name = "hidden";
-    }
     {
         createVulkanMeshModel("assets/models/uvsphere.obj");
-        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 3, 1, 3 }), "ironMaterial");
+        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 1, 0 }), "defaultMaterial");
         object->m_name = "hidden";
     }
+    {
+        createVulkanMeshModel("assets/models/plane.obj");
+        SceneObject* object = addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
+        object->m_name = "hidden";
+    }
+
 
     {
         EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
@@ -163,6 +154,7 @@ void VulkanRenderer::releaseResources()
             m_devFunctions->vkDestroyImageView(m_device, vkTexture->getImageView(), nullptr);
             m_devFunctions->vkDestroyImage(m_device, vkTexture->getImage(), nullptr);
             m_devFunctions->vkFreeMemory(m_device, vkTexture->getImageMemory(), nullptr);
+            m_devFunctions->vkDestroySampler(m_device, vkTexture->getSampler(), nullptr);
         }
         instance.Reset();
     }
@@ -172,7 +164,6 @@ void VulkanRenderer::releaseResources()
         AssetManager<std::string, Material*>& instance = AssetManager<std::string, Material*>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(itr->second);
-            m_devFunctions->vkDestroySampler(m_device, material->m_sampler, nullptr);
         }
         instance.Reset();
     }
@@ -449,9 +440,9 @@ EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath)
         /* Transform input texture into a cubemap */
         VulkanCubemap* cubemap = m_rendererSkybox.createCubemap(static_cast<VulkanTexture*>(hdrImage));
         /* Compute irradiance map */
-        VulkanCubemap* irradiance = m_rendererSkybox.createIrradianceMap(cubemap, cubemap->getSampler());
+        VulkanCubemap* irradiance = m_rendererSkybox.createIrradianceMap(cubemap);
         /* Compute prefiltered map */
-        VulkanCubemap* prefiltered = m_rendererSkybox.createPrefilteredCubemap(cubemap, cubemap->getSampler());
+        VulkanCubemap* prefiltered = m_rendererSkybox.createPrefilteredCubemap(cubemap);
 
         AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
         instance.Add(cubemap->m_name, cubemap);

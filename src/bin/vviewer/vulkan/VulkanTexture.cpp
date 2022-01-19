@@ -79,6 +79,9 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
 
     /* Create view */
     m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+    /* Create a sampler */
+    m_sampler = createSampler(device);
 }
 
 
@@ -87,7 +90,9 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
-    m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight)))) + 1;
+
+    /* mip maps not generated */
+    //m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight)))) + 1;
 
     m_format = VK_FORMAT_R32G32B32A32_SFLOAT;
     /* Size of image in bytes  */
@@ -156,10 +161,14 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
 
     /* Create view */
     m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+    /* Create a sampler */
+    m_sampler = createSampler(device);
 }
 
-VulkanTexture::VulkanTexture(std::string name, TextureType type, VkFormat format, size_t width, size_t height, VkImage& image, VkDeviceMemory& imageMemory, VkImageView& imageView):
-    Texture(name, type, width, height), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView), m_format(format)
+VulkanTexture::VulkanTexture(std::string name, TextureType type, VkFormat format, size_t width, size_t height, 
+    VkImage& image, VkDeviceMemory& imageMemory, VkImageView& imageView, VkSampler& sampler):
+    Texture(name, type, width, height), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView), m_sampler(sampler), m_format(format)
 {
 
 }
@@ -182,4 +191,37 @@ VkDeviceMemory VulkanTexture::getImageMemory() const
 VkFormat VulkanTexture::getFormat() const
 {
     return m_format;
+}
+
+VkSampler VulkanTexture::getSampler() const
+{
+    return m_sampler;
+}
+
+VkSampler VulkanTexture::createSampler(VkDevice device) const
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = 0.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = static_cast<float>(m_numMips);
+
+    VkSampler sampler;
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create a texture sampler");
+    }
+
+    return sampler;
 }

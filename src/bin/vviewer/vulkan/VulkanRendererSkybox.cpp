@@ -525,7 +525,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
             /* Write the descriptor set, bind with the input image. We should use a separate sampler here i guess, but that should be ok anyway */
             VkDescriptorImageInfo imageInfo = {};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.sampler = cubemapSampler; /*  TODO ATTENTION */
+            imageInfo.sampler = inputImage->getSampler();
             imageInfo.imageView = inputImage->getImageView();
             VkWriteDescriptorSet writeDescriptorSet = {};
             writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -728,7 +728,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
                 1, 
                 6);
             
-            /* Transition reset of mip levels images from dstoptimal to shader read only */
+            /* Transition rest of mip levels images from dstoptimal to shader read only */
             VkImageSubresourceRange mipLevelsTransition{};
             mipLevelsTransition.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             mipLevelsTransition.baseArrayLayer = 0;
@@ -782,7 +782,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
     return nullptr;
 }
 
-VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap, VkSampler inputSampler, uint32_t resolution) const
+VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap, uint32_t resolution) const
 {
     try {
         /* Cubemap data */
@@ -1211,8 +1211,8 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
             /* Write the descriptor set, bind with the input image. We should use a separate sampler here i guess, but that should be ok anyway */
             VkDescriptorImageInfo imageInfo = {};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.sampler = inputSampler;
             imageInfo.imageView = inputMap->getImageView();
+            imageInfo.sampler = inputMap->getSampler();
             VkWriteDescriptorSet writeDescriptorSet = {};
             writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSet.dstSet = descriptorSet;
@@ -1397,7 +1397,7 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
     return nullptr;
 }
 
-VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inputMap, VkSampler inputSampler, uint32_t resolution) const
+VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inputMap, uint32_t resolution) const
 {
     try {
         /* Cubemap data */
@@ -1815,8 +1815,8 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
             /* Write the descriptor set, bind with the input image. We should use a separate sampler here i guess, but that should be ok anyway */
             VkDescriptorImageInfo imageInfo = {};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.sampler = inputSampler;
             imageInfo.imageView = inputMap->getImageView();
+            imageInfo.sampler = inputMap->getSampler();
             VkWriteDescriptorSet writeDescriptorSet = {};
             writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSet.dstSet = descriptorSet;
@@ -2021,7 +2021,6 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
 
 bool VulkanRendererSkybox::createDescriptorSetsLayouts()
 {
-    
     VkDescriptorSetLayoutBinding skyboxTextureLayoutBinding{};
     skyboxTextureLayoutBinding.binding = 0;
     skyboxTextureLayoutBinding.descriptorCount = 1; 

@@ -55,8 +55,6 @@ VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
         throw std::runtime_error("PBR_BRDF_LUT texture not present");
     }
     m_BRDFLUT = static_cast<VulkanTexture*>(instance.Get("PBR_BRDF_LUT"));
-
-    createSampler(device);
 }
 
 glm::vec4 & VulkanMaterialPBR::getAlbedo()
@@ -168,15 +166,21 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
     for (size_t t = 0; t < 7; t++) {
         texInfo[t] = VkDescriptorImageInfo();
         texInfo[t].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        texInfo[t].sampler = m_sampler;
     }
     texInfo[0].imageView = static_cast<VulkanTexture *>(m_albedoTexture)->getImageView();
+    texInfo[0].sampler = static_cast<VulkanTexture*>(m_albedoTexture)->getSampler();
     texInfo[1].imageView = static_cast<VulkanTexture *>(m_metallicTexture)->getImageView();
+    texInfo[1].sampler = static_cast<VulkanTexture*>(m_metallicTexture)->getSampler();
     texInfo[2].imageView = static_cast<VulkanTexture *>(m_roughnessTexture)->getImageView();
+    texInfo[2].sampler = static_cast<VulkanTexture*>(m_roughnessTexture)->getSampler();
     texInfo[3].imageView = static_cast<VulkanTexture *>(m_aoTexture)->getImageView();
+    texInfo[3].sampler = static_cast<VulkanTexture*>(m_aoTexture)->getSampler();
     texInfo[4].imageView = static_cast<VulkanTexture *>(m_emissiveTexture)->getImageView();
+    texInfo[4].sampler = static_cast<VulkanTexture*>(m_emissiveTexture)->getSampler();
     texInfo[5].imageView = static_cast<VulkanTexture*>(m_normalTexture)->getImageView();
+    texInfo[5].sampler = static_cast<VulkanTexture*>(m_normalTexture)->getSampler();
     texInfo[6].imageView = m_BRDFLUT->getImageView();
+    texInfo[6].sampler = m_BRDFLUT->getSampler();
 
     VkWriteDescriptorSet descriptorWriteTextures{};
     descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -192,34 +196,6 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
 
     m_descirptorsNeedUpdate[index] = false;
 
-    return true;
-}
-
-bool VulkanMaterialPBR::createSampler(VkDevice device)
-{
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    samplerInfo.maxAnisotropy = 0.0f;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-    
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to create a texture sampler");
-        return false;
-    }
-    
     return true;
 }
 
