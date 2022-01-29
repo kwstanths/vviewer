@@ -3,16 +3,26 @@
 #include "VulkanUtils.hpp"
 #include "utils/Console.hpp"
 
-VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkFormat format)
-    :Texture(name, type, image->getWidth(), image->getHeight())
+VulkanTexture::VulkanTexture(std::string name, 
+    Image<stbi_uc> * image, 
+    TextureType type, 
+    VkPhysicalDevice physicalDevice, 
+    VkDevice device, 
+    VkQueue queue, 
+    VkCommandPool commandPool, 
+    VkFormat format,
+    bool genMipMaps
+):
+    Texture(name, type, image->getWidth(), image->getHeight())
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
 
-    m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight)))) + 1;
+    if (genMipMaps) {
+        m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1;
+    }
 
     m_format = format;
-
     /* Size of image in bytes  */
     VkDeviceSize imageSize = imageWidth * imageHeight * image->getChannels();
 
@@ -32,12 +42,18 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     vkUnmapMemory(device, stagingBufferMemory);
 
     /* Create vulkan image and memory */
+    VkImageUsageFlags imageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (genMipMaps) {
+        /* If mip maps are to be generated, it will be used a transfer src as well */
+        imageFlags = imageFlags | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+
     createImage(physicalDevice, device, imageWidth,
         imageHeight,
-        1,
+        m_numMips,
         m_format,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        imageFlags,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_image,
         m_imageMemory);
@@ -47,7 +63,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
         m_image,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1);
+        m_numMips);
 
     /* copy data fronm staging buffer to image */
     VkBufferImageCopy region{};
@@ -66,33 +82,48 @@ VulkanTexture::VulkanTexture(std::string name, Image<stbi_uc> * image, TextureTy
     };
     copyBufferToImage(device, queue, commandPool, stagingBuffer, m_image, { region });
 
-    /* Transition to SHADER_READ_ONLY layout */
-    transitionImageLayout(device, queue, commandPool,
-        m_image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        1);
+    if (genMipMaps) {
+        /* If mip maps are to be generated, transition to shader read only while creating the mip maps */
+        generateMipMaps(device, commandPool, queue);
+    }
+    else {
+        /* Transition to SHADER_READ_ONLY layout */
+        transitionImageLayout(device, queue, commandPool,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            m_numMips);
+    }
 
     /* Cleanup staging buffer */
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
     /* Create view */
-    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
 
     /* Create a sampler */
     m_sampler = createSampler(device);
 }
 
 
-VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType type, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
-    :Texture(name, type, image->getWidth(), image->getHeight())
+VulkanTexture::VulkanTexture(std::string name, 
+    Image<float> * image, 
+    TextureType type, 
+    VkPhysicalDevice physicalDevice, 
+    VkDevice device, 
+    VkQueue queue, 
+    VkCommandPool commandPool,
+    bool genMipMaps
+):
+    Texture(name, type, image->getWidth(), image->getHeight())
 {
     int imageWidth = image->getWidth();
     int imageHeight = image->getHeight();
 
-    /* mip maps not generated */
-    //m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight)))) + 1;
+    if (genMipMaps) {
+        m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1;
+    }
 
     m_format = VK_FORMAT_R32G32B32A32_SFLOAT;
     /* Size of image in bytes  */
@@ -114,12 +145,18 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     vkUnmapMemory(device, stagingBufferMemory);
 
     /* Create vulkan image and memory */
+    VkImageUsageFlags imageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (genMipMaps) {
+        /* If mip maps are to be generated, it will be used a transfer src as well */
+        imageFlags = imageFlags | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+
     createImage(physicalDevice, device, imageWidth,
         imageHeight,
-        1,
+        m_numMips,
         m_format,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        imageFlags,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_image,
         m_imageMemory);
@@ -129,7 +166,7 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
         m_image,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1);
+        m_numMips);
 
     /* copy data fronm staging buffer to image */
     VkBufferImageCopy region{};
@@ -148,27 +185,48 @@ VulkanTexture::VulkanTexture(std::string name, Image<float> * image, TextureType
     };
     copyBufferToImage(device, queue, commandPool, stagingBuffer, m_image, { region });
 
-    /* Transition to SHADER_READ_ONLY layout */
-    transitionImageLayout(device, queue, commandPool,
-        m_image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        1);
+    if (genMipMaps) {
+        /* If mip maps are to be generated, transition to shader read only while creating the mip maps */
+        generateMipMaps(device, commandPool, queue);
+    }
+    else {
+        /* Transition to SHADER_READ_ONLY layout */
+        transitionImageLayout(device, queue, commandPool,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            m_numMips);
+    }
 
     /* Cleanup staging buffer */
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
     /* Create view */
-    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
 
     /* Create a sampler */
     m_sampler = createSampler(device);
 }
 
-VulkanTexture::VulkanTexture(std::string name, TextureType type, VkFormat format, size_t width, size_t height, 
-    VkImage& image, VkDeviceMemory& imageMemory, VkImageView& imageView, VkSampler& sampler):
-    Texture(name, type, width, height), m_image(image), m_imageMemory(imageMemory), m_imageView(imageView), m_sampler(sampler), m_format(format)
+VulkanTexture::VulkanTexture(std::string name, 
+    TextureType type, 
+    VkFormat format, 
+    size_t width, 
+    size_t height, 
+    VkImage& image, 
+    VkDeviceMemory& imageMemory, 
+    VkImageView& imageView, 
+    VkSampler& sampler,
+    uint32_t numMips
+):
+    Texture(name, type, width, height), 
+    m_image(image), 
+    m_imageMemory(imageMemory), 
+    m_imageView(imageView), 
+    m_sampler(sampler), 
+    m_format(format),
+    m_numMips(numMips)
 {
 
 }
@@ -209,11 +267,11 @@ VkSampler VulkanTexture::createSampler(VkDevice device) const
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.anisotropyEnable = VK_FALSE;
-    samplerInfo.maxAnisotropy = 0.0f;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = static_cast<float>(m_numMips);
@@ -224,4 +282,71 @@ VkSampler VulkanTexture::createSampler(VkDevice device) const
     }
 
     return sampler;
+}
+
+void VulkanTexture::generateMipMaps(VkDevice device, VkCommandPool commandPool, VkQueue queue)
+{
+    VkCommandBuffer cmdBuf = beginSingleTimeCommands(device, commandPool);
+
+    VkImageSubresourceRange resourceRange = {};
+    resourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    resourceRange.baseArrayLayer = 0;
+    resourceRange.layerCount = 1;
+    resourceRange.levelCount = 1;
+
+    int32_t mipWidth = m_width;
+    int32_t mipHeight = m_height;
+
+    for (uint32_t i = 1; i < m_numMips; i++) {
+
+        /* Transition previous mip level to src layout */
+        resourceRange.baseMipLevel = i - 1;
+        transitionImageLayout(cmdBuf,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            resourceRange);
+
+        /* Data for blit operation */
+        VkImageBlit blit{};
+        blit.srcOffsets[0] = { 0, 0, 0 };
+        blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+        blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        blit.srcSubresource.mipLevel = i - 1;
+        blit.srcSubresource.baseArrayLayer = 0;
+        blit.srcSubresource.layerCount = 1;
+        blit.dstOffsets[0] = { 0, 0, 0 };
+        blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+        blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        blit.dstSubresource.mipLevel = i;
+        blit.dstSubresource.baseArrayLayer = 0;
+        blit.dstSubresource.layerCount = 1;
+        
+        vkCmdBlitImage(cmdBuf,
+            m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &blit,
+            VK_FILTER_LINEAR);
+
+        /* Transition previous level to shader read only */
+        transitionImageLayout(cmdBuf,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            resourceRange);
+
+        /* Prepare next mip level */
+        if (mipWidth > 1) mipWidth /= 2;
+        if (mipHeight > 1) mipHeight /= 2;
+    }
+
+    /* Transition last mip level to shader read only layout */
+    resourceRange.baseMipLevel = m_numMips - 1;
+    transitionImageLayout(cmdBuf,
+        m_image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        resourceRange);
+
+    endSingleTimeCommands(device, commandPool, queue, cmdBuf);
 }

@@ -329,6 +329,21 @@ void transitionImageLayout(VkCommandBuffer cmdBuf,
     transitionImageLayout(cmdBuf, image, oldLayout, newLayout, resourceRange);
 }
 
+void transitionImageLayout(VkDevice device, 
+    VkQueue queue, 
+    VkCommandPool commandPool, 
+    VkImage image, 
+    VkImageLayout oldLayout, 
+    VkImageLayout newLayout, 
+    VkImageSubresourceRange resourceRange)
+{
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+
+    transitionImageLayout(commandBuffer, image, oldLayout, newLayout, resourceRange);
+
+    endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+}
+
 void transitionImageLayout(VkCommandBuffer cmdBuf, 
     VkImage image, 
     VkImageLayout oldLayout, 

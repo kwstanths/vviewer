@@ -145,6 +145,9 @@ void MainWindow::createMenu()
     QAction* m_actionImportEnvironmentMap = new QAction(tr("&Import environment map"), this);
     m_actionImportEnvironmentMap->setStatusTip(tr("Import environment map"));
     connect(m_actionImportEnvironmentMap, &QAction::triggered, this, &MainWindow::onImportEnvironmentMap);
+    QAction* m_actionImportMaterial = new QAction(tr("&Import material"), this);
+    m_actionImportMaterial->setStatusTip(tr("Import material"));
+    connect(m_actionImportMaterial, &QAction::triggered, this, &MainWindow::onImportMaterial);
 
     QAction * m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
     m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
@@ -159,6 +162,7 @@ void MainWindow::createMenu()
     m_menuImport->addAction(m_actionImportOtherTexture);
     m_menuImport->addAction(m_actionImportHDRTexture);
     m_menuImport->addAction(m_actionImportEnvironmentMap);
+    m_menuImport->addAction(m_actionImportMaterial);
     QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
     m_menuAdd->addAction(m_actionAddSceneObject);
     m_menuAdd->addAction(m_actionCreateMaterial);
@@ -243,6 +247,30 @@ void MainWindow::onImportEnvironmentMap()
         utils::ConsoleInfo("Environment map: " + filename.toStdString() + " imported");
         m_widgetEnvironment->updateMaps();
     }
+}
+
+void MainWindow::onImportMaterial()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, "Choose directory", ".", QFileDialog::ShowDirsOnly);
+    if (dir == "") return;
+
+    std::string materialName = dir.split('/').back().toStdString();
+    std::string dirStd = dir.toStdString();
+
+    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, glm::vec4(1, 1, 1, 1), 1, 1, 1, 0);
+    if (material == nullptr) return;
+
+    Texture* albedo = m_vulkanWindow->m_renderer->createTexture(dirStd + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
+    Texture* ao = m_vulkanWindow->m_renderer->createTexture(dirStd + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* metallic = m_vulkanWindow->m_renderer->createTexture(dirStd + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* normal = m_vulkanWindow->m_renderer->createTexture(dirStd + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* roughness = m_vulkanWindow->m_renderer->createTexture(dirStd + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
+
+    if (albedo != nullptr) static_cast<MaterialPBR*>(material)->setAlbedoTexture(albedo);
+    if (ao != nullptr) static_cast<MaterialPBR*>(material)->setAOTexture(ao);
+    if (metallic != nullptr)  static_cast<MaterialPBR*>(material)->setMetallicTexture(metallic);
+    if (normal != nullptr)  static_cast<MaterialPBR*>(material)->setNormalTexture(normal);
+    if (roughness != nullptr) static_cast<MaterialPBR*>(material)->setRoughnessTexture(roughness);
 }
 
 void MainWindow::onAddSceneObjectSlot()

@@ -62,7 +62,7 @@ void VulkanRenderer::initResources()
 
     {
         createVulkanMeshModel("assets/models/uvsphere.obj");
-        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 1, 0 }), "defaultMaterial");
+        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
         object->m_name = "hidden";
     }
     {
@@ -369,7 +369,16 @@ Texture * VulkanRenderer::createTexture(std::string id, Image<stbi_uc> * image, 
         if (format == VK_FORMAT_R8G8B8A8_SRGB) type = TextureType::COLOR;
         else if (format == VK_FORMAT_R8G8B8A8_UNORM) type = TextureType::LINEAR;
 
-        VulkanTexture * temp = new VulkanTexture(id, image, type, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), format);
+        VulkanTexture * temp = new VulkanTexture(id, 
+            image, 
+            type, 
+            m_physicalDevice, 
+            m_device, 
+            m_window->graphicsQueue(), 
+            m_window->graphicsCommandPool(), 
+            format, 
+            true);
+
         instance.Add(id, temp);
         return temp;
     }
@@ -401,7 +410,15 @@ Texture * VulkanRenderer::createTextureHDR(std::string imagePath)
         if (instance.isPresent(imagePath)) {
             return instance.Get(imagePath);
         }
-        VulkanTexture * temp = new VulkanTexture(imagePath, image, TextureType::HDR, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+        VulkanTexture * temp = new VulkanTexture(imagePath, 
+            image, 
+            TextureType::HDR, 
+            m_physicalDevice, 
+            m_device, 
+            m_window->graphicsQueue(), 
+            m_window->graphicsCommandPool(),
+            false);
+
         instance.Add(imagePath, temp);
         return temp;
     }

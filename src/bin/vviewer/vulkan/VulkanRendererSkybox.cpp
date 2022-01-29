@@ -698,21 +698,19 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
                     imageBlit.dstOffsets[1].y = static_cast<int32_t>(cubemapHeight * std::pow(0.5f, m));
                     imageBlit.dstOffsets[1].z = 1;
 
-                    VkImageMemoryBarrier imageMemoryBarrier = {};
-                    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                    imageMemoryBarrier.pNext = NULL;
-                    imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                    imageMemoryBarrier.subresourceRange.baseMipLevel = m;
-                    imageMemoryBarrier.subresourceRange.levelCount = 1;
-                    imageMemoryBarrier.subresourceRange.baseArrayLayer = f;
-                    imageMemoryBarrier.subresourceRange.layerCount = 1;
+                    VkImageSubresourceRange subresourceRange = {};
+                    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                    subresourceRange.baseMipLevel = m;
+                    subresourceRange.levelCount = 1;
+                    subresourceRange.baseArrayLayer = f;
+                    subresourceRange.layerCount = 1;
 
                     // change layout of current mip level to transfer destination
                     transitionImageLayout(commandBuffer,
                         cubemapImage,
                         VK_IMAGE_LAYOUT_UNDEFINED,
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-                        imageMemoryBarrier.subresourceRange);
+                        subresourceRange);
 
                     // Do blit operation from original level
                     vkCmdBlitImage(commandBuffer, cubemapImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, cubemapImage,

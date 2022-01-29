@@ -101,7 +101,7 @@ void endSingleTimeCommands(VkDevice device,
     VkCommandBuffer commandBuffer);
 
 /**
-    Submit a command to transition the layout of an image from oldLayout to newLayout
+    Submit a command to transition the layout of an image from oldLayout to newLayout, creates and destroys a command buffer 
 */
 void transitionImageLayout(VkDevice device, 
     VkQueue queue, 
@@ -111,12 +111,30 @@ void transitionImageLayout(VkDevice device,
     VkImageLayout newLayout, 
     uint32_t numMips,
     uint32_t nLayers = 1);
+/**
+    Submit a command to transition the layout of an image from oldLayout to newLayout, uses an existing command buffer 
+*/
 void transitionImageLayout(VkCommandBuffer cmdBuf, 
     VkImage image, 
     VkImageLayout oldLayout, 
     VkImageLayout newLayout, 
     uint32_t numMips,
     uint32_t nLayers = 1);
+/**
+    Submit a command to transition the layout of an image from oldLayout to newLayout, using a custom resource range for the image
+    creates and destroys a command buffer
+*/
+void transitionImageLayout(VkDevice device,
+    VkQueue queue,
+    VkCommandPool commandPool,
+    VkImage image,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkImageSubresourceRange resourceRange);
+/**
+    Submit a command to transition the layout of an image from oldLayout to newLayout, using a custom resource range for the image
+    uses an existing command buffer
+*/
 void transitionImageLayout(
     VkCommandBuffer cmdBuf,
     VkImage image,

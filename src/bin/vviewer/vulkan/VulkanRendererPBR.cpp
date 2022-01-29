@@ -412,7 +412,7 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
         vkDestroyFramebuffer(m_device, framebuffer, nullptr);
         vkDestroyDescriptorSetLayout(m_device, descriptorSetlayout, nullptr);
 
-        VulkanTexture * temp = new VulkanTexture("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler);
+        VulkanTexture * temp = new VulkanTexture("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler, 0);
         return temp;
     }
     catch (std::runtime_error& e) {
