@@ -11,9 +11,13 @@
 #include "core/Image.hpp"
 #include "core/EnvironmentMap.hpp"
 #include "models/AssimpLoadModel.hpp"
-#include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/Shader.hpp"
-#include "vulkan/VulkanUtils.hpp"
+#include "Shader.hpp"
+#include "VulkanUtils.hpp"
+
+VulkanRenderer::VulkanRenderer(QVulkanWindow * window) : m_window(window) 
+{
+    m_scene = new VulkanScene();
+}
 
 void VulkanRenderer::preInitResources()
 {
@@ -43,8 +47,7 @@ void VulkanRenderer::initResources()
     m_functions->vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
     
     /* Initialize dynamic uniform buffers, max 100 items */
-    m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
-    m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
+    m_scene->m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
 
     /* Create descriptor set layouts for scene and model data */
     createDescriptorSetsLayouts();
@@ -55,8 +58,19 @@ void VulkanRenderer::initResources()
     createTexture("normalmapdefault", new Image<stbi_uc>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
 
     /* Initialize renderers */
-    m_rendererSkybox.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene);
-    m_rendererPBR.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene, m_descriptorSetLayoutModel, m_rendererSkybox.getDescriptorSetLayout());
+    m_rendererSkybox.initResources(m_physicalDevice, 
+        m_device, 
+        m_window->graphicsQueue(), 
+        m_window->graphicsCommandPool(), 
+        m_descriptorSetLayoutScene);
+    m_rendererPBR.initResources(m_physicalDevice, 
+        m_device, 
+        m_window->graphicsQueue(), 
+        m_window->graphicsCommandPool(), 
+        m_physicalDeviceProperties, 
+        m_descriptorSetLayoutScene, 
+        m_descriptorSetLayoutModel, 
+        m_rendererSkybox.getDescriptorSetLayout());
 
     MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
 
@@ -71,13 +85,14 @@ void VulkanRenderer::initResources()
         object->m_name = "hidden";
     }
 
-
     {
         EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
-        m_skybox = new VulkanMaterialSkybox("skybox", envMap, m_device);
+        VulkanMaterialSkybox * skybox = new VulkanMaterialSkybox("skybox", envMap, m_device);
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
-        instance.Add(m_skybox->m_name, m_skybox);
+        instance.Add(skybox->m_name, skybox);
+        m_scene->setSkybox(skybox);
     }
+
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -94,7 +109,7 @@ void VulkanRenderer::initSwapChainResources()
     createDescriptorPool(100);
     createDescriptorSets();
     m_rendererSkybox.initSwapChainResources(m_swapchainExtent, m_renderPass);
-    m_rendererPBR.initSwapChainResources(m_swapchainExtent, m_renderPass);
+    m_rendererPBR.initSwapChainResources(m_swapchainExtent, m_renderPass, m_window->swapChainImageCount());
 
     /* Update descriptor sets */
     {
@@ -118,14 +133,11 @@ void VulkanRenderer::initSwapChainResources()
 void VulkanRenderer::releaseSwapChainResources()
 {
     for (int i = 0; i < m_window->swapChainImageCount(); i++) {
-        m_devFunctions->vkDestroyBuffer(m_device, m_uniformBuffersScene[i], nullptr);
-        m_devFunctions->vkFreeMemory(m_device, m_uniformBuffersSceneMemory[i], nullptr);
+        m_devFunctions->vkDestroyBuffer(m_device, m_scene->m_uniformBuffersScene[i], nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_scene->m_uniformBuffersSceneMemory[i], nullptr);
 
-        m_devFunctions->vkDestroyBuffer(m_device, m_modelDataDynamicUBO.getBuffer(i), nullptr);
-        m_devFunctions->vkFreeMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
-
-        m_devFunctions->vkDestroyBuffer(m_device, m_materialsUBO.getBuffer(i), nullptr);
-        m_devFunctions->vkFreeMemory(m_device, m_materialsUBO.getBufferMemory(i), nullptr);
+        m_devFunctions->vkDestroyBuffer(m_device, m_scene->m_modelDataDynamicUBO.getBuffer(i), nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_scene->m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
     }
 
     m_devFunctions->vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
@@ -142,8 +154,7 @@ void VulkanRenderer::releaseSwapChainResources()
 
 void VulkanRenderer::releaseResources()
 {
-    m_modelDataDynamicUBO.destroy();
-    m_materialsUBO.destroy();
+    m_scene->m_modelDataDynamicUBO.destroyCPUMemory();
 
     /* Destroy texture data */
     {
@@ -224,44 +235,20 @@ void VulkanRenderer::startNextFrame()
     
     m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+    auto skybox = m_scene->getSkybox();
+    assert(skybox != nullptr);
+
     /* Draw skybox */
-    if (m_skybox != nullptr) m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsScene[imageIndex], imageIndex, m_skybox);
+    m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsScene[imageIndex], imageIndex, skybox);
 
     /* Draw PBR material objects */
-    m_devFunctions->vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rendererPBR.getPipeline());
-    for (size_t i = 0; i < m_objects.size(); i++)
-    {
-        VulkanSceneObject * object = m_objects[i];
-        VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(object->getMaterial());
-        if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
-
-        std::vector<Mesh *> meshes = object->getMeshModel()->getMeshes();
-        for (size_t i = 0; i < meshes.size(); i++) {
-            VulkanMesh * vkmesh = static_cast<VulkanMesh *>(meshes[i]);
-
-            VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
-            VkDeviceSize offsets[] = { 0 };
-            m_devFunctions->vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-            m_devFunctions->vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-            /* Calculate model data offsets */
-            uint32_t dynamicOffsets[2] = {
-                static_cast<uint32_t>(m_modelDataDynamicUBO.getBlockSizeAligned()) * object->getTransformUBOBlock(),
-                static_cast<uint32_t>(m_materialsUBO.getBlockSizeAligned()) * material->getUBOBlockIndex()
-            };
-            VkDescriptorSet descriptorSets[4] = {
-                m_descriptorSetsScene[imageIndex],
-                m_descriptorSetsModel[imageIndex],
-                material->getDescriptor(imageIndex),
-                m_skybox->getDescriptor(imageIndex)
-            };
-
-            m_devFunctions->vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rendererPBR.getPipelineLayout(),
-                0, 4, &descriptorSets[0], 2, &dynamicOffsets[0]);
-
-            m_devFunctions->vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
-        }
-    }
+    m_rendererPBR.renderObjects(cmdBuf, 
+        m_descriptorSetsScene[imageIndex],
+        m_descriptorSetsModel[imageIndex],
+        skybox,
+        imageIndex, 
+        m_scene->m_modelDataDynamicUBO,
+        m_scene->m_objects);
 
     m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     
@@ -271,12 +258,12 @@ void VulkanRenderer::startNextFrame()
 
 void VulkanRenderer::setCamera(std::shared_ptr<Camera> camera)
 {
-    m_camera = camera;
+    m_scene->setCamera(camera);
 }
 
 void VulkanRenderer::setDirectionalLight(std::shared_ptr<DirectionalLight> light)
 {
-    m_directionalLight = light;
+    m_scene->m_directionalLight = light;
 }
 
 bool VulkanRenderer::createVulkanMeshModel(std::string filename)
@@ -306,11 +293,10 @@ SceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transform tr
     if (!instanceMaterials.isPresent(material)) return nullptr;
 
     MeshModel * vkmeshModel = instanceModels.Get(meshModel);
-    VulkanSceneObject * object = new VulkanSceneObject(vkmeshModel, transform, m_modelDataDynamicUBO, m_transformIndexUBO++);
+    VulkanSceneObject * object = m_scene->addObject(vkmeshModel, transform);
 
     object->setMaterial(instanceMaterials.Get(material));
 
-    m_objects.push_back(object);
     return object;
 }
 
@@ -321,7 +307,7 @@ Material * VulkanRenderer::createMaterial(std::string name,
     AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
     if (instance.isPresent(name)) return nullptr;
     
-    VulkanMaterialPBR * temp = new VulkanMaterialPBR(name, albedo, metallic, roughness, ao, emissive, m_device, m_materialsUBO, m_materialsIndexUBO++);
+    VulkanMaterialPBR* temp = m_rendererPBR.createMaterial(name, albedo, metallic, roughness, ao, emissive);
 
     if (createDescriptors) {
         temp->createDescriptors(m_device, m_rendererPBR.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
@@ -443,7 +429,7 @@ Cubemap * VulkanRenderer::createCubemap(std::string directory)
     return cubemap;
 }
 
-EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath)
+EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath, bool keepHDRTex)
 {
     try {
         /* Check if an environment map for that imagePath already exists */
@@ -468,6 +454,12 @@ EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath)
 
         EnvironmentMap* envMap = new EnvironmentMap(imagePath, cubemap, irradiance, prefiltered);
         envMaps.Add(imagePath, envMap);
+
+        if (!keepHDRTex) {
+            AssetManager<std::string, Image<float>*>& hdrImages = AssetManager<std::string, Image<float>*>::getInstance();
+            Image<float>* hdrTex = hdrImages.Get(imagePath);
+            delete hdrTex;
+        }
 
         return envMap;
     }
@@ -684,60 +676,29 @@ bool VulkanRenderer::createUniformBuffers()
     {
         VkDeviceSize bufferSize = sizeof(SceneData);
 
-        m_uniformBuffersScene.resize(m_window->swapChainImageCount());
-        m_uniformBuffersSceneMemory.resize(m_window->swapChainImageCount());
+        m_scene->m_uniformBuffersScene.resize(m_window->swapChainImageCount());
+        m_scene->m_uniformBuffersSceneMemory.resize(m_window->swapChainImageCount());
 
         for (int i = 0; i < m_window->swapChainImageCount(); i++) {
             createBuffer(m_physicalDevice, m_device, bufferSize,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                m_uniformBuffersScene[i], 
-                m_uniformBuffersSceneMemory[i]);
+                m_scene->m_uniformBuffersScene[i],
+                m_scene->m_uniformBuffersSceneMemory[i]);
         }
     }
 
-    m_modelDataDynamicUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
-    m_materialsUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
+    m_scene->m_modelDataDynamicUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
 
     return true;
 }
 
 bool VulkanRenderer::updateUniformBuffers(size_t index)
 {
-    /* Flush scene data to GPU */
-    {
-        SceneData sceneData;
-        sceneData.m_view = m_camera->getViewMatrix();
-        sceneData.m_projection = m_camera->getProjectionMatrix();
-        sceneData.m_projection[1][1] *= -1;
-        if (m_directionalLight != nullptr) {
-            sceneData.m_directionalLightDir = glm::vec4(m_directionalLight->transform.getForward(), 0);
-            sceneData.m_directionalLightColor = glm::vec4(m_directionalLight->color, 0);
-        } else {
-            sceneData.m_directionalLightColor = glm::vec4(0, 0, 0, 0);
-        }
-
-        void* data;
-        m_devFunctions->vkMapMemory(m_device, m_uniformBuffersSceneMemory[index], 0, sizeof(SceneData), 0, &data);
-        memcpy(data, &sceneData, sizeof(sceneData));
-        m_devFunctions->vkUnmapMemory(m_device, m_uniformBuffersSceneMemory[index]);
-    }
-
-    /* Flush Transform changes to GPU */
-    {
-        void* data;
-        m_devFunctions->vkMapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index), 0, m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks(), 0, &data);
-        memcpy(data, m_modelDataDynamicUBO.getBlock(0), m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks());
-        m_devFunctions->vkUnmapMemory(m_device, m_modelDataDynamicUBO.getBufferMemory(index));
-    }
-
-    /* Flush material changes to GPU */
-    {
-        void* data;
-        m_devFunctions->vkMapMemory(m_device, m_materialsUBO.getBufferMemory(index), 0, m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks(), 0, &data);
-        memcpy(data, m_materialsUBO.getBlock(0), m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks());
-        m_devFunctions->vkUnmapMemory(m_device, m_materialsUBO.getBufferMemory(index));
-    }
+    /* Flush scene data changes to GPU */
+    m_scene->updateBuffers(m_device, index);
+    /* Flush material data changes to GPU */
+    m_rendererPBR.updateMaterialBuffers(index);
 
     return true;
 }
@@ -816,7 +777,7 @@ bool VulkanRenderer::createDescriptorSets()
     for (size_t i = 0; i < nImages; i++) {
 
         VkDescriptorBufferInfo bufferInfoScene{};
-        bufferInfoScene.buffer = m_uniformBuffersScene[i];
+        bufferInfoScene.buffer = m_scene->m_uniformBuffersScene[i];
         bufferInfoScene.offset = 0;
         bufferInfoScene.range = sizeof(SceneData);
         VkWriteDescriptorSet descriptorWriteScene{};
@@ -831,9 +792,9 @@ bool VulkanRenderer::createDescriptorSets()
         descriptorWriteScene.pTexelBufferView = nullptr; // Optional
         
         VkDescriptorBufferInfo bufferInfoModel{};
-        bufferInfoModel.buffer = m_modelDataDynamicUBO.getBuffer(i);
+        bufferInfoModel.buffer = m_scene->m_modelDataDynamicUBO.getBuffer(i);
         bufferInfoModel.offset = 0;
-        bufferInfoModel.range = m_modelDataDynamicUBO.getBlockSizeAligned();
+        bufferInfoModel.range = m_scene->m_modelDataDynamicUBO.getBlockSizeAligned();
         VkWriteDescriptorSet descriptorWriteModel{};
         descriptorWriteModel.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWriteModel.dstSet = m_descriptorSetsModel[i];

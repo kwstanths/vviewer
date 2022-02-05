@@ -13,7 +13,7 @@
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetEnvironment.hpp"
 
-#include "VulkanWindow.hpp"
+#include "vulkan/VulkanWindow.hpp"
 
 Q_DECLARE_METATYPE(SceneObject*)
 

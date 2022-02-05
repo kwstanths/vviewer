@@ -1,5 +1,7 @@
 #include "WidgetEnvironment.hpp"
 
+#include <iostream>
+
 #include <qlayout.h>
 #include <qlabel.h>
 #include <qgroupbox.h>
@@ -35,6 +37,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, std::shared_ptr<Directiona
     connect(m_lightTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
     m_lightColorButton = new QPushButton();
     m_lightColorButton->setFixedWidth(25);
+    m_lightColor = QColor(m_light->color.r * 255, m_light->color.g * 255, m_light->color.b * 255);
     setLightButtonColor();
     connect(m_lightColorButton, SIGNAL(pressed()), this, SLOT(onLightColorButton()));
 
@@ -44,18 +47,35 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, std::shared_ptr<Directiona
     QWidget* widgetLightColor = new QWidget();
     widgetLightColor->setLayout(lightColorLayout);
 
+    m_lightIntensitySlider = new QSlider(Qt::Horizontal);
+    m_lightIntensitySlider->setMinimum(0);
+    m_lightIntensitySlider->setMaximum(1000);
+    m_lightIntensitySlider->setValue(100);
+    connect(m_lightIntensitySlider, SIGNAL(valueChanged(int)), this, SLOT(onLightIntensityChanged(int)));
+
+    m_lightIntensityValue = new QLabel("1");
+
+    QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
+    lightIntensityLayout->addWidget(new QLabel("Intensity:"));
+    lightIntensityLayout->addWidget(m_lightIntensitySlider);
+    lightIntensityLayout->addWidget(m_lightIntensityValue);
+    QWidget* widgetLightIntensity = new QWidget();
+    widgetLightIntensity->setLayout(lightIntensityLayout);
+
     QGroupBox* lightGroupBox = new QGroupBox("Directional light");
     QVBoxLayout* layoutLight = new QVBoxLayout();
     layoutLight->addWidget(m_lightTransform);
     layoutLight->addWidget(widgetLightColor);
+    layoutLight->addWidget(widgetLightIntensity);
     lightGroupBox->setLayout(layoutLight);
 
     QVBoxLayout* layoutMain = new QVBoxLayout();
     layoutMain->addWidget(widgetMaps);
     layoutMain->addWidget(lightGroupBox);
+    layoutMain->setAlignment(Qt::AlignTop);
 
     setLayout(layoutMain);
-    setFixedHeight(280);
+    //setFixedHeight(300);
 }
 
 void WidgetEnvironment::updateMaps()
@@ -68,12 +88,16 @@ void WidgetEnvironment::updateMaps()
 
 void WidgetEnvironment::setLightButtonColor()
 {
-    glm::vec3 currentColor = m_light->color;
     QPalette pal = m_lightColorButton->palette();
-    pal.setColor(QPalette::Button, QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255));
+    pal.setColor(QPalette::Button, m_lightColor);
     m_lightColorButton->setAutoFillBackground(true);
     m_lightColorButton->setPalette(pal);
     m_lightColorButton->update();
+}
+
+void WidgetEnvironment::setLightColor(QColor color, float intensity)
+{
+    m_light->color = intensity * glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f);
 }
 
 void WidgetEnvironment::onLightColorButton()
@@ -93,7 +117,15 @@ void WidgetEnvironment::onLightDirectionChanged(double)
 
 void WidgetEnvironment::onLightColorChanged(QColor color)
 {
-    m_light->color = glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f);
+    m_lightColor = color;
+    setLightColor(m_lightColor, (float)m_lightIntensitySlider->value() / 100.);
+}
+
+void WidgetEnvironment::onLightIntensityChanged(int val)
+{
+    float realValue = (float)val / 100.;
+    m_lightIntensityValue->setText(QString::number(realValue));
+    setLightColor(m_lightColor, realValue);
 }
 
 void WidgetEnvironment::onMapChanged(int) 

@@ -12,7 +12,14 @@ VulkanRendererPBR::VulkanRendererPBR()
 {
 }
 
-void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkDescriptorSetLayout cameraDescriptorLayout, VkDescriptorSetLayout modelDescriptorLayout, VkDescriptorSetLayout skyboxDescriptorLayout)
+void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice, 
+    VkDevice device, 
+    VkQueue queue, 
+    VkCommandPool commandPool, 
+    VkPhysicalDeviceProperties physicalDeviceProperties,
+    VkDescriptorSetLayout cameraDescriptorLayout, 
+    VkDescriptorSetLayout modelDescriptorLayout, 
+    VkDescriptorSetLayout skyboxDescriptorLayout)
 {
     m_physicalDevice = physicalDevice;
     m_device = device;
@@ -24,15 +31,19 @@ void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice, VkDevice 
 
     createDescriptorSetsLayouts();
 
+    m_materialsUBO.init(physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
+
     Texture * texture = createBRDFLUT();
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
     instance.Add(texture->m_name, texture);
 }
 
-void VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass)
+void VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages)
 {
     m_swapchainExtent = swapchainExtent;
     m_renderPass = renderPass;
+
+    m_materialsUBO.createBuffers(m_physicalDevice, m_device, swapchainImages);
 
     createGraphicsPipeline();
 }
@@ -41,10 +52,13 @@ void VulkanRendererPBR::releaseSwapChainResources()
 {
     vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+
+    m_materialsUBO.destroyGPUBuffers(m_device);
 }
 
 void VulkanRendererPBR::releaseResources()
 {
+    m_materialsUBO.destroyCPUMemory();
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMaterial, nullptr);
 }
 
@@ -418,6 +432,66 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
     catch (std::runtime_error& e) {
         utils::ConsoleCritical("Failed to create the PBR BRDF LUT texture: " + std::string(e.what()));
         return nullptr;
+    }
+}
+
+VulkanMaterialPBR* VulkanRendererPBR::createMaterial(std::string name,
+    glm::vec4 albedo, float metallic, float roughness, float ao, float emissive) 
+{
+    return new VulkanMaterialPBR(name, albedo, metallic, roughness, ao, emissive, m_device, m_materialsUBO, m_materialsIndexUBO++);
+}
+
+void VulkanRendererPBR::updateMaterialBuffers(uint32_t imageIndex) const
+{
+    void* data;
+    vkMapMemory(m_device, m_materialsUBO.getBufferMemory(imageIndex), 0, m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks(), 0, &data);
+    memcpy(data, m_materialsUBO.getBlock(0), m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks());
+    vkUnmapMemory(m_device, m_materialsUBO.getBufferMemory(imageIndex));
+}
+
+void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf, 
+    VkDescriptorSet& descriptorScene,
+    VkDescriptorSet& descriptorModel,
+    VulkanMaterialSkybox* skybox,
+    uint32_t imageIndex, 
+    VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+    std::vector<VulkanSceneObject*> objects) const
+{
+    assert(skybox != nullptr);
+
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    for (size_t i = 0; i < objects.size(); i++)
+    {
+        VulkanSceneObject* object = objects[i];
+        VulkanMaterialPBR* material = static_cast<VulkanMaterialPBR*>(object->getMaterial());
+        if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
+
+        std::vector<Mesh*> meshes = object->getMeshModel()->getMeshes();
+        for (size_t i = 0; i < meshes.size(); i++) {
+            VulkanMesh* vkmesh = static_cast<VulkanMesh*>(meshes[i]);
+
+            VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+            VkDeviceSize offsets[] = { 0 };
+            vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
+            vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+            /* Calculate model data offsets */
+            uint32_t dynamicOffsets[2] = {
+                static_cast<uint32_t>(dynamicUBOModels.getBlockSizeAligned()) * object->getTransformUBOBlock(),
+                static_cast<uint32_t>(m_materialsUBO.getBlockSizeAligned()) * material->getUBOBlockIndex()
+            };
+            VkDescriptorSet descriptorSets[4] = {
+                descriptorScene,
+                descriptorModel,
+                material->getDescriptor(imageIndex),
+                skybox->getDescriptor(imageIndex)
+            };
+
+            vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
+                0, 4, &descriptorSets[0], 2, &dynamicOffsets[0]);
+
+            vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+        }
     }
 }
 

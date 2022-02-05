@@ -58,7 +58,7 @@ public:
         float emissive, 
         VkDevice device,
         VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, 
-        int materialsUBOBlock);
+        uint32_t materialsUBOBlock);
 
     glm::vec4& getAlbedo() override;
     float& getMetallic() override;

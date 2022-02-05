@@ -9,23 +9,23 @@
 
 #include <utils/Console.hpp>
 
-#include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanDataStructs.hpp"
-#include "vulkan/VulkanDynamicUBO.hpp"
-#include "vulkan/VulkanMesh.hpp"
-#include "vulkan/VulkanUtils.hpp"
-#include "vulkan/VulkanSceneObject.hpp"
-#include "vulkan/VulkanMaterials.hpp"
-#include "vulkan/VulkanTexture.hpp"
-#include "vulkan/VulkanRendererPBR.hpp"
-#include "vulkan/VulkanRendererSkybox.hpp"
-
 #include "core/MeshModel.hpp"
 #include "core/Camera.hpp"
 #include "core/AssetManager.hpp"
 #include "core/Materials.hpp"
 #include "core/EnvironmentMap.hpp"
 #include "core/Lights.hpp"
+
+#include "IncludeVulkan.hpp"
+#include "VulkanDataStructs.hpp"
+#include "VulkanScene.hpp"
+#include "VulkanMesh.hpp"
+#include "VulkanUtils.hpp"
+#include "VulkanSceneObject.hpp"
+#include "VulkanMaterials.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanRendererPBR.hpp"
+#include "VulkanRendererSkybox.hpp"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -39,7 +39,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 class VulkanRenderer : public QVulkanWindowRenderer {
 public:
-    VulkanRenderer(QVulkanWindow *w) : m_window(w) { }
+    VulkanRenderer(QVulkanWindow* w);
 
     void preInitResources() override;
     void initResources() override;
@@ -55,14 +55,13 @@ public:
 
     bool createVulkanMeshModel(std::string filename);
 
-
     SceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
 
     Texture* createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
     Texture* createTexture(std::string id, Image<stbi_uc>* image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
     Texture* createTextureHDR(std::string imagePath);
     Cubemap* createCubemap(std::string directory);
-    EnvironmentMap* createEnvironmentMap(std::string imagePath);
+    EnvironmentMap* createEnvironmentMap(std::string imagePath, bool keepHDRTex = false);
     Material* createMaterial(std::string name,
         glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
         bool createDescriptors = true
@@ -112,25 +111,16 @@ private:
     VulkanRendererPBR m_rendererPBR;
     VulkanRendererSkybox m_rendererSkybox;
 
-    VulkanMaterialSkybox * m_skybox = nullptr;
+    /* Active scene */
+    VulkanScene * m_scene = nullptr;
 
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayoutScene;
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
     VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet> m_descriptorSetsScene;
-    std::vector<VkBuffer> m_uniformBuffersScene;
-    std::vector<VkDeviceMemory> m_uniformBuffersSceneMemory;
     std::vector<VkDescriptorSet> m_descriptorSetsModel;
-    VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
-    size_t m_transformIndexUBO = 0;
-    /* This probably needs to be moved to the VulkanRendererPBR */
-    VulkanDynamicUBO<MaterialPBRData> m_materialsUBO;
-    size_t m_materialsIndexUBO = 0;
 
-    std::vector<VulkanSceneObject *> m_objects;
-    std::shared_ptr<Camera> m_camera;
-    std::shared_ptr<DirectionalLight> m_directionalLight;
     glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
 };
 

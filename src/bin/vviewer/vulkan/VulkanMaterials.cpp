@@ -24,7 +24,8 @@ VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
     float ao, 
     float emissive,
     VkDevice device,
-    VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, int materialsUBOBlock)
+    VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, 
+    uint32_t materialsUBOBlock)
     : VulkanMaterialStorage<MaterialPBRData>(materialsDynamicUBO, materialsUBOBlock), MaterialPBR(name)
 {
     getAlbedo() = albedo;

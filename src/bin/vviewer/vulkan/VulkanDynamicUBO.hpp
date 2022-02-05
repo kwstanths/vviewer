@@ -40,6 +40,8 @@ public:
     */
     bool createBuffers(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t nBuffers)
     {
+        m_buffers = nBuffers;
+
         /* Create GPU buffers */
         VkDeviceSize bufferSize = m_blockAlignment * m_nBlocks;
         m_buffer.resize(nBuffers);
@@ -61,7 +63,7 @@ public:
         Get an allocated buffer
         @param index Buffer to get 
     */
-    VkBuffer getBuffer(size_t index)
+    VkBuffer getBuffer(size_t index) const
     {
         assert(index < m_buffer.size());
         return m_buffer[index];
@@ -71,7 +73,7 @@ public:
         Get an allocated buffer's memory
         @param Buffer memory to get 
     */
-    VkDeviceMemory getBufferMemory(size_t index)
+    VkDeviceMemory getBufferMemory(size_t index) const
     {
         assert(index < m_bufferMemory.size());
         return m_bufferMemory[index];
@@ -88,7 +90,7 @@ public:
     /**
         Get the CPU memory address of a block 
     */
-    Block * getBlock(size_t index)
+    Block * getBlock(size_t index) const
     {
         return (Block *)((uint64_t)m_dataTransferSpace + (index * m_blockAlignment));
     }
@@ -96,20 +98,40 @@ public:
     /**
         Get total number of blocks allocated
     */
-    uint32_t getNBlocks()
+    uint32_t getNBlocks() const
     {
         return m_nBlocks;
     }
 
     /**
+        Get number of gpu buffers created
+    */
+    uint32_t getNBuffers() const
+    {
+        return m_buffers;
+    }
+
+    /**
         Destroy the CPU memory
     */
-    bool destroy()
+    bool destroyCPUMemory()
     {
         if (isInited)
             _aligned_free(m_dataTransferSpace);
 
         return true;
+    }
+
+    /**
+        Destroy GPU buffers
+    */
+    void destroyGPUBuffers(VkDevice device)
+    {
+        for (int i = 0; i < m_buffers; i++) {
+            vkDestroyBuffer(device, getBuffer(i), nullptr);
+            vkFreeMemory(device, getBufferMemory(i), nullptr);
+        }
+        m_buffers = 0;
     }
 
 private:
@@ -119,6 +141,7 @@ private:
     uint32_t m_minUniformBufferOffsetAlignment;
     uint32_t m_blockAlignment;
     uint32_t m_nBlocks;
+    uint32_t m_buffers = 0;
 
     std::vector<VkBuffer> m_buffer;
     std::vector<VkDeviceMemory> m_bufferMemory;

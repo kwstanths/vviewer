@@ -171,7 +171,7 @@ void MainWindow::createMenu()
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
-        tr("Import model"), "",
+        tr("Import model"), "./assets/models",
         tr("Model (*.obj);;All Files (*)"));
 
     if (filename == "") return;
@@ -192,7 +192,7 @@ void MainWindow::onImportModelSlot()
 void MainWindow::onImportTextureColorSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
-        tr("Import textures"), "",
+        tr("Import textures"), "./assets",
         tr("Textures (*.png);;All Files (*)"));
 
     for (const auto& texture : filenames)
@@ -207,7 +207,7 @@ void MainWindow::onImportTextureColorSlot()
 void MainWindow::onImportTextureOtherSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
-        tr("Import textures"), "",
+        tr("Import textures"), "./assets",
         tr("Textures (*.png);;All Files (*)"));
 
     for (const auto& texture : filenames)
@@ -222,7 +222,7 @@ void MainWindow::onImportTextureOtherSlot()
 void MainWindow::onImportTextureHDRSlot()
 {
     QString filename = QFileDialog::getOpenFileName(this,
-        tr("Import HDR texture"), "",
+        tr("Import HDR texture"), "./assets/HDR/",
         tr("Model (*.hdr);;All Files (*)"));
 
     if (filename == "") return;
@@ -237,7 +237,7 @@ void MainWindow::onImportTextureHDRSlot()
 void MainWindow::onImportEnvironmentMap()
 {
     QString filename = QFileDialog::getOpenFileName(this,
-        tr("Import HDR texture"), "",
+        tr("Import HDR texture"), "./assets/HDR/",
         tr("Model (*.hdr);;All Files (*)"));
 
     if (filename == "") return;
@@ -251,7 +251,7 @@ void MainWindow::onImportEnvironmentMap()
 
 void MainWindow::onImportMaterial()
 {
-    QString dir = QFileDialog::getExistingDirectory(this, "Choose directory", ".", QFileDialog::ShowDirsOnly);
+    QString dir = QFileDialog::getExistingDirectory(this, "Choose directory", "./assets/materials/", QFileDialog::ShowDirsOnly);
     if (dir == "") return;
 
     std::string materialName = dir.split('/').back().toStdString();

@@ -3,13 +3,23 @@
 
 #include "IncludeVulkan.hpp"
 #include "VulkanTexture.hpp"
+#include "VulkanSceneObject.hpp"
+#include "VulkanMaterials.hpp"
 
 class VulkanRendererPBR {
+    friend class VulkanRenderer;
 public:
     VulkanRendererPBR();
 
-    void initResources(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkDescriptorSetLayout cameraDescriptorLayout, VkDescriptorSetLayout modelDescriptorLayout, VkDescriptorSetLayout skyboxDescriptorLayout);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass);
+    void initResources(VkPhysicalDevice physicalDevice, 
+        VkDevice device, 
+        VkQueue queue, 
+        VkCommandPool commandPool, 
+        VkPhysicalDeviceProperties physicalDeviceProperties,
+        VkDescriptorSetLayout cameraDescriptorLayout, 
+        VkDescriptorSetLayout modelDescriptorLayout, 
+        VkDescriptorSetLayout skyboxDescriptorLayout);
+    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
 
     void releaseSwapChainResources();
     void releaseResources();
@@ -19,6 +29,19 @@ public:
     VkDescriptorSetLayout getDescriptorSetLayout() const;
 
     VulkanTexture* createBRDFLUT(uint32_t resolution = 512) const;
+
+    VulkanMaterialPBR* createMaterial(std::string name,
+        glm::vec4 albedo, float metallic, float roughness, float ao, float emissive);
+
+    void updateMaterialBuffers(uint32_t imageIndex) const;
+
+    void renderObjects(VkCommandBuffer& cmdBuf, 
+        VkDescriptorSet& descriptorScene,
+        VkDescriptorSet& descriptorModel,
+        VulkanMaterialSkybox * skybox,
+        uint32_t imageIndex, 
+        VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        std::vector<VulkanSceneObject*> objects) const;
 
 private:
     VkDevice m_device;
@@ -35,6 +58,10 @@ private:
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     VkRenderPass m_renderPass;
+
+    /* Dynamic uniform buffer object to hold material data */
+    VulkanDynamicUBO<MaterialPBRData> m_materialsUBO;
+    size_t m_materialsIndexUBO = 0;
 
     bool createDescriptorSetsLayouts();
     bool createGraphicsPipeline();
