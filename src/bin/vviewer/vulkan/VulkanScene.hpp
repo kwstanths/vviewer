@@ -18,16 +18,11 @@ public:
     VulkanScene();
     ~VulkanScene();
 
-    void setCamera(std::shared_ptr<Camera> camera);
-    std::shared_ptr<Camera> getCamera() const;
-
     void setSkybox(VulkanMaterialSkybox* skybox);
     VulkanMaterialSkybox* getSkybox() const;
 
-    void setDirectionalLight(std::shared_ptr<DirectionalLight> directionaLight);
-    std::shared_ptr<DirectionalLight> getDirectionalLight() const;
-
-    VulkanSceneObject* addObject(MeshModel* meshModel, Transform& transform);
+    SceneObject* addSceneObject(std::string meshModel, Transform transform, std::string material) override;
+    std::vector<VulkanSceneObject*>& getSceneObjects();
 
     /* Flush buffer changes to gpu */
     void updateBuffers(VkDevice device, uint32_t imageIndex) const;
@@ -35,8 +30,6 @@ public:
 private:
     VulkanMaterialSkybox* m_skybox = nullptr;
     std::vector<VulkanSceneObject*> m_objects;
-    std::shared_ptr<Camera> m_camera;
-    std::shared_ptr<DirectionalLight> m_directionalLight;
 
     /* Dynamic uniform buffer to hold model positions */
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;

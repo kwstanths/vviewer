@@ -14,9 +14,9 @@
 #include "Shader.hpp"
 #include "VulkanUtils.hpp"
 
-VulkanRenderer::VulkanRenderer(QVulkanWindow * window) : m_window(window) 
+VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) : m_window(window) 
 {
-    m_scene = new VulkanScene();
+    m_scene = scene;
 }
 
 void VulkanRenderer::preInitResources()
@@ -76,12 +76,12 @@ void VulkanRenderer::initResources()
 
     {
         createVulkanMeshModel("assets/models/uvsphere.obj");
-        SceneObject * object = addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
+        SceneObject * object = m_scene->addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
         object->m_name = "hidden";
     }
     {
         createVulkanMeshModel("assets/models/plane.obj");
-        SceneObject* object = addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
+        SceneObject* object = m_scene->addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
         object->m_name = "hidden";
     }
 
@@ -248,22 +248,12 @@ void VulkanRenderer::startNextFrame()
         skybox,
         imageIndex, 
         m_scene->m_modelDataDynamicUBO,
-        m_scene->m_objects);
+        m_scene->getSceneObjects());
 
     m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     
     m_window->frameReady();
     m_window->requestUpdate(); // render continuously, throttled by the presentation rate
-}
-
-void VulkanRenderer::setCamera(std::shared_ptr<Camera> camera)
-{
-    m_scene->setCamera(camera);
-}
-
-void VulkanRenderer::setDirectionalLight(std::shared_ptr<DirectionalLight> light)
-{
-    m_scene->m_directionalLight = light;
 }
 
 bool VulkanRenderer::createVulkanMeshModel(std::string filename)
@@ -285,19 +275,9 @@ bool VulkanRenderer::createVulkanMeshModel(std::string filename)
     return true;
 }
 
-SceneObject * VulkanRenderer::addSceneObject(std::string meshModel, Transform transform, std::string material)
+VulkanScene* VulkanRenderer::getActiveScene() const
 {
-    AssetManager<std::string, MeshModel *>& instanceModels = AssetManager<std::string, MeshModel *>::getInstance();
-    if (!instanceModels.isPresent(meshModel)) return nullptr;
-    AssetManager<std::string, Material *>& instanceMaterials = AssetManager<std::string, Material *>::getInstance();
-    if (!instanceMaterials.isPresent(material)) return nullptr;
-
-    MeshModel * vkmeshModel = instanceModels.Get(meshModel);
-    VulkanSceneObject * object = m_scene->addObject(vkmeshModel, transform);
-
-    object->setMaterial(instanceMaterials.Get(material));
-
-    return object;
+    return m_scene;
 }
 
 Material * VulkanRenderer::createMaterial(std::string name, 

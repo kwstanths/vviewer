@@ -10,8 +10,10 @@
 #include <core/AssetManager.hpp>
 #include <core/MeshModel.hpp>
 #include <core/Lights.hpp>
+#include <core/Scene.hpp>
 
 #include "VulkanRenderer.hpp"
+#include "VulkanScene.hpp"
 
 class VulkanWindow : public QVulkanWindow {
     Q_OBJECT
@@ -22,7 +24,8 @@ public:
 
     VulkanRenderer * m_renderer = nullptr;
 
-    std::shared_ptr<DirectionalLight> m_directionalLight;
+    VulkanScene* m_scene = nullptr;
+
 protected:
     void resizeEvent(QResizeEvent *ev) override;
     void keyPressEvent(QKeyEvent *ev) override;
@@ -36,7 +39,6 @@ private:
     bool m_mousePosFirst = true;
     QPointF m_mousePos;
 
-    std::shared_ptr<Camera> m_camera;
     QTimer * m_updateCameraTimer;
 
 private slots:

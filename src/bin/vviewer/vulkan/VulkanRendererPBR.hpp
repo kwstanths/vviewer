@@ -41,7 +41,7 @@ public:
         VulkanMaterialSkybox * skybox,
         uint32_t imageIndex, 
         VulkanDynamicUBO<ModelData>& dynamicUBOModels,
-        std::vector<VulkanSceneObject*> objects) const;
+        std::vector<VulkanSceneObject*>& objects) const;
 
 private:
     VkDevice m_device;

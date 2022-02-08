@@ -5,6 +5,8 @@
 
 VulkanWindow::VulkanWindow()
 {
+    m_scene = new VulkanScene();
+
     /*OrthographicCamera * camera = new OrthographicCamera();
     camera->setOrthoWidth(10.f);*/
     PerspectiveCamera * camera = new PerspectiveCamera();
@@ -13,9 +15,9 @@ VulkanWindow::VulkanWindow()
     Transform cameraTransform;
     cameraTransform.setPosition(glm::vec3(10, 3, 0));
     cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(-90.0f), 0)));
+    camera->getTransform() = cameraTransform;
     
-    m_camera = std::shared_ptr<Camera>(camera);
-    m_camera->getTransform() = cameraTransform;
+    m_scene->setCamera(std::shared_ptr<Camera>(camera));
 
     m_updateCameraTimer = new QTimer();
     m_updateCameraTimer->setInterval(16);
@@ -30,17 +32,14 @@ VulkanWindow::~VulkanWindow()
 
 QVulkanWindowRenderer * VulkanWindow::createRenderer()
 {
-    m_renderer = new VulkanRenderer(this);
-
-    m_renderer->setCamera(m_camera);
-    m_renderer->setDirectionalLight(m_directionalLight);
+    m_renderer = new VulkanRenderer(this, m_scene);
 
     return m_renderer;
 }
 
 void VulkanWindow::resizeEvent(QResizeEvent * ev)
 {
-    m_camera->setWindowSize(ev->size().width(), ev->size().height());
+    m_scene->getCamera()->setWindowSize(ev->size().width(), ev->size().height());
 }
 
 void VulkanWindow::keyPressEvent(QKeyEvent * ev)
@@ -76,7 +75,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
 
     float mouseSensitivity = 0.002f;
     Qt::MouseButtons buttons = ev->buttons();
-    Transform& cameraTransform = m_camera->getTransform();
+    Transform& cameraTransform = m_scene->getCamera()->getTransform();
     if (buttons & Qt::RightButton) {
         /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.getRotation();
@@ -96,7 +95,7 @@ void VulkanWindow::onUpdateCamera()
     float speed = cameraDefaultSpeed;
     if (m_keysPressed[Qt::Key_Shift]) speed = cameraFastSpeed;
 
-    Transform& cameraTransform = m_camera->getTransform();
+    Transform& cameraTransform = m_scene->getCamera()->getTransform();
     cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.getForward() * speed);
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * speed);
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * speed);

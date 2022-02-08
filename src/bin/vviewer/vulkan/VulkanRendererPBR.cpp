@@ -455,7 +455,7 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
     VulkanMaterialSkybox* skybox,
     uint32_t imageIndex, 
     VulkanDynamicUBO<ModelData>& dynamicUBOModels,
-    std::vector<VulkanSceneObject*> objects) const
+    std::vector<VulkanSceneObject*>& objects) const
 {
     assert(skybox != nullptr);
 

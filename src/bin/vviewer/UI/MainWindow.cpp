@@ -22,9 +22,10 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     layout_main->addWidget(widgetVulkan);
     layout_main->addWidget(initControlsWidget());
 
-
     QWidget * widget_main = new QWidget();
     widget_main->setLayout(layout_main);
+
+    m_scene = m_vulkanWindow->m_scene;
 
     createMenu();
 
@@ -117,7 +118,8 @@ QWidget * MainWindow::initControlsWidget()
     Transform lightTransform;
     lightTransform.setRotationEuler(0, 0, 0);
     auto light = std::make_shared<DirectionalLight>(lightTransform, glm::vec3(1, 0.9, 0.8));
-    m_vulkanWindow->m_directionalLight = light;
+    m_vulkanWindow->m_scene->setDirectionalLight(light);
+    
     m_widgetEnvironment = new WidgetEnvironment(nullptr, light);
 
     QTabWidget* widget_tab = new QTabWidget();
@@ -281,7 +283,7 @@ void MainWindow::onAddSceneObjectSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    SceneObject * object = m_vulkanWindow->m_renderer->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
+    SceneObject * object = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
 
     if (object == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
     else {

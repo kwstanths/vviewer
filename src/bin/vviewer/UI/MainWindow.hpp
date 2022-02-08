@@ -13,6 +13,7 @@
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetEnvironment.hpp"
 
+#include "core/Scene.hpp"
 #include "vulkan/VulkanWindow.hpp"
 
 Q_DECLARE_METATYPE(SceneObject*)
@@ -38,6 +39,8 @@ private:
     WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
     QWidget * m_selectedObjectWidgetMaterial = nullptr;
     WidgetEnvironment * m_widgetEnvironment = nullptr;
+
+    Scene* m_scene = nullptr;
 
     QWidget * initLeftPanel();
     QWidget * initVulkanWindowWidget();

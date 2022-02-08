@@ -39,7 +39,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 class VulkanRenderer : public QVulkanWindowRenderer {
 public:
-    VulkanRenderer(QVulkanWindow* w);
+    VulkanRenderer(QVulkanWindow* w, VulkanScene* scene);
 
     void preInitResources() override;
     void initResources() override;
@@ -49,13 +49,10 @@ public:
     void releaseResources() override;
 
     void startNextFrame() override;
-
-    void setCamera(std::shared_ptr<Camera> camera);
-    void setDirectionalLight(std::shared_ptr<DirectionalLight> light);
-
+    
     bool createVulkanMeshModel(std::string filename);
 
-    SceneObject * addSceneObject(std::string meshModel, Transform transform, std::string material);
+    VulkanScene* getActiveScene() const;
 
     Texture* createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
     Texture* createTexture(std::string id, Image<stbi_uc>* image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);

@@ -1,21 +1,13 @@
 #include "VulkanScene.hpp"
 
+#include "core/AssetManager.hpp"
+
 VulkanScene::VulkanScene()
 {
 }
 
 VulkanScene::~VulkanScene()
 {
-}
-
-void VulkanScene::setCamera(std::shared_ptr<Camera> camera)
-{
-    m_camera = camera;
-}
-
-std::shared_ptr<Camera> VulkanScene::getCamera() const
-{
-    return m_camera;
 }
 
 void VulkanScene::setSkybox(VulkanMaterialSkybox* skybox)
@@ -28,21 +20,26 @@ VulkanMaterialSkybox* VulkanScene::getSkybox() const
     return m_skybox;
 }
 
-void VulkanScene::setDirectionalLight(std::shared_ptr<DirectionalLight> directionaLight)
+SceneObject* VulkanScene::addSceneObject(std::string meshModel, Transform transform, std::string material) 
 {
-    m_directionalLight = directionaLight;
-}
+    AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
+    if (!instanceModels.isPresent(meshModel)) return nullptr;
+    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
+    if (!instanceMaterials.isPresent(material)) return nullptr;
 
-std::shared_ptr<DirectionalLight> VulkanScene::getDirectionalLight() const
-{
-    return m_directionalLight;
-}
+    MeshModel* vkmeshModel = instanceModels.Get(meshModel);
 
-VulkanSceneObject* VulkanScene::addObject(MeshModel* meshModel, Transform& transform)
-{
-    VulkanSceneObject* object = new VulkanSceneObject(meshModel, transform, m_modelDataDynamicUBO, m_transformIndexUBO++);
+    VulkanSceneObject* object = new VulkanSceneObject(vkmeshModel, transform, m_modelDataDynamicUBO, m_transformIndexUBO++);
     m_objects.push_back(object);
+
+    object->setMaterial(instanceMaterials.Get(material));
+
     return object;
+}
+
+std::vector<VulkanSceneObject*>& VulkanScene::getSceneObjects() 
+{
+    return m_objects;
 }
 
 void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
