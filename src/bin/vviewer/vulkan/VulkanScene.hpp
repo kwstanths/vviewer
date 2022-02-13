@@ -21,15 +21,16 @@ public:
     void setSkybox(VulkanMaterialSkybox* skybox);
     VulkanMaterialSkybox* getSkybox() const;
 
-    SceneObject* addSceneObject(std::string meshModel, Transform transform, std::string material) override;
-    std::vector<VulkanSceneObject*>& getSceneObjects();
+    /* Add a new scene object at the root of the scene graph */
+    std::shared_ptr<Node> addSceneObject(std::string meshModel, Transform transform, std::string material) override;
+    /* Add a new scene object as a child of a node */
+    std::shared_ptr<Node> addSceneObject(std::shared_ptr<Node> node, std::string meshModel, Transform transform, std::string material) override;
 
     /* Flush buffer changes to gpu */
     void updateBuffers(VkDevice device, uint32_t imageIndex) const;
 
 private:
     VulkanMaterialSkybox* m_skybox = nullptr;
-    std::vector<VulkanSceneObject*> m_objects;
 
     /* Dynamic uniform buffer to hold model positions */
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
@@ -37,6 +38,8 @@ private:
     /* Buffers to hold the scene data */
     std::vector<VkBuffer> m_uniformBuffersScene;
     std::vector<VkDeviceMemory> m_uniformBuffersSceneMemory;
+
+    std::shared_ptr<VulkanSceneObject> createObject(std::string meshModel, std::string material);
 };
 
 #endif // !__VulkanScene_hpp__

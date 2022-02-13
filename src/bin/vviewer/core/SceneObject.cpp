@@ -1,19 +1,13 @@
 #include "SceneObject.hpp"
 
-SceneObject::SceneObject(const MeshModel * meshModel, Transform transform)
+SceneObject::SceneObject(const MeshModel * meshModel)
 {
     m_meshModel = meshModel;
-    m_transform = transform;
 }
 
-Transform SceneObject::getTransform()
+void SceneObject::setModelMatrix(const glm::mat4& modelMatrix)
 {
-    return m_transform;
-}
-
-void SceneObject::setTransform(const Transform & transform)
-{
-    m_transform = transform;
+    
 }
 
 const MeshModel * SceneObject::getMeshModel() const

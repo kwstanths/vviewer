@@ -455,15 +455,17 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
     VulkanMaterialSkybox* skybox,
     uint32_t imageIndex, 
     VulkanDynamicUBO<ModelData>& dynamicUBOModels,
-    std::vector<VulkanSceneObject*>& objects) const
+    std::vector<std::shared_ptr<SceneObject>>& objects) const
 {
     assert(skybox != nullptr);
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     for (size_t i = 0; i < objects.size(); i++)
     {
-        VulkanSceneObject* object = objects[i];
+        VulkanSceneObject* object = static_cast<VulkanSceneObject*>(objects[i].get());
         VulkanMaterialPBR* material = static_cast<VulkanMaterialPBR*>(object->getMaterial());
+
+        /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
 
         std::vector<Mesh*> meshes = object->getMeshModel()->getMeshes();

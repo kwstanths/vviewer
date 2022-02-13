@@ -6,9 +6,9 @@
 
 #include <glm/glm.hpp>
 
-WidgetTransform::WidgetTransform(QWidget * parent, SceneObject * object) : QWidget(parent)
+WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<Node> sceneNode) : QWidget(parent)
 {
-    m_object = object;
+    m_sceneNode = sceneNode;
 
     QGroupBox * groupBox = new QGroupBox(tr("Transform"));
     QVBoxLayout * layoutTest = new QVBoxLayout();
@@ -21,6 +21,16 @@ WidgetTransform::WidgetTransform(QWidget * parent, SceneObject * object) : QWidg
     m_scaleY->setValue(1.0f);
     m_scaleZ->setValue(1.0f);
 
+    groupBox->setLayout(layoutTest);
+
+    QVBoxLayout * layoutMain = new QVBoxLayout();
+    layoutMain->addWidget(groupBox);
+    layoutMain->setContentsMargins(0, 0, 0, 0);
+    setLayout(layoutMain);
+    setFixedHeight(130);
+
+    if (m_sceneNode != nullptr) setTransform(m_sceneNode->m_localTransform);
+
     connect(m_positionX, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
     connect(m_positionY, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
     connect(m_positionZ, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
@@ -30,16 +40,6 @@ WidgetTransform::WidgetTransform(QWidget * parent, SceneObject * object) : QWidg
     connect(m_rotationX, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
     connect(m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
     connect(m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
-
-    groupBox->setLayout(layoutTest);
-
-    QVBoxLayout * layoutMain = new QVBoxLayout();
-    layoutMain->addWidget(groupBox);
-    layoutMain->setContentsMargins(0, 0, 0, 0);
-    setLayout(layoutMain);
-    setFixedHeight(130);
-
-    if (m_object != nullptr) setTransform(m_object->getTransform());
 }
 
 Transform WidgetTransform::getTransform() const
@@ -126,5 +126,5 @@ QWidget * WidgetTransform::createRow(QString name, QDoubleSpinBox ** X, QDoubleS
 }
 
 void WidgetTransform::onTransformChangedSlot(double d) {
-    if (m_object != nullptr) m_object->setTransform(getTransform());
+    if (m_sceneNode != nullptr) m_sceneNode->m_localTransform = getTransform();
 }

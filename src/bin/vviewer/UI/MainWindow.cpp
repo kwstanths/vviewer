@@ -283,18 +283,18 @@ void MainWindow::onAddSceneObjectSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    SceneObject * object = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
+    std::shared_ptr<Node> sceneNode = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
 
-    if (object == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
+    if (sceneNode == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
     else {
         /* Set a name for the object */
         /* TODO set a some other way name */
-        object->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
+        sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
         /* Add it on the UI list of objects */
-        QListWidgetItem * item = new QListWidgetItem(QString(object->m_name.c_str()));
+        QListWidgetItem * item = new QListWidgetItem(QString(sceneNode->m_so->m_name.c_str()));
         QVariant data;
-        data.setValue(object);
+        data.setValue(sceneNode);
         /* Connect the UI entry with the SceneObject item */
         item->setData(Qt::UserRole, data);
         m_sceneObjects->addItem(item);
@@ -331,15 +331,15 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
 
     /* Get currently selected object, and the corresponding SceneObject */
     QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
-    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
+    std::shared_ptr<Node> sceneNode = selectedItem->data(Qt::UserRole).value<std::shared_ptr<Node>>();
     
     /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
-    m_selectedObjectWidgetName = new WidgetName(nullptr, QString(object->m_name.c_str()));
+    m_selectedObjectWidgetName = new WidgetName(nullptr, QString(sceneNode->m_so->m_name.c_str()));
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
 
-    m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, object);
-    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, object, getImportedModels());
-    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, object, static_cast<MaterialPBR *>(object->getMaterial()));
+    m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, sceneNode);
+    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneNode->m_so.get(), getImportedModels());
+    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, sceneNode->m_so.get(), static_cast<MaterialPBR*>(sceneNode->m_so->getMaterial()));
 
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
@@ -354,7 +354,7 @@ void MainWindow::onSelectedSceneObjectNameChangedSlot()
 
     QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
 
-    SceneObject * object = selectedItem->data(Qt::UserRole).value<SceneObject *>();
-    object->m_name = newName.toStdString();
+    std::shared_ptr<Node> object = selectedItem->data(Qt::UserRole).value<std::shared_ptr<Node>>();
+    object->m_so->m_name = newName.toStdString();
     selectedItem->setText(newName);
 }

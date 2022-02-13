@@ -9,11 +9,11 @@
 class VulkanSceneObject : public SceneObject
 {
 public:
-    VulkanSceneObject(const MeshModel * meshModel, Transform transform, VulkanDynamicUBO<ModelData>& transformDynamicUBO, int transformUBOBlock);
+    VulkanSceneObject(const MeshModel * meshModel, VulkanDynamicUBO<ModelData>& transformDynamicUBO, int transformUBOBlock);
 
-    void setTransform(const Transform& transform) override;
+    void setModelMatrix(const glm::mat4& modelMatrix) override;
 
-    void updateModelMatrixData();
+    void updateModelMatrixData(const glm::mat4& modelMatrix);
 
     int getTransformUBOBlock() const;
 

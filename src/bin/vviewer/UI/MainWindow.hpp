@@ -16,7 +16,7 @@
 #include "core/Scene.hpp"
 #include "vulkan/VulkanWindow.hpp"
 
-Q_DECLARE_METATYPE(SceneObject*)
+Q_DECLARE_METATYPE(std::shared_ptr<Node>)
 
 class MainWindow : public QMainWindow {
     Q_OBJECT

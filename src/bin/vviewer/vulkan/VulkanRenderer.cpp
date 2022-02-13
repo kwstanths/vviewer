@@ -76,13 +76,13 @@ void VulkanRenderer::initResources()
 
     {
         createVulkanMeshModel("assets/models/uvsphere.obj");
-        SceneObject * object = m_scene->addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
-        object->m_name = "hidden";
+        std::shared_ptr<Node> sceneNode = m_scene->addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
+        sceneNode->m_so->m_name = "hidden";
     }
     {
         createVulkanMeshModel("assets/models/plane.obj");
-        SceneObject* object = m_scene->addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
-        object->m_name = "hidden";
+        std::shared_ptr<Node> sceneNode = m_scene->addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
+        sceneNode->m_so->m_name = "hidden";
     }
 
     {
@@ -212,8 +212,14 @@ void VulkanRenderer::releaseResources()
 
 void VulkanRenderer::startNextFrame()
 {
+    /* TODO(optimization) check if anything has changed to not traverse the entire tree */
+    m_scene->updateSceneGraph();
+    /* TODO(optimization) check if anything has changed to not traverse the entire tree */
+    std::vector<std::shared_ptr<SceneObject>> sceneObjects = m_scene->getSceneObjects();
+
     int imageIndex = m_window->currentSwapChainImageIndex();
 
+    /* Update GPU buffers */
     updateUniformBuffers(imageIndex);
 
     std::array<VkClearValue, 2> clearValues{};
@@ -232,13 +238,11 @@ void VulkanRenderer::startNextFrame()
     rpBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());;
     rpBeginInfo.pClearValues = clearValues.data();
     VkCommandBuffer cmdBuf = m_window->currentCommandBuffer();
-    
     m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    auto skybox = m_scene->getSkybox();
-    assert(skybox != nullptr);
-
     /* Draw skybox */
+    VulkanMaterialSkybox * skybox = m_scene->getSkybox();
+    assert(skybox != nullptr);
     m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsScene[imageIndex], imageIndex, skybox);
 
     /* Draw PBR material objects */
@@ -248,7 +252,7 @@ void VulkanRenderer::startNextFrame()
         skybox,
         imageIndex, 
         m_scene->m_modelDataDynamicUBO,
-        m_scene->getSceneObjects());
+        sceneObjects);
 
     m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     

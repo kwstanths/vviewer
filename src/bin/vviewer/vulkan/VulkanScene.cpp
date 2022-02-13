@@ -20,26 +20,22 @@ VulkanMaterialSkybox* VulkanScene::getSkybox() const
     return m_skybox;
 }
 
-SceneObject* VulkanScene::addSceneObject(std::string meshModel, Transform transform, std::string material) 
+std::shared_ptr<Node> VulkanScene::addSceneObject(std::string meshModel, Transform transform, std::string material)
 {
-    AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
-    if (!instanceModels.isPresent(meshModel)) return nullptr;
-    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
-    if (!instanceMaterials.isPresent(material)) return nullptr;
+    std::shared_ptr<VulkanSceneObject> object = createObject(meshModel, material);
+    
+    m_sceneGraph.push_back(std::make_shared<Node>(object, transform));
 
-    MeshModel* vkmeshModel = instanceModels.Get(meshModel);
-
-    VulkanSceneObject* object = new VulkanSceneObject(vkmeshModel, transform, m_modelDataDynamicUBO, m_transformIndexUBO++);
-    m_objects.push_back(object);
-
-    object->setMaterial(instanceMaterials.Get(material));
-
-    return object;
+    return m_sceneGraph.back();
 }
 
-std::vector<VulkanSceneObject*>& VulkanScene::getSceneObjects() 
+std::shared_ptr<Node> VulkanScene::addSceneObject(std::shared_ptr<Node> node, std::string meshModel, Transform transform, std::string material)
 {
-    return m_objects;
+    std::shared_ptr<VulkanSceneObject> object = createObject(meshModel, material);
+
+    auto sceneNode = node->addChild(object, transform);
+
+    return sceneNode;
 }
 
 void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
@@ -73,4 +69,19 @@ void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
         memcpy(data, m_modelDataDynamicUBO.getBlock(0), m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks());
         vkUnmapMemory(device, m_modelDataDynamicUBO.getBufferMemory(imageIndex));
     }
+}
+
+std::shared_ptr<VulkanSceneObject> VulkanScene::createObject(std::string meshModel, std::string material)
+{
+    AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
+    if (!instanceModels.isPresent(meshModel)) return nullptr;
+    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
+    if (!instanceMaterials.isPresent(material)) return nullptr;
+
+    MeshModel* vkmeshModel = instanceModels.Get(meshModel);
+
+    auto object = std::make_shared<VulkanSceneObject>(vkmeshModel, m_modelDataDynamicUBO, m_transformIndexUBO++);
+    object->setMaterial(instanceMaterials.Get(material));
+
+    return object;
 }
