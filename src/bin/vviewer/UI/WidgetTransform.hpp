@@ -12,7 +12,7 @@ class WidgetTransform : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetTransform(QWidget * parent, std::shared_ptr<Node> sceneNode);
+    WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sceneNode);
 
     Transform getTransform() const;
 
@@ -25,7 +25,7 @@ private:
 
     QWidget * createRow(QString name, QDoubleSpinBox ** X, QDoubleSpinBox ** Y, QDoubleSpinBox ** Z);
 
-    std::shared_ptr<Node> m_sceneNode;
+    std::shared_ptr<SceneNode> m_sceneNode;
 
 private slots:
     void onTransformChangedSlot(double d);

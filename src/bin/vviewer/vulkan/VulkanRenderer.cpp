@@ -76,12 +76,12 @@ void VulkanRenderer::initResources()
 
     {
         createVulkanMeshModel("assets/models/uvsphere.obj");
-        std::shared_ptr<Node> sceneNode = m_scene->addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
+        std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
         sceneNode->m_so->m_name = "hidden";
     }
     {
         createVulkanMeshModel("assets/models/plane.obj");
-        std::shared_ptr<Node> sceneNode = m_scene->addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
+        std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
         sceneNode->m_so->m_name = "hidden";
     }
 

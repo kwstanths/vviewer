@@ -22,9 +22,9 @@ public:
     VulkanMaterialSkybox* getSkybox() const;
 
     /* Add a new scene object at the root of the scene graph */
-    std::shared_ptr<Node> addSceneObject(std::string meshModel, Transform transform, std::string material) override;
+    std::shared_ptr<SceneNode> addSceneObject(std::string meshModel, Transform transform, std::string material) override;
     /* Add a new scene object as a child of a node */
-    std::shared_ptr<Node> addSceneObject(std::shared_ptr<Node> node, std::string meshModel, Transform transform, std::string material) override;
+    std::shared_ptr<SceneNode> addSceneObject(std::shared_ptr<SceneNode> node, std::string meshModel, Transform transform, std::string material) override;
 
     /* Flush buffer changes to gpu */
     void updateBuffers(VkDevice device, uint32_t imageIndex) const;

@@ -7,26 +7,27 @@
 #include <math/Transform.hpp>
 #include "SceneObject.hpp"
 
-class Node {
+class SceneNode {
 public:
-	Node(std::shared_ptr<SceneObject> so, Transform transform) : m_so(so), m_localTransform(transform) {};
+	SceneNode(std::shared_ptr<SceneObject> so, Transform transform) : m_so(so), m_localTransform(transform) {};
 
 	Transform m_localTransform;
 	glm::mat4 m_modelMatrix;
 
-	std::vector<std::shared_ptr<Node>> m_children;
+	std::vector<std::shared_ptr<SceneNode>> m_children;
 
-	Node* m_parent = nullptr;
+	SceneNode* m_parent = nullptr;
 
 	std::shared_ptr<SceneObject> m_so;
 
-	std::shared_ptr<Node> addChild(std::shared_ptr<SceneObject> so, Transform transform);
+	std::shared_ptr<SceneNode> addChild(std::shared_ptr<SceneObject> so, Transform transform);
 
 	void update();
 
 	std::vector<std::shared_ptr<SceneObject>> getSceneObjects();
 
 private:
+
 };
 
 #endif

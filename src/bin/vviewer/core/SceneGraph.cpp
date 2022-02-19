@@ -1,13 +1,13 @@
 #include "SceneGraph.hpp"
 
-std::shared_ptr<Node> Node::addChild(std::shared_ptr<SceneObject> so, Transform transform)
+std::shared_ptr<SceneNode> SceneNode::addChild(std::shared_ptr<SceneObject> so, Transform transform)
 {
-	m_children.push_back(std::make_shared<Node>(so, transform));
+	m_children.push_back(std::make_shared<SceneNode>(so, transform));
 	m_children.back()->m_parent = this;
 	return m_children.back();
 }
 
-void Node::update()
+void SceneNode::update()
 {
 	if (m_parent) {
 		m_modelMatrix = m_parent->m_modelMatrix * m_localTransform.getModelMatrix();
@@ -24,7 +24,7 @@ void Node::update()
 	}
 }
 
-std::vector<std::shared_ptr<SceneObject>> Node::getSceneObjects()
+std::vector<std::shared_ptr<SceneObject>> SceneNode::getSceneObjects()
 {
 	std::vector<std::shared_ptr<SceneObject>> temp;
 	temp.push_back(m_so);

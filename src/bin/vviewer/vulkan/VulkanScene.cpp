@@ -20,16 +20,16 @@ VulkanMaterialSkybox* VulkanScene::getSkybox() const
     return m_skybox;
 }
 
-std::shared_ptr<Node> VulkanScene::addSceneObject(std::string meshModel, Transform transform, std::string material)
+std::shared_ptr<SceneNode> VulkanScene::addSceneObject(std::string meshModel, Transform transform, std::string material)
 {
     std::shared_ptr<VulkanSceneObject> object = createObject(meshModel, material);
     
-    m_sceneGraph.push_back(std::make_shared<Node>(object, transform));
+    m_sceneGraph.push_back(std::make_shared<SceneNode>(object, transform));
 
     return m_sceneGraph.back();
 }
 
-std::shared_ptr<Node> VulkanScene::addSceneObject(std::shared_ptr<Node> node, std::string meshModel, Transform transform, std::string material)
+std::shared_ptr<SceneNode> VulkanScene::addSceneObject(std::shared_ptr<SceneNode> node, std::string meshModel, Transform transform, std::string material)
 {
     std::shared_ptr<VulkanSceneObject> object = createObject(meshModel, material);
 

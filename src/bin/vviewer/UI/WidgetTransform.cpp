@@ -6,7 +6,7 @@
 
 #include <glm/glm.hpp>
 
-WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<Node> sceneNode) : QWidget(parent)
+WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sceneNode) : QWidget(parent)
 {
     m_sceneNode = sceneNode;
 

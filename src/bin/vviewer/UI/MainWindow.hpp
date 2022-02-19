@@ -6,6 +6,7 @@
 #include <qslider.h>
 #include <qlistwidget.h>
 #include <qlayout.h>
+#include <qtreewidget.h>
 
 #include "WidgetName.hpp"
 #include "WidgetTransform.hpp"
@@ -16,7 +17,7 @@
 #include "core/Scene.hpp"
 #include "vulkan/VulkanWindow.hpp"
 
-Q_DECLARE_METATYPE(std::shared_ptr<Node>)
+Q_DECLARE_METATYPE(std::shared_ptr<SceneNode>)
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -31,16 +32,19 @@ private:
     QVulkanInstance * m_vulkanInstance;
     VulkanWindow * m_vulkanWindow;
 
-    /* A UI list widget with all the scene objects*/
-    QListWidget * m_sceneObjects;
+    /* For naming new objects */
     int m_nObjects = 0;
+    /* Holds a pointer to the scene */
+    Scene* m_scene = nullptr;
+    /* Holds a pointer to the scene graph widget */
+    QTreeWidget* m_sceneGraphWidget = nullptr;
+
+    /* Widgets that appear on the controls on the right panel */
     WidgetName * m_selectedObjectWidgetName = nullptr;
     WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
     WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
     QWidget * m_selectedObjectWidgetMaterial = nullptr;
     WidgetEnvironment * m_widgetEnvironment = nullptr;
-
-    Scene* m_scene = nullptr;
 
     QWidget * initLeftPanel();
     QWidget * initVulkanWindowWidget();
@@ -48,17 +52,32 @@ private:
     void createMenu();
 
 private slots:
+    /* Import a model */
     void onImportModelSlot();
+    /* Import a color texture */
     void onImportTextureColorSlot();
+    /* Import a texture */
     void onImportTextureOtherSlot();
+    /* Import an hdr texture */
     void onImportTextureHDRSlot();
+    /* Import an environment map */
     void onImportEnvironmentMap();
+    /* Import a material */
     void onImportMaterial();
+    /* Add an object in the scene at root */
+    void onAddSceneObjectRootSlot();
+    /* Add an object in the scene as a child to the currently selected node */
     void onAddSceneObjectSlot();
+    /* Create a material */
     void onCreateMaterialSlot();
     
+    /* Currently selected item in the scene changed */
     void onSelectedSceneObjectChangedSlot();
+    /* Currently selected item's name in the scene changed */
     void onSelectedSceneObjectNameChangedSlot();
+
+    /* Show context menu for scene graph */
+    void onContextMenuSceneGraph(const QPoint& pos);
 };
 
 #endif

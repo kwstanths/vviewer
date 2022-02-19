@@ -39,19 +39,17 @@ MainWindow::~MainWindow() {
 
 QWidget * MainWindow::initLeftPanel()
 {
-    m_sceneObjects = new QListWidget();
-    m_sceneObjects->setStyleSheet("background-color: rgba(240, 240, 240, 255);");
-    connect(m_sceneObjects, &QListWidget::itemSelectionChanged, this, &MainWindow::onSelectedSceneObjectChangedSlot);
 
-    QVBoxLayout * layout_main = new QVBoxLayout();
-    layout_main->addWidget(new QLabel("Scene:"));
-    layout_main->addWidget(m_sceneObjects); 
+    m_sceneGraphWidget = new QTreeWidget(this);
+    m_sceneGraphWidget->setStyleSheet("background-color: rgba(240, 240, 240, 255);");
+    connect(m_sceneGraphWidget, &QTreeWidget::itemSelectionChanged, this, &MainWindow::onSelectedSceneObjectChangedSlot);
     
-    QWidget * widget_main = new QWidget();
-    widget_main->setLayout(layout_main);
+    m_sceneGraphWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_sceneGraphWidget, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(onContextMenuSceneGraph(const QPoint&)));
 
-    widget_main->setFixedWidth(200);
-    return widget_main;
+    m_sceneGraphWidget->setHeaderLabel("Scene:");
+    m_sceneGraphWidget->setFixedWidth(200);
+    return m_sceneGraphWidget;
 }
 
 QWidget * MainWindow::initVulkanWindowWidget()
@@ -151,9 +149,9 @@ void MainWindow::createMenu()
     m_actionImportMaterial->setStatusTip(tr("Import material"));
     connect(m_actionImportMaterial, &QAction::triggered, this, &MainWindow::onImportMaterial);
 
-    QAction * m_actionAddSceneObject = new QAction(tr("&Add a scene object"), this);
-    m_actionAddSceneObject->setStatusTip(tr("Add a scene object"));
-    connect(m_actionAddSceneObject, &QAction::triggered, this, &MainWindow::onAddSceneObjectSlot);
+    QAction * onAddSceneObjectRootSlot = new QAction(tr("&Add a scene object at root"), this);
+    onAddSceneObjectRootSlot->setStatusTip(tr("Add a scene object at root"));
+    connect(onAddSceneObjectRootSlot, &QAction::triggered, this, &MainWindow::onAddSceneObjectRootSlot);
     QAction * m_actionCreateMaterial = new QAction(tr("&Add a material"), this);
     m_actionCreateMaterial->setStatusTip(tr("Add a material"));
     connect(m_actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
@@ -166,7 +164,7 @@ void MainWindow::createMenu()
     m_menuImport->addAction(m_actionImportEnvironmentMap);
     m_menuImport->addAction(m_actionImportMaterial);
     QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
-    m_menuAdd->addAction(m_actionAddSceneObject);
+    m_menuAdd->addAction(onAddSceneObjectRootSlot);
     m_menuAdd->addAction(m_actionCreateMaterial);
 }
 
@@ -275,7 +273,7 @@ void MainWindow::onImportMaterial()
     if (roughness != nullptr) static_cast<MaterialPBR*>(material)->setRoughnessTexture(roughness);
 }
 
-void MainWindow::onAddSceneObjectSlot()
+void MainWindow::onAddSceneObjectRootSlot()
 {
     DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", getImportedModels(), getCreatedMaterials());
     dialog->exec();
@@ -283,7 +281,7 @@ void MainWindow::onAddSceneObjectSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    std::shared_ptr<Node> sceneNode = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
+    std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
 
     if (sceneNode == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
     else {
@@ -291,13 +289,40 @@ void MainWindow::onAddSceneObjectSlot()
         /* TODO set a some other way name */
         sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
-        /* Add it on the UI list of objects */
-        QListWidgetItem * item = new QListWidgetItem(QString(sceneNode->m_so->m_name.c_str()));
+        QTreeWidgetItem* item = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
         QVariant data;
         data.setValue(sceneNode);
-        /* Connect the UI entry with the SceneObject item */
-        item->setData(Qt::UserRole, data);
-        m_sceneObjects->addItem(item);
+        item->setData(0, Qt::UserRole, data);
+        m_sceneGraphWidget->addTopLevelItem(item);
+    }
+}
+
+void MainWindow::onAddSceneObjectSlot()
+{
+    DialogAddSceneObject* dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", getImportedModels(), getCreatedMaterials());
+    dialog->exec();
+
+    std::string selectedModel = dialog->getSelectedModel();
+    if (selectedModel == "") return;
+
+    /* Get currently selected tree item */
+    QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
+    std::shared_ptr<SceneNode> selectedNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
+
+    /* Create node on scene graph as child of currently selected item */
+    std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject(selectedNode, selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
+
+    if (sceneNode == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
+    else {
+        /* Set a name for the object */
+        /* TODO set a some other way name */
+        sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
+
+        QTreeWidgetItem* item = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
+        QVariant data;
+        data.setValue(sceneNode);
+        item->setData(0, Qt::UserRole, data);
+        selectedItem->addChild(item);
     }
 }
 
@@ -317,7 +342,7 @@ void MainWindow::onCreateMaterialSlot()
 
 void MainWindow::onSelectedSceneObjectChangedSlot()
 {
-    /* When the selected object on the scene list changes, remove previous widgets from the controls, and new */
+    /* When the selected object on the scene list changes, remove previous widgets from the controls, and add new */
     if (m_selectedObjectWidgetName != nullptr) {
         delete m_selectedObjectWidgetName;
         delete m_selectedObjectWidgetTransform;
@@ -330,8 +355,8 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     }
 
     /* Get currently selected object, and the corresponding SceneObject */
-    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
-    std::shared_ptr<Node> sceneNode = selectedItem->data(Qt::UserRole).value<std::shared_ptr<Node>>();
+    QTreeWidgetItem * selectedItem = m_sceneGraphWidget->currentItem();
+    std::shared_ptr<SceneNode> sceneNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
     
     /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
     m_selectedObjectWidgetName = new WidgetName(nullptr, QString(sceneNode->m_so->m_name.c_str()));
@@ -352,9 +377,20 @@ void MainWindow::onSelectedSceneObjectNameChangedSlot()
     /* Selected object name widget changed */
     QString newName = m_selectedObjectWidgetName->m_text->toPlainText();
 
-    QListWidgetItem * selectedItem = m_sceneObjects->currentItem();
+    QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
+    std::shared_ptr<SceneNode> object = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
 
-    std::shared_ptr<Node> object = selectedItem->data(Qt::UserRole).value<std::shared_ptr<Node>>();
     object->m_so->m_name = newName.toStdString();
-    selectedItem->setText(newName);
+    selectedItem->setText(0, newName);
+}
+
+void MainWindow::onContextMenuSceneGraph(const QPoint& pos)
+{
+    QMenu contextMenu(tr("Context menu"), this);
+
+    QAction action1("Add scene object", this);
+    connect(&action1, SIGNAL(triggered()), this, SLOT(onAddSceneObjectSlot()));
+    contextMenu.addAction(&action1);
+
+    contextMenu.exec(m_sceneGraphWidget->mapToGlobal(pos));
 }
