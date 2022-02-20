@@ -74,11 +74,7 @@ void VulkanRenderer::initResources()
 
     MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
 
-    {
-        createVulkanMeshModel("assets/models/uvsphere.obj");
-        std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject("assets/models/uvsphere.obj", Transform({ 0, 2, 0 }), "defaultMaterial");
-        sceneNode->m_so->m_name = "hidden";
-    }
+    createVulkanMeshModel("assets/models/uvsphere.obj");
     {
         createVulkanMeshModel("assets/models/plane.obj");
         std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
@@ -86,7 +82,7 @@ void VulkanRenderer::initResources()
     }
 
     {
-        EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
+        EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/ennis.hdr");
         VulkanMaterialSkybox * skybox = new VulkanMaterialSkybox("skybox", envMap, m_device);
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
         instance.Add(skybox->m_name, skybox);

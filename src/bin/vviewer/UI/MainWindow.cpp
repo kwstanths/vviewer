@@ -289,11 +289,19 @@ void MainWindow::onAddSceneObjectRootSlot()
         /* TODO set a some other way name */
         sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
-        QTreeWidgetItem* item = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
+        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
         QVariant data;
         data.setValue(sceneNode);
-        item->setData(0, Qt::UserRole, data);
-        m_sceneGraphWidget->addTopLevelItem(item);
+        parentItem->setData(0, Qt::UserRole, data);
+        m_sceneGraphWidget->addTopLevelItem(parentItem);
+
+        for (auto& child : sceneNode->m_children) {
+            QTreeWidgetItem* item = new QTreeWidgetItem({ QString(child->m_so->m_name.c_str()) });
+            QVariant data;
+            data.setValue(child);
+            item->setData(0, Qt::UserRole, data);
+            parentItem->addChild(item);
+        }
     }
 }
 
@@ -363,12 +371,16 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
 
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, sceneNode);
-    m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneNode->m_so.get(), getImportedModels());
-    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, sceneNode->m_so.get(), static_cast<MaterialPBR*>(sceneNode->m_so->getMaterial()));
-
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
-    m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
+        
+    if (sceneNode->m_so.get()->getMesh() == nullptr)
+        return;
+
+    //m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneNode->m_so.get(), getImportedModels());
+    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, sceneNode->m_so.get(), static_cast<MaterialPBR*>(sceneNode->m_so->getMaterial()));
+
+    //m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
     m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
 }
 

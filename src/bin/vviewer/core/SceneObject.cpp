@@ -1,8 +1,8 @@
 #include "SceneObject.hpp"
 
-SceneObject::SceneObject(const MeshModel * meshModel)
+SceneObject::SceneObject(const Mesh * mesh)
 {
-    m_meshModel = meshModel;
+    m_mesh= mesh;
 }
 
 void SceneObject::setModelMatrix(const glm::mat4& modelMatrix)
@@ -10,14 +10,14 @@ void SceneObject::setModelMatrix(const glm::mat4& modelMatrix)
     
 }
 
-const MeshModel * SceneObject::getMeshModel() const
+const Mesh * SceneObject::getMesh() const
 {
-    return m_meshModel;
+    return m_mesh;
 }
 
-void SceneObject::setMeshModel(const MeshModel * newMeshModel)
+void SceneObject::setMesh(const Mesh * newMesh)
 {
-    m_meshModel = newMeshModel;
+    m_mesh = newMesh;
 }
 
 Material * SceneObject::getMaterial() const

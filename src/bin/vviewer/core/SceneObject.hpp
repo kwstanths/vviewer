@@ -9,20 +9,20 @@ class SceneObject {
 public:
     SceneObject() {};
 
-    SceneObject(const MeshModel * meshModel);
+    SceneObject(const Mesh * mesh);
 
     std::string m_name = "";
 
     virtual void setModelMatrix(const glm::mat4& modelMatrix);
 
-    const MeshModel * getMeshModel() const;
-    void setMeshModel(const MeshModel * newMeshModel);
+    const Mesh * getMesh() const;
+    void setMesh(const Mesh * newMeshModel);
 
     Material * getMaterial() const;
     void setMaterial(Material * newMaterial);
 
 protected:
-    const MeshModel * m_meshModel = nullptr;
+    const Mesh * m_mesh = nullptr;
     Material * m_material = nullptr;
 };
 

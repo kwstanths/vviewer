@@ -463,37 +463,36 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
     for (size_t i = 0; i < objects.size(); i++)
     {
         VulkanSceneObject* object = static_cast<VulkanSceneObject*>(objects[i].get());
+        
+        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->getMesh());
+        if (vkmesh == nullptr) continue;
+        
         VulkanMaterialPBR* material = static_cast<VulkanMaterialPBR*>(object->getMaterial());
-
         /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
-
-        std::vector<Mesh*> meshes = object->getMeshModel()->getMeshes();
-        for (size_t i = 0; i < meshes.size(); i++) {
-            VulkanMesh* vkmesh = static_cast<VulkanMesh*>(meshes[i]);
-
-            VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
-            VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-            /* Calculate model data offsets */
-            uint32_t dynamicOffsets[2] = {
-                static_cast<uint32_t>(dynamicUBOModels.getBlockSizeAligned()) * object->getTransformUBOBlock(),
-                static_cast<uint32_t>(m_materialsUBO.getBlockSizeAligned()) * material->getUBOBlockIndex()
-            };
-            VkDescriptorSet descriptorSets[4] = {
-                descriptorScene,
-                descriptorModel,
-                material->getDescriptor(imageIndex),
-                skybox->getDescriptor(imageIndex)
-            };
-
-            vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
-                0, 4, &descriptorSets[0], 2, &dynamicOffsets[0]);
-
-            vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
-        }
+        
+        VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        
+        /* Calculate model data offsets */
+        uint32_t dynamicOffsets[2] = {
+            static_cast<uint32_t>(dynamicUBOModels.getBlockSizeAligned()) * object->getTransformUBOBlock(),
+            static_cast<uint32_t>(m_materialsUBO.getBlockSizeAligned()) * material->getUBOBlockIndex()
+        };
+        VkDescriptorSet descriptorSets[4] = {
+            descriptorScene,
+            descriptorModel,
+            material->getDescriptor(imageIndex),
+            skybox->getDescriptor(imageIndex)
+        };
+        
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
+            0, 4, &descriptorSets[0], 2, &dynamicOffsets[0]);
+        
+        vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+        
     }
 }
 

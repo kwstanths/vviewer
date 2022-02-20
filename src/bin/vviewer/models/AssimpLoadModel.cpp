@@ -1,10 +1,12 @@
 #include "AssimpLoadModel.hpp"
 
 #include <stdexcept>
+#include <iostream>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/pbrmaterial.h>
 
 
 std::vector<Mesh> assimpLoadModel(std::string filename)
@@ -54,7 +56,8 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
         }
 
         if (mesh->mTextureCoords[0]) {
-            vertices[i].uv = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+            /* Flip v coordinate vertically because of vulkan */
+            vertices[i].uv = { mesh->mTextureCoords[0][i].x, 1.f - mesh->mTextureCoords[0][i].y };
         } else {
             vertices[i].uv = { 0, 0 };
         }
@@ -74,6 +77,8 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
             indices.push_back(face.mIndices[j]);
         }
     }
-
-    return Mesh(vertices, indices, hasNormals, hasUVs);
+    
+    Mesh temp(vertices, indices, hasNormals, hasUVs);
+    temp.m_name = mesh->mName.C_Str();
+    return temp;
 }

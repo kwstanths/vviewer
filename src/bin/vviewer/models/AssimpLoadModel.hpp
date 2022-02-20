@@ -3,7 +3,9 @@
 
 #include <string>
 #include <assimp/scene.h>
+
 #include "core/Mesh.hpp"
+#include "ImportedInfo.hpp"
 
 std::vector<Mesh> assimpLoadModel(std::string filename);
 

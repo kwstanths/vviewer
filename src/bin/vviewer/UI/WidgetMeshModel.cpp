@@ -12,7 +12,7 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject, QS
     m_models = new QComboBox();
     m_models->addItems(availableModels);
     if (sceneObject != nullptr) {
-        m_models->setCurrentText(QString::fromStdString(sceneObject->getMeshModel()->getName()));
+        m_models->setCurrentText(QString::fromStdString(sceneObject->getMesh()->m_name));
     }
     connect(m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshModelChangedSlot(int)));
 
@@ -45,5 +45,5 @@ void WidgetMeshModel::onMeshModelChangedSlot(int)
     std::string newModel = getSelectedModel();
 
     AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
-    m_sceneObject->setMeshModel(instance.Get(newModel));
+    //m_sceneObject->setMesh(instance.Get(newModel));
 }

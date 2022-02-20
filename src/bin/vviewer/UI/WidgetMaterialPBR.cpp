@@ -42,7 +42,6 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, SceneObject * sceneObject
     layoutAlbedo->setContentsMargins(5, 5, 5, 5);
     groupBoxAlbedo->setLayout(layoutAlbedo);
 
-
     m_comboBoxMetallic = new QComboBox();
     m_comboBoxMetallic->addItems(availableLinearTextures);
     m_comboBoxMetallic->setCurrentText(QString::fromStdString(material->getMetallicTexture()->m_name));
@@ -175,22 +174,32 @@ void WidgetMaterialPBR::onMaterialChanged(int)
 
 void WidgetMaterialPBR::onColorButton()
 {
+    glm::vec4 currentColor = m_material->getAlbedo();
+    QColor col = QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255);
+
     QColorDialog * dialog = new QColorDialog(nullptr);
     dialog->adjustSize();
+    dialog->setCurrentColor(col);
+
     connect(dialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(onColorChanged(QColor)));
     dialog->exec();
 
+    /* When the window exits, change the color of the UI button */
     setColorButtonColor();
 }
 
 void WidgetMaterialPBR::setColorButtonColor()
 {
     glm::vec4 currentColor = m_material->getAlbedo();
-    QPalette pal = m_colorButton->palette();
+    QColor col = QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255);
+    QString qss = QString("background-color: %1").arg(col.name());
+    m_colorButton->setStyleSheet(qss);
+
+    /*QPalette pal = m_colorButton->palette();
     pal.setColor(QPalette::Button, QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255));
     m_colorButton->setAutoFillBackground(true);
     m_colorButton->setPalette(pal);
-    m_colorButton->update();
+    m_colorButton->update();*/
 }
 
 void WidgetMaterialPBR::onColorChanged(QColor color) {
