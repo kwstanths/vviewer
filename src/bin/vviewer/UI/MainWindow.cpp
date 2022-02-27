@@ -334,6 +334,25 @@ void MainWindow::onAddSceneObjectSlot()
     }
 }
 
+void MainWindow::onRemoveSceneObjectSlot()
+{
+    /* Get the currently selected tree item */
+    QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
+    std::shared_ptr<SceneNode> selectedNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
+
+    m_scene->removeSceneObject(selectedNode);
+    
+    /* Remove from UI */
+    if (selectedNode->m_parent == nullptr) {
+        m_sceneGraphWidget->removeItemWidget(selectedItem, 0);
+        delete selectedItem;
+    }
+    else {
+        selectedItem->parent()->removeChild(selectedItem);
+        delete selectedItem;
+    }
+}
+
 void MainWindow::onCreateMaterialSlot()
 {
     DialogCreateMaterial * dialog = new DialogCreateMaterial(nullptr, "Create a material", getImportedModels());
@@ -364,6 +383,8 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
 
     /* Get currently selected object, and the corresponding SceneObject */
     QTreeWidgetItem * selectedItem = m_sceneGraphWidget->currentItem();
+    /* When all items have been removed, this function is called with a null object selected */
+    if (selectedItem == nullptr) return;
     std::shared_ptr<SceneNode> sceneNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
     
     /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
@@ -403,6 +424,9 @@ void MainWindow::onContextMenuSceneGraph(const QPoint& pos)
     QAction action1("Add scene object", this);
     connect(&action1, SIGNAL(triggered()), this, SLOT(onAddSceneObjectSlot()));
     contextMenu.addAction(&action1);
+    QAction action2("Remove scene object", this);
+    connect(&action2, SIGNAL(triggered()), this, SLOT(onRemoveSceneObjectSlot()));
+    contextMenu.addAction(&action2);
 
     contextMenu.exec(m_sceneGraphWidget->mapToGlobal(pos));
 }

@@ -68,6 +68,8 @@ private slots:
     void onAddSceneObjectRootSlot();
     /* Add an object in the scene as a child to the currently selected node */
     void onAddSceneObjectSlot();
+    /* Remove the selected object from the scene */
+    void onRemoveSceneObjectSlot();
     /* Create a material */
     void onCreateMaterialSlot();
     

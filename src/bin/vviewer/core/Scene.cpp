@@ -1,5 +1,7 @@
 #include "Scene.hpp"
 
+#include <algorithm>
+
 Scene::Scene()
 {
 }
@@ -26,6 +28,21 @@ void Scene::setDirectionalLight(std::shared_ptr<DirectionalLight> directionaLigh
 std::shared_ptr<DirectionalLight> Scene::getDirectionalLight() const
 {
     return m_directionalLight;
+}
+
+void Scene::removeSceneObject(std::shared_ptr<SceneNode> node)
+{
+    if (node->m_parent == nullptr) {
+        /* Remove scene node from root */
+        m_sceneGraph.erase(std::remove(m_sceneGraph.begin(), m_sceneGraph.end(), node), m_sceneGraph.end());
+    }
+    else {
+        /* Remove from parent */
+        node->m_parent->m_children.erase(
+            std::remove(node->m_parent->m_children.begin(), node->m_parent->m_children.end(), node), 
+            node->m_parent->m_children.end()
+        );
+    }
 }
 
 void Scene::updateSceneGraph()

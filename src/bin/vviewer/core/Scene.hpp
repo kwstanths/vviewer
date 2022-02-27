@@ -24,6 +24,8 @@ public:
     /* Add a new scene object as a child of a node */
     virtual std::shared_ptr<SceneNode> addSceneObject(std::shared_ptr<SceneNode> node, std::string meshModel, Transform transform, std::string material) = 0;
 
+    void removeSceneObject(std::shared_ptr<SceneNode> node);
+
     void updateSceneGraph();
     std::vector<std::shared_ptr<SceneObject>> getSceneObjects();
 
