@@ -118,7 +118,7 @@ QWidget * MainWindow::initControlsWidget()
     auto light = std::make_shared<DirectionalLight>(lightTransform, glm::vec3(1, 0.9, 0.8));
     m_vulkanWindow->m_scene->setDirectionalLight(light);
     
-    m_widgetEnvironment = new WidgetEnvironment(nullptr, light);
+    m_widgetEnvironment = new WidgetEnvironment(nullptr, m_vulkanWindow->m_scene);
 
     QTabWidget* widget_tab = new QTabWidget();
     widget_tab->insertTab(0, widget_controls, "Scene object");
@@ -172,7 +172,7 @@ void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
         tr("Import model"), "./assets/models",
-        tr("Model (*.obj);;All Files (*)"));
+        tr("Model (*.obj *.fbx);;All Files (*)"));
 
     if (filename == "") return;
 
@@ -193,7 +193,7 @@ void MainWindow::onImportTextureColorSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
         tr("Import textures"), "./assets",
-        tr("Textures (*.png);;All Files (*)"));
+        tr("Textures (*.png, *.tga);;All Files (*)"));
 
     for (const auto& texture : filenames)
     {
@@ -208,7 +208,7 @@ void MainWindow::onImportTextureOtherSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
         tr("Import textures"), "./assets",
-        tr("Textures (*.png);;All Files (*)"));
+        tr("Textures (*.png, *.tga);;All Files (*)"));
 
     for (const auto& texture : filenames)
     {
@@ -326,11 +326,19 @@ void MainWindow::onAddSceneObjectSlot()
         /* TODO set a some other way name */
         sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
-        QTreeWidgetItem* item = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
+        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
         QVariant data;
         data.setValue(sceneNode);
-        item->setData(0, Qt::UserRole, data);
-        selectedItem->addChild(item);
+        parentItem->setData(0, Qt::UserRole, data);
+        selectedItem->addChild(parentItem);
+
+        for (auto& child : sceneNode->m_children) {
+            QTreeWidgetItem* childItem = new QTreeWidgetItem({ QString(child->m_so->m_name.c_str()) });
+            QVariant data;
+            data.setValue(child);
+            childItem->setData(0, Qt::UserRole, data);
+            parentItem->addChild(childItem);
+        }
     }
 }
 

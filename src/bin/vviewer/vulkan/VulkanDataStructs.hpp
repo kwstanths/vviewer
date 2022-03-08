@@ -8,6 +8,7 @@ struct SceneData {
     glm::mat4 m_projection;
     glm::vec4 m_directionalLightDir;
     glm::vec4 m_directionalLightColor;
+    glm::vec3 m_exposure; /* R = exposure, G = , B = , A = */
 };
 
 struct ModelData {

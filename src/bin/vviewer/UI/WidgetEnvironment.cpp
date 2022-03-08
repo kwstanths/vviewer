@@ -13,10 +13,10 @@
 #include "UIUtils.hpp"
 
 
-WidgetEnvironment::WidgetEnvironment(QWidget* parent, std::shared_ptr<DirectionalLight> light) : QWidget(parent)
+WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene * scene) : QWidget(parent)
 {
-    m_light = light;
-
+    m_scene = scene;
+    m_light = m_scene->getDirectionalLight();
 
     m_comboMaps = new QComboBox();
     m_comboMaps->addItems(getImportedEnvironmentMaps());
@@ -29,6 +29,20 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, std::shared_ptr<Directiona
     layoutMaps->setAlignment(Qt::AlignTop);
     QWidget* widgetMaps = new QWidget();
     widgetMaps->setLayout(layoutMaps);
+
+    m_exposureSlider = new QSlider(Qt::Horizontal);
+    m_exposureSlider->setMinimum(0);
+    m_exposureSlider->setMaximum(100);
+    m_exposureSlider->setValue(50);
+    connect(m_exposureSlider, SIGNAL(valueChanged(int)), this, SLOT(onExposureChanged(int)));
+
+    QVBoxLayout* layoutExposure = new QVBoxLayout();
+    layoutExposure->addWidget(new QLabel("Exposure:"));
+    layoutExposure->addWidget(m_exposureSlider);
+    layoutExposure->setContentsMargins(0, 0, 0, 0);
+    layoutExposure->setAlignment(Qt::AlignTop);
+    QWidget* widgetExposure = new QWidget();
+    widgetExposure->setLayout(layoutExposure);
 
     m_lightTransform = new WidgetTransform(nullptr, nullptr);
     m_lightTransform->setTransform(m_light->transform);
@@ -71,6 +85,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, std::shared_ptr<Directiona
 
     QVBoxLayout* layoutMain = new QVBoxLayout();
     layoutMain->addWidget(widgetMaps);
+    layoutMain->addWidget(widgetExposure);
     layoutMain->addWidget(lightGroupBox);
     layoutMain->setAlignment(Qt::AlignTop);
 
@@ -88,11 +103,8 @@ void WidgetEnvironment::updateMaps()
 
 void WidgetEnvironment::setLightButtonColor()
 {
-    QPalette pal = m_lightColorButton->palette();
-    pal.setColor(QPalette::Button, m_lightColor);
-    m_lightColorButton->setAutoFillBackground(true);
-    m_lightColorButton->setPalette(pal);
-    m_lightColorButton->update();
+    QString qss = QString("background-color: %1").arg(m_lightColor.name());
+    m_lightColorButton->setStyleSheet(qss);
 }
 
 void WidgetEnvironment::setLightColor(QColor color, float intensity)
@@ -126,6 +138,12 @@ void WidgetEnvironment::onLightIntensityChanged(int val)
     float realValue = (float)val / 100.;
     m_lightIntensityValue->setText(QString::number(realValue));
     setLightColor(m_lightColor, realValue);
+}
+
+void WidgetEnvironment::onExposureChanged(int)
+{
+    float exposure = m_exposureSlider->value() / 10.0f - 5.0f;
+    m_scene->setExposure(exposure);
 }
 
 void WidgetEnvironment::onMapChanged(int) 

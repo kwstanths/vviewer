@@ -53,6 +53,7 @@ void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
         sceneData.m_view = m_camera->getViewMatrix();
         sceneData.m_projection = m_camera->getProjectionMatrix();
         sceneData.m_projection[1][1] *= -1;
+        sceneData.m_exposure = glm::vec4(getExposure(), 0, 0, 0);
 
         std::shared_ptr<DirectionalLight> light = getDirectionalLight();
         if (light != nullptr) {

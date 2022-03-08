@@ -107,7 +107,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
         VkImageView cubemapImageView;
         VkSampler cubemapSampler;
 
-        uint32_t cubemapWidth = static_cast<uint32_t>(inputImage->m_width / 4);
+        uint32_t cubemapWidth = static_cast<uint32_t>(std::min(inputImage->m_width / 4, 1080ull));
         uint32_t cubemapHeight = cubemapWidth;
         uint32_t numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(cubemapWidth, cubemapHeight)))) + 1;
         VkFormat format = inputImage->getFormat();

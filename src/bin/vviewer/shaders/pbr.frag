@@ -3,6 +3,7 @@
 #include "pbr.glsl"
 #include "ibl.glsl"
 #include "lighting.glsl"
+#include "tonemapping.glsl"
 
 layout(location = 0) in vec3 fragWorldPos;
 layout(location = 1) in vec3 fragWorldNormal;
@@ -17,6 +18,7 @@ layout(set = 0, binding = 0) uniform SceneData {
     mat4 projection;
     vec4 directionalLightDir;
     vec4 directionalLightColor;
+    vec4 exposure;
 } sceneData;
 
 layout(set = 2, binding = 0) uniform PBRMaterialData {
@@ -62,5 +64,7 @@ void main() {
     
     vec3 color = ambient + Lo + emission;
     
+    color = tonemapDefault2(color, sceneData.exposure.r);
+	
     outColor = vec4(color, 1);
 }

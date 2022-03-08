@@ -30,6 +30,16 @@ std::shared_ptr<DirectionalLight> Scene::getDirectionalLight() const
     return m_directionalLight;
 }
 
+float Scene::getExposure() const
+{
+    return m_exposure;
+}
+
+void Scene::setExposure(float exposure)
+{
+    m_exposure = exposure;
+}
+
 void Scene::removeSceneObject(std::shared_ptr<SceneNode> node)
 {
     if (node->m_parent == nullptr) {

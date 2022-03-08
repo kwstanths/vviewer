@@ -10,6 +10,7 @@
 
 #include "core/Materials.hpp"
 #include "core/Lights.hpp"
+#include "core/Scene.hpp"
 #include "math/Transform.hpp"
 
 #include "WidgetTransform.hpp"
@@ -18,18 +19,21 @@
 class WidgetEnvironment : public QWidget {
     Q_OBJECT
 public:
-    WidgetEnvironment(QWidget* parent, std::shared_ptr<DirectionalLight> light);
+    WidgetEnvironment(QWidget* parent, Scene* scene);
 
     void updateMaps();
 
 private:
     QComboBox* m_comboMaps;
+    QSlider* m_exposureSlider;
 
     WidgetTransform* m_lightTransform;
     QPushButton* m_lightColorButton;
     QSlider* m_lightIntensitySlider;
     QLabel* m_lightIntensityValue;
     QColor m_lightColor;
+
+    Scene* m_scene;
     std::shared_ptr<DirectionalLight> m_light;
 
     void setLightButtonColor();
@@ -41,6 +45,7 @@ private slots:
     void onLightDirectionChanged(double);
     void onLightColorChanged(QColor color);
     void onLightIntensityChanged(int);
+    void onExposureChanged(int);
 };
 
 #endif
