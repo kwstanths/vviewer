@@ -40,6 +40,27 @@ void Scene::setExposure(float exposure)
     m_exposure = exposure;
 }
 
+SceneData Scene::getSceneData() const
+{
+    SceneData sceneData;
+    sceneData.m_view = m_camera->getViewMatrix();
+    sceneData.m_viewInverse = m_camera->getViewMatrixInverse();
+    sceneData.m_projection = m_camera->getProjectionMatrix();
+    sceneData.m_projectionInverse = m_camera->getProjectionMatrixInverse();
+    sceneData.m_exposure = glm::vec4(getExposure(), 0, 0, 0);
+
+    std::shared_ptr<DirectionalLight> light = getDirectionalLight();
+    if (light != nullptr) {
+        sceneData.m_directionalLightDir = glm::vec4(light->transform.getForward(), 0);
+        sceneData.m_directionalLightColor = glm::vec4(light->color, 0);
+    }
+    else {
+        sceneData.m_directionalLightColor = glm::vec4(0, 0, 0, 0);
+    }
+
+    return sceneData;
+}
+
 void Scene::removeSceneObject(std::shared_ptr<SceneNode> node)
 {
     if (node->m_parent == nullptr) {

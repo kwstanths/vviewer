@@ -60,25 +60,21 @@ QWidget * MainWindow::initVulkanWindowWidget()
 
     QByteArrayList layers;
     QByteArrayList extensions;
+
+    /* Debug layers and extensions */
 #ifdef NDEBUG
 
 #else
-    //layers.append("VK_LAYER_GOOGLE_threading");
-    //layers.append("VK_LAYER_LUNARG_parameter_validation");
-    //layers.append("VK_LAYER_LUNARG_object_tracker");
-    //layers.append("VK_LAYER_LUNARG_core_validation");
-    //layers.append("VK_LAYER_LUNARG_image");
-    //layers.append("VK_LAYER_LUNARG_swapchain");
-    //layers.append("VK_LAYER_GOOGLE_unique_objects");
     layers.append("VK_LAYER_KHRONOS_validation");
-
     extensions.append("VK_EXT_debug_utils");
 #endif
 
+    extensions.append("VK_KHR_get_physical_device_properties2");
+
     m_vulkanInstance = new QVulkanInstance();
-    /* Enable validation layers, if available */
     m_vulkanInstance->setLayers(layers);
     m_vulkanInstance->setExtensions(extensions);
+    m_vulkanInstance->setApiVersion(QVersionNumber(1, 2));
 
     if (!m_vulkanInstance->create()) {
         utils::Console(utils::DebugLevel::FATAL, "Failed to create Vulkan instance: " +
@@ -156,6 +152,10 @@ void MainWindow::createMenu()
     m_actionCreateMaterial->setStatusTip(tr("Add a material"));
     connect(m_actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
 
+    QAction* m_actionRender = new QAction(tr("&Render scene"), this);
+    m_actionRender->setStatusTip(tr("Render scene"));
+    connect(m_actionRender, &QAction::triggered, this, &MainWindow::onRenderSceneSlot);
+
     QMenu * m_menuImport = menuBar()->addMenu(tr("&Import"));
     m_menuImport->addAction(m_actionImportModel);
     m_menuImport->addAction(m_actionImportColorTexture);
@@ -166,6 +166,8 @@ void MainWindow::createMenu()
     QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
     m_menuAdd->addAction(onAddSceneObjectRootSlot);
     m_menuAdd->addAction(m_actionCreateMaterial);
+    QMenu* m_menuRender = menuBar()->addMenu(tr("&Render"));
+    m_menuRender->addAction(m_actionRender);
 }
 
 void MainWindow::onImportModelSlot()
@@ -373,6 +375,11 @@ void MainWindow::onCreateMaterialSlot()
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     }
+}
+
+void MainWindow::onRenderSceneSlot()
+{
+    m_vulkanWindow->m_renderer->renderRT();
 }
 
 void MainWindow::onSelectedSceneObjectChangedSlot()

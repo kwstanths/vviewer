@@ -14,7 +14,9 @@ layout(location = 4) out vec2 fragUV;
 
 layout(set = 0, binding = 0) uniform SceneData {
     mat4 view;
+	mat4 viewInverse;
     mat4 projection;
+	mat4 projectionInverse;
     vec4 directionalLightDir;
     vec4 directionalLightColor;
     vec4 exposure;

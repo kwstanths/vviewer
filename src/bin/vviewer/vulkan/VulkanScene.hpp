@@ -21,6 +21,8 @@ public:
     void setSkybox(VulkanMaterialSkybox* skybox);
     VulkanMaterialSkybox* getSkybox() const;
 
+    virtual SceneData getSceneData() const override;
+
     /* Add a new scene object at the root of the scene graph */
     std::shared_ptr<SceneNode> addSceneObject(std::string meshModel, Transform transform, std::string material) override;
     /* Add a new scene object as a child of a node */

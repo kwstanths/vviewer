@@ -2,7 +2,7 @@
 
 #include "IncludeVulkan.hpp"
 
-VkShaderModule Shader::load(VkDevice device, std::vector<char>& spvCode)
+VkShaderModule Shader::load(VkDevice device, const std::vector<char>& spvCode)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

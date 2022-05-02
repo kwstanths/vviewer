@@ -4,10 +4,29 @@
 #include <vector>
 #include <fstream>
 #include <array>
+#include <iostream>
 
 #include <glm/glm.hpp>
 #include "core/Mesh.hpp"
 #include "vulkan/IncludeVulkan.hpp"
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData)
+{
+    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) 
+    {
+        std::cerr << "Debug callback: " << pCallbackData->pMessage << std::endl;
+    }
+    return VK_FALSE;
+}
+
+inline uint32_t alignedSize(uint32_t value, uint32_t alignment)
+{
+    return (value + alignment - 1) & ~(alignment - 1);
+}
 
 /**
     Find a memory type to be used with VkMemoryAllocateInfo
@@ -26,6 +45,18 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
     VkMemoryPropertyFlags bufferProperties, 
     VkBuffer & buffer, 
     VkDeviceMemory & bufferMemory);
+
+/**
+    Create a buffer and copy data
+*/
+bool createBuffer(VkPhysicalDevice physicalDevice,
+    VkDevice device,
+    VkDeviceSize bufferSize,
+    VkBufferUsageFlags bufferUsage,
+    VkMemoryPropertyFlags bufferProperties,
+    const void* data,
+    VkBuffer& buffer,
+    VkDeviceMemory& bufferMemory);
 
 /**
     Create a vertex buffer
@@ -98,7 +129,8 @@ VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPo
 void endSingleTimeCommands(VkDevice device, 
     VkCommandPool commandPool, 
     VkQueue queue, 
-    VkCommandBuffer commandBuffer);
+    VkCommandBuffer commandBuffer,
+    bool freeCommandBuffer = true);
 
 /**
     Submit a command to transition the layout of an image from oldLayout to newLayout, creates and destroys a command buffer 
@@ -141,6 +173,22 @@ void transitionImageLayout(
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
     VkImageSubresourceRange resourceRange);
+
+/**
+
+*/
+VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat* depthFormat);
+
+/**
+
+*/
+void createAccelerationStructureBuffer(VkPhysicalDevice physicalDevice, 
+    VkDevice device,
+    VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo, 
+    VkAccelerationStructureKHR& handle, 
+    uint64_t& deviceAddress,
+    VkDeviceMemory& memory,
+    VkBuffer& buffer);
 
 /**
     

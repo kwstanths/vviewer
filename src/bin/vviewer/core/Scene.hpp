@@ -8,6 +8,16 @@
 #include "SceneObject.hpp"
 #include "SceneGraph.hpp"
 
+struct SceneData {
+    glm::mat4 m_view;
+    glm::mat4 m_viewInverse;
+    glm::mat4 m_projection;
+    glm::mat4 m_projectionInverse;
+    glm::vec4 m_directionalLightDir;
+    glm::vec4 m_directionalLightColor;
+    glm::vec3 m_exposure; /* R = exposure, G = , B = , A = */
+};
+
 class Scene {
 public:
     Scene();
@@ -21,6 +31,8 @@ public:
 
     float getExposure() const;
     void setExposure(float exposure);
+
+    virtual SceneData getSceneData() const;
 
     /* Add a new scene object at the root of the scene graph */
     virtual std::shared_ptr<SceneNode> addSceneObject(std::string meshModel, Transform transform, std::string material) = 0;

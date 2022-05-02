@@ -11,6 +11,12 @@ glm::mat4 Camera::getViewMatrix() const
     return view;
 }
 
+glm::mat4 Camera::getViewMatrixInverse() const
+{
+    /* TODO optimise this */
+    return glm::inverse(getViewMatrix());
+}
+
 void Camera::setWindowSize(int width, int height)
 {
     m_width = width;
@@ -45,6 +51,12 @@ glm::mat4 PerspectiveCamera::getProjectionMatrix() const
     return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.01f, 50.0f);
 }
 
+glm::mat4 PerspectiveCamera::getProjectionMatrixInverse() const
+{
+    /* TODO optimize this */
+    return glm::inverse(getProjectionMatrix());
+}
+
 void PerspectiveCamera::setFoV(float fov)
 {
     m_fov = fov;
@@ -55,6 +67,12 @@ void PerspectiveCamera::setFoV(float fov)
 glm::mat4 OrthographicCamera::getProjectionMatrix() const
 {
     return glm::ortho((float)-m_orthoWidth /2, (float)m_orthoWidth /2, (float)-m_orthoHeight /2, (float)m_orthoHeight / 2, -100.0f, 100.0f);
+}
+
+glm::mat4 OrthographicCamera::getProjectionMatrixInverse() const
+{
+    /* TODO optimize this */
+    return glm::inverse(getProjectionMatrix());
 }
 
 void OrthographicCamera::setOrthoWidth(float orthoWidth)

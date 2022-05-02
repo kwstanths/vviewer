@@ -72,6 +72,8 @@ private slots:
     void onRemoveSceneObjectSlot();
     /* Create a material */
     void onCreateMaterialSlot();
+    /* Render scene */
+    void onRenderSceneSlot();
     
     /* Currently selected item in the scene changed */
     void onSelectedSceneObjectChangedSlot();

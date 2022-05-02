@@ -1,14 +1,20 @@
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe pbr.vert -o SPIRV/pbrVert.spv
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe pbr.frag -o SPIRV/pbrFrag.spv
+set glslcLocation=C:\Users\konstantinos\Documents\LIBS\VulkanSDK\1.3.204.1\Bin\glslc.exe
 
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skybox.vert -o SPIRV/skyboxVert.spv
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skybox.frag -o SPIRV/skyboxFrag.spv
+%glslcLocation% pbr.vert -o SPIRV/pbrVert.spv
+%glslcLocation% pbr.frag -o SPIRV/pbrFrag.spv
 
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxFilterCube.vert -o SPIRV/skyboxFilterCubeVert.spv
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapWrite.frag -o SPIRV/skyboxCubemapWriteFrag.spv
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapIrradiance.frag -o SPIRV/skyboxCubemapIrradianceFrag.spv
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe skyboxCubemapPrefilteredMap.frag -o SPIRV/skyboxCubemapPrefilteredMapFrag.spv
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe quad.vert -o SPIRV/quadVert.spv
-F:\Documents\dev\LIBS\VulkanSDK\1.2.162.0\Bin\glslc.exe genBRDFLUT.frag -o SPIRV/genBRDFLUTFrag.spv
+%glslcLocation% skybox.vert -o SPIRV/skyboxVert.spv
+%glslcLocation% skybox.frag -o SPIRV/skyboxFrag.spv
+
+%glslcLocation% skyboxFilterCube.vert -o SPIRV/skyboxFilterCubeVert.spv
+%glslcLocation% skyboxCubemapWrite.frag -o SPIRV/skyboxCubemapWriteFrag.spv
+%glslcLocation% skyboxCubemapIrradiance.frag -o SPIRV/skyboxCubemapIrradianceFrag.spv
+%glslcLocation% skyboxCubemapPrefilteredMap.frag -o SPIRV/skyboxCubemapPrefilteredMapFrag.spv
+%glslcLocation% quad.vert -o SPIRV/quadVert.spv
+%glslcLocation% genBRDFLUT.frag -o SPIRV/genBRDFLUTFrag.spv
+
+%glslcLocation% --target-spv=spv1.4 rt/raygen.rgen -o SPIRV/rt/raygen.rgen.spv
+%glslcLocation% --target-spv=spv1.4 rt/raychit.rchit -o SPIRV/rt/raychit.rchit.spv
+%glslcLocation% --target-spv=spv1.4 rt/raymiss.rmiss -o SPIRV/rt/raymiss.rmiss.spv
 
 pause

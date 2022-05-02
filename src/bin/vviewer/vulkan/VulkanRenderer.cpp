@@ -30,7 +30,9 @@ void VulkanRenderer::preInitResources()
     VkFormat preferredFormat = VK_FORMAT_B8G8R8A8_SRGB;
     m_window->setPreferredColorFormats({ preferredFormat });
     
-    //m_window->setDeviceExtensions(...);
+    /* Set device extensions */
+    //QByteArrayList requiuredExtensions;
+    //m_window->setDeviceExtensions(requiuredExtensions);
 }
 
 void VulkanRenderer::initResources()
@@ -71,15 +73,13 @@ void VulkanRenderer::initResources()
         m_descriptorSetLayoutScene, 
         m_descriptorSetLayoutModel, 
         m_rendererSkybox.getDescriptorSetLayout());
+    m_rendererRayTracing.initResources(m_physicalDevice, VK_FORMAT_R32G32B32A32_SFLOAT, 1024u, 1024u);
 
     MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
 
     createVulkanMeshModel("assets/models/uvsphere.obj");
-    {
-        createVulkanMeshModel("assets/models/plane.obj");
-        std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject("assets/models/plane.obj", Transform({ 0, 0, 0 }, {5, 5, 5}), "defaultMaterial");
-        sceneNode->m_so->m_name = "hidden";
-    }
+    createVulkanMeshModel("assets/models/plane.obj");
+    createVulkanMeshModel("assets/models/rtscene.obj");
 
     {
         EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/ennis.hdr");
@@ -89,6 +89,9 @@ void VulkanRenderer::initResources()
         m_scene->setSkybox(skybox);
     }
 
+    m_scene->addSceneObject("assets/models/rtscene.obj", Transform(), "defaultMaterial");
+    std::vector<std::shared_ptr<SceneObject>> sceneObjects = m_scene->getSceneObjects();
+    m_rendererRayTracing.renderScene(sceneObjects, m_scene->getSceneData());
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -144,6 +147,7 @@ void VulkanRenderer::releaseSwapChainResources()
 
     m_rendererSkybox.releaseSwapChainResources();
     m_rendererPBR.releaseSwapChainResources();
+    m_rendererRayTracing.releaseSwapChainResources();
 
     m_devFunctions->vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 }
@@ -193,6 +197,7 @@ void VulkanRenderer::releaseResources()
     m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutModel, nullptr);
     m_rendererSkybox.releaseResources();
     m_rendererPBR.releaseResources();
+    m_rendererRayTracing.releaseResources();
 
     /* Destroy imported models */
     {
@@ -297,6 +302,12 @@ Material * VulkanRenderer::createMaterial(std::string name,
     instance.Add(temp->m_name, temp);
 
     return temp;
+}
+
+void VulkanRenderer::renderRT()
+{
+    std::vector<std::shared_ptr<SceneObject>> sceneObjects = m_scene->getSceneObjects();
+    m_rendererRayTracing.renderScene(sceneObjects, m_scene->getSceneData());
 }
 
 Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format)
@@ -500,7 +511,6 @@ bool VulkanRenderer::pickPhysicalDevice()
 {
     auto deviceProperties = m_window->availablePhysicalDevices();
     for (int i = 0; i < deviceProperties.size(); i++) {
-        VkPhysicalDeviceProperties properties{};
         if (isPhysicalDeviceSuitable(deviceProperties[i])) {
             m_window->setPhysicalDeviceIndex(i);
             return true;
@@ -513,7 +523,7 @@ bool VulkanRenderer::pickPhysicalDevice()
 
 bool VulkanRenderer::isPhysicalDeviceSuitable(VkPhysicalDeviceProperties device)
 {
-    /* Should probably check features here as well... */
+    /* TODO check if physical device has the available extensions */
     return true;
 }
 

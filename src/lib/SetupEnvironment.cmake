@@ -1,7 +1,7 @@
 macro(SetupEnvironment)
 
 	set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
-	set(LIBS_ROOT F:/Documents/dev/LIBS)
+	set(LIBS_ROOT C:/Users/konstantinos/Documents/LIBS)
     
 	# Check compiler for c++11
 	include(CheckCXXCompilerFlag)
@@ -20,14 +20,14 @@ macro(SetupEnvironment)
     set(QT_LIBRARIES Qt6::Widgets)
     
     # VULKAN
-    set(VULKAN_DIR ${LIBS_ROOT}/VulkanSDK/1.2.162.0)
+    set(VULKAN_DIR ${LIBS_ROOT}/VulkanSDK/1.3.204.1)
     set(VULKAN_INCLUDE_DIRS ${VULKAN_DIR}/Include)
     set(VULKAN_LIBS_DIR ${VULKAN_DIR}/Lib)
     set(VULKAN_LIBRARIES ${VULKAN_LIBS_DIR}/vulkan-1.lib)
     
     # GLM
-    set(GLM_DIR ${LIBS_ROOT}/GLM/glm-0.9.9.8)
-    set(GLM_INCLUDE_DIRS ${GLM_DIR}/glm)
+    set(GLM_DIR ${PROJECT_ROOT}/src/lib/external/glm/)
+    set(GLM_INCLUDE_DIRS ${GLM_DIR})
     
     #STB
     set(STB_DIR ${PROJECT_ROOT}/src/lib/external/stb)

@@ -7,7 +7,7 @@
 
 class Shader {
 public:
-    static VkShaderModule load(VkDevice device, std::vector<char>& spvCode);
+    static VkShaderModule load(VkDevice device, const std::vector<char>& spvCode);
 
 private:
 

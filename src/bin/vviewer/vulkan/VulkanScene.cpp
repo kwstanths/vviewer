@@ -20,6 +20,15 @@ VulkanMaterialSkybox* VulkanScene::getSkybox() const
     return m_skybox;
 }
 
+SceneData VulkanScene::getSceneData() const
+{
+    SceneData sceneData = Scene::getSceneData();
+    sceneData.m_projection[1][1] *= -1;
+    sceneData.m_projectionInverse = glm::inverse(sceneData.m_projection);
+
+    return sceneData;
+}
+
 std::shared_ptr<SceneNode> VulkanScene::addSceneObject(std::string meshModel, Transform transform, std::string material)
 {
     std::vector<std::shared_ptr<VulkanSceneObject>> objects = createObject(meshModel, material);
@@ -49,20 +58,7 @@ void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
 {
     /* Update scene data buffer */
     {
-        SceneData sceneData;
-        sceneData.m_view = m_camera->getViewMatrix();
-        sceneData.m_projection = m_camera->getProjectionMatrix();
-        sceneData.m_projection[1][1] *= -1;
-        sceneData.m_exposure = glm::vec4(getExposure(), 0, 0, 0);
-
-        std::shared_ptr<DirectionalLight> light = getDirectionalLight();
-        if (light != nullptr) {
-            sceneData.m_directionalLightDir = glm::vec4(light->transform.getForward(), 0);
-            sceneData.m_directionalLightColor = glm::vec4(light->color, 0);
-        }
-        else {
-            sceneData.m_directionalLightColor = glm::vec4(0, 0, 0, 0);
-        }
+        SceneData sceneData = VulkanScene::getSceneData();
 
         void* data;
         vkMapMemory(device, m_uniformBuffersSceneMemory[imageIndex], 0, sizeof(SceneData), 0, &data);

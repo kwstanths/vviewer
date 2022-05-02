@@ -26,16 +26,7 @@
 #include "VulkanTexture.hpp"
 #include "VulkanRendererPBR.hpp"
 #include "VulkanRendererSkybox.hpp"
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) 
-{
-    //std::cerr << "Debug callback: " << pCallbackData->pMessage << std::endl;
-    return VK_FALSE;
-}
+#include "VulkanRayTracingRenderer.hpp"
 
 class VulkanRenderer : public QVulkanWindowRenderer {
 public:
@@ -63,6 +54,8 @@ public:
         glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
         bool createDescriptors = true
     );
+
+    void renderRT();
 
 private:
 
@@ -107,6 +100,7 @@ private:
     VkRenderPass m_renderPass;
     VulkanRendererPBR m_rendererPBR;
     VulkanRendererSkybox m_rendererSkybox;
+    VulkanRayTracingRenderer m_rendererRayTracing;
 
     /* Active scene */
     VulkanScene * m_scene = nullptr;

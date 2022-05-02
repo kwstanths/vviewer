@@ -50,6 +50,14 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
     allocateInfo.allocationSize = memoryRequirements.size;
     allocateInfo.memoryTypeIndex = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, bufferProperties);
 
+    /* If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation */
+    VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+    if (bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+        allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+        allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+        allocateInfo.pNext = &allocFlagsInfo;
+    }
+
     res = vkAllocateMemory(device, &allocateInfo, nullptr, &bufferMemory);
     if (res != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to allocate device memory: " + std::to_string(res));
@@ -58,6 +66,34 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
     /* Bind memory to buffer */
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
     return true;
+}
+
+bool createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferProperties, const void* data, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+{
+    createBuffer(physicalDevice, device, bufferSize, bufferUsage, bufferProperties, buffer, bufferMemory);
+
+    void* mapped;
+    VkResult res = vkMapMemory(device, bufferMemory, 0, bufferSize, 0, &mapped);
+    if (res != VK_SUCCESS) {
+        utils::ConsoleCritical("Failed to map device memory: " + std::to_string(res));
+        return false;
+    }
+
+    memcpy(mapped, data, bufferSize);
+    
+    /* If host coherency hasn't been requested, do a manual flush to make writes visible */
+    if ((bufferProperties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+    {
+        VkMappedMemoryRange mappedMemoryRange{};
+        mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        mappedMemoryRange.memory = bufferMemory;
+        mappedMemoryRange.offset = 0;
+        mappedMemoryRange.size = bufferSize;
+        vkFlushMappedMemoryRanges(device, 1, &mappedMemoryRange);
+    }
+    vkUnmapMemory(device, bufferMemory);
+
+    return VK_SUCCESS;
 }
 
 bool createVertexBuffer(VkPhysicalDevice physicalDevice,
@@ -278,22 +314,32 @@ VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPo
 void endSingleTimeCommands(VkDevice device, 
     VkCommandPool commandPool, 
     VkQueue queue, 
-    VkCommandBuffer commandBuffer)
+    VkCommandBuffer commandBuffer,
+    bool freeCommandBuffer)
 {
     vkEndCommandBuffer(commandBuffer);
+
+    /* Create fence to wait for the command to finish */
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.flags = 0;
+    VkFence fence;
+    vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
 
     /* Submit command buffer */
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    /* Wait for this single operations to finish */
-    vkQueueWaitIdle(queue);
-
-    /* Cleanup command buffer */
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    vkQueueSubmit(queue, 1, &submitInfo, fence);
+    
+    // Wait for the fence to signal that command buffer has finished executing
+    vkWaitForFences(device, 1, &fence, VK_TRUE, 1000000000);
+    vkDestroyFence(device, fence, nullptr);
+    if (freeCommandBuffer)
+    {
+        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    }
 }
 
 void transitionImageLayout(VkDevice device, 
@@ -465,6 +511,71 @@ void transitionImageLayout(VkCommandBuffer cmdBuf,
         0, nullptr,
         1, &barrier
     );
+}
+
+VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat* depthFormat)
+{
+    // Since all depth formats may be optional, we need to find a suitable depth format to use
+    // Start with the highest precision packed format
+    std::vector<VkFormat> depthFormats = {
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D24_UNORM_S8_UINT,
+        VK_FORMAT_D16_UNORM_S8_UINT,
+        VK_FORMAT_D16_UNORM
+    };
+
+    for (auto& format : depthFormats)
+    {
+        VkFormatProperties formatProps;
+        vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
+        // Format must support depth stencil attachment for optimal tiling
+        if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            *depthFormat = format;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void createAccelerationStructureBuffer(VkPhysicalDevice physicalDevice, 
+    VkDevice device,
+    VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo, 
+    VkAccelerationStructureKHR& handle, 
+    uint64_t& deviceAddress, 
+    VkDeviceMemory& memory, 
+    VkBuffer& buffer)
+{
+    VkBufferCreateInfo bufferCreateInfo{};
+    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferCreateInfo.size = buildSizeInfo.accelerationStructureSize;
+    bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkResult res = vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer);
+    if (res != VK_SUCCESS)
+    {
+        utils::ConsoleCritical("Failed to create a buffer for an acceleration sturcture buffer: " + std::to_string(res));
+        return;
+    }
+
+    VkMemoryRequirements memoryRequirements{};
+    vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
+    VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
+    memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+    VkMemoryAllocateInfo memoryAllocateInfo{};
+    memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    memoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
+    memoryAllocateInfo.allocationSize = memoryRequirements.size;
+    memoryAllocateInfo.memoryTypeIndex = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    res = vkAllocateMemory(device, &memoryAllocateInfo, nullptr, &memory);
+    if (res != VK_SUCCESS)
+    {
+        utils::ConsoleCritical("Failed to allocate memory for an acceleration sturcture buffer: " + std::to_string(res));
+    }
+
+    vkBindBufferMemory(device, buffer, memory, 0);
 }
 
 std::vector<char> readSPIRV(const std::string& filename)

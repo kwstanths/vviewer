@@ -1,6 +1,7 @@
 #include "VulkanRendererPBR.hpp"
 
 #include <utils/Console.hpp>
+#include <set>
 
 #include "core/AssetManager.hpp"
 
