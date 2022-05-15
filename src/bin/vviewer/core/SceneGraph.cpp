@@ -37,3 +37,21 @@ std::vector<std::shared_ptr<SceneObject>> SceneNode::getSceneObjects()
 
 	return temp;
 }
+
+std::vector<std::shared_ptr<SceneObject>> SceneNode::getSceneObjects(std::vector<glm::mat4>& modelMatrices)
+{
+	std::vector<std::shared_ptr<SceneObject>> temp;
+	temp.push_back(m_so);
+	modelMatrices.push_back(m_modelMatrix);
+
+	for (auto&& child : m_children)
+	{
+		std::vector<glm::mat4> childrenMatrices;
+		auto childrenObjects = child->getSceneObjects(childrenMatrices);
+
+		temp.insert(temp.end(), childrenObjects.begin(), childrenObjects.end());
+		modelMatrices.insert(modelMatrices.end(), childrenMatrices.begin(), childrenMatrices.end());
+	}
+
+	return temp;
+}

@@ -1,5 +1,7 @@
 #include "VulkanScene.hpp"
 
+#include "Console.hpp"
+
 #include "core/AssetManager.hpp"
 
 VulkanScene::VulkanScene()
@@ -78,9 +80,17 @@ void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
 std::vector<std::shared_ptr<VulkanSceneObject>> VulkanScene::createObject(std::string meshModel, std::string material)
 {
     AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
-    if (!instanceModels.isPresent(meshModel)) return {};
+    if (!instanceModels.isPresent(meshModel))
+    {
+        utils::ConsoleWarning("VulkanScene::CreateObject(): " + meshModel + " is not imported");
+        return {};
+    }
     AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
-    if (!instanceMaterials.isPresent(material)) return {};
+    if (!instanceMaterials.isPresent(material)) 
+    {
+        utils::ConsoleWarning("VulkanScene::CreateObject(): " + material + " is not created");
+        return {};
+    }
 
     MeshModel* vkmeshModel = instanceModels.Get(meshModel);
     std::vector<Mesh*> modelMeshes = vkmeshModel->getMeshes();

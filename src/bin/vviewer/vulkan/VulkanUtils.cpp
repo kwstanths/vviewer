@@ -28,6 +28,12 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
     VkBuffer& buffer,
     VkDeviceMemory& bufferMemory)
 {
+    if (bufferSize <= 0)
+    {
+        utils::ConsoleWarning("createBuffer(): Trying to allocate a buffer with zero size");
+        return false;
+    }
+
     /* Create vertex buffer */
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -70,7 +76,9 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
 
 bool createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferProperties, const void* data, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
-    createBuffer(physicalDevice, device, bufferSize, bufferUsage, bufferProperties, buffer, bufferMemory);
+    bool ret = createBuffer(physicalDevice, device, bufferSize, bufferUsage, bufferProperties, buffer, bufferMemory);
+
+    if (!ret) return ret;
 
     void* mapped;
     VkResult res = vkMapMemory(device, bufferMemory, 0, bufferSize, 0, &mapped);

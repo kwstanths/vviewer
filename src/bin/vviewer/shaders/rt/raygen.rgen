@@ -28,12 +28,12 @@ void main()
 	vec4 target = sceneData.projectionInverse * vec4(d.x, d.y, 1, 1) ;
 	vec4 direction = sceneData.viewInverse*vec4(normalize(target.xyz), 0) ;
 
+	uint rayFlags = gl_RayFlagsOpaqueEXT;
+	uint cullMask = 0xff;
 	float tmin = 0.001;
 	float tmax = 10000.0;
 
-    hitValue = vec3(0.0);
-
-    traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
+    traceRayEXT(topLevelAS, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 1.0));
 }

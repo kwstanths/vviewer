@@ -89,9 +89,11 @@ void VulkanRenderer::initResources()
         m_scene->setSkybox(skybox);
     }
 
+    defaultMaterial->getAO() = 0.0f;
     m_scene->addSceneObject("assets/models/rtscene.obj", Transform(), "defaultMaterial");
-    std::vector<std::shared_ptr<SceneObject>> sceneObjects = m_scene->getSceneObjects();
-    m_rendererRayTracing.renderScene(sceneObjects, m_scene->getSceneData());
+
+    m_scene->updateSceneGraph();
+    m_rendererRayTracing.renderScene(m_scene);
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -306,8 +308,8 @@ Material * VulkanRenderer::createMaterial(std::string name,
 
 void VulkanRenderer::renderRT()
 {
-    std::vector<std::shared_ptr<SceneObject>> sceneObjects = m_scene->getSceneObjects();
-    m_rendererRayTracing.renderScene(sceneObjects, m_scene->getSceneData());
+    m_scene->updateSceneGraph();
+    m_rendererRayTracing.renderScene(m_scene);
 }
 
 Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format)

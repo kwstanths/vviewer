@@ -42,7 +42,8 @@ public:
     void removeSceneObject(std::shared_ptr<SceneNode> node);
 
     void updateSceneGraph();
-    std::vector<std::shared_ptr<SceneObject>> getSceneObjects();
+    std::vector<std::shared_ptr<SceneObject>> getSceneObjects() const;
+    std::vector<std::shared_ptr<SceneObject>> getSceneObjects(std::vector<glm::mat4>& modelMatrices) const;
 
 protected:
     float m_exposure = 0.0f;

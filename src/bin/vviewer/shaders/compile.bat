@@ -16,5 +16,6 @@ set glslcLocation=C:\Users\konstantinos\Documents\LIBS\VulkanSDK\1.3.204.1\Bin\g
 %glslcLocation% --target-spv=spv1.4 rt/raygen.rgen -o SPIRV/rt/raygen.rgen.spv
 %glslcLocation% --target-spv=spv1.4 rt/raychit.rchit -o SPIRV/rt/raychit.rchit.spv
 %glslcLocation% --target-spv=spv1.4 rt/raymiss.rmiss -o SPIRV/rt/raymiss.rmiss.spv
+%glslcLocation% --target-spv=spv1.4 rt/shadow.rmiss -o SPIRV/rt/shadow.rmiss.spv
 
 pause

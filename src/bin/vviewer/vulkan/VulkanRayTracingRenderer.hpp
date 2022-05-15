@@ -22,7 +22,7 @@ public:
     VkPipelineLayout getPipelineLayout() const;
     VkDescriptorSetLayout getDescriptorSetLayout() const;
 
-    void renderScene(std::vector<std::shared_ptr<SceneObject>>& sceneObjects, const SceneData& sceneData);
+    void renderScene(const VulkanScene* scene);
 
 private:
     struct DeviceFunctionsRayTracing {
@@ -55,7 +55,7 @@ private:
         VkDeviceMemory memory;
         VkBuffer buffer;
     };
-    std::vector<AccelerationStructure> m_blas;
+    std::vector<std::pair<AccelerationStructure, glm::mat4>> m_blas;
     AccelerationStructure m_tlas;
 
     struct RayTracingScratchBuffer {
@@ -77,9 +77,19 @@ private:
     };
     StorageImage m_renderResult, m_tempImage;
 
+    /* Objects description data */
+    struct ObjectDescription
+    {
+        uint64_t vertexAddress;
+        uint64_t indexAddress;
+    };
+    std::vector<ObjectDescription> m_sceneObjects;
+
     /* Descriptor sets */
     VkBuffer m_uniformBufferScene;
     VkDeviceMemory m_uniformBufferSceneMemory;
+    VkBuffer m_uniformBufferObjectDescription;
+    VkDeviceMemory m_uniformBufferObjectDescrptionMemory;
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSet m_descriptorSet;
 
@@ -104,6 +114,7 @@ private:
 
     AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& transformationMatrix);
     AccelerationStructure createTopLevelAccelerationStructure();
+    void destroyAccellerationStructures();
 
     void createStorageImage();
 

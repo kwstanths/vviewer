@@ -13,8 +13,8 @@ VulkanWindow::VulkanWindow()
     camera->setFoV(60.0f);
     
     Transform cameraTransform;
-    cameraTransform.setPosition(glm::vec3(10, 3, 0));
-    cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(-90.0f), 0)));
+    cameraTransform.setPosition(glm::vec3(1, 3, 10));
+    cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(0.0f), 0)));
     camera->getTransform() = cameraTransform;
     
     m_scene->setCamera(std::shared_ptr<Camera>(camera));

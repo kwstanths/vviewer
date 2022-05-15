@@ -83,7 +83,7 @@ void Scene::updateSceneGraph()
     }
 }
 
-std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects()
+std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects() const
 {
     std::vector<std::shared_ptr<SceneObject>> temp;
 
@@ -91,6 +91,23 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects()
     {
         auto rootNodeObjects = rootNode->getSceneObjects();
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
+    }
+
+    return temp;
+}
+
+std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects(std::vector<glm::mat4>& modelMatrices) const
+{
+    std::vector<std::shared_ptr<SceneObject>> temp;
+    modelMatrices.clear();
+
+    for (auto&& rootNode : m_sceneGraph)
+    {
+        std::vector<glm::mat4> rootNodeMatrices;
+        auto rootNodeObjects = rootNode->getSceneObjects(rootNodeMatrices);
+
+        temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
+        modelMatrices.insert(modelMatrices.end(), rootNodeMatrices.begin(), rootNodeMatrices.end());
     }
 
     return temp;
