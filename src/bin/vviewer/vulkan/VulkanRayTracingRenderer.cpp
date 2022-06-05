@@ -26,7 +26,9 @@ void VulkanRayTracingRenderer::initResources(VkPhysicalDevice physicalDevice, Vk
     m_width = width;
     m_height = height;
 
-    /* Create logical device from scratch for ray tracing, since current version of qt(6.2.4) doesn't support setting custom features for the logical device */
+    /* Create logical device from scratch for ray tracing, since current version of qt(6.2.4) doesn't support setting custom features for the logical device 
+    * thus the required ray tracing features cannot be enabled
+    */
     m_device = createLogicalDevice(m_physicalDevice, m_queueFamilyIndex);
     vkGetDeviceQueue(m_device, m_queueFamilyIndex, 0, &m_queue);
 
@@ -46,7 +48,6 @@ void VulkanRayTracingRenderer::initResources(VkPhysicalDevice physicalDevice, Vk
 
     /* Get ray tracing pipeline properties */
     {
-        m_rayTracingPipelineProperties;
         m_rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
         VkPhysicalDeviceProperties2 deviceProperties2{};
         deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -70,7 +71,6 @@ void VulkanRayTracingRenderer::initResources(VkPhysicalDevice physicalDevice, Vk
         commandPoolCreateInfo.queueFamilyIndex = m_queueFamilyIndex;
 
         VkResult res = vkCreateCommandPool(m_device, &commandPoolCreateInfo, NULL, &m_commandPool);
-
         if (res != VK_SUCCESS) {
             throw std::runtime_error("VulkanRayTracingRenderer::initResources(): Unable to create a command pool ");
         }
@@ -97,7 +97,6 @@ void VulkanRayTracingRenderer::initResources(VkPhysicalDevice physicalDevice, Vk
     //        throw std::runtime_error("Unable to create a command buffer for ray tracing");
     //    }
     //}
-    
 }
 
 void VulkanRayTracingRenderer::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages)
@@ -110,6 +109,9 @@ void VulkanRayTracingRenderer::releaseSwapChainResources()
 
 void VulkanRayTracingRenderer::releaseResources()
 {
+    /* TODO destroy descriptor set */
+    /* TODO delete pipeline and rt pipeline */
+    /* TODO destroy shader binding table */
     /* TODO Delete storage image */
     /* TODO delete command pool */
     /* TODO delete device */
@@ -136,6 +138,7 @@ void VulkanRayTracingRenderer::renderScene(const VulkanScene* scene)
     std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectsMatrices);
     const SceneData& sceneData = scene->getSceneData();
 
+    /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
     for (size_t i = 0; i < sceneObjects.size(); i++)
     {
         auto so = sceneObjects[i];
@@ -149,6 +152,7 @@ void VulkanRayTracingRenderer::renderScene(const VulkanScene* scene)
         }
     }
 
+    /* Create a top level accelleration structure out of all the blas */
     m_tlas = createTopLevelAccelerationStructure();
 
     updateUniformBuffers(sceneData);
@@ -200,7 +204,7 @@ bool VulkanRayTracingRenderer::checkRayTracingSupport(VkPhysicalDevice device, s
 
 VkDevice VulkanRayTracingRenderer::createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex)
 {
-    /* Physical device features needed */
+    /* Physical device features needed for ray tracing */
     VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures = {};
     physicalDeviceBufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
     physicalDeviceBufferDeviceAddressFeatures.pNext = NULL;
@@ -300,7 +304,7 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
         t[0][2], t[1][2], t[2][2], t[3][2]
     };
 
-    /* Create buffers for mesh data and the transformation matrix */
+    /* Create buffers for RT for mesh data and the transformation matrix */
     VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     VkBuffer vertexBuffer;
@@ -336,20 +340,19 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
         transformBuffer,
         transformBufferMemory);
 
-    /* Get the device address of the buffers and push them to the scene object */
+    /* Get the device address of the buffers and push them to the scene objects vector */
     VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
     VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
     VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
     vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, vertexBuffer);
     indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, indexBuffer);
     transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, transformBuffer);
-
     m_sceneObjects.push_back({ vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress });
 
     std::vector<uint32_t> numTriangles = { static_cast<uint32_t>(indices.size()) / 3 };
     uint32_t maxVertex = static_cast<uint32_t>(vertices.size());
 
-    /* Specify an acceleration structure geometry for a mesh */
+    /* Specify an acceleration structure geometry for the mesh */
     VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
     accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
     accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
@@ -364,7 +367,6 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
     accelerationStructureGeometry.geometry.triangles.transformData.hostAddress = nullptr;
     accelerationStructureGeometry.geometry.triangles.transformData = transformBufferDeviceAddress;
-
     /* Specify all acceleration structure geometries */
     VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
     accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
@@ -382,7 +384,6 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
         &accelerationStructureBuildGeometryInfo,
         numTriangles.data(),
         &accelerationStructureBuildSizesInfo);
-
     /* Create bottom level acceleration structure buffer with the specified size */
     AccelerationStructure blas;
     createAccelerationStructureBuffer(m_physicalDevice,
@@ -400,9 +401,9 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     accelerationStructureCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
     m_devF.vkCreateAccelerationStructureKHR(m_device, &accelerationStructureCreateInfo, nullptr, &blas.handle);
 
-    /* Create a scratch buffer used during build of the bottom level acceleration structure */
+    /* Create a scratch buffer used during the build of the bottom level acceleration structure */
     RayTracingScratchBuffer scratchBuffer = createScratchBuffer(accelerationStructureBuildSizesInfo.buildScratchSize);
-
+    /* Build accelleration structure */
     VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{};
     accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
     accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
@@ -420,8 +421,7 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     accelerationStructureBuildRangeInfo.transformOffset = 0;
     std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
 
-    // Build the acceleration structure on the device via a one-time command buffer submission
-    // Some implementations may support acceleration structure building on the host (VkPhysicalDeviceAccelerationStructureFeaturesKHR->accelerationStructureHostCommands), but we prefer device builds
+    /* Build the acceleration structure on the device via a one - time command buffer submission */
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(m_device, m_commandPool);
     
     m_devF.vkCmdBuildAccelerationStructuresKHR(
@@ -432,6 +432,7 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
 
     endSingleTimeCommands(m_device, m_commandPool, m_queue, commandBuffer);
 
+    /* Get device address */
     VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
     accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
     accelerationDeviceAddressInfo.accelerationStructure = blas.handle;
@@ -458,14 +459,18 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
         };
 
         instances[i].transform = transformMatrix;
-        instances[i].instanceCustomIndex = static_cast<uint32_t>(i);
+        instances[i].instanceCustomIndex = static_cast<uint32_t>(i);    /* The custom index specifies where the reference of this object 
+                                                                        is inside the array of references that is paased in the shader. 
+                                                                        This reference will tell the shader where the geometry buffers 
+                                                                        for this object are */
         instances[i].mask = 0xFF;
-        instances[i].instanceShaderBindingTableRecordOffset = 0;
+        instances[i].instanceShaderBindingTableRecordOffset = 0;    /* TODO Specify here the chit shader to be used from the SBT */
         instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         instances[i].accelerationStructureReference = m_blas[i].first.deviceAddress;
     }
     uint32_t instancesCount = static_cast<uint32_t>(instances.size());
 
+    /* Create buffer to copy the instances */
     VkBuffer instancesBuffer;
     VkDeviceMemory instancesBufferMemory;
     createBuffer(m_physicalDevice,
@@ -476,7 +481,7 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
         instances.data(),
         instancesBuffer,
         instancesBufferMemory);
-
+    /* Get address of buffer */
     VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
     instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, instancesBuffer);
 
@@ -488,7 +493,6 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     accelerationStructureGeometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
     accelerationStructureGeometry.geometry.instances.arrayOfPointers = VK_FALSE;
     accelerationStructureGeometry.geometry.instances.data = instanceDataDeviceAddress;
-
     /* Get size info for the acceleration structure */
     VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
     accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
@@ -496,7 +500,7 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
     accelerationStructureBuildGeometryInfo.geometryCount = 1;
     accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-
+    /* Get build size of accelleration structure */
     VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
     accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
     m_devF.vkGetAccelerationStructureBuildSizesKHR(
@@ -515,7 +519,6 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
         tlas.deviceAddress,
         tlas.memory,
         tlas.buffer);
-
     /* Create acceleration structure */
     VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
     accelerationStructureCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
@@ -527,6 +530,7 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     /* Create a scratch buffer used during build of the top level acceleration structure */
     RayTracingScratchBuffer scratchBuffer = createScratchBuffer(accelerationStructureBuildSizesInfo.buildScratchSize);
 
+    /* Build accelleration structure */
     VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{};
     accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
     accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
@@ -544,15 +548,18 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     accelerationStructureBuildRangeInfo.transformOffset = 0;
     std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
 
-    // Build the acceleration structure on the device via a one-time command buffer submission
+    /* Build the acceleration structure on the device via a one - time command buffer submission */
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(m_device, m_commandPool);
+
     m_devF.vkCmdBuildAccelerationStructuresKHR(
         commandBuffer,
         1,
         &accelerationBuildGeometryInfo,
         accelerationBuildStructureRangeInfos.data());
+
     endSingleTimeCommands(m_device, m_commandPool, m_queue, commandBuffer);
 
+    /* Get device address of accelleration structure */
     VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
     accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
     accelerationDeviceAddressInfo.accelerationStructure = tlas.handle;
@@ -591,7 +598,7 @@ void VulkanRayTracingRenderer::createStorageImage()
         VK_IMAGE_ASPECT_COLOR_BIT,
         1);
 
-    /* Create temp image used to copy render result to cpu memory */
+    /* Create temp image used to copy render result from gpu memory to cpu memory */
     ret = createImage(m_physicalDevice,
         m_device,
         m_width,
@@ -604,6 +611,7 @@ void VulkanRayTracingRenderer::createStorageImage()
         m_tempImage.image,
         m_tempImage.memory);
 
+    /* Transition images to the approriate layout ready for render */
     VkCommandBuffer cmdBuf = beginSingleTimeCommands(m_device, m_commandPool);
     
     transitionImageLayout(cmdBuf,
@@ -632,7 +640,7 @@ void VulkanRayTracingRenderer::createUniformBuffers()
         m_uniformBufferScene, 
         m_uniformBufferSceneMemory);
 
-    /* TODO 100 max */
+    /* TODO 100 max objects in the scene  */
     /* Create a buffer to hold the object descriptions data */
     createBuffer(m_physicalDevice,
         m_device,
@@ -662,24 +670,28 @@ void VulkanRayTracingRenderer::updateUniformBuffers(const SceneData& sceneData)
 
 void VulkanRayTracingRenderer::createRayTracingPipeline()
 {
+    /* binding 0, the accelleration strucure */
     VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
     accelerationStructureLayoutBinding.binding = 0;
     accelerationStructureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     accelerationStructureLayoutBinding.descriptorCount = 1;
     accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 
+    /* Binding 1, the output image */
     VkDescriptorSetLayoutBinding resultImageLayoutBinding{};
     resultImageLayoutBinding.binding = 1;
     resultImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     resultImageLayoutBinding.descriptorCount = 1;
     resultImageLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 
+    /* Binding 2, the scene data */
     VkDescriptorSetLayoutBinding sceneDataBufferBinding{};
     sceneDataBufferBinding.binding = 2;
     sceneDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     sceneDataBufferBinding.descriptorCount = 1;
     sceneDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
 
+    /* Binding 3, the object descriptions buffer */
     VkDescriptorSetLayoutBinding objectDescrptionBufferBinding{};
     objectDescrptionBufferBinding.binding = 3;
     objectDescrptionBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -693,6 +705,7 @@ void VulkanRayTracingRenderer::createRayTracingPipeline()
         objectDescrptionBufferBinding
         });
 
+    /* 1 set only */
     VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo{};
     descriptorSetlayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     descriptorSetlayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -775,10 +788,15 @@ void VulkanRayTracingRenderer::createRayTracingPipeline()
         shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
         shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
         shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
-        shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;
+        shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;  /* Only chit shader used for this closest hit group */
         shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
         shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
         m_shaderGroups.push_back(shaderGroup);
+    }
+
+    // Spec only guarantees 1 level of "recursion". Check for that sad possibility here.
+    if (m_rayTracingPipelineProperties.maxRayRecursionDepth <= 1) {
+        throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Device doesn't support ray recursion");
     }
 
     /*
@@ -797,6 +815,11 @@ void VulkanRayTracingRenderer::createRayTracingPipeline()
     {
         throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Failed to create a ray tracing pipeline: " + std::to_string(res));
     }
+
+    /* Destroy shader modules */
+    for (auto& s : shaderStages) {
+        vkDestroyShaderModule(m_device, s.module, nullptr);
+    }
 }
 
 void VulkanRayTracingRenderer::createShaderBindingTable()
@@ -804,7 +827,7 @@ void VulkanRayTracingRenderer::createShaderBindingTable()
     const uint32_t handleSize = m_rayTracingPipelineProperties.shaderGroupHandleSize;
     const uint32_t handleSizeAligned = alignedSize(m_rayTracingPipelineProperties.shaderGroupHandleSize, m_rayTracingPipelineProperties.shaderGroupHandleAlignment);
     const uint32_t groupCount = static_cast<uint32_t>(m_shaderGroups.size());
-    const uint32_t sbtSize = groupCount * handleSizeAligned;
+    const uint32_t sbtSize = groupCount * handleSizeAligned;    /* Size in bytes */
 
     std::vector<uint8_t> shaderHandleStorage(sbtSize);
     VkResult res = m_devF.vkGetRayTracingShaderGroupHandlesKHR(m_device, m_pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data());
@@ -813,6 +836,7 @@ void VulkanRayTracingRenderer::createShaderBindingTable()
         throw std::runtime_error("VulkanRayTracingRenderer::createShaderBindingTable(): Failed to get the shader group handles: " + std::to_string(res));
     }
 
+    /* Create shader binding tables for each group, ray gen, miss and chit, and store the shader group handles */
     const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
@@ -820,18 +844,21 @@ void VulkanRayTracingRenderer::createShaderBindingTable()
     createBuffer(m_physicalDevice, m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayMissBuffer, m_shaderRayMissBufferMemory);
     createBuffer(m_physicalDevice, m_device, handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer, m_shaderRayCHitBufferMemory);
 
+    /* 1 ray gen group always */
     {
         void* data;
         vkMapMemory(m_device, m_shaderRayGenBufferMemory, 0, handleSize, 0, &data);
         memcpy(data, shaderHandleStorage.data(), handleSize);
         vkUnmapMemory(m_device, m_shaderRayGenBufferMemory);
     }
+    /* 2 ray miss groups */
     {
         void* data;
         vkMapMemory(m_device, m_shaderRayMissBufferMemory, 0, handleSize, 0, &data);
         memcpy(data, shaderHandleStorage.data() + handleSizeAligned, handleSize * 2);
         vkUnmapMemory(m_device, m_shaderRayMissBufferMemory);
     }
+    /* 1 ray chit group */
     {
         void* data;
         vkMapMemory(m_device, m_shaderRayCHitBufferMemory, 0, handleSize, 0, &data);
@@ -843,6 +870,12 @@ void VulkanRayTracingRenderer::createShaderBindingTable()
 
 void VulkanRayTracingRenderer::createDescriptorSets()
 {
+    /* First set is:
+    * 1 accelleration structure
+    * 1 storage image for output
+    * 1 uniform buffer for scene data
+    * 1 storage buffer for references to scene object geometry
+    */
     std::vector<VkDescriptorPoolSize> poolSizes = {
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
@@ -874,19 +907,21 @@ void VulkanRayTracingRenderer::createDescriptorSets()
 
 void VulkanRayTracingRenderer::updateDescriptorSets()
 {
+    /* Update accelleration structure binding */
     VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
     descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
     descriptorAccelerationStructureInfo.pAccelerationStructures = &m_tlas.handle;
     VkWriteDescriptorSet accelerationStructureWrite{};
     accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    // The specialized acceleration structure descriptor has to be chained
+    /* The specialized acceleration structure descriptor has to be chained */
     accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
     accelerationStructureWrite.dstSet = m_descriptorSet;
     accelerationStructureWrite.dstBinding = 0;
     accelerationStructureWrite.descriptorCount = 1;
     accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
+    /* Update storage image binding */
     VkDescriptorImageInfo storageImageDescriptor{};
     storageImageDescriptor.imageView = m_renderResult.view;
     storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -898,6 +933,7 @@ void VulkanRayTracingRenderer::updateDescriptorSets()
     resultImageWrite.pImageInfo = &storageImageDescriptor;
     resultImageWrite.descriptorCount = 1;
 
+    /* Update scene data binding */
     VkDescriptorBufferInfo sceneDataDescriptor{};
     sceneDataDescriptor.buffer = m_uniformBufferScene;
     sceneDataDescriptor.offset = 0;
@@ -910,6 +946,7 @@ void VulkanRayTracingRenderer::updateDescriptorSets()
     uniformBufferWrite.pBufferInfo = &sceneDataDescriptor;
     uniformBufferWrite.descriptorCount = 1;
 
+    /* Update object description binding */
     VkDescriptorBufferInfo objectDescriptionDataDesriptor{};
     objectDescriptionDataDesriptor.buffer = m_uniformBufferObjectDescription;
     objectDescriptionDataDesriptor.offset = 0;
@@ -937,9 +974,7 @@ void VulkanRayTracingRenderer::render()
 
     VkCommandBuffer cmdBuf = beginSingleTimeCommands(m_device, m_commandPool);
 
-    /*
-        Setup the buffer regions pointing to the shaders in our shader binding table
-    */
+    /* Get strided device addresses for the shader binding tables where the shader group handles are stored. TODO get this out of the render function */
     const uint32_t handleSizeAligned = alignedSize(m_rayTracingPipelineProperties.shaderGroupHandleSize, m_rayTracingPipelineProperties.shaderGroupHandleAlignment);
     VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
     raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayGenBuffer);
@@ -953,15 +988,15 @@ void VulkanRayTracingRenderer::render()
     hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayCHitBuffer);
     hitShaderSbtEntry.stride = handleSizeAligned;
     hitShaderSbtEntry.size = handleSizeAligned;
-    
+    /* No callable shader binding tables */
     VkStridedDeviceAddressRegionKHR emptySbtEntry{};
+    
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
+    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, 0);
     
     /*
         Dispatch the ray tracing commands
     */
-    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
-    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, 0);
-    
     m_devF.vkCmdTraceRaysKHR(
         cmdBuf,
         &raygenShaderSbtEntry,
@@ -972,7 +1007,7 @@ void VulkanRayTracingRenderer::render()
         m_height,
         1);
     
-    /* Transition render result to transfer source optimal */
+    /* Transition output render result to transfer source optimal */
     transitionImageLayout(cmdBuf, m_renderResult.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subresourceRange);
     
     /* Copy render result to temp image */
@@ -989,8 +1024,9 @@ void VulkanRayTracingRenderer::render()
 
     endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf);
 
-    /* Store result to the disk */
-    /* Copy ray tracing output to cpu */
+    /* Store result from temp image to the disk */
+    /* format assumed to be RGBA FLOAT */
+    std::vector<float>imageDataFloat(m_width * m_height * 4);
     float* input;
     VkResult res = vkMapMemory(
         m_device,
@@ -1000,13 +1036,12 @@ void VulkanRayTracingRenderer::render()
         0,
         reinterpret_cast<void**>(&input));
 
-    /* format assumed to be RGBA FLOAT */
-    std::vector<float>imageDataFloat(m_width * m_height * 4);
     memcpy(imageDataFloat.data(), input, m_width * m_height * 4 * sizeof(float));
     vkUnmapMemory(m_device, m_tempImage.memory);
+
     stbi_write_hdr("test.hdr", m_width, m_height, 4, imageDataFloat.data());
 
-    /* TODO exposure */
+    /* TODO apply exposure */
     std::vector<unsigned char> imageDataInt(m_width * m_height * 4, 255);
     for (size_t i = 0; i < m_width * m_height * 4; i++)
     {

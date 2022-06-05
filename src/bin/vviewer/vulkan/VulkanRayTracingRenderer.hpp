@@ -43,6 +43,7 @@ private:
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR  m_rayTracingPipelineProperties{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures{};
 
+    /* Logical device data */
     VkDevice m_device{};
     uint32_t m_queueFamilyIndex{};
     VkQueue m_queue{};
@@ -67,7 +68,6 @@ private:
     /* Image result data */
     VkFormat m_format;
     uint32_t m_width, m_height;
-
     struct StorageImage
     {
         VkDeviceMemory memory;
@@ -77,7 +77,7 @@ private:
     };
     StorageImage m_renderResult, m_tempImage;
 
-    /* Objects description data */
+    /* Objects description data for meshes in the scene */
     struct ObjectDescription
     {
         uint64_t vertexAddress;
@@ -86,9 +86,9 @@ private:
     std::vector<ObjectDescription> m_sceneObjects;
 
     /* Descriptor sets */
-    VkBuffer m_uniformBufferScene;
+    VkBuffer m_uniformBufferScene;  /* Holds scene data */
     VkDeviceMemory m_uniformBufferSceneMemory;
-    VkBuffer m_uniformBufferObjectDescription;
+    VkBuffer m_uniformBufferObjectDescription;  /* Holds references to scene objects */
     VkDeviceMemory m_uniformBufferObjectDescrptionMemory;
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSet m_descriptorSet;
@@ -116,8 +116,10 @@ private:
     AccelerationStructure createTopLevelAccelerationStructure();
     void destroyAccellerationStructures();
 
+    /* Create render target image */
     void createStorageImage();
 
+    /* Create uniform buffers for RT */
     void createUniformBuffers();
     void updateUniformBuffers(const SceneData& sceneData);
 

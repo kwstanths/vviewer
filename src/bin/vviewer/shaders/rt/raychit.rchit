@@ -10,10 +10,11 @@
 
 hitAttributeEXT vec2 attribs;
 
+/* Ray payload */
 layout(location = 0) rayPayloadInEXT vec3 hitValue;
-layout(location = 2) rayPayloadEXT bool shadowed;
+layout(location = 1) rayPayloadEXT bool shadowed;
 
-/* Vertex data stored per vertex */
+/* Type for vertex data stored per vertex in geometry buffers */
 struct Vertex
 {
     vec3 position;
@@ -23,10 +24,19 @@ struct Vertex
     vec3 tangent;
     vec3 bitangent;
 };
-/* Array of vertices and indices of the hit object */
+
+/* Types for the arrays of vertices and indices of the currently hit object */
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {u16vec3 i[]; };
 
+/* Type for the object description geonetry of a mesh in the scene */
+struct ObjDesc
+{
+	uint64_t vertexAddress;
+	uint64_t indexAddress;
+};
+
+/* Descriptors */
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
 layout(binding = 2, set = 0) uniform SceneData 
 {
@@ -38,14 +48,7 @@ layout(binding = 2, set = 0) uniform SceneData
     vec4 directionalLightColor;
     vec4 exposure;
 } sceneData;
-
-/* Stores the address of the vertices and indices buffers of an object */
-struct ObjDesc
-{
-	uint64_t vertexAddress;
-	uint64_t indexAddress;
-};
-/* An array of objects in the scene */
+/* Buffer with array of object description addresses */
 layout(binding = 3, set = 0, scalar) buffer ObjDesc_ 
 { 
 	ObjDesc i[]; 
@@ -53,12 +56,12 @@ layout(binding = 3, set = 0, scalar) buffer ObjDesc_
 
 void main()
 {
-	/* Get the hit object, its vertices and its indices */
+	/* Get the hit object geometry , its vertices and its indices buffers */
 	ObjDesc objResource = objDesc.i[gl_InstanceCustomIndexEXT];
 	Indices indices = Indices(objResource.indexAddress);
 	Vertices vertices = Vertices(objResource.vertexAddress);
 
-	/* Get triangle info */
+	/* Get hit triangle info */
 	u16vec3 ind = indices.i[gl_PrimitiveID];
 	Vertex v0 = vertices.v[ind.x];
 	Vertex v1 = vertices.v[ind.y];
@@ -69,21 +72,22 @@ void main()
 	
 	/* Compute the coordinates of the hit position */
 	const vec3 position      = v0.position * barycentricCoords.x + v1.position * barycentricCoords.y + v2.position * barycentricCoords.z;
-	const vec3 worldPos = vec3(gl_ObjectToWorldEXT * vec4(position, 1.0));  // Transforming the position to world space
+	const vec3 worldPos = vec3(gl_ObjectToWorldEXT * vec4(position, 1.0));
 	
 	/* Compute the normal at hit position */
 	const vec3 normal      = v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z;
-	const vec3 worldNormal = normalize(vec3(normal * gl_WorldToObjectEXT));  // Transforming the normal to world space
+	const vec3 worldNormal = normalize(vec3(normal * gl_WorldToObjectEXT));
 	
+	/* Just store whatever to hitvalue */
 	hitValue = clamp(vec3(dot(worldNormal, -sceneData.directionalLightDir.xyz)), 0, 1);
 	
-	/* Send shadow ray shadow ray */
+	/* Send shadow ray*/
 	float tmin = 0.001;
 	float tmax = 10000.0;
 	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
-	shadowed = true;  
-	// Trace shadow ray and offset indices to match shadow hit/miss shader group indices
-	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 1, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 2);
+	shadowed = true;
+	/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
+	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 1, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 1);
 	if (shadowed) {
 		hitValue *= 0.3;
 	}
