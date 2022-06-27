@@ -24,7 +24,8 @@
 #include "VulkanSceneObject.hpp"
 #include "VulkanMaterials.hpp"
 #include "VulkanTexture.hpp"
-#include "VulkanRendererPBR.hpp"
+#include "VulkanRendererPBRStandard.hpp"
+#include "VulkanRendererLambert.hpp"
 #include "VulkanRendererSkybox.hpp"
 #include "VulkanRayTracingRenderer.hpp"
 
@@ -50,10 +51,7 @@ public:
     Texture* createTextureHDR(std::string imagePath);
     Cubemap* createCubemap(std::string directory);
     EnvironmentMap* createEnvironmentMap(std::string imagePath, bool keepHDRTex = false);
-    Material* createMaterial(std::string name,
-        glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
-        bool createDescriptors = true
-    );
+    Material* createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
     void renderRT();
 
@@ -97,8 +95,9 @@ private:
     VkPhysicalDeviceProperties m_physicalDeviceProperties;
 
     /* Renderers */
-    VkRenderPass m_renderPass;
+    VkRenderPass m_renderPassForward;
     VulkanRendererPBR m_rendererPBR;
+    VulkanRendererLambert m_rendererLambert;
     VulkanRendererSkybox m_rendererSkybox;
     VulkanRayTracingRenderer m_rendererRayTracing;
 
@@ -111,6 +110,10 @@ private:
     VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet> m_descriptorSetsScene;
     std::vector<VkDescriptorSet> m_descriptorSetsModel;
+
+    /* Dynamic uniform buffer object to hold material data, and current index */
+    VulkanDynamicUBO<MaterialData> m_materialsUBO;
+    size_t m_materialsIndexUBO = 0;
 
     glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
 };

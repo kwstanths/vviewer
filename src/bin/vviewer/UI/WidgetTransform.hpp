@@ -12,7 +12,7 @@ class WidgetTransform : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sceneNode);
+    WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sceneNode, QString groupBoxName = "Transform:");
 
     Transform getTransform() const;
 

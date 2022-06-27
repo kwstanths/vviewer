@@ -17,17 +17,20 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
     return m_descirptorsNeedUpdate[index];
 }
 
-VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
+VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     glm::vec4 albedo,
     float metallic, 
     float roughness, 
     float ao, 
     float emissive,
     VkDevice device,
-    VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, 
+    VkDescriptorSetLayout descriptorLayout,
+    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
     uint32_t materialsUBOBlock)
-    : VulkanMaterialStorage<MaterialPBRData>(materialsDynamicUBO, materialsUBOBlock), MaterialPBR(name)
+    : VulkanMaterialStorage<MaterialData>(materialsDynamicUBO, materialsUBOBlock), MaterialPBRStandard(name)
 {
+    m_descriptorSetLayout = descriptorLayout;
+
     getAlbedo() = albedo;
     getMetallic() = metallic;
     getRoughness() = roughness;
@@ -58,73 +61,73 @@ VulkanMaterialPBR::VulkanMaterialPBR(std::string name,
     m_BRDFLUT = static_cast<VulkanTexture*>(instance.Get("PBR_BRDF_LUT"));
 }
 
-glm::vec4 & VulkanMaterialPBR::getAlbedo()
+glm::vec4 & VulkanMaterialPBRStandard::getAlbedo()
 {
     return m_data->albedo;
 }
 
-float & VulkanMaterialPBR::getMetallic()
+float & VulkanMaterialPBRStandard::getMetallic()
 {
     return m_data->metallicRoughnessAOEmissive.r;
 }
 
-float & VulkanMaterialPBR::getRoughness()
+float & VulkanMaterialPBRStandard::getRoughness()
 {
     return m_data->metallicRoughnessAOEmissive.g;
 }
 
-float & VulkanMaterialPBR::getAO()
+float & VulkanMaterialPBRStandard::getAO()
 {
     return m_data->metallicRoughnessAOEmissive.b;
 }
 
-float & VulkanMaterialPBR::getEmissive()
+float & VulkanMaterialPBRStandard::getEmissive()
 {
     return m_data->metallicRoughnessAOEmissive.a;
 }
 
-void VulkanMaterialPBR::setAlbedoTexture(Texture * texture)
+void VulkanMaterialPBRStandard::setAlbedoTexture(Texture * texture)
 {
-    MaterialPBR::setAlbedoTexture(texture);
+    MaterialPBRStandard::setAlbedoTexture(texture);
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-void VulkanMaterialPBR::setMetallicTexture(Texture * texture)
+void VulkanMaterialPBRStandard::setMetallicTexture(Texture * texture)
 {
-    MaterialPBR::setMetallicTexture(texture);
+    MaterialPBRStandard::setMetallicTexture(texture);
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-void VulkanMaterialPBR::setRoughnessTexture(Texture * texture)
+void VulkanMaterialPBRStandard::setRoughnessTexture(Texture * texture)
 {
-    MaterialPBR::setRoughnessTexture(texture);
+    MaterialPBRStandard::setRoughnessTexture(texture);
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-void VulkanMaterialPBR::setAOTexture(Texture * texture)
+void VulkanMaterialPBRStandard::setAOTexture(Texture * texture)
 {
-    MaterialPBR::setAOTexture(texture);
+    MaterialPBRStandard::setAOTexture(texture);
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-void VulkanMaterialPBR::setEmissiveTexture(Texture * texture)
+void VulkanMaterialPBRStandard::setEmissiveTexture(Texture * texture)
 {
-    MaterialPBR::setEmissiveTexture(texture);
+    MaterialPBRStandard::setEmissiveTexture(texture);
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-void VulkanMaterialPBR::setNormalTexture(Texture * texture)
+void VulkanMaterialPBRStandard::setNormalTexture(Texture * texture)
 {
-    MaterialPBR::setNormalTexture(texture);
+    MaterialPBRStandard::setNormalTexture(texture);
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-bool VulkanMaterialPBR::createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images)
+bool VulkanMaterialPBRStandard::createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images)
 {
     m_descriptorSets.resize(images);
     m_descirptorsNeedUpdate.resize(images, false);
 
-    std::vector<VkDescriptorSetLayout> layouts(images, layout);
+    std::vector<VkDescriptorSetLayout> layouts(images, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = pool;
@@ -137,7 +140,7 @@ bool VulkanMaterialPBR::createDescriptors(VkDevice device, VkDescriptorSetLayout
     return true;
 }
 
-bool VulkanMaterialPBR::updateDescriptorSets(VkDevice device, size_t images)
+bool VulkanMaterialPBRStandard::updateDescriptorSets(VkDevice device, size_t images)
 {
     /* Write descriptor sets */
     for (size_t i = 0; i < images; i++) {
@@ -146,7 +149,7 @@ bool VulkanMaterialPBR::updateDescriptorSets(VkDevice device, size_t images)
     return true;
 }
 
-bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
+bool VulkanMaterialPBRStandard::updateDescriptorSet(VkDevice device, size_t index)
 {
     VkDescriptorBufferInfo bufferInfoMaterial{};
     bufferInfoMaterial.buffer = m_materialsDataStorage.getBuffer(index);
@@ -202,8 +205,161 @@ bool VulkanMaterialPBR::updateDescriptorSet(VkDevice device, size_t index)
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, EnvironmentMap * envMap, VkDevice device) : MaterialSkybox(name)
+
+VulkanMaterialLambert::VulkanMaterialLambert(std::string name, 
+    glm::vec4 albedo, 
+    float ao, 
+    float emissive, 
+    VkDevice device, 
+    VkDescriptorSetLayout descriptorLayout,
+    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO, 
+    uint32_t materialsUBOBlock)
+    :VulkanMaterialStorage<MaterialData>(materialsDynamicUBO, materialsUBOBlock), MaterialLambert(name)
 {
+    m_descriptorSetLayout = descriptorLayout;
+
+    getAlbedo() = albedo;
+    getAO() = ao;
+    getEmissive() = emissive;
+
+    AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
+    if (!instance.isPresent("white")) {
+        throw std::runtime_error("White texture not present");
+    }
+    if (!instance.isPresent("normalmapdefault")) {
+        throw std::runtime_error("Normal default texture not present");
+    }
+
+    Texture* white = instance.Get("white");
+    Texture* normalmap = instance.Get("normalmapdefault");
+
+    setAlbedoTexture(white);
+    setAOTexture(white);
+    setEmissiveTexture(white);
+    setNormalTexture(normalmap);
+}
+
+glm::vec4& VulkanMaterialLambert::getAlbedo()
+{
+    return m_data->albedo;
+}
+
+float& VulkanMaterialLambert::getAO()
+{
+    return m_data->metallicRoughnessAOEmissive.b;
+}
+
+float& VulkanMaterialLambert::getEmissive()
+{
+    return m_data->metallicRoughnessAOEmissive.a;
+}
+
+void VulkanMaterialLambert::setAlbedoTexture(Texture* texture)
+{
+    MaterialLambert::setAlbedoTexture(texture);
+    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+}
+
+void VulkanMaterialLambert::setAOTexture(Texture* texture)
+{
+    MaterialLambert::setAOTexture(texture);
+    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+}
+
+void VulkanMaterialLambert::setEmissiveTexture(Texture* texture)
+{
+    MaterialLambert::setEmissiveTexture(texture);
+    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+}
+
+void VulkanMaterialLambert::setNormalTexture(Texture* texture)
+{
+    MaterialLambert::setNormalTexture(texture);
+    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+}
+
+bool VulkanMaterialLambert::createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images)
+{
+    m_descriptorSets.resize(images);
+    m_descirptorsNeedUpdate.resize(images, false);
+
+    std::vector<VkDescriptorSetLayout> layouts(images, m_descriptorSetLayout);
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = pool;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(images);
+    allocInfo.pSetLayouts = layouts.data();
+    if (vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+        utils::ConsoleCritical("Failed to allocate PBR material descriptor sets");
+        return false;
+    }
+    return true;
+}
+
+bool VulkanMaterialLambert::updateDescriptorSets(VkDevice device, size_t images)
+{
+    /* Write descriptor sets */
+    for (size_t i = 0; i < images; i++) {
+        updateDescriptorSet(device, i);
+    }
+    return true;
+}
+
+bool VulkanMaterialLambert::updateDescriptorSet(VkDevice device, size_t index)
+{
+    VkDescriptorBufferInfo bufferInfoMaterial{};
+    bufferInfoMaterial.buffer = m_materialsDataStorage.getBuffer(index);
+    bufferInfoMaterial.offset = 0;
+    bufferInfoMaterial.range = m_materialsDataStorage.getBlockSizeAligned();
+    VkWriteDescriptorSet descriptorWriteMaterial{};
+    descriptorWriteMaterial.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWriteMaterial.dstSet = m_descriptorSets[index];
+    descriptorWriteMaterial.dstBinding = 0;
+    descriptorWriteMaterial.dstArrayElement = 0;
+    descriptorWriteMaterial.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    descriptorWriteMaterial.descriptorCount = 1;
+    descriptorWriteMaterial.pBufferInfo = &bufferInfoMaterial;
+    descriptorWriteMaterial.pImageInfo = nullptr; // Optional
+    descriptorWriteMaterial.pTexelBufferView = nullptr; // Optional
+
+    VkDescriptorImageInfo  texInfo[4];
+    for (size_t t = 0; t < 4; t++) {
+        texInfo[t] = VkDescriptorImageInfo();
+        texInfo[t].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+    texInfo[0].imageView = static_cast<VulkanTexture*>(m_albedoTexture)->getImageView();
+    texInfo[0].sampler = static_cast<VulkanTexture*>(m_albedoTexture)->getSampler();
+    texInfo[1].imageView = static_cast<VulkanTexture*>(m_aoTexture)->getImageView();
+    texInfo[1].sampler = static_cast<VulkanTexture*>(m_aoTexture)->getSampler();
+    texInfo[2].imageView = static_cast<VulkanTexture*>(m_emissiveTexture)->getImageView();
+    texInfo[2].sampler = static_cast<VulkanTexture*>(m_emissiveTexture)->getSampler();
+    texInfo[3].imageView = static_cast<VulkanTexture*>(m_normalTexture)->getImageView();
+    texInfo[3].sampler = static_cast<VulkanTexture*>(m_normalTexture)->getSampler();
+
+    VkWriteDescriptorSet descriptorWriteTextures{};
+    descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWriteTextures.dstSet = m_descriptorSets[index];
+    descriptorWriteTextures.dstBinding = 1;
+    descriptorWriteTextures.dstArrayElement = 0;
+    descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWriteTextures.descriptorCount = 4;
+    descriptorWriteTextures.pImageInfo = texInfo;
+
+    std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteMaterial, descriptorWriteTextures };
+    vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
+
+    m_descirptorsNeedUpdate[index] = false;
+
+    return true;
+}
+
+/* ------------------------------------------------------------------------------------------------------------------- */
+
+VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, EnvironmentMap* envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout) 
+    : MaterialSkybox(name)
+{
+    m_descriptorSetLayout = descriptorLayout;
+
     m_envMap = envMap;
 }
 
@@ -213,13 +369,13 @@ void VulkanMaterialSkybox::setMap(EnvironmentMap* envMap)
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-bool VulkanMaterialSkybox::createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images)
+bool VulkanMaterialSkybox::createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images)
 {
     /* Create descriptor sets */
     m_descriptorSets.resize(images);
     m_descirptorsNeedUpdate.resize(images, false);
 
-    std::vector<VkDescriptorSetLayout> layouts(images, layout);
+    std::vector<VkDescriptorSetLayout> layouts(images, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = pool;
@@ -282,10 +438,9 @@ bool VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
     descriptorWritePrefiltered.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWritePrefiltered.descriptorCount = 1;
     descriptorWritePrefiltered.pImageInfo = &prefilteredMapInfo;
-    
-    std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteSkybox, descriptorWriteIrradiance, descriptorWritePrefiltered};
+
+    std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteSkybox, descriptorWriteIrradiance, descriptorWritePrefiltered };
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 
     return true;
 }
-

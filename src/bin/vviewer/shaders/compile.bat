@@ -1,15 +1,16 @@
 set glslcLocation=C:\Users\konstantinos\Documents\LIBS\VulkanSDK\1.3.204.1\Bin\glslc.exe
 
-%glslcLocation% pbr.vert -o SPIRV/pbrVert.spv
+%glslcLocation% standard.vert -o SPIRV/standardVert.spv
 %glslcLocation% pbr.frag -o SPIRV/pbrFrag.spv
+%glslcLocation% lambert.frag -o SPIRV/lambertFrag.spv
 
-%glslcLocation% skybox.vert -o SPIRV/skyboxVert.spv
-%glslcLocation% skybox.frag -o SPIRV/skyboxFrag.spv
+%glslcLocation% skybox/skybox.vert -o SPIRV/skyboxVert.spv
+%glslcLocation% skybox/skybox.frag -o SPIRV/skyboxFrag.spv
+%glslcLocation% skybox/skyboxFilterCube.vert -o SPIRV/skyboxFilterCubeVert.spv
+%glslcLocation% skybox/skyboxCubemapWrite.frag -o SPIRV/skyboxCubemapWriteFrag.spv
+%glslcLocation% skybox/skyboxCubemapIrradiance.frag -o SPIRV/skyboxCubemapIrradianceFrag.spv
+%glslcLocation% skybox/skyboxCubemapPrefilteredMap.frag -o SPIRV/skyboxCubemapPrefilteredMapFrag.spv
 
-%glslcLocation% skyboxFilterCube.vert -o SPIRV/skyboxFilterCubeVert.spv
-%glslcLocation% skyboxCubemapWrite.frag -o SPIRV/skyboxCubemapWriteFrag.spv
-%glslcLocation% skyboxCubemapIrradiance.frag -o SPIRV/skyboxCubemapIrradianceFrag.spv
-%glslcLocation% skyboxCubemapPrefilteredMap.frag -o SPIRV/skyboxCubemapPrefilteredMapFrag.spv
 %glslcLocation% quad.vert -o SPIRV/quadVert.spv
 %glslcLocation% genBRDFLUT.frag -o SPIRV/genBRDFLUTFrag.spv
 

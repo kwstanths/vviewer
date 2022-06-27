@@ -89,7 +89,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
 void VulkanWindow::onUpdateCamera()
 {
     /* FPS style camera movement */
-    float cameraDefaultSpeed = 0.1f;
+    float cameraDefaultSpeed = 0.05f;
     float cameraFastSpeed = 0.3f;
 
     float speed = cameraDefaultSpeed;

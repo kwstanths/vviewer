@@ -7,7 +7,7 @@ struct ModelData {
     glm::mat4 m_modelMatrix;
 };
 
-struct MaterialPBRData {
+struct MaterialData {
     glm::vec4 albedo;
     glm::vec4 metallicRoughnessAOEmissive;
 };

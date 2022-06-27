@@ -48,8 +48,10 @@ void VulkanRenderer::initResources()
 
     m_functions->vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
     
-    /* Initialize dynamic uniform buffers, max 100 items */
+    /* Initialize dynamic uniform buffers for model matrix data, max 100 items */
     m_scene->m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
+    /* Initialize dynamic uniform buffers for material data, max 100 items */
+    m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
 
     /* Create descriptor set layouts for scene and model data */
     createDescriptorSetsLayouts();
@@ -73,27 +75,45 @@ void VulkanRenderer::initResources()
         m_descriptorSetLayoutScene, 
         m_descriptorSetLayoutModel, 
         m_rendererSkybox.getDescriptorSetLayout());
+    m_rendererLambert.initResources(m_physicalDevice,
+        m_device,
+        m_window->graphicsQueue(),
+        m_window->graphicsCommandPool(),
+        m_physicalDeviceProperties,
+        m_descriptorSetLayoutScene,
+        m_descriptorSetLayoutModel,
+        m_rendererSkybox.getDescriptorSetLayout());
     m_rendererRayTracing.initResources(m_physicalDevice, VK_FORMAT_R32G32B32A32_SFLOAT, 1024u, 1024u);
 
-    MaterialPBR * defaultMaterial = static_cast<MaterialPBR *>(createMaterial("defaultMaterial", glm::vec4(0.5, 0.5, 0.5, 1), 0.5, .5, 1.0, 0.0f, false));
+    MaterialPBRStandard * defaultMaterial = static_cast<MaterialPBRStandard *>(createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD, false));
+    defaultMaterial->getAlbedo() = glm::vec4(0.5, 0.5, 0.5, 1);
+    defaultMaterial->getMetallic() = 0.5;
+    defaultMaterial->getRoughness() = 0.5;
+    defaultMaterial->getAO() = 1.0f;
+    defaultMaterial->getEmissive() = 0.0f;
+
+    MaterialLambert* lambertMaterial = static_cast<MaterialLambert*>(createMaterial("test", MaterialType::MATERIAL_LAMBERT, false));
+    lambertMaterial->getAlbedo() = glm::vec4(1, 0, 0, 1);
 
     createVulkanMeshModel("assets/models/uvsphere.obj");
     createVulkanMeshModel("assets/models/plane.obj");
     createVulkanMeshModel("assets/models/rtscene.obj");
+    createVulkanMeshModel("assets/models/teapot.obj");
 
+    /* Create a skybox material */
     {
-        EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/ennis.hdr");
-        VulkanMaterialSkybox * skybox = new VulkanMaterialSkybox("skybox", envMap, m_device);
+        EnvironmentMap * envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
+        VulkanMaterialSkybox* skybox = new VulkanMaterialSkybox("skybox", envMap, m_device, m_rendererSkybox.getDescriptorSetLayout());
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
         instance.Add(skybox->m_name, skybox);
         m_scene->setSkybox(skybox);
     }
 
-    defaultMaterial->getAO() = 0.0f;
-    m_scene->addSceneObject("assets/models/rtscene.obj", Transform(), "defaultMaterial");
+    m_scene->addSceneObject("assets/models/uvsphere.obj", Transform(), "defaultMaterial");
+    m_scene->addSceneObject("assets/models/uvsphere.obj", Transform({2, 0, 0}), "test");
 
-    m_scene->updateSceneGraph();
-    m_rendererRayTracing.renderScene(m_scene);
+    //m_scene->updateSceneGraph();
+    //m_rendererRayTracing.renderScene(m_scene);
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -109,15 +129,16 @@ void VulkanRenderer::initSwapChainResources()
     createUniformBuffers();
     createDescriptorPool(100);
     createDescriptorSets();
-    m_rendererSkybox.initSwapChainResources(m_swapchainExtent, m_renderPass);
-    m_rendererPBR.initSwapChainResources(m_swapchainExtent, m_renderPass, m_window->swapChainImageCount());
+    m_rendererSkybox.initSwapChainResources(m_swapchainExtent, m_renderPassForward);
+    m_rendererPBR.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
+    m_rendererLambert.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
 
     /* Update descriptor sets */
     {
         AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(itr->second);
-            material->createDescriptors(m_device, m_rendererPBR.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
+            VulkanMaterialDescriptor* material = dynamic_cast<VulkanMaterialDescriptor*>(itr->second);
+            material->createDescriptors(m_device, m_descriptorPool, m_window->swapChainImageCount());
             material->updateDescriptorSets(m_device, m_window->swapChainImageCount());
         }
     }
@@ -125,7 +146,7 @@ void VulkanRenderer::initSwapChainResources()
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             VulkanMaterialSkybox* material = static_cast<VulkanMaterialSkybox*>(itr->second);
-            material->createDescriptors(m_device, m_rendererSkybox.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
+            material->createDescriptors(m_device, m_descriptorPool, m_window->swapChainImageCount());
             material->updateDescriptorSets(m_device, m_window->swapChainImageCount());
         }
     }
@@ -133,12 +154,16 @@ void VulkanRenderer::initSwapChainResources()
 
 void VulkanRenderer::releaseSwapChainResources()
 {
+    /* Destroy uniform buffers */
     for (int i = 0; i < m_window->swapChainImageCount(); i++) {
         m_devFunctions->vkDestroyBuffer(m_device, m_scene->m_uniformBuffersScene[i], nullptr);
         m_devFunctions->vkFreeMemory(m_device, m_scene->m_uniformBuffersSceneMemory[i], nullptr);
 
         m_devFunctions->vkDestroyBuffer(m_device, m_scene->m_modelDataDynamicUBO.getBuffer(i), nullptr);
         m_devFunctions->vkFreeMemory(m_device, m_scene->m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
+
+        m_devFunctions->vkDestroyBuffer(m_device, m_materialsUBO.getBuffer(i), nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_materialsUBO.getBufferMemory(i), nullptr);
     }
 
     m_devFunctions->vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
@@ -149,14 +174,17 @@ void VulkanRenderer::releaseSwapChainResources()
 
     m_rendererSkybox.releaseSwapChainResources();
     m_rendererPBR.releaseSwapChainResources();
+    m_rendererLambert.releaseSwapChainResources();
     m_rendererRayTracing.releaseSwapChainResources();
 
-    m_devFunctions->vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+    m_devFunctions->vkDestroyRenderPass(m_device, m_renderPassForward, nullptr);
+
 }
 
 void VulkanRenderer::releaseResources()
 {
     m_scene->m_modelDataDynamicUBO.destroyCPUMemory();
+    m_materialsUBO.destroyCPUMemory();
 
     /* Destroy texture data */
     {
@@ -175,9 +203,6 @@ void VulkanRenderer::releaseResources()
     /* Destroy material data */
     {
         AssetManager<std::string, Material*>& instance = AssetManager<std::string, Material*>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            VulkanMaterialPBR * material = static_cast<VulkanMaterialPBR *>(itr->second);
-        }
         instance.Reset();
     }
 
@@ -199,6 +224,7 @@ void VulkanRenderer::releaseResources()
     m_devFunctions->vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutModel, nullptr);
     m_rendererSkybox.releaseResources();
     m_rendererPBR.releaseResources();
+    m_rendererLambert.releaseResources();
     m_rendererRayTracing.releaseResources();
 
     /* Destroy imported models */
@@ -233,7 +259,7 @@ void VulkanRenderer::startNextFrame()
     VkRenderPassBeginInfo rpBeginInfo;
     memset(&rpBeginInfo, 0, sizeof(rpBeginInfo));
     rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    rpBeginInfo.renderPass = m_renderPass;
+    rpBeginInfo.renderPass = m_renderPassForward;
     rpBeginInfo.framebuffer = m_swapChainFramebuffers[imageIndex];
     rpBeginInfo.renderArea.offset = { 0, 0 };
     rpBeginInfo.renderArea.extent.width = m_swapchainExtent.width;
@@ -248,6 +274,26 @@ void VulkanRenderer::startNextFrame()
     assert(skybox != nullptr);
     m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsScene[imageIndex], imageIndex, skybox);
 
+    /* Batch objects into materials */
+    std::vector<std::shared_ptr<SceneObject>> pbrStandardObjects;
+    std::vector<std::shared_ptr<SceneObject>> lambertObjects;
+    for (auto& itr : sceneObjects)
+    {
+        if (itr->getMaterial() == nullptr) continue;
+
+        switch (itr->getMaterial()->getType())
+        {
+        case MaterialType::MATERIAL_PBR_STANDARD:
+            pbrStandardObjects.push_back(itr);
+            break;
+        case MaterialType::MATERIAL_LAMBERT:
+            lambertObjects.push_back(itr);
+            break;
+        default:
+            break;
+        }
+    }
+
     /* Draw PBR material objects */
     m_rendererPBR.renderObjects(cmdBuf, 
         m_descriptorSetsScene[imageIndex],
@@ -255,7 +301,16 @@ void VulkanRenderer::startNextFrame()
         skybox,
         imageIndex, 
         m_scene->m_modelDataDynamicUBO,
-        sceneObjects);
+        pbrStandardObjects);
+
+    /* Draw lambert material objects */
+    m_rendererLambert.renderObjects(cmdBuf,
+        m_descriptorSetsScene[imageIndex],
+        m_descriptorSetsModel[imageIndex],
+        skybox,
+        imageIndex,
+        m_scene->m_modelDataDynamicUBO,
+        lambertObjects);
 
     m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     
@@ -287,22 +342,41 @@ VulkanScene* VulkanRenderer::getActiveScene() const
     return m_scene;
 }
 
-Material * VulkanRenderer::createMaterial(std::string name, 
-    glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
-    bool createDescriptors)
+Material * VulkanRenderer::createMaterial(std::string name, MaterialType type, bool createDescriptors)
 {
     AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
-    if (instance.isPresent(name)) return nullptr;
+    if (instance.isPresent(name)) {
+        utils::ConsoleWarning("Material name already present");
+        return nullptr;
+    }
     
-    VulkanMaterialPBR* temp = m_rendererPBR.createMaterial(name, albedo, metallic, roughness, ao, emissive);
+    Material* temp = nullptr;
+    switch (type)
+    {
+    case MaterialType::MATERIAL_PBR_STANDARD:
+    {
+        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 1, 1, 0, m_materialsUBO, m_materialsIndexUBO++);
+        break;
+    }
+    case MaterialType::MATERIAL_LAMBERT:
+    {
+        temp = m_rendererLambert.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 0, m_materialsUBO, m_materialsIndexUBO++);
+        break;
+    }
+    default:
+    {
+        throw std::runtime_error("Material type not present");
+        break;
+    }
+    }
 
     if (createDescriptors) {
-        temp->createDescriptors(m_device, m_rendererPBR.getDescriptorSetLayout(), m_descriptorPool, m_window->swapChainImageCount());
-        temp->updateDescriptorSets(m_device, m_window->swapChainImageCount());
+        VulkanMaterialDescriptor* matdesc = dynamic_cast<VulkanMaterialDescriptor*>(temp);
+        matdesc->createDescriptors(m_device, m_descriptorPool, m_window->swapChainImageCount());
+        matdesc->updateDescriptorSets(m_device, m_window->swapChainImageCount());
     }
 
     instance.Add(temp->m_name, temp);
-
     return temp;
 }
 
@@ -582,7 +656,7 @@ bool VulkanRenderer::createRenderPass()
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (m_devFunctions->vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+    if (m_devFunctions->vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPassForward) != VK_SUCCESS) {
         utils::ConsoleFatal("Failed to create a render pass");
         return false;
     }
@@ -602,7 +676,7 @@ bool VulkanRenderer::createFrameBuffers()
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_renderPass;
+        framebufferInfo.renderPass = m_renderPassForward;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
         framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = m_swapchainExtent.width;
@@ -681,6 +755,7 @@ bool VulkanRenderer::createUniformBuffers()
     }
 
     m_scene->m_modelDataDynamicUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
+    m_materialsUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
 
     return true;
 }
@@ -690,7 +765,12 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
     /* Flush scene data changes to GPU */
     m_scene->updateBuffers(m_device, index);
     /* Flush material data changes to GPU */
-    m_rendererPBR.updateMaterialBuffers(index);
+    {
+        void* data;
+        m_devFunctions->vkMapMemory(m_device, m_materialsUBO.getBufferMemory(index), 0, m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks(), 0, &data);
+        memcpy(data, m_materialsUBO.getBlock(0), m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks());
+        m_devFunctions->vkUnmapMemory(m_device, m_materialsUBO.getBufferMemory(index));
+    }
 
     return true;
 }

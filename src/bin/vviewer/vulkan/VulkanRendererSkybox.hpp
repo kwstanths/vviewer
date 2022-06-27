@@ -59,7 +59,7 @@ private:
     VkPipeline m_graphicsPipeline;
     VkRenderPass m_renderPass;
     bool createGraphicsPipeline();
-    bool createDescriptorSetsLayouts();
+    bool createDescriptorSetsLayout();
 
     VulkanCube * m_cube;
 };

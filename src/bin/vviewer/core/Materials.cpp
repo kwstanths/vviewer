@@ -1,61 +1,101 @@
 #include "Materials.hpp"
 
-void MaterialPBR::setAlbedoTexture(Texture * texture)
+void MaterialPBRStandard::setAlbedoTexture(Texture * texture)
 {
     m_albedoTexture = texture;
 }
 
-void MaterialPBR::setMetallicTexture(Texture * texture)
+void MaterialPBRStandard::setMetallicTexture(Texture * texture)
 {
     m_metallicTexture = texture;
 }
 
-void MaterialPBR::setRoughnessTexture(Texture * texture)
+void MaterialPBRStandard::setRoughnessTexture(Texture * texture)
 {
     m_roughnessTexture = texture;
 }
 
-void MaterialPBR::setAOTexture(Texture * texture)
+void MaterialPBRStandard::setAOTexture(Texture * texture)
 {
     m_aoTexture = texture;
 }
 
-void MaterialPBR::setEmissiveTexture(Texture * texture)
+void MaterialPBRStandard::setEmissiveTexture(Texture * texture)
 {
     m_emissiveTexture = texture;
 }
 
-void MaterialPBR::setNormalTexture(Texture * texture)
+void MaterialPBRStandard::setNormalTexture(Texture * texture)
 {
     m_normalTexture = texture;
 }
 
-Texture * MaterialPBR::getAlbedoTexture() const
+Texture * MaterialPBRStandard::getAlbedoTexture() const
 {
     return m_albedoTexture;
 }
 
-Texture * MaterialPBR::getMetallicTexture() const
+Texture * MaterialPBRStandard::getMetallicTexture() const
 {
     return m_metallicTexture;
 }
 
-Texture * MaterialPBR::getRoughnessTexture() const
+Texture * MaterialPBRStandard::getRoughnessTexture() const
 {
     return m_roughnessTexture;
 }
 
-Texture * MaterialPBR::getAOTexture() const
+Texture * MaterialPBRStandard::getAOTexture() const
 {
     return m_aoTexture;
 }
 
-Texture * MaterialPBR::getEmissiveTexture() const
+Texture * MaterialPBRStandard::getEmissiveTexture() const
 {
     return m_emissiveTexture;
 }
 
-Texture * MaterialPBR::getNormalTexture() const
+Texture * MaterialPBRStandard::getNormalTexture() const
+{
+    return m_normalTexture;
+}
+
+void MaterialLambert::setAlbedoTexture(Texture* texture)
+{
+    m_albedoTexture = texture;
+}
+
+void MaterialLambert::setAOTexture(Texture* texture)
+{
+    m_aoTexture = texture;
+}
+
+void MaterialLambert::setEmissiveTexture(Texture* texture)
+{
+    m_emissiveTexture = texture;
+}
+
+void MaterialLambert::setNormalTexture(Texture* texture)
+{
+    m_normalTexture = texture;
+}
+
+Texture* MaterialLambert::getAlbedoTexture() const
+{
+    return m_albedoTexture;
+}
+
+Texture* MaterialLambert::getAOTexture() const
+{
+    return m_aoTexture;
+}
+
+Texture* MaterialLambert::getEmissiveTexture() const
+{
+    return m_emissiveTexture;
+}
+
+Texture* MaterialLambert::getNormalTexture() const
 {
     return m_normalTexture;
 }

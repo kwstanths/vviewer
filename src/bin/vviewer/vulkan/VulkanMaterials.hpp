@@ -20,8 +20,13 @@ public:
     int getUBOBlockIndex() const {
         return m_materialsUBOBlockIndex;
     }
+
+    uint32_t getBlockSizeAligned() const {
+        return m_materialsDataStorage.getBlockSizeAligned();
+    }
+
 protected:
-    VulkanDynamicUBO<MaterialPBRData>& m_materialsDataStorage;
+    VulkanDynamicUBO<T>& m_materialsDataStorage;
     int m_materialsUBOBlockIndex = -1;
     T * m_data = nullptr;
 };
@@ -29,13 +34,14 @@ protected:
 /* A class that wraps descriptor creation for a material, needs to be implemented by each material */
 class VulkanMaterialDescriptor {
 public:
-    virtual bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) = 0;
+    virtual bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) = 0;
     virtual bool updateDescriptorSets(VkDevice device, size_t images) = 0;
     virtual bool updateDescriptorSet(VkDevice device, size_t index) = 0;
 
     VkDescriptorSet getDescriptor(size_t index);
     bool needsUpdate(size_t index) const;
 protected:
+    VkDescriptorSetLayout m_descriptorSetLayout;
     std::vector<VkDescriptorSet> m_descriptorSets;
     std::vector<bool> m_descirptorsNeedUpdate;
 };
@@ -44,20 +50,21 @@ protected:
 /** MATERIALS **/
 
 /* Default PBR material */
-class VulkanMaterialPBR : 
-    public MaterialPBR, 
-    public VulkanMaterialStorage<MaterialPBRData>,
+class VulkanMaterialPBRStandard : 
+    public MaterialPBRStandard,
+    public VulkanMaterialStorage<MaterialData>,
     public VulkanMaterialDescriptor
 {
 public:
-    VulkanMaterialPBR(std::string name, 
+    VulkanMaterialPBRStandard(std::string name,
         glm::vec4 albedo, 
         float metallic, 
         float roughness, 
         float ao, 
         float emissive, 
         VkDevice device,
-        VulkanDynamicUBO<MaterialPBRData>& materialsDynamicUBO, 
+        VkDescriptorSetLayout descriptorLayout,
+        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
         uint32_t materialsUBOBlock);
 
     glm::vec4& getAlbedo() override;
@@ -73,7 +80,7 @@ public:
     void setEmissiveTexture(Texture * texture) override;
     void setNormalTexture(Texture * texture) override;
 
-    bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) override;
+    bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;
     bool updateDescriptorSet(VkDevice device, size_t index) override;
 
@@ -81,17 +88,49 @@ private:
     VulkanTexture* m_BRDFLUT = nullptr;
 };
 
+/* Lambert material */
+class VulkanMaterialLambert :
+    public MaterialLambert,
+    public VulkanMaterialStorage<MaterialData>,
+    public VulkanMaterialDescriptor
+{
+public:
+    VulkanMaterialLambert(std::string name,
+        glm::vec4 albedo,
+        float ao,
+        float emissive,
+        VkDevice device,
+        VkDescriptorSetLayout descriptorLayout,
+        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
+        uint32_t materialsUBOBlock);
 
+    glm::vec4& getAlbedo() override;
+    float& getAO() override;
+    float& getEmissive() override;
+
+    void setAlbedoTexture(Texture* texture) override;
+    void setAOTexture(Texture* texture) override;
+    void setEmissiveTexture(Texture* texture) override;
+    void setNormalTexture(Texture* texture) override;
+
+    bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
+    bool updateDescriptorSets(VkDevice device, size_t images) override;
+    bool updateDescriptorSet(VkDevice device, size_t index) override;
+
+private:
+};
+
+/* Skybox material */
 class VulkanMaterialSkybox : 
     public MaterialSkybox, 
     public VulkanMaterialDescriptor 
 {
 public:
-    VulkanMaterialSkybox(std::string name, EnvironmentMap * envMap, VkDevice device);
+    VulkanMaterialSkybox(std::string name, EnvironmentMap * envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout);
 
     virtual void setMap(EnvironmentMap * envMap) override;
 
-    bool createDescriptors(VkDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool, size_t images) override;
+    bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;
     bool updateDescriptorSet(VkDevice device, size_t index) override;
 private:

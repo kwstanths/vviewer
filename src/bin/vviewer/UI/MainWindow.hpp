@@ -11,7 +11,6 @@
 #include "WidgetName.hpp"
 #include "WidgetTransform.hpp"
 #include "WidgetMeshModel.hpp"
-#include "WidgetMaterialPBR.hpp"
 #include "WidgetEnvironment.hpp"
 
 #include "core/Scene.hpp"

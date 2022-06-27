@@ -82,13 +82,13 @@ std::vector<std::shared_ptr<VulkanSceneObject>> VulkanScene::createObject(std::s
     AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
     if (!instanceModels.isPresent(meshModel))
     {
-        utils::ConsoleWarning("VulkanScene::CreateObject(): " + meshModel + " is not imported");
+        utils::ConsoleWarning("VulkanScene::CreateObject(): Mesh model " + meshModel + " is not imported");
         return {};
     }
     AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
     if (!instanceMaterials.isPresent(material)) 
     {
-        utils::ConsoleWarning("VulkanScene::CreateObject(): " + material + " is not created");
+        utils::ConsoleWarning("VulkanScene::CreateObject(): Material " + material + " is not created");
         return {};
     }
 

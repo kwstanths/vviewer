@@ -1,7 +1,6 @@
 #version 450
 
 #include "pbr.glsl"
-#include "skybox/ibl.glsl"
 #include "lighting.glsl"
 #include "tonemapping.glsl"
 
@@ -27,10 +26,9 @@ layout(set = 2, binding = 0) uniform MaterialData {
     vec4 albedo;
     vec4 metallicRoughnessAOEmissive;
 } materialData;
-layout(set = 2, binding = 1) uniform sampler2D materialTextures[7];
+layout(set = 2, binding = 1) uniform sampler2D materialTextures[4];
 
 layout(set = 3, binding = 1) uniform samplerCube skyboxIrradiance;
-layout(set = 3, binding = 2) uniform samplerCube skyboxPrefiltered;
 
 vec3 getCameraPosition(mat4 invViewMatrix)
 {
@@ -39,30 +37,29 @@ vec3 getCameraPosition(mat4 invViewMatrix)
 
 void main() {
 
+	vec3 cameraPosition = getCameraPosition(inverse(sceneData.view));
+    vec3 V = normalize(cameraPosition - fragWorldPos);
+
     vec3 L = -sceneData.directionalLightDir.xyz;
     
     /* Normal mapping */
     mat3 TBN = mat3(fragWorldTangent, fragWorldBiTangent, fragWorldNormal);
-    vec3 N = texture(materialTextures[5], fragUV).rgb;
+    vec3 N = texture(materialTextures[3], fragUV).rgb;
     N = N * 2.0 - 1.0;
     N = normalize(TBN * N);
     
-    vec3 cameraPosition = getCameraPosition(inverse(sceneData.view));
-    vec3 V = normalize(cameraPosition - fragWorldPos);
-    vec3 H = normalize(V + L);
-    
-    /* Calculate PBR components */
-    PBRStandard pbr;
-    pbr.albedo = materialData.albedo.rgb * texture(materialTextures[0], fragUV).rgb;
-    pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(materialTextures[1], fragUV).r;
-    pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(materialTextures[2], fragUV).r;
-    float ao = materialData.metallicRoughnessAOEmissive.b * texture(materialTextures[3], fragUV).r;
-    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(materialTextures[4], fragUV).r;
-    
-    
-    vec3 ambient = ao * calculateIBLContribution(pbr, N, V, skyboxIrradiance, skyboxPrefiltered, materialTextures[6]);
-    vec3 Lo = sceneData.directionalLightColor.xyz * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
-    vec3 emission = pbr.albedo * emissive;
+	vec3 albedo = materialData.albedo.rgb * texture(materialTextures[0], fragUV).rgb;
+    float ao = materialData.metallicRoughnessAOEmissive.b * texture(materialTextures[1], fragUV).r;
+    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(materialTextures[2], fragUV).r;
+	
+	vec3 irradiance = texture(skyboxIrradiance, N).rgb;
+    vec3 diffuse    = irradiance * albedo;
+	vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), vec3(0.04));
+	vec3 kD = 1.0 - kS;
+    vec3 ambient = ao * kD * diffuse;
+
+    vec3 Lo = sceneData.directionalLightColor.xyz * albedo * max(dot(N, L), 0.0);
+    vec3 emission = albedo * emissive;
     
     vec3 color = ambient + Lo + emission;
     

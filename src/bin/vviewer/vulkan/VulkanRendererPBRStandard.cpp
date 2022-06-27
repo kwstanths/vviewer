@@ -1,4 +1,4 @@
-#include "VulkanRendererPBR.hpp"
+#include "VulkanRendererPBRStandard.hpp"
 
 #include <utils/Console.hpp>
 #include <set>
@@ -30,9 +30,7 @@ void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
     m_descriptorSetLayoutModel = modelDescriptorLayout;
     m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
 
-    createDescriptorSetsLayouts();
-
-    m_materialsUBO.init(physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
+    createDescriptorSetsLayout();
 
     Texture * texture = createBRDFLUT();
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
@@ -44,8 +42,6 @@ void VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VkRen
     m_swapchainExtent = swapchainExtent;
     m_renderPass = renderPass;
 
-    m_materialsUBO.createBuffers(m_physicalDevice, m_device, swapchainImages);
-
     createGraphicsPipeline();
 }
 
@@ -53,13 +49,10 @@ void VulkanRendererPBR::releaseSwapChainResources()
 {
     vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-
-    m_materialsUBO.destroyGPUBuffers(m_device);
 }
 
 void VulkanRendererPBR::releaseResources()
 {
-    m_materialsUBO.destroyCPUMemory();
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMaterial, nullptr);
 }
 
@@ -436,18 +429,12 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
     }
 }
 
-VulkanMaterialPBR* VulkanRendererPBR::createMaterial(std::string name,
-    glm::vec4 albedo, float metallic, float roughness, float ao, float emissive) 
+VulkanMaterialPBRStandard* VulkanRendererPBR::createMaterial(std::string name,
+    glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
+    VulkanDynamicUBO<MaterialData>& materialsUBO,
+    int index)
 {
-    return new VulkanMaterialPBR(name, albedo, metallic, roughness, ao, emissive, m_device, m_materialsUBO, m_materialsIndexUBO++);
-}
-
-void VulkanRendererPBR::updateMaterialBuffers(uint32_t imageIndex) const
-{
-    void* data;
-    vkMapMemory(m_device, m_materialsUBO.getBufferMemory(imageIndex), 0, m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks(), 0, &data);
-    memcpy(data, m_materialsUBO.getBlock(0), m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks());
-    vkUnmapMemory(m_device, m_materialsUBO.getBufferMemory(imageIndex));
+    return new VulkanMaterialPBRStandard(name, albedo, metallic, roughness, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO, index++);
 }
 
 void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf, 
@@ -468,7 +455,7 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
         const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->getMesh());
         if (vkmesh == nullptr) continue;
         
-        VulkanMaterialPBR* material = static_cast<VulkanMaterialPBR*>(object->getMaterial());
+        VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(object->getMaterial());
         /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         
@@ -480,7 +467,7 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
         /* Calculate model data offsets */
         uint32_t dynamicOffsets[2] = {
             static_cast<uint32_t>(dynamicUBOModels.getBlockSizeAligned()) * object->getTransformUBOBlock(),
-            static_cast<uint32_t>(m_materialsUBO.getBlockSizeAligned()) * material->getUBOBlockIndex()
+            static_cast<uint32_t>(material->getBlockSizeAligned()) * material->getUBOBlockIndex()
         };
         VkDescriptorSet descriptorSets[4] = {
             descriptorScene,
@@ -497,7 +484,7 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
     }
 }
 
-bool VulkanRendererPBR::createDescriptorSetsLayouts()
+bool VulkanRendererPBR::createDescriptorSetsLayout()
 {
     {
         /* Create binding for material data */
@@ -534,7 +521,7 @@ bool VulkanRendererPBR::createGraphicsPipeline()
 {
     /* ----------------- SHADERS STAGE ------------------- */
     /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/pbrVert.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standardVert.spv");
     auto fragmentShaderCode = readSPIRV("shaders/SPIRV/pbrFrag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);

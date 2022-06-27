@@ -14,11 +14,13 @@ enum class MaterialType {
     MATERIAL_NOT_SET = -1,
     MATERIAL_PBR_STANDARD = 0,
     MATERIAL_SKYBOX = 1,
+    MATERIAL_LAMBERT = 2,
 };
 
 static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
     { MaterialType::MATERIAL_PBR_STANDARD, "PBR standard" },
-    { MaterialType::MATERIAL_SKYBOX, "Skybox" }
+    { MaterialType::MATERIAL_SKYBOX, "Skybox" },
+    { MaterialType::MATERIAL_LAMBERT, "Lambert" },
 };
 
 class Material {
@@ -34,10 +36,10 @@ private:
 
 };
 
-class MaterialPBR : public Material {
+class MaterialPBRStandard : public Material {
 public:
-    MaterialPBR() {};
-    MaterialPBR(std::string name) : Material(name) {};
+    MaterialPBRStandard() {};
+    MaterialPBRStandard(std::string name) : Material(name) {};
 
     MaterialType getType() override {
         return MaterialType::MATERIAL_PBR_STANDARD;
@@ -70,6 +72,36 @@ protected:
     Texture * m_aoTexture = nullptr;
     Texture * m_emissiveTexture = nullptr;
     Texture * m_normalTexture = nullptr;
+};
+
+class MaterialLambert : public Material {
+public:
+    MaterialLambert() {};
+    MaterialLambert(std::string name) : Material(name) {};
+
+    MaterialType getType() override {
+        return MaterialType::MATERIAL_LAMBERT;
+    }
+
+    virtual glm::vec4& getAlbedo() = 0;
+    virtual float& getAO() = 0;
+    virtual float& getEmissive() = 0;
+
+    virtual void setAlbedoTexture(Texture* texture);
+    virtual void setAOTexture(Texture* texture);
+    virtual void setEmissiveTexture(Texture* texture);
+    virtual void setNormalTexture(Texture* texture);
+
+    Texture* getAlbedoTexture() const;
+    Texture* getAOTexture() const;
+    Texture* getEmissiveTexture() const;
+    Texture* getNormalTexture() const;
+
+protected:
+    Texture* m_albedoTexture = nullptr;
+    Texture* m_aoTexture = nullptr;
+    Texture* m_emissiveTexture = nullptr;
+    Texture* m_normalTexture = nullptr;
 };
 
 class MaterialSkybox : public Material {

@@ -23,7 +23,7 @@ void VulkanRendererSkybox::initResources(VkPhysicalDevice physicalDevice, VkDevi
     m_commandPool = commandPool;
     m_descriptorSetLayoutCamera = cameraDescriptorLayout;
 
-    createDescriptorSetsLayouts();
+    createDescriptorSetsLayout();
 
     m_cube = new VulkanCube(m_physicalDevice, m_device, queue, commandPool);
 }
@@ -2017,7 +2017,7 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
     return nullptr;
 }
 
-bool VulkanRendererSkybox::createDescriptorSetsLayouts()
+bool VulkanRendererSkybox::createDescriptorSetsLayout()
 {
     VkDescriptorSetLayoutBinding skyboxTextureLayoutBinding{};
     skyboxTextureLayoutBinding.binding = 0;

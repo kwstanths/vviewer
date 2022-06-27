@@ -11,6 +11,7 @@
 
 #include "DialogAddSceneObject.hpp"
 #include "DialogCreateMaterial.hpp"
+#include "WidgetMaterial.hpp"
 #include "UIUtils.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
@@ -195,7 +196,7 @@ void MainWindow::onImportTextureColorSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
         tr("Import textures"), "./assets",
-        tr("Textures (*.png, *.tga);;All Files (*)"));
+        tr("Textures (*.tga, *.png);;All Files (*)"));
 
     for (const auto& texture : filenames)
     {
@@ -210,7 +211,7 @@ void MainWindow::onImportTextureOtherSlot()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(this,
         tr("Import textures"), "./assets",
-        tr("Textures (*.png, *.tga);;All Files (*)"));
+        tr("Textures (*.tga, *.png);;All Files (*)"));
 
     for (const auto& texture : filenames)
     {
@@ -259,7 +260,7 @@ void MainWindow::onImportMaterial()
     std::string materialName = dir.split('/').back().toStdString();
     std::string dirStd = dir.toStdString();
 
-    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, glm::vec4(1, 1, 1, 1), 1, 1, 1, 0);
+    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, MaterialType::MATERIAL_PBR_STANDARD);
     if (material == nullptr) return;
 
     Texture* albedo = m_vulkanWindow->m_renderer->createTexture(dirStd + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
@@ -268,11 +269,11 @@ void MainWindow::onImportMaterial()
     Texture* normal = m_vulkanWindow->m_renderer->createTexture(dirStd + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
     Texture* roughness = m_vulkanWindow->m_renderer->createTexture(dirStd + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
 
-    if (albedo != nullptr) static_cast<MaterialPBR*>(material)->setAlbedoTexture(albedo);
-    if (ao != nullptr) static_cast<MaterialPBR*>(material)->setAOTexture(ao);
-    if (metallic != nullptr)  static_cast<MaterialPBR*>(material)->setMetallicTexture(metallic);
-    if (normal != nullptr)  static_cast<MaterialPBR*>(material)->setNormalTexture(normal);
-    if (roughness != nullptr) static_cast<MaterialPBR*>(material)->setRoughnessTexture(roughness);
+    if (albedo != nullptr) static_cast<MaterialPBRStandard*>(material)->setAlbedoTexture(albedo);
+    if (ao != nullptr) static_cast<MaterialPBRStandard*>(material)->setAOTexture(ao);
+    if (metallic != nullptr)  static_cast<MaterialPBRStandard*>(material)->setMetallicTexture(metallic);
+    if (normal != nullptr)  static_cast<MaterialPBRStandard*>(material)->setNormalTexture(normal);
+    if (roughness != nullptr) static_cast<MaterialPBRStandard*>(material)->setRoughnessTexture(roughness);
 }
 
 void MainWindow::onAddSceneObjectRootSlot()
@@ -371,7 +372,7 @@ void MainWindow::onCreateMaterialSlot()
     std::string selectedModel = dialog->m_selectedName.toStdString();
     if (dialog->m_selectedMaterial == MaterialType::MATERIAL_NOT_SET) return;
 
-    Material * material = m_vulkanWindow->m_renderer->createMaterial(dialog->m_selectedName.toStdString(), glm::vec4(0.5, 0.5, 0.5, 1), 0.5, 0.5, 1, 0);
+    Material* material = m_vulkanWindow->m_renderer->createMaterial(dialog->m_selectedName.toStdString(), dialog->m_selectedMaterial);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     }
@@ -409,12 +410,12 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, sceneNode);
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
-        
+
     if (sceneNode->m_so.get()->getMesh() == nullptr)
         return;
 
     //m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneNode->m_so.get(), getImportedModels());
-    m_selectedObjectWidgetMaterial = new WidgetMaterialPBR(nullptr, sceneNode->m_so.get(), static_cast<MaterialPBR*>(sceneNode->m_so->getMaterial()));
+    m_selectedObjectWidgetMaterial = new WidgetMaterial(nullptr, sceneNode->m_so.get());
 
     //m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
     m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);

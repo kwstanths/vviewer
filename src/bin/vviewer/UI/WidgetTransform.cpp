@@ -6,11 +6,11 @@
 
 #include <glm/glm.hpp>
 
-WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sceneNode) : QWidget(parent)
+WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sceneNode, QString groupBoxName) : QWidget(parent)
 {
     m_sceneNode = sceneNode;
 
-    QGroupBox * groupBox = new QGroupBox(tr("Transform"));
+    QGroupBox * groupBox = new QGroupBox(groupBoxName);
     QVBoxLayout * layoutTest = new QVBoxLayout();
     layoutTest->addWidget(createRow("P:", &m_positionX, &m_positionY, &m_positionZ));
     layoutTest->addWidget(createRow("S:", &m_scaleX, &m_scaleY, &m_scaleZ));
