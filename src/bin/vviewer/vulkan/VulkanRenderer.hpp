@@ -46,11 +46,11 @@ public:
 
     VulkanScene* getActiveScene() const;
 
-    Texture* createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, bool keepImage = false);
     Texture* createTexture(std::string id, Image<stbi_uc>* image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* createTextureHDR(std::string imagePath);
+    Texture* createTextureHDR(std::string imagePath, bool keepImage = false);
     Cubemap* createCubemap(std::string directory);
-    EnvironmentMap* createEnvironmentMap(std::string imagePath, bool keepHDRTex = false);
+    EnvironmentMap* createEnvironmentMap(std::string imagePath, bool keepTexture = false);
     Material* createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
     void renderRT();

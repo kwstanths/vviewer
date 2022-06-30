@@ -73,6 +73,8 @@ private slots:
     void onCreateMaterialSlot();
     /* Render scene */
     void onRenderSceneSlot();
+    /* Export scene */
+    void onExportSceneSlot();
     
     /* Currently selected item in the scene changed */
     void onSelectedSceneObjectChangedSlot();

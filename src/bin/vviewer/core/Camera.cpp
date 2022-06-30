@@ -46,6 +46,11 @@ int Camera::getHeight() const
 
 
 
+CameraType PerspectiveCamera::getType() const
+{
+    return CameraType::PERSPECTIVE;
+}
+
 glm::mat4 PerspectiveCamera::getProjectionMatrix() const
 {
     return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.01f, 50.0f);
@@ -62,7 +67,17 @@ void PerspectiveCamera::setFoV(float fov)
     m_fov = fov;
 }
 
+float PerspectiveCamera::getFoV() const
+{
+    return m_fov;
+}
 
+
+
+CameraType OrthographicCamera::getType() const
+{
+    return CameraType::ORTHOGRAPHIC;
+}
 
 glm::mat4 OrthographicCamera::getProjectionMatrix() const
 {

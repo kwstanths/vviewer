@@ -168,7 +168,7 @@ void WidgetMaterialPBR::setColorButtonColor()
 }
 
 void WidgetMaterialPBR::onColorChanged(QColor color) {
-    m_material->getAlbedo() = glm::vec4(color.red(), color.green(), color.blue(), color.alpha()) / glm::vec4(255.0f);
+    m_material->albedo() = glm::vec4(color.red(), color.green(), color.blue(), color.alpha()) / glm::vec4(255.0f);
 }
 
 void WidgetMaterialPBR::onColorTextureChanged(int)
@@ -183,7 +183,7 @@ void WidgetMaterialPBR::onColorTextureChanged(int)
 
 void WidgetMaterialPBR::onMetallicChanged()
 {
-    m_material->getMetallic() = static_cast<float>(m_metallic->value()) / 100;
+    m_material->metallic() = static_cast<float>(m_metallic->value()) / 100;
 }
 
 void WidgetMaterialPBR::onMetallicTextureChanged(int)
@@ -198,7 +198,7 @@ void WidgetMaterialPBR::onMetallicTextureChanged(int)
 
 void WidgetMaterialPBR::onRoughnessChanged()
 {
-    m_material->getRoughness() = static_cast<float>(m_roughness->value()) / 100;
+    m_material->roughness() = static_cast<float>(m_roughness->value()) / 100;
 }
 
 void WidgetMaterialPBR::onRoughnessTextureChanged(int)
@@ -213,7 +213,7 @@ void WidgetMaterialPBR::onRoughnessTextureChanged(int)
 
 void WidgetMaterialPBR::onAOChanged()
 {
-    m_material->getAO() = static_cast<float>(m_ao->value()) / 100;
+    m_material->ao() = static_cast<float>(m_ao->value()) / 100;
 }
 
 void WidgetMaterialPBR::onAOTextureChanged(int)
@@ -228,7 +228,7 @@ void WidgetMaterialPBR::onAOTextureChanged(int)
 
 void WidgetMaterialPBR::onEmissiveChanged()
 {
-    m_material->getEmissive() = static_cast<float>(m_emissive->value()) / 100;
+    m_material->emissive() = static_cast<float>(m_emissive->value()) / 100;
 }
 
 void WidgetMaterialPBR::onEmissiveTextureChanged(int)

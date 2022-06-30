@@ -231,6 +231,14 @@ VulkanTexture::VulkanTexture(std::string name,
 
 }
 
+void VulkanTexture::Destroy(VkDevice device)
+{
+    vkDestroyImage(device, m_image, nullptr);
+    vkDestroyImageView(device, m_imageView, nullptr);
+    vkFreeMemory(device, m_imageMemory, nullptr);
+    vkDestroySampler(device, m_sampler, nullptr);
+}
+
 VkImage VulkanTexture::getImage() const
 {
     return m_image;

@@ -18,9 +18,6 @@ public:
     VulkanScene();
     ~VulkanScene();
 
-    void setSkybox(VulkanMaterialSkybox* skybox);
-    VulkanMaterialSkybox* getSkybox() const;
-
     virtual SceneData getSceneData() const override;
 
     /* Add a new scene object at the root of the scene graph */

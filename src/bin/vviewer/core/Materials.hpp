@@ -30,7 +30,7 @@ public:
 
     std::string m_name;
 
-    virtual MaterialType getType() = 0;
+    virtual MaterialType getType() const = 0;
 
 private:
 
@@ -41,15 +41,20 @@ public:
     MaterialPBRStandard() {};
     MaterialPBRStandard(std::string name) : Material(name) {};
 
-    MaterialType getType() override {
+    MaterialType getType() const override {
         return MaterialType::MATERIAL_PBR_STANDARD;
     }
 
-    virtual glm::vec4& getAlbedo() = 0;
-    virtual float& getMetallic() = 0;
-    virtual float& getRoughness() = 0;
-    virtual float& getAO() = 0;
-    virtual float& getEmissive() = 0;
+    virtual glm::vec4& albedo() = 0;
+    virtual glm::vec4 getAlbedo() const = 0;
+    virtual float& metallic() = 0;
+    virtual float getMetallic() const = 0;
+    virtual float& roughness() = 0;
+    virtual float getRoughness() const = 0;
+    virtual float& ao() = 0;
+    virtual float getAO() const = 0;
+    virtual float& emissive() = 0;
+    virtual float getEmissive() const = 0;
 
     virtual void setAlbedoTexture(Texture * texture);
     virtual void setMetallicTexture(Texture * texture);
@@ -79,13 +84,16 @@ public:
     MaterialLambert() {};
     MaterialLambert(std::string name) : Material(name) {};
 
-    MaterialType getType() override {
+    MaterialType getType() const override {
         return MaterialType::MATERIAL_LAMBERT;
     }
 
-    virtual glm::vec4& getAlbedo() = 0;
-    virtual float& getAO() = 0;
-    virtual float& getEmissive() = 0;
+    virtual glm::vec4& albedo() = 0;
+    virtual glm::vec4 getAlbedo() const = 0;
+    virtual float& ao() = 0;
+    virtual float getAO() const = 0;
+    virtual float& emissive() = 0;
+    virtual float getEmissive() const = 0;
 
     virtual void setAlbedoTexture(Texture* texture);
     virtual void setAOTexture(Texture* texture);
@@ -109,11 +117,12 @@ public:
     MaterialSkybox() {};
     MaterialSkybox(std::string name) : Material(name) {};
 
-    MaterialType getType() override {
+    MaterialType getType() const override {
         return MaterialType::MATERIAL_SKYBOX;
     }
 
     virtual void setMap(EnvironmentMap* cubemap);
+    EnvironmentMap* getMap() const;
 
 protected:
     EnvironmentMap* m_envMap = nullptr;

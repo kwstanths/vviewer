@@ -19,6 +19,7 @@ VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice devic
         createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), vkmesh->m_vertexBuffer, vkmesh->m_vertexBufferMemory);
         createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), vkmesh->m_indexBuffer, vkmesh->m_indexBufferMemory);
 
+        vkmesh->m_meshModel = this;
         m_meshes.push_back(vkmesh);
     }
     

@@ -67,11 +67,16 @@ public:
         VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
         uint32_t materialsUBOBlock);
 
-    glm::vec4& getAlbedo() override;
-    float& getMetallic() override;
-    float& getRoughness() override;
-    float& getAO() override;
-    float& getEmissive() override;
+    glm::vec4& albedo() override;
+    glm::vec4 getAlbedo() const override;
+    float& metallic() override;
+    float getMetallic() const override;
+    float& roughness() override;
+    float getRoughness() const override;
+    float& ao() override;
+    float getAO() const override;
+    float& emissive() override;
+    float getEmissive() const override;
 
     void setAlbedoTexture(Texture * texture) override;
     void setMetallicTexture(Texture * texture) override;
@@ -104,9 +109,12 @@ public:
         VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
         uint32_t materialsUBOBlock);
 
-    glm::vec4& getAlbedo() override;
-    float& getAO() override;
-    float& getEmissive() override;
+    glm::vec4& albedo() override;
+    glm::vec4 getAlbedo() const override;
+    float& ao() override;
+    float getAO() const override;
+    float& emissive() override;
+    float getEmissive() const override;
 
     void setAlbedoTexture(Texture* texture) override;
     void setAOTexture(Texture* texture) override;

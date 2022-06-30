@@ -18,11 +18,11 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
 }
 
 VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
-    glm::vec4 albedo,
-    float metallic, 
-    float roughness, 
-    float ao, 
-    float emissive,
+    glm::vec4 a,
+    float m, 
+    float r, 
+    float ambient, 
+    float e,
     VkDevice device,
     VkDescriptorSetLayout descriptorLayout,
     VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
@@ -31,11 +31,11 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
 {
     m_descriptorSetLayout = descriptorLayout;
 
-    getAlbedo() = albedo;
-    getMetallic() = metallic;
-    getRoughness() = roughness;
-    getAO() = ao;
-    getEmissive() = emissive;
+    albedo() = a;
+    metallic() = m;
+    roughness() = r;
+    ao() = ambient;
+    emissive() = e;
 
     AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
     if (!instance.isPresent("white")) {
@@ -61,27 +61,52 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     m_BRDFLUT = static_cast<VulkanTexture*>(instance.Get("PBR_BRDF_LUT"));
 }
 
-glm::vec4 & VulkanMaterialPBRStandard::getAlbedo()
+glm::vec4 & VulkanMaterialPBRStandard::albedo()
 {
     return m_data->albedo;
 }
 
-float & VulkanMaterialPBRStandard::getMetallic()
+glm::vec4 VulkanMaterialPBRStandard::getAlbedo() const
+{
+    return m_data->albedo;
+}
+
+float & VulkanMaterialPBRStandard::metallic()
 {
     return m_data->metallicRoughnessAOEmissive.r;
 }
 
-float & VulkanMaterialPBRStandard::getRoughness()
+float VulkanMaterialPBRStandard::getMetallic() const
+{
+    return m_data->metallicRoughnessAOEmissive.r;
+}
+
+float & VulkanMaterialPBRStandard::roughness()
 {
     return m_data->metallicRoughnessAOEmissive.g;
 }
 
-float & VulkanMaterialPBRStandard::getAO()
+float VulkanMaterialPBRStandard::getRoughness() const
+{
+    return m_data->metallicRoughnessAOEmissive.g;
+}
+
+float & VulkanMaterialPBRStandard::ao()
 {
     return m_data->metallicRoughnessAOEmissive.b;
 }
 
-float & VulkanMaterialPBRStandard::getEmissive()
+float VulkanMaterialPBRStandard::getAO() const
+{
+    return m_data->metallicRoughnessAOEmissive.b;
+}
+
+float & VulkanMaterialPBRStandard::emissive()
+{
+    return m_data->metallicRoughnessAOEmissive.a;
+}
+
+float VulkanMaterialPBRStandard::getEmissive() const
 {
     return m_data->metallicRoughnessAOEmissive.a;
 }
@@ -207,9 +232,9 @@ bool VulkanMaterialPBRStandard::updateDescriptorSet(VkDevice device, size_t inde
 
 
 VulkanMaterialLambert::VulkanMaterialLambert(std::string name, 
-    glm::vec4 albedo, 
-    float ao, 
-    float emissive, 
+    glm::vec4 a, 
+    float ambient, 
+    float e, 
     VkDevice device, 
     VkDescriptorSetLayout descriptorLayout,
     VulkanDynamicUBO<MaterialData>& materialsDynamicUBO, 
@@ -218,9 +243,9 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
 {
     m_descriptorSetLayout = descriptorLayout;
 
-    getAlbedo() = albedo;
-    getAO() = ao;
-    getEmissive() = emissive;
+    albedo() = a;
+    ao() = ambient;
+    emissive() = e;
 
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
     if (!instance.isPresent("white")) {
@@ -239,17 +264,32 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     setNormalTexture(normalmap);
 }
 
-glm::vec4& VulkanMaterialLambert::getAlbedo()
+glm::vec4& VulkanMaterialLambert::albedo()
 {
     return m_data->albedo;
 }
 
-float& VulkanMaterialLambert::getAO()
+glm::vec4 VulkanMaterialLambert::getAlbedo() const
+{
+    return m_data->albedo;
+}
+
+float& VulkanMaterialLambert::ao()
 {
     return m_data->metallicRoughnessAOEmissive.b;
 }
 
-float& VulkanMaterialLambert::getEmissive()
+float VulkanMaterialLambert::getAO() const
+{
+    return m_data->metallicRoughnessAOEmissive.b;
+}
+
+float& VulkanMaterialLambert::emissive()
+{
+    return m_data->metallicRoughnessAOEmissive.a;
+}
+
+float VulkanMaterialLambert::getEmissive() const
 {
     return m_data->metallicRoughnessAOEmissive.a;
 }

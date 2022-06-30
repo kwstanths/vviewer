@@ -36,7 +36,13 @@ public:
         if (itr != m_assets.end()) {
             return itr->second;
         }
-        throw std::runtime_error("Asset not found");
+        throw std::runtime_error("Get: Asset not found");
+    }
+
+    void Remove(AssetID id) {
+        if (!m_assets.erase(id)) {
+            throw std::runtime_error("Erase: Asset not found");
+        }
     }
 
     void Reset() {

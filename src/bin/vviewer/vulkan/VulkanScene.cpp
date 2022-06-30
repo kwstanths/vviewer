@@ -12,16 +12,6 @@ VulkanScene::~VulkanScene()
 {
 }
 
-void VulkanScene::setSkybox(VulkanMaterialSkybox* skybox)
-{
-    m_skybox = skybox;
-}
-
-VulkanMaterialSkybox* VulkanScene::getSkybox() const
-{
-    return m_skybox;
-}
-
 SceneData VulkanScene::getSceneData() const
 {
     SceneData sceneData = Scene::getSceneData();

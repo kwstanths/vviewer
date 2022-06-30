@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "SceneExport.hpp"
+
 Scene::Scene()
 {
 }
@@ -61,6 +63,16 @@ SceneData Scene::getSceneData() const
     return sceneData;
 }
 
+void Scene::setSkybox(MaterialSkybox* skybox)
+{
+    m_skybox = skybox;
+}
+
+MaterialSkybox* Scene::getSkybox() const
+{
+    return m_skybox;
+}
+
 void Scene::removeSceneObject(std::shared_ptr<SceneNode> node)
 {
     if (node->m_parent == nullptr) {
@@ -111,4 +123,9 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects(std::vector<glm
     }
 
     return temp;
+}
+
+void Scene::exportScene(std::string name) const
+{
+    exportJson(name, m_camera, m_sceneGraph, m_skybox->getMap());
 }

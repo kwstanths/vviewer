@@ -157,6 +157,10 @@ void MainWindow::createMenu()
     m_actionRender->setStatusTip(tr("Render scene"));
     connect(m_actionRender, &QAction::triggered, this, &MainWindow::onRenderSceneSlot);
 
+    QAction* m_actionExport = new QAction(tr("&Export scene"), this);
+    m_actionExport->setStatusTip(tr("EXport scene"));
+    connect(m_actionExport, &QAction::triggered, this, &MainWindow::onExportSceneSlot);
+
     QMenu * m_menuImport = menuBar()->addMenu(tr("&Import"));
     m_menuImport->addAction(m_actionImportModel);
     m_menuImport->addAction(m_actionImportColorTexture);
@@ -169,6 +173,8 @@ void MainWindow::createMenu()
     m_menuAdd->addAction(m_actionCreateMaterial);
     QMenu* m_menuRender = menuBar()->addMenu(tr("&Render"));
     m_menuRender->addAction(m_actionRender);
+    QMenu* m_menuExport = menuBar()->addMenu(tr("&Export"));
+    m_menuExport->addAction(m_actionExport);
 }
 
 void MainWindow::onImportModelSlot()
@@ -326,7 +332,7 @@ void MainWindow::onAddSceneObjectSlot()
     if (sceneNode == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
     else {
         /* Set a name for the object */
-        /* TODO set a some other way name */
+        /* TODO set the name some other way */
         sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
         QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
@@ -372,7 +378,13 @@ void MainWindow::onCreateMaterialSlot()
     std::string selectedModel = dialog->m_selectedName.toStdString();
     if (dialog->m_selectedMaterial == MaterialType::MATERIAL_NOT_SET) return;
 
-    Material* material = m_vulkanWindow->m_renderer->createMaterial(dialog->m_selectedName.toStdString(), dialog->m_selectedMaterial);
+    std::string materialName = dialog->m_selectedName.toStdString();
+    if (materialName == "") {
+        utils::ConsoleWarning("Material name can't be empty");
+        return;
+    }
+
+    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, dialog->m_selectedMaterial);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     }
@@ -381,6 +393,11 @@ void MainWindow::onCreateMaterialSlot()
 void MainWindow::onRenderSceneSlot()
 {
     m_vulkanWindow->m_renderer->renderRT();
+}
+
+void MainWindow::onExportSceneSlot()
+{
+    m_scene->exportScene("testScene");
 }
 
 void MainWindow::onSelectedSceneObjectChangedSlot()

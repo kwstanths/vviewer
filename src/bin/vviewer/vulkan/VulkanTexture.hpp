@@ -40,6 +40,8 @@ public:
         VkSampler& sampler,
         uint32_t numMips);
 
+    void Destroy(VkDevice device);
+
     VkImage getImage() const;
     VkImageView getImageView() const;
     VkDeviceMemory getImageMemory() const;

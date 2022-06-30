@@ -23,6 +23,9 @@ VulkanWindow::VulkanWindow()
     m_updateCameraTimer->setInterval(16);
     connect(m_updateCameraTimer, SIGNAL(timeout()), this, SLOT(onUpdateCamera()));
     m_updateCameraTimer->start();
+
+    /* Make sure graphics resources are not released and then reinitialized when the window becomes unexposed */
+    setFlags(QVulkanWindow::PersistentResources);
 }
 
 VulkanWindow::~VulkanWindow()

@@ -39,15 +39,18 @@ macro(SetupEnvironment)
     set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib64)
     set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc143-mt.lib)
     
+    #RAPIDJSON
+    set(RAPIDJSON_DIR ${PROJECT_ROOT}/src/lib/external/rapidjson)
+    set(RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_DIR}/include)
+
     # UTILS
     set(UTILS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/utils/)
     set(UTILS_LIBRARIES utils)
     
-	if(MSVC)
-		
-	elseif(UNIX)
-
-		
-	endif()
+    if(MSVC)
+    
+    elseif(UNIX)
+	
+    endif()
 
 endmacro()

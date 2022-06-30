@@ -18,6 +18,7 @@ include_directories(${UTILS_INCLUDE_DIRS})
 include_directories(${GLM_INCLUDE_DIRS})
 include_directories(${STB_INCLUDE_DIRS})
 include_directories(${ASSIMP_INCLUDE_DIRS})
+include_directories(${RAPIDJSON_INCLUDE_DIRS})
 
 # Sources
 file(GLOB ${NAME}_HEADERS *.hpp)

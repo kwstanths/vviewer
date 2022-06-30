@@ -28,6 +28,8 @@ struct Vertex {
         position(_position), uv(_uv), normal(_normal), color(_color), tangent(_tangent), bitangent(_bitangent) {};
 };
 
+class MeshModel;
+
 class Mesh {
 public:
     Mesh();
@@ -42,6 +44,7 @@ public:
 
     void computeNormals();
 
+    const MeshModel* m_meshModel;
     std::string m_name;
 private:
     std::vector<Vertex> m_vertices;

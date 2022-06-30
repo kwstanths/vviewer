@@ -8,8 +8,15 @@
 
 #include "math/Transform.hpp"
 
+enum class CameraType {
+    PERSPECTIVE = 0,
+    ORTHOGRAPHIC = 1,
+};
+
 class Camera {
 public:
+
+    virtual CameraType getType() const = 0;
 
     glm::mat4 getViewMatrix() const;
     glm::mat4 getViewMatrixInverse() const;
@@ -35,18 +42,20 @@ private:
 
 class PerspectiveCamera : public Camera {
 public:
+    CameraType getType() const;
 
     glm::mat4 getProjectionMatrix() const;
     glm::mat4 getProjectionMatrixInverse() const;
 
     void setFoV(float fov);
-
+    float getFoV() const;
 private:
     float m_fov;
 };
 
 class OrthographicCamera : public Camera {
 public:
+    CameraType getType() const;
 
     glm::mat4 getProjectionMatrix() const;
     glm::mat4 getProjectionMatrixInverse() const;

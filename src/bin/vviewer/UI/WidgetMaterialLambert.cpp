@@ -131,7 +131,7 @@ void WidgetMaterialLambert::setColorButtonColor()
 }
 
 void WidgetMaterialLambert::onColorChanged(QColor color) {
-    m_material->getAlbedo() = glm::vec4(color.red(), color.green(), color.blue(), color.alpha()) / glm::vec4(255.0f);
+    m_material->albedo() = glm::vec4(color.red(), color.green(), color.blue(), color.alpha()) / glm::vec4(255.0f);
 }
 
 void WidgetMaterialLambert::onColorTextureChanged(int)
@@ -146,7 +146,7 @@ void WidgetMaterialLambert::onColorTextureChanged(int)
 
 void WidgetMaterialLambert::onAOChanged()
 {
-    m_material->getAO() = static_cast<float>(m_ao->value()) / 100;
+    m_material->ao() = static_cast<float>(m_ao->value()) / 100;
 }
 
 void WidgetMaterialLambert::onAOTextureChanged(int)
@@ -161,7 +161,7 @@ void WidgetMaterialLambert::onAOTextureChanged(int)
 
 void WidgetMaterialLambert::onEmissiveChanged()
 {
-    m_material->getEmissive() = static_cast<float>(m_emissive->value()) / 100;
+    m_material->emissive() = static_cast<float>(m_emissive->value()) / 100;
 }
 
 void WidgetMaterialLambert::onEmissiveTextureChanged(int)

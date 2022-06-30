@@ -104,3 +104,8 @@ void MaterialSkybox::setMap(EnvironmentMap* envMap)
 {
     m_envMap = envMap;
 }
+
+EnvironmentMap* MaterialSkybox::getMap() const
+{
+    return m_envMap;
+}
