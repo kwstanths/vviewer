@@ -12,6 +12,7 @@ layout(location = 3) in vec3 fragWorldBiTangent;
 layout(location = 4) in vec2 fragUV;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outHighlight;
 
 layout(set = 0, binding = 0) uniform SceneData {
     mat4 view;
@@ -31,6 +32,10 @@ layout(set = 2, binding = 1) uniform sampler2D materialTextures[7];
 
 layout(set = 3, binding = 1) uniform samplerCube skyboxIrradiance;
 layout(set = 3, binding = 2) uniform samplerCube skyboxPrefiltered;
+
+layout(push_constant) uniform PushConsts {
+	layout (offset = 0) vec4 selected;
+} pushConsts;
 
 vec3 getCameraPosition(mat4 invViewMatrix)
 {
@@ -69,4 +74,5 @@ void main() {
     color = tonemapDefault2(color, sceneData.exposure.r);
 	
     outColor = vec4(color, 1);
+	outHighlight = vec4(pushConsts.selected.r, 0, 0, 0);
 }

@@ -1,4 +1,4 @@
-#include "VulkanRayTracingRenderer.hpp"
+#include "VulkanRendererRayTracing.hpp"
 
 #include "Shader.hpp"
 
@@ -7,15 +7,15 @@
 
 #include <iostream>
 
-VulkanRayTracingRenderer::VulkanRayTracingRenderer()
+VulkanRendererRayTracing::VulkanRendererRayTracing()
 {
 }
 
-void VulkanRayTracingRenderer::initResources(VkPhysicalDevice physicalDevice, VkFormat format, uint32_t width, uint32_t height)
+void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, VkFormat format, uint32_t width, uint32_t height)
 {
     /* Check if physical device supports ray tracing */
     std::vector< VkExtensionProperties> extensions;
-    bool supportsRayTracing = VulkanRayTracingRenderer::checkRayTracingSupport(physicalDevice, extensions);
+    bool supportsRayTracing = VulkanRendererRayTracing::checkRayTracingSupport(physicalDevice, extensions);
     if (!supportsRayTracing)
     {
         throw std::runtime_error("Ray tracing is not supported");
@@ -99,15 +99,15 @@ void VulkanRayTracingRenderer::initResources(VkPhysicalDevice physicalDevice, Vk
     //}
 }
 
-void VulkanRayTracingRenderer::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages)
+void VulkanRendererRayTracing::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages)
 {
 }
 
-void VulkanRayTracingRenderer::releaseSwapChainResources()
+void VulkanRendererRayTracing::releaseSwapChainResources()
 {
 }
 
-void VulkanRayTracingRenderer::releaseResources()
+void VulkanRendererRayTracing::releaseResources()
 {
     /* TODO destroy descriptor set */
     /* TODO delete pipeline and rt pipeline */
@@ -117,22 +117,22 @@ void VulkanRayTracingRenderer::releaseResources()
     /* TODO delete device */
 }
 
-VkPipeline VulkanRayTracingRenderer::getPipeline() const
+VkPipeline VulkanRendererRayTracing::getPipeline() const
 {
 	return VkPipeline();
 }
 
-VkPipelineLayout VulkanRayTracingRenderer::getPipelineLayout() const
+VkPipelineLayout VulkanRendererRayTracing::getPipelineLayout() const
 {
 	return VkPipelineLayout();
 }
 
-VkDescriptorSetLayout VulkanRayTracingRenderer::getDescriptorSetLayout() const
+VkDescriptorSetLayout VulkanRendererRayTracing::getDescriptorSetLayout() const
 {
 	return VkDescriptorSetLayout();
 }
 
-void VulkanRayTracingRenderer::renderScene(const VulkanScene* scene)
+void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 {
     std::vector<glm::mat4> sceneObjectsMatrices;
     std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectsMatrices);
@@ -163,7 +163,7 @@ void VulkanRayTracingRenderer::renderScene(const VulkanScene* scene)
     destroyAccellerationStructures();
 }
 
-std::vector<const char *> VulkanRayTracingRenderer::getRequiredExtensions()
+std::vector<const char *> VulkanRendererRayTracing::getRequiredExtensions()
 {
     return { "VK_KHR_acceleration_structure", 
         "VK_KHR_ray_tracing_pipeline", 
@@ -175,9 +175,9 @@ std::vector<const char *> VulkanRayTracingRenderer::getRequiredExtensions()
         "VK_KHR_maintenance3"};
 }
 
-bool VulkanRayTracingRenderer::checkRayTracingSupport(VkPhysicalDevice device, std::vector<VkExtensionProperties>& availableExtensions)
+bool VulkanRendererRayTracing::checkRayTracingSupport(VkPhysicalDevice device, std::vector<VkExtensionProperties>& availableExtensions)
 {
-    std::vector<const char *> requiredExtensions = VulkanRayTracingRenderer::getRequiredExtensions();
+    std::vector<const char *> requiredExtensions = VulkanRendererRayTracing::getRequiredExtensions();
     uint32_t count;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
 
@@ -202,7 +202,7 @@ bool VulkanRayTracingRenderer::checkRayTracingSupport(VkPhysicalDevice device, s
     return true;
 }
 
-VkDevice VulkanRayTracingRenderer::createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex)
+VkDevice VulkanRendererRayTracing::createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex)
 {
     /* Physical device features needed for ray tracing */
     VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures = {};
@@ -260,7 +260,7 @@ VkDevice VulkanRayTracingRenderer::createLogicalDevice(VkPhysicalDevice physical
     deviceQueueCreateInfo.pQueuePriorities = queuePrioritiesList.data();
 
     /* Physical device required extensions */
-    std::vector<const char*> requiredExtensions = VulkanRayTracingRenderer::getRequiredExtensions();
+    std::vector<const char*> requiredExtensions = VulkanRendererRayTracing::getRequiredExtensions();
 
     VkDeviceCreateInfo deviceCreateInfo = {};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -284,7 +284,7 @@ VkDevice VulkanRayTracingRenderer::createLogicalDevice(VkPhysicalDevice physical
     return device;
 }
 
-uint64_t VulkanRayTracingRenderer::getBufferDeviceAddress(VkDevice device, VkBuffer buffer)
+uint64_t VulkanRendererRayTracing::getBufferDeviceAddress(VkDevice device, VkBuffer buffer)
 {
     VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
     bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -292,7 +292,7 @@ uint64_t VulkanRayTracingRenderer::getBufferDeviceAddress(VkDevice device, VkBuf
     return m_devF.vkGetBufferDeviceAddressKHR(device, &bufferDeviceAI);
 }
 
-VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& t)
+VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& t)
 {
     const std::vector<Vertex>& vertices = mesh.getVertices();
     const std::vector<uint16_t> indices = mesh.getIndices();
@@ -443,7 +443,7 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     return blas;
 }
 
-VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::createTopLevelAccelerationStructure()
+VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createTopLevelAccelerationStructure()
 {
 
     /* Create a buffer to hold top level instances */
@@ -572,12 +572,12 @@ VulkanRayTracingRenderer::AccelerationStructure VulkanRayTracingRenderer::create
     return tlas;
 }
 
-void VulkanRayTracingRenderer::destroyAccellerationStructures()
+void VulkanRendererRayTracing::destroyAccellerationStructures()
 {
     /* TODO cleanup accelleration structures */
 }
 
-void VulkanRayTracingRenderer::createStorageImage()
+void VulkanRendererRayTracing::createStorageImage()
 {
     /* Create render target used during ray tracing */
     bool ret = createImage(m_physicalDevice,
@@ -629,7 +629,7 @@ void VulkanRayTracingRenderer::createStorageImage()
     endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf);
 }
 
-void VulkanRayTracingRenderer::createUniformBuffers()
+void VulkanRendererRayTracing::createUniformBuffers()
 {
     /* Create a buffer to hold the scene data */
     createBuffer(m_physicalDevice,
@@ -651,7 +651,7 @@ void VulkanRayTracingRenderer::createUniformBuffers()
         m_uniformBufferObjectDescrptionMemory);
 }
 
-void VulkanRayTracingRenderer::updateUniformBuffers(const SceneData& sceneData)
+void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData)
 {
     {
         void* data;
@@ -668,7 +668,7 @@ void VulkanRayTracingRenderer::updateUniformBuffers(const SceneData& sceneData)
     }
 }
 
-void VulkanRayTracingRenderer::createRayTracingPipeline()
+void VulkanRendererRayTracing::createRayTracingPipeline()
 {
     /* binding 0, the accelleration strucure */
     VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
@@ -822,7 +822,7 @@ void VulkanRayTracingRenderer::createRayTracingPipeline()
     }
 }
 
-void VulkanRayTracingRenderer::createShaderBindingTable()
+void VulkanRendererRayTracing::createShaderBindingTable()
 {
     const uint32_t handleSize = m_rayTracingPipelineProperties.shaderGroupHandleSize;
     const uint32_t handleSizeAligned = alignedSize(m_rayTracingPipelineProperties.shaderGroupHandleSize, m_rayTracingPipelineProperties.shaderGroupHandleAlignment);
@@ -868,7 +868,7 @@ void VulkanRayTracingRenderer::createShaderBindingTable()
 }
 
 
-void VulkanRayTracingRenderer::createDescriptorSets()
+void VulkanRendererRayTracing::createDescriptorSets()
 {
     /* First set is:
     * 1 accelleration structure
@@ -905,7 +905,7 @@ void VulkanRayTracingRenderer::createDescriptorSets()
     }
 }
 
-void VulkanRayTracingRenderer::updateDescriptorSets()
+void VulkanRendererRayTracing::updateDescriptorSets()
 {
     /* Update accelleration structure binding */
     VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
@@ -968,7 +968,7 @@ void VulkanRayTracingRenderer::updateDescriptorSets()
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 }
 
-void VulkanRayTracingRenderer::render()
+void VulkanRendererRayTracing::render()
 {
     VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
@@ -1050,7 +1050,7 @@ void VulkanRayTracingRenderer::render()
     stbi_write_png("test.png", m_width, m_height, 4, imageDataInt.data(), m_width * 4 * sizeof(char));
 }
 
-VulkanRayTracingRenderer::RayTracingScratchBuffer VulkanRayTracingRenderer::createScratchBuffer(VkDeviceSize size)
+VulkanRendererRayTracing::RayTracingScratchBuffer VulkanRendererRayTracing::createScratchBuffer(VkDeviceSize size)
 {
     RayTracingScratchBuffer scratchBuffer{};
 
@@ -1096,7 +1096,7 @@ VulkanRayTracingRenderer::RayTracingScratchBuffer VulkanRayTracingRenderer::crea
     return scratchBuffer;
 }
 
-void VulkanRayTracingRenderer::deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer)
+void VulkanRendererRayTracing::deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer)
 {
     if (scratchBuffer.memory != VK_NULL_HANDLE) {
         vkFreeMemory(m_device, scratchBuffer.memory, nullptr);

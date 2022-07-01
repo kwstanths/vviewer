@@ -419,7 +419,11 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     /* When all items have been removed, this function is called with a null object selected */
     if (selectedItem == nullptr) return;
     std::shared_ptr<SceneNode> sceneNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
-    
+
+    if (m_selectedPrevious != nullptr) m_selectedPrevious->m_so->m_isSelected = false;
+    sceneNode->m_so->m_isSelected = true;
+    m_selectedPrevious = sceneNode;
+
     /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
     m_selectedObjectWidgetName = new WidgetName(nullptr, QString(sceneNode->m_so->m_name.c_str()));
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);

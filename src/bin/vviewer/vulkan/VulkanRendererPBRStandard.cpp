@@ -476,6 +476,15 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
             skybox->getDescriptor(imageIndex)
         };
         
+        PushBlockForwardPass pushConstants;
+        pushConstants.selected.r = static_cast<float>(object->m_isSelected);
+        vkCmdPushConstants(cmdBuf, 
+            m_pipelineLayout, 
+            VK_SHADER_STAGE_FRAGMENT_BIT, 
+            0, 
+            sizeof(PushBlockForwardPass), 
+            &pushConstants);
+
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
             0, 4, &descriptorSets[0], 2, &dynamicOffsets[0]);
         
@@ -619,12 +628,13 @@ bool VulkanRendererPBR::createGraphicsPipeline()
     colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+    std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{ colorBlendAttachment , colorBlendAttachment };
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
+    colorBlending.pAttachments = colorBlendAttachments.data();
     colorBlending.blendConstants[0] = 0.0f; // Optional
     colorBlending.blendConstants[1] = 0.0f; // Optional
     colorBlending.blendConstants[2] = 0.0f; // Optional
@@ -632,12 +642,18 @@ bool VulkanRendererPBR::createGraphicsPipeline()
 
     /* ------------------- PIPELINE LAYOUT ----------------- */
     std::array<VkDescriptorSetLayout, 4> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutSkybox };
+    
+    VkPushConstantRange pushConstantRange = {};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(PushBlockForwardPass);
+    
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetsLayouts.size());
     pipelineLayoutInfo.pSetLayouts = descriptorSetsLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-    pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
     if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
         utils::ConsoleFatal("Failed to create a graphics pipeline layout");
         return false;

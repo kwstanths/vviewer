@@ -14,6 +14,8 @@ set glslcLocation=C:\Users\konstantinos\Documents\LIBS\VulkanSDK\1.3.204.1\Bin\g
 %glslcLocation% quad.vert -o SPIRV/quadVert.spv
 %glslcLocation% genBRDFLUT.frag -o SPIRV/genBRDFLUTFrag.spv
 
+%glslcLocation% post/highlight.frag -o SPIRV/highlightFrag.spv
+
 %glslcLocation% --target-spv=spv1.4 rt/raygen.rgen -o SPIRV/rt/raygen.rgen.spv
 %glslcLocation% --target-spv=spv1.4 rt/raychit.rchit -o SPIRV/rt/raychit.rchit.spv
 %glslcLocation% --target-spv=spv1.4 rt/raymiss.rmiss -o SPIRV/rt/raymiss.rmiss.spv

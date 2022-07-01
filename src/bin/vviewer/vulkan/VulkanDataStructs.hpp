@@ -8,8 +8,12 @@ struct ModelData {
 };
 
 struct MaterialData {
-    glm::vec4 albedo;
-    glm::vec4 metallicRoughnessAOEmissive;
+    glm::vec4 albedo; /* RGB: albedo, A:alpha (unused) */
+    glm::vec4 metallicRoughnessAOEmissive;  /* R = metallic, G = roughness, B = AO, A = emissive */
+};
+
+struct PushBlockForwardPass {
+    glm::vec4 selected; /* R = object is selected, R = , B = , A = */
 };
 
 #endif

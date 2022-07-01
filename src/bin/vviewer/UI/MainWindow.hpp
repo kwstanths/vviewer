@@ -37,6 +37,8 @@ private:
     Scene* m_scene = nullptr;
     /* Holds a pointer to the scene graph widget */
     QTreeWidget* m_sceneGraphWidget = nullptr;
+    /* Previously selected item */
+    std::shared_ptr<SceneNode> m_selectedPrevious = nullptr;
 
     /* Widgets that appear on the controls on the right panel */
     WidgetName * m_selectedObjectWidgetName = nullptr;

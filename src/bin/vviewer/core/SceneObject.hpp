@@ -21,6 +21,8 @@ public:
     Material * getMaterial() const;
     void setMaterial(Material * newMaterial);
 
+    bool m_isSelected = false;
+
 protected:
     const Mesh * m_mesh = nullptr;
     Material * m_material = nullptr;

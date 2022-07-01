@@ -1,5 +1,5 @@
-#ifndef __VulkanRayTracingRenderer_hpp__
-#define __VulkanRayTracingRenderer_hpp__
+#ifndef __VulkanRendererRayTracing_hpp__
+#define __VulkanRendererRayTracing_hpp__
 
 #include "IncludeVulkan.hpp"
 #include "VulkanTexture.hpp"
@@ -7,10 +7,10 @@
 #include "VulkanMaterials.hpp"
 #include "VulkanScene.hpp"
 
-class VulkanRayTracingRenderer {
+class VulkanRendererRayTracing {
     friend class VulkanRenderer;
 public:
-    VulkanRayTracingRenderer();
+    VulkanRendererRayTracing();
 
     void initResources(VkPhysicalDevice physicalDevice, VkFormat colorFormat, uint32_t width, uint32_t height);
     void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);

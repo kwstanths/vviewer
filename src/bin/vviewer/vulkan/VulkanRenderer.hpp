@@ -27,7 +27,8 @@
 #include "VulkanRendererPBRStandard.hpp"
 #include "VulkanRendererLambert.hpp"
 #include "VulkanRendererSkybox.hpp"
-#include "VulkanRayTracingRenderer.hpp"
+#include "VulkanRendererPost.hpp"
+#include "VulkanRendererRayTracing.hpp"
 
 class VulkanRenderer : public QVulkanWindowRenderer {
 public:
@@ -64,7 +65,7 @@ private:
     bool isPhysicalDeviceSuitable(VkPhysicalDeviceProperties device);
 
     /* Graphics pipeline */
-    bool createRenderPass();
+    bool createRenderPasses();
     bool createFrameBuffers();
 
     /* Descriptor resources */
@@ -84,9 +85,17 @@ private:
     QVulkanDeviceFunctions * m_devFunctions;
     
     /* Swpachain data */
-    std::vector<VkFramebuffer> m_swapChainFramebuffers;
+    std::vector<VkFramebuffer> m_framebuffersForward;
+    std::vector<VkFramebuffer> m_framebuffersPost;
     VkExtent2D m_swapchainExtent;
     VkFormat m_swapchainFormat;
+    VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+    std::vector<VkImage> m_highlightImages;
+    std::vector<VkImageView> m_highlightImageViews;
+    std::vector<VkDeviceMemory> m_highlightDeviceMemory;
+    std::vector<VkImage> m_colorImages;
+    std::vector<VkImageView> m_colorImageViews;
+    std::vector<VkDeviceMemory> m_colorDeviceMemory;
 
     /* Device data */
     VkDebugUtilsMessengerEXT m_debugCallback;
@@ -96,10 +105,12 @@ private:
 
     /* Renderers */
     VkRenderPass m_renderPassForward;
+    VkRenderPass m_renderPassPost;
     VulkanRendererPBR m_rendererPBR;
     VulkanRendererLambert m_rendererLambert;
     VulkanRendererSkybox m_rendererSkybox;
-    VulkanRayTracingRenderer m_rendererRayTracing;
+    VulkanRendererPost m_rendererPost;
+    VulkanRendererRayTracing m_rendererRayTracing;
 
     /* Active scene */
     VulkanScene * m_scene = nullptr;

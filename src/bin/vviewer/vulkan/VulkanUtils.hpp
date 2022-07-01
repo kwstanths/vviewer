@@ -18,7 +18,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) 
     {
-        std::cerr << "Debug callback: " << pCallbackData->pMessage << std::endl;
+        //std::cerr << "Debug callback: " << pCallbackData->pMessage << std::endl;
     }
     return VK_FALSE;
 }
