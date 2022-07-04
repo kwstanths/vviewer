@@ -5,10 +5,10 @@
 
 #include "core/AssetManager.hpp"
 
-#include "VulkanUtils.hpp"
-#include "Shader.hpp"
-#include "VulkanMesh.hpp"
-#include "VulkanDataStructs.hpp"
+#include "vulkan/VulkanUtils.hpp"
+#include "vulkan/Shader.hpp"
+#include "vulkan/VulkanMesh.hpp"
+#include "vulkan/VulkanDataStructs.hpp"
 
 VulkanRendererLambert::VulkanRendererLambert()
 {

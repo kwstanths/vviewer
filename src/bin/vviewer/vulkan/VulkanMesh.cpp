@@ -7,6 +7,14 @@ VulkanMesh::VulkanMesh(const Mesh & mesh) : Mesh(mesh)
 {
 }
 
+void VulkanMesh::destroy(VkDevice device)
+{
+    vkDestroyBuffer(device, m_vertexBuffer, nullptr);
+    vkFreeMemory(device, m_vertexBufferMemory, nullptr);
+    vkDestroyBuffer(device, m_indexBuffer, nullptr);
+    vkFreeMemory(device, m_indexBufferMemory, nullptr);
+}
+
 VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes)
 {
     /* Create a VulkanMesh for every mesh, allocate gpu buffers for vertices and indices and push it back to the mesh vector */
@@ -23,6 +31,14 @@ VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice devic
         m_meshes.push_back(vkmesh);
     }
     
+}
+
+void VulkanMeshModel::destroy(VkDevice device)
+{
+    for (size_t i = 0; i < m_meshes.size(); i++) {
+        VulkanMesh* vkmesh = static_cast<VulkanMesh*>(m_meshes[i]);
+        vkmesh->destroy(device);
+    }
 }
 
 VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool)

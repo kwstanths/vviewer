@@ -66,6 +66,8 @@ class VulkanMesh : public Mesh {
 public:
     VulkanMesh(const Mesh& mesh);
 
+    void destroy(VkDevice device);
+
     VkBuffer m_vertexBuffer;
     VkDeviceMemory m_vertexBufferMemory;
     VkBuffer m_indexBuffer;
@@ -76,6 +78,8 @@ class VulkanMeshModel : public MeshModel {
 public:
     VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes);
     
+    void destroy(VkDevice device);
+
 private:
 
 };

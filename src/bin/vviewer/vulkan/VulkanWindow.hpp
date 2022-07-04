@@ -12,7 +12,7 @@
 #include <core/Lights.hpp>
 #include <core/Scene.hpp>
 
-#include "VulkanRenderer.hpp"
+#include "renderers/VulkanRenderer.hpp"
 #include "VulkanScene.hpp"
 
 class VulkanWindow : public QVulkanWindow {

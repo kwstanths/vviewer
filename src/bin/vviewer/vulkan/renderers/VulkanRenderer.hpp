@@ -16,18 +16,19 @@
 #include "core/EnvironmentMap.hpp"
 #include "core/Lights.hpp"
 
-#include "IncludeVulkan.hpp"
-#include "VulkanDataStructs.hpp"
-#include "VulkanScene.hpp"
-#include "VulkanMesh.hpp"
-#include "VulkanUtils.hpp"
-#include "VulkanSceneObject.hpp"
-#include "VulkanMaterials.hpp"
-#include "VulkanTexture.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanDataStructs.hpp"
+#include "vulkan/VulkanScene.hpp"
+#include "vulkan/VulkanMesh.hpp"
+#include "vulkan/VulkanUtils.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
+#include "vulkan/VulkanMaterials.hpp"
+#include "vulkan/VulkanTexture.hpp"
 #include "VulkanRendererPBRStandard.hpp"
 #include "VulkanRendererLambert.hpp"
 #include "VulkanRendererSkybox.hpp"
 #include "VulkanRendererPost.hpp"
+#include "VulkanRenderer3DUI.hpp"
 #include "VulkanRendererRayTracing.hpp"
 
 class VulkanRenderer : public QVulkanWindowRenderer {
@@ -54,6 +55,8 @@ public:
     EnvironmentMap* createEnvironmentMap(std::string imagePath, bool keepTexture = false);
     Material* createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
+    void setSelectedNode(std::shared_ptr<SceneNode> sceneNode);
+
     void renderRT();
 
 private:
@@ -75,9 +78,6 @@ private:
     bool createDescriptorPool(size_t nMaterials);
     bool createDescriptorSets();
     
-    /* */
-    void destroyVulkanMeshModel(MeshModel model);
-
 private:
     /* Qt vulkan data */
     QVulkanWindow * m_window;
@@ -110,6 +110,7 @@ private:
     VulkanRendererLambert m_rendererLambert;
     VulkanRendererSkybox m_rendererSkybox;
     VulkanRendererPost m_rendererPost;
+    VulkanRenderer3DUI m_renderer3DUI;
     VulkanRendererRayTracing m_rendererRayTracing;
 
     /* Active scene */
@@ -127,6 +128,8 @@ private:
     size_t m_materialsIndexUBO = 0;
 
     glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
+
+    std::shared_ptr<SceneNode> m_selectedNode = nullptr;
 };
 
 #endif

@@ -11,8 +11,8 @@
 #include "core/Image.hpp"
 #include "core/EnvironmentMap.hpp"
 #include "models/AssimpLoadModel.hpp"
-#include "Shader.hpp"
-#include "VulkanUtils.hpp"
+#include "vulkan/Shader.hpp"
+#include "vulkan/VulkanUtils.hpp"
 
 VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) : m_window(window) 
 {
@@ -84,6 +84,7 @@ void VulkanRenderer::initResources()
         m_descriptorSetLayoutModel,
         m_rendererSkybox.getDescriptorSetLayout());
     m_rendererPost.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
+    m_renderer3DUI.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene, m_descriptorSetLayoutModel);
     m_rendererRayTracing.initResources(m_physicalDevice, VK_FORMAT_R32G32B32A32_SFLOAT, 1024u, 1024u);
 
     /* Create a default material */
@@ -98,7 +99,6 @@ void VulkanRenderer::initResources()
     createVulkanMeshModel("assets/models/uvsphere.obj");
     createVulkanMeshModel("assets/models/plane.obj");
     createVulkanMeshModel("assets/models/rtscene.obj");
-    createVulkanMeshModel("assets/models/teapot.obj");
     createVulkanMeshModel("assets/models/cube.obj");
 
     /* Create a skybox material */
@@ -130,7 +130,7 @@ void VulkanRenderer::initSwapChainResources()
     m_rendererPBR.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
     m_rendererLambert.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
     m_rendererPost.initSwapChainResources(m_swapchainExtent, m_renderPassPost, m_window->swapChainImageCount(), m_colorImageViews, m_highlightImageViews);
-
+    m_renderer3DUI.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
     /* Update descriptor sets */
     {
         AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
@@ -185,6 +185,7 @@ void VulkanRenderer::releaseSwapChainResources()
     m_rendererPBR.releaseSwapChainResources();
     m_rendererLambert.releaseSwapChainResources();
     m_rendererPost.releaseSwapChainResources();
+    m_renderer3DUI.releaseSwapChainResources();
     m_rendererRayTracing.releaseSwapChainResources();
 
     m_devFunctions->vkDestroyRenderPass(m_device, m_renderPassForward, nullptr);
@@ -236,13 +237,15 @@ void VulkanRenderer::releaseResources()
     m_rendererPBR.releaseResources();
     m_rendererLambert.releaseResources();
     m_rendererPost.releaseResources();
+    m_renderer3DUI.releaseResources();
     m_rendererRayTracing.releaseResources();
 
     /* Destroy imported models */
     {
         AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            destroyVulkanMeshModel(*itr->second);
+            VulkanMeshModel* vkmeshmodel = static_cast<VulkanMeshModel*>(itr->second);
+            vkmeshmodel->destroy(m_device);
         }
         instance.Reset();
     }
@@ -325,6 +328,17 @@ void VulkanRenderer::startNextFrame()
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
             lambertObjects);
+        
+        if (m_selectedNode != nullptr) {
+            glm::vec3 transformPosition = m_selectedNode->getWorldPosition();
+            m_renderer3DUI.renderTransform(cmdBuf,
+                m_descriptorSetsScene[imageIndex],
+                m_descriptorSetsModel[imageIndex],
+                imageIndex,
+                m_scene->m_modelDataDynamicUBO,
+                transformPosition,
+                glm::distance(transformPosition, m_scene->getCamera()->getTransform().getPosition()));
+        }
 
         m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     }
@@ -413,6 +427,11 @@ Material * VulkanRenderer::createMaterial(std::string name, MaterialType type, b
 
     instance.Add(temp->m_name, temp);
     return temp;
+}
+
+void VulkanRenderer::setSelectedNode(std::shared_ptr<SceneNode> sceneNode)
+{
+    m_selectedNode = sceneNode;
 }
 
 void VulkanRenderer::renderRT()
@@ -582,18 +601,6 @@ EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath, bool
     }
 
     return nullptr;
-}
-
-void VulkanRenderer::destroyVulkanMeshModel(MeshModel model)
-{
-    std::vector<Mesh *> meshes = model.getMeshes();
-    for (size_t i = 0; i < meshes.size(); i++) {
-        VulkanMesh * vkmesh = static_cast<VulkanMesh *>(meshes[i]);
-        m_devFunctions->vkDestroyBuffer(m_device, vkmesh->m_vertexBuffer, nullptr);
-        m_devFunctions->vkFreeMemory(m_device, vkmesh->m_vertexBufferMemory, nullptr);
-        m_devFunctions->vkDestroyBuffer(m_device, vkmesh->m_indexBuffer, nullptr);
-        m_devFunctions->vkFreeMemory(m_device, vkmesh->m_indexBufferMemory, nullptr);
-    }
 }
 
 bool VulkanRenderer::createDebugCallback()

@@ -5,11 +5,11 @@
 
 #include <core/Image.hpp>
 
-#include "IncludeVulkan.hpp"
-#include "VulkanCubemap.hpp"
-#include "VulkanMesh.hpp"
-#include "VulkanMaterials.hpp"
-#include "VulkanTexture.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanCubemap.hpp"
+#include "vulkan/VulkanMesh.hpp"
+#include "vulkan/VulkanMaterials.hpp"
+#include "vulkan/VulkanTexture.hpp"
 
 class VulkanRendererSkybox {
 public:

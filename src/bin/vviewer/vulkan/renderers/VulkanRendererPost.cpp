@@ -2,9 +2,9 @@
 
 #include <Console.hpp>
 
-#include "VulkanUtils.hpp"
-#include "Shader.hpp"
-#include "VulkanMesh.hpp"
+#include "vulkan/VulkanUtils.hpp"
+#include "vulkan/Shader.hpp"
+#include "vulkan/VulkanMesh.hpp"
 
 VulkanRendererPost::VulkanRendererPost()
 {
@@ -34,6 +34,7 @@ void VulkanRendererPost::initSwapChainResources(VkExtent2D swapchainExtent, VkRe
 
 void VulkanRendererPost::releaseSwapChainResources()
 {
+    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
 	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 }
@@ -42,7 +43,6 @@ void VulkanRendererPost::releaseResources()
 {
     vkDestroySampler(m_device, m_inputSampler, nullptr);
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
-    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
 }
 
 VkPipeline VulkanRendererPost::getPipeline() const

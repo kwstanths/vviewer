@@ -13,10 +13,10 @@ public:
 
 	Transform m_localTransform;
 	glm::mat4 m_modelMatrix = glm::mat4(1.0f);
-
-	std::vector<std::shared_ptr<SceneNode>> m_children;
+	glm::vec3 getWorldPosition() const;
 
 	SceneNode* m_parent = nullptr;
+	std::vector<std::shared_ptr<SceneNode>> m_children;
 
 	std::shared_ptr<SceneObject> m_so;
 

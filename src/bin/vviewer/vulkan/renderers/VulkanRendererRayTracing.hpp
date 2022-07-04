@@ -1,11 +1,11 @@
 #ifndef __VulkanRendererRayTracing_hpp__
 #define __VulkanRendererRayTracing_hpp__
 
-#include "IncludeVulkan.hpp"
-#include "VulkanTexture.hpp"
-#include "VulkanSceneObject.hpp"
-#include "VulkanMaterials.hpp"
-#include "VulkanScene.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanTexture.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
+#include "vulkan/VulkanMaterials.hpp"
+#include "vulkan/VulkanScene.hpp"
 
 class VulkanRendererRayTracing {
     friend class VulkanRenderer;

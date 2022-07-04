@@ -3,6 +3,8 @@ set glslcLocation=C:\Users\konstantinos\Documents\LIBS\VulkanSDK\1.3.204.1\Bin\g
 %glslcLocation% standard.vert -o SPIRV/standardVert.spv
 %glslcLocation% pbr.frag -o SPIRV/pbrFrag.spv
 %glslcLocation% lambert.frag -o SPIRV/lambertFrag.spv
+%glslcLocation% 3dui.vert -o SPIRV/3duiVert.spv
+%glslcLocation% 3dui.frag -o SPIRV/3duiFrag.spv
 
 %glslcLocation% skybox/skybox.vert -o SPIRV/skyboxVert.spv
 %glslcLocation% skybox/skybox.frag -o SPIRV/skyboxFrag.spv

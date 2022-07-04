@@ -1,6 +1,6 @@
 #include "VulkanRendererRayTracing.hpp"
 
-#include "Shader.hpp"
+#include "vulkan/Shader.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>

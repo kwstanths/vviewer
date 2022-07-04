@@ -1,5 +1,12 @@
 #include "SceneGraph.hpp"
 
+#include <iostream>
+
+glm::vec3 SceneNode::getWorldPosition() const
+{
+	return glm::vec3(m_modelMatrix[3][0], m_modelMatrix[3][1], m_modelMatrix[3][2]);
+}
+
 std::shared_ptr<SceneNode> SceneNode::addChild(std::shared_ptr<SceneObject> so, Transform transform)
 {
 	m_children.push_back(std::make_shared<SceneNode>(so, transform));

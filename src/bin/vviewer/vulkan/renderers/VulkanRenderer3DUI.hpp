@@ -1,24 +1,22 @@
-#ifndef __VulkanRendererLambert_hpp__
-#define __VulkanRendererLambert_hpp__
+#ifndef __VulkanRenderer3DUI_hpp__
+#define __VulkanRenderer3DUI_hpp__
 
-#include "IncludeVulkan.hpp"
-#include "VulkanTexture.hpp"
-#include "VulkanSceneObject.hpp"
-#include "VulkanMaterials.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanTexture.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
+#include "vulkan/VulkanMaterials.hpp"
 
-class VulkanRendererLambert {
+class VulkanRenderer3DUI {
     friend class VulkanRenderer;
 public:
-    VulkanRendererLambert();
+    VulkanRenderer3DUI();
 
     void initResources(VkPhysicalDevice physicalDevice,
         VkDevice device,
         VkQueue queue,
         VkCommandPool commandPool,
-        VkPhysicalDeviceProperties physicalDeviceProperties,
         VkDescriptorSetLayout cameraDescriptorLayout,
-        VkDescriptorSetLayout modelDescriptorLayout,
-        VkDescriptorSetLayout skyboxDescriptorLayout);
+        VkDescriptorSetLayout modelDescriptorLayout);
     void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
 
     void releaseSwapChainResources();
@@ -26,20 +24,15 @@ public:
 
     VkPipeline getPipeline() const;
     VkPipelineLayout getPipelineLayout() const;
-    VkDescriptorSetLayout getDescriptorSetLayout() const;
 
-    VulkanMaterialLambert* createMaterial(std::string name,
-        glm::vec4 albedo, float ao, float emissive,
-        VulkanDynamicUBO<MaterialData>& materialsUBO,
-        int index);
-
-    void renderObjects(VkCommandBuffer& cmdBuf,
+    /* Draw a transform widget at a certain position */
+    void renderTransform(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
-        VulkanMaterialSkybox* skybox,
         uint32_t imageIndex,
         VulkanDynamicUBO<ModelData>& dynamicUBOModels,
-        std::vector<std::shared_ptr<SceneObject>>& objects) const;
+        glm::vec3 position,
+        float cameraDistance) const;
 
 private:
     VkDevice m_device;
@@ -50,12 +43,12 @@ private:
 
     VkDescriptorSetLayout m_descriptorSetLayoutCamera;
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
-    VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
-    VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
 
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     VkRenderPass m_renderPass;
+
+    VulkanMeshModel* m_arrow = nullptr;
 
     bool createDescriptorSetsLayout();
     bool createGraphicsPipeline();

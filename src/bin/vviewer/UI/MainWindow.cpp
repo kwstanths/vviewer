@@ -423,6 +423,7 @@ void MainWindow::onSelectedSceneObjectChangedSlot()
     if (m_selectedPrevious != nullptr) m_selectedPrevious->m_so->m_isSelected = false;
     sceneNode->m_so->m_isSelected = true;
     m_selectedPrevious = sceneNode;
+    m_vulkanWindow->m_renderer->setSelectedNode(sceneNode);
 
     /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
     m_selectedObjectWidgetName = new WidgetName(nullptr, QString(sceneNode->m_so->m_name.c_str()));

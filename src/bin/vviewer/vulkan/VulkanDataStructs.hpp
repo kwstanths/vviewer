@@ -16,4 +16,9 @@ struct PushBlockForwardPass {
     glm::vec4 selected; /* R = object is selected, R = , B = , A = */
 };
 
+struct PushBlockForward3DUI {
+    glm::mat4 modelMatrix;
+    glm::vec4 color;
+};
+
 #endif

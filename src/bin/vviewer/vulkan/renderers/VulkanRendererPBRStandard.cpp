@@ -5,9 +5,9 @@
 
 #include "core/AssetManager.hpp"
 
-#include "VulkanUtils.hpp"
-#include "Shader.hpp"
-#include "VulkanMesh.hpp"
+#include "vulkan/VulkanUtils.hpp"
+#include "vulkan/Shader.hpp"
+#include "vulkan/VulkanMesh.hpp"
 
 VulkanRendererPBR::VulkanRendererPBR()
 {

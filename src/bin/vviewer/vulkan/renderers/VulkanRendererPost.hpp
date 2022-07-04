@@ -1,8 +1,9 @@
 #ifndef __VulkanRendererPost_hpp__
 #define __VulkanRendererPost_hpp__
 
-#include "IncludeVulkan.hpp"
 #include <vector>
+
+#include "vulkan/IncludeVulkan.hpp"
 
 class VulkanRendererPost {
     friend class VulkanRenderer;

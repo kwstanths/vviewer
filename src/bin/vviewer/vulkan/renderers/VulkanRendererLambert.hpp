@@ -1,23 +1,23 @@
-#ifndef __VulkanRendererPBR_hpp__
-#define __VulkanRendererPBR_hpp__
+#ifndef __VulkanRendererLambert_hpp__
+#define __VulkanRendererLambert_hpp__
 
-#include "IncludeVulkan.hpp"
-#include "VulkanTexture.hpp"
-#include "VulkanSceneObject.hpp"
-#include "VulkanMaterials.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanTexture.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
+#include "vulkan/VulkanMaterials.hpp"
 
-class VulkanRendererPBR {
+class VulkanRendererLambert {
     friend class VulkanRenderer;
 public:
-    VulkanRendererPBR();
+    VulkanRendererLambert();
 
-    void initResources(VkPhysicalDevice physicalDevice, 
-        VkDevice device, 
-        VkQueue queue, 
-        VkCommandPool commandPool, 
+    void initResources(VkPhysicalDevice physicalDevice,
+        VkDevice device,
+        VkQueue queue,
+        VkCommandPool commandPool,
         VkPhysicalDeviceProperties physicalDeviceProperties,
-        VkDescriptorSetLayout cameraDescriptorLayout, 
-        VkDescriptorSetLayout modelDescriptorLayout, 
+        VkDescriptorSetLayout cameraDescriptorLayout,
+        VkDescriptorSetLayout modelDescriptorLayout,
         VkDescriptorSetLayout skyboxDescriptorLayout);
     void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
 
@@ -28,18 +28,16 @@ public:
     VkPipelineLayout getPipelineLayout() const;
     VkDescriptorSetLayout getDescriptorSetLayout() const;
 
-    VulkanTexture* createBRDFLUT(uint32_t resolution = 512) const;
-
-    VulkanMaterialPBRStandard* createMaterial(std::string name,
-        glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
+    VulkanMaterialLambert* createMaterial(std::string name,
+        glm::vec4 albedo, float ao, float emissive,
         VulkanDynamicUBO<MaterialData>& materialsUBO,
         int index);
 
-    void renderObjects(VkCommandBuffer& cmdBuf, 
+    void renderObjects(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
-        VulkanMaterialSkybox * skybox,
-        uint32_t imageIndex, 
+        VulkanMaterialSkybox* skybox,
+        uint32_t imageIndex,
         VulkanDynamicUBO<ModelData>& dynamicUBOModels,
         std::vector<std::shared_ptr<SceneObject>>& objects) const;
 
