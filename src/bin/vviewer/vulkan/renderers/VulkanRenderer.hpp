@@ -24,6 +24,7 @@
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanTexture.hpp"
+#include "Vulkan/VulkanFramebuffer.hpp"
 #include "VulkanRendererPBRStandard.hpp"
 #include "VulkanRendererLambert.hpp"
 #include "VulkanRendererSkybox.hpp"
@@ -87,15 +88,13 @@ private:
     /* Swpachain data */
     std::vector<VkFramebuffer> m_framebuffersForward;
     std::vector<VkFramebuffer> m_framebuffersPost;
+    std::vector<VkFramebuffer> m_framebuffersUI;
     VkExtent2D m_swapchainExtent;
     VkFormat m_swapchainFormat;
     VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-    std::vector<VkImage> m_highlightImages;
-    std::vector<VkImageView> m_highlightImageViews;
-    std::vector<VkDeviceMemory> m_highlightDeviceMemory;
-    std::vector<VkImage> m_colorImages;
-    std::vector<VkImageView> m_colorImageViews;
-    std::vector<VkDeviceMemory> m_colorDeviceMemory;
+    std::vector<VulkanFrameBufferAttachment> m_attachmentColorForwardOutput;
+    std::vector<VulkanFrameBufferAttachment> m_attachmentHighlightForwardOutput;
+    std::vector<VulkanFrameBufferAttachment> m_attachmentColorPostOutput;
 
     /* Device data */
     VkDebugUtilsMessengerEXT m_debugCallback;
@@ -106,6 +105,7 @@ private:
     /* Renderers */
     VkRenderPass m_renderPassForward;
     VkRenderPass m_renderPassPost;
+    VkRenderPass m_renderPassUI;
     VulkanRendererPBR m_rendererPBR;
     VulkanRendererLambert m_rendererLambert;
     VulkanRendererSkybox m_rendererSkybox;

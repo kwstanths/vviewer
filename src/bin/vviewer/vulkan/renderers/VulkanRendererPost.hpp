@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanFramebuffer.hpp"
 
 class VulkanRendererPost {
     friend class VulkanRenderer;
@@ -14,7 +15,11 @@ public:
         VkDevice device,
         VkQueue queue,
         VkCommandPool commandPool);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, const std::vector<VkImageView>& colorImages, const std::vector<VkImageView>& highlightImages);
+    void initSwapChainResources(VkExtent2D swapchainExtent, 
+        VkRenderPass renderPass, 
+        uint32_t swapchainImages, 
+        const std::vector<VulkanFrameBufferAttachment>& colorattachments, 
+        const std::vector<VulkanFrameBufferAttachment>& highlightAttachments);
 
     void releaseSwapChainResources();
     void releaseResources();
@@ -45,7 +50,7 @@ private:
     bool createDescriptorSetsLayout();
     bool createDescriptorPool(uint32_t imageCount);
     bool createSampler();
-    bool createDescriptors(uint32_t imageCount, const std::vector<VkImageView>& colorImages, const std::vector<VkImageView>& highlightImages);
+    bool createDescriptors(uint32_t imageCount, const std::vector<VulkanFrameBufferAttachment>& colorAttachments, const std::vector<VulkanFrameBufferAttachment>& highlightAttachments);
 };
 
 #endif

@@ -5,6 +5,7 @@
 #include "vulkan/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
+#include "vulkan/VulkanFramebuffer.hpp"
 
 class VulkanRenderer3DUI {
     friend class VulkanRenderer;
@@ -17,7 +18,7 @@ public:
         VkCommandPool commandPool,
         VkDescriptorSetLayout cameraDescriptorLayout,
         VkDescriptorSetLayout modelDescriptorLayout);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
+    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, const std::vector<VulkanFrameBufferAttachment>& colorattachments);
 
     void releaseSwapChainResources();
     void releaseResources();
@@ -28,11 +29,12 @@ public:
     /* Draw a transform widget at a certain position */
     void renderTransform(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,
-        VkDescriptorSet& descriptorModel,
         uint32_t imageIndex,
-        VulkanDynamicUBO<ModelData>& dynamicUBOModels,
         glm::vec3 position,
         float cameraDistance) const;
+
+    /* Copy pass to the output */
+    void renderCopy(VkCommandBuffer& cmdBuf, uint32_t imageIndex) const;
 
 private:
     VkDevice m_device;
@@ -46,12 +48,24 @@ private:
 
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
+    VkPipelineLayout m_pipelineLayoutCopy;
+    VkPipeline m_graphicsPipelineCopy;
     VkRenderPass m_renderPass;
+
+    VkDescriptorPool m_descriptorPool;
+    VkDescriptorSetLayout m_descriptorSetLayoutInputColor;
+    std::vector<VkDescriptorSet> m_descriptorSets;
+    VkSampler m_inputSampler;
 
     VulkanMeshModel* m_arrow = nullptr;
 
     bool createDescriptorSetsLayout();
     bool createGraphicsPipeline();
+    bool createGraphicsPipelineEmptyPass();
+
+    bool createDescriptorPool(uint32_t imageCount);
+    bool createSampler();
+    bool createDescriptors(uint32_t imageCount, const std::vector<VulkanFrameBufferAttachment>& colorAttachments);
 };
 
 #endif

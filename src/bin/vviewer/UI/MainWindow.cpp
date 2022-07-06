@@ -316,14 +316,20 @@ void MainWindow::onAddSceneObjectRootSlot()
 
 void MainWindow::onAddSceneObjectSlot()
 {
+    /* Get currently selected tree item */
+    QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
+    /* If no item is selected, add scene object at root */
+    if (selectedItem == nullptr) {
+        onAddSceneObjectRootSlot();
+        return;
+    }
+
     DialogAddSceneObject* dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", getImportedModels(), getCreatedMaterials());
     dialog->exec();
-
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    /* Get currently selected tree item */
-    QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
+    /* Get node selected from ui tree item */
     std::shared_ptr<SceneNode> selectedNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
 
     /* Create node on scene graph as child of currently selected item */

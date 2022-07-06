@@ -15,9 +15,9 @@ void main()
 	if (highlightInfo.r == 1.0f){
 		vec2 size = 1.0f / textureSize(inputHighlight, 0);
 
-        for (int i = -3; i <= +3; i++)
+        for (int i = -2; i <= +2; i++)
         {
-            for (int j = -3; j <= +3; j++)
+            for (int j = -2; j <= +2; j++)
             {
                 if (i == 0 && j == 0)
                 {

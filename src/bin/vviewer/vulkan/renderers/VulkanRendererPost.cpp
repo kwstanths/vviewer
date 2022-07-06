@@ -21,13 +21,17 @@ void VulkanRendererPost::initResources(VkPhysicalDevice physicalDevice, VkDevice
     createSampler();
 }
 
-void VulkanRendererPost::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, const std::vector<VkImageView>& colorImages, const std::vector<VkImageView>& highlightImages)
+void VulkanRendererPost::initSwapChainResources(VkExtent2D swapchainExtent, 
+    VkRenderPass renderPass, 
+    uint32_t swapchainImages, 
+    const std::vector<VulkanFrameBufferAttachment>& colorAttachments, 
+    const std::vector<VulkanFrameBufferAttachment>& highlightAttachments)
 {
 	m_swapchainExtent = swapchainExtent;
 	m_renderPass = renderPass;
 
     createDescriptorPool(swapchainImages);
-    createDescriptors(swapchainImages, colorImages, highlightImages);
+    createDescriptors(swapchainImages, colorAttachments, highlightAttachments);
 
 	createGraphicsPipeline();
 }
@@ -98,8 +102,6 @@ bool VulkanRendererPost::createGraphicsPipeline()
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
     /* -------------------- VERTEX INPUT ------------------ */
-    auto bindingDescription = VulkanVertex::getBindingDescription();
-    auto attributeDescriptions = VulkanVertex::getAttributeDescriptionsPos();
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 0;
@@ -255,7 +257,9 @@ bool VulkanRendererPost::createDescriptorPool(uint32_t imageCount)
     return true;
 }
 
-bool VulkanRendererPost::createDescriptors(uint32_t imageCount, const std::vector<VkImageView>& colorImages, const std::vector<VkImageView>& highlightImages)
+bool VulkanRendererPost::createDescriptors(uint32_t imageCount, 
+    const std::vector<VulkanFrameBufferAttachment>& colorAttachments, 
+    const std::vector<VulkanFrameBufferAttachment>& highlightAttachments)
 {
     m_descriptorSets.resize(imageCount);
 
@@ -276,7 +280,7 @@ bool VulkanRendererPost::createDescriptors(uint32_t imageCount, const std::vecto
     {
         VkDescriptorImageInfo colorAttachmentDescriptor{};
         colorAttachmentDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        colorAttachmentDescriptor.imageView = colorImages[i];
+        colorAttachmentDescriptor.imageView = colorAttachments[i].getView();
         colorAttachmentDescriptor.sampler = m_inputSampler;
         VkWriteDescriptorSet colorWrite{};
         colorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -289,7 +293,7 @@ bool VulkanRendererPost::createDescriptors(uint32_t imageCount, const std::vecto
 
         VkDescriptorImageInfo highlightAttachmentDescriptor{};
         highlightAttachmentDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        highlightAttachmentDescriptor.imageView = highlightImages[i];
+        highlightAttachmentDescriptor.imageView = highlightAttachments[i].getView();
         highlightAttachmentDescriptor.sampler = m_inputSampler;
         VkWriteDescriptorSet highlightWrite{};
         highlightWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
