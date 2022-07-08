@@ -16,9 +16,8 @@ public:
         VkDevice device,
         VkQueue queue,
         VkCommandPool commandPool,
-        VkDescriptorSetLayout cameraDescriptorLayout,
-        VkDescriptorSetLayout modelDescriptorLayout);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, const std::vector<VulkanFrameBufferAttachment>& colorattachments);
+        VkDescriptorSetLayout cameraDescriptorLayout);
+    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
 
     void releaseSwapChainResources();
     void releaseResources();
@@ -33,9 +32,6 @@ public:
         glm::vec3 position,
         float cameraDistance) const;
 
-    /* Copy pass to the output */
-    void renderCopy(VkCommandBuffer& cmdBuf, uint32_t imageIndex) const;
-
 private:
     VkDevice m_device;
     VkPhysicalDevice m_physicalDevice;
@@ -48,24 +44,12 @@ private:
 
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
-    VkPipelineLayout m_pipelineLayoutCopy;
-    VkPipeline m_graphicsPipelineCopy;
     VkRenderPass m_renderPass;
 
-    VkDescriptorPool m_descriptorPool;
-    VkDescriptorSetLayout m_descriptorSetLayoutInputColor;
-    std::vector<VkDescriptorSet> m_descriptorSets;
-    VkSampler m_inputSampler;
-
     VulkanMeshModel* m_arrow = nullptr;
+    glm::vec3 m_rightID, m_upID, m_forwardID;
 
-    bool createDescriptorSetsLayout();
     bool createGraphicsPipeline();
-    bool createGraphicsPipelineEmptyPass();
-
-    bool createDescriptorPool(uint32_t imageCount);
-    bool createSampler();
-    bool createDescriptors(uint32_t imageCount, const std::vector<VulkanFrameBufferAttachment>& colorAttachments);
 };
 
 #endif

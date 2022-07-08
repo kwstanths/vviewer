@@ -8,6 +8,7 @@
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
 #include "vulkan/VulkanMesh.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
 
 VulkanRendererPBR::VulkanRendererPBR()
 {
@@ -477,7 +478,7 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
         };
         
         PushBlockForwardPass pushConstants;
-        pushConstants.selected.r = static_cast<float>(object->m_isSelected);
+        pushConstants.selected = glm::vec4(object->getIDRGB(), object->m_isSelected);
         vkCmdPushConstants(cmdBuf, 
             m_pipelineLayout, 
             VK_SHADER_STAGE_FRAGMENT_BIT, 

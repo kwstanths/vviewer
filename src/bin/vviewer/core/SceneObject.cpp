@@ -1,6 +1,12 @@
 #include "SceneObject.hpp"
 
-SceneObject::SceneObject(const Mesh * mesh)
+SceneObject::SceneObject()
+{
+    m_id = IDGeneration::getInstance().getID();
+    m_idRGB = IDGeneration::toRGB(m_id);
+}
+
+SceneObject::SceneObject(const Mesh * mesh) : SceneObject()
 {
     m_mesh= mesh;
 }
@@ -28,4 +34,14 @@ Material * SceneObject::getMaterial() const
 void SceneObject::setMaterial(Material * newMaterial)
 {
     m_material = newMaterial;
+}
+
+ID SceneObject::getID() const
+{
+    return m_id;
+}
+
+glm::vec3 SceneObject::getIDRGB() const
+{
+    return m_idRGB;
 }

@@ -84,13 +84,20 @@ void VulkanRenderer::initResources()
         m_descriptorSetLayoutModel,
         m_rendererSkybox.getDescriptorSetLayout());
     m_rendererPost.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
-    m_renderer3DUI.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene, m_descriptorSetLayoutModel);
+
+    try {
+        m_renderer3DUI.initResources(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), m_descriptorSetLayoutScene);
+    }
+    catch (std::exception& e) {
+        utils::ConsoleCritical("Failed to initialize UI renderer: " + std::string(e.what()));
+        return;
+    }
     
     try {
         m_rendererRayTracing.initResources(m_physicalDevice, VK_FORMAT_R32G32B32A32_SFLOAT, 1024u, 1024u);
     }
     catch (std::exception& e) {
-        utils::ConsoleWarning("Can't initialize GPU ray tracing: " + std::string(e.what()));
+        utils::ConsoleWarning("Failed to initialize GPU ray tracing renderer: " + std::string(e.what()));
     }
 
     /* Create a default material */
@@ -116,7 +123,7 @@ void VulkanRenderer::initResources()
         m_scene->setSkybox(skybox);
     }
 
-    m_scene->addSceneObject("assets/models/uvsphere.obj", Transform(), "defaultMaterial");
+    //m_scene->addSceneObject("assets/models/uvsphere.obj", Transform(), "defaultMaterial");
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -136,7 +143,7 @@ void VulkanRenderer::initSwapChainResources()
     m_rendererPBR.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
     m_rendererLambert.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
     m_rendererPost.initSwapChainResources(m_swapchainExtent, m_renderPassPost, m_window->swapChainImageCount(), m_attachmentColorForwardOutput, m_attachmentHighlightForwardOutput);
-    m_renderer3DUI.initSwapChainResources(m_swapchainExtent, m_renderPassUI, m_window->swapChainImageCount(), m_attachmentColorPostOutput);
+    m_renderer3DUI.initSwapChainResources(m_swapchainExtent, m_renderPassUI, m_window->swapChainImageCount());
     /* Update descriptor sets */
     {
         AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
@@ -171,7 +178,6 @@ void VulkanRenderer::releaseSwapChainResources()
 
         m_attachmentColorForwardOutput[i].destroy(m_device);
         m_attachmentHighlightForwardOutput[i].destroy(m_device);
-        m_attachmentColorPostOutput[i].destroy(m_device);
     }
 
     m_devFunctions->vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
@@ -362,8 +368,6 @@ void VulkanRenderer::startNextFrame()
 
     /* UI pass */
     {
-        std::array<VkClearValue, 1> clearValues{};
-        clearValues[0].color = { 0, 0, 0, 0 };
         VkRenderPassBeginInfo rpBeginInfo;
         memset(&rpBeginInfo, 0, sizeof(rpBeginInfo));
         rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -372,13 +376,10 @@ void VulkanRenderer::startNextFrame()
         rpBeginInfo.renderArea.offset = { 0, 0 };
         rpBeginInfo.renderArea.extent.width = m_swapchainExtent.width;
         rpBeginInfo.renderArea.extent.height = m_swapchainExtent.height;
-        rpBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        rpBeginInfo.pClearValues = clearValues.data();
+        rpBeginInfo.clearValueCount = 0;
+        rpBeginInfo.pClearValues = nullptr;
         m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         
-        /* Copy previous pass output pass */
-        m_renderer3DUI.renderCopy(cmdBuf, imageIndex);
-
         /* Render a transform if an object is selected */
         if (m_selectedNode != nullptr) {
             glm::vec3 transformPosition = m_selectedNode->getWorldPosition();
@@ -777,14 +778,14 @@ bool VulkanRenderer::createRenderPasses()
         VkSubpassDescription renerPassPostSubpass{};
         /* One color attachment which is the swapchain output */
         VkAttachmentDescription postColorAttachment{};
-        postColorAttachment.format = m_internalRenderFormat;
+        postColorAttachment.format = m_swapchainFormat;
         postColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         postColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         postColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         postColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         postColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         postColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;  /* Before the subpass */
-        postColorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;  /* After the subpass */
+        postColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  /* After the subpass */
         VkAttachmentReference postColorAttachmentRef{};
         postColorAttachmentRef.attachment = 0;
         postColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   /* During the subpass */
@@ -830,26 +831,40 @@ bool VulkanRenderer::createRenderPasses()
 
     {
         /* Render pass 3: UI pass */
-/* ---------------------- SUBPASS 1  ------------------------------ */
+        /* ---------------------- SUBPASS 1  ------------------------------ */
         VkSubpassDescription renerPassUISubpass{};
-        /* One color attachment which is the swapchain output */
+        /* One color attachment which is the swapchain output, and one with the highlight information */
         VkAttachmentDescription swapchainColorAttachment{};
         swapchainColorAttachment.format = m_swapchainFormat;
         swapchainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        swapchainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        swapchainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         swapchainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         swapchainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         swapchainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        swapchainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;  /* Before the subpass */
+        swapchainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  /* Before the subpass */
         swapchainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  /* After the subpass */
         VkAttachmentReference swapchainColorAttachmentRef{};
         swapchainColorAttachmentRef.attachment = 0;
         swapchainColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   /* During the subpass */
 
+        VkAttachmentDescription highlightAttachment{};
+        highlightAttachment.format = m_internalRenderFormat;
+        highlightAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        highlightAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        highlightAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        highlightAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        highlightAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        highlightAttachment.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;  /* Before the subpass */
+        highlightAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;  /* After the subpass */
+        VkAttachmentReference highlightAttachmentRef{};
+        highlightAttachmentRef.attachment = 1;
+        highlightAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   /* During the subpass */
+
         /* setup subpass 1 */
+        std::array<VkAttachmentReference, 2> colorAttachments{ swapchainColorAttachmentRef, highlightAttachmentRef };
         renerPassUISubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        renerPassUISubpass.colorAttachmentCount = 1;
-        renerPassUISubpass.pColorAttachments = &swapchainColorAttachmentRef;    /* Same as shader locations */
+        renerPassUISubpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
+        renerPassUISubpass.pColorAttachments = colorAttachments.data();    /* Same as shader locations */
 
         /* ---------------- SUBPASS DEPENDENCIES ----------------------- */
         std::array<VkSubpassDependency, 2> uiDependencies{};
@@ -868,7 +883,7 @@ bool VulkanRenderer::createRenderPasses()
         uiDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
         uiDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 
-        std::array<VkAttachmentDescription, 1> uiAttachments = { swapchainColorAttachment };
+        std::array<VkAttachmentDescription, 2> uiAttachments = { swapchainColorAttachment, highlightAttachment };
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = static_cast<uint32_t>(uiAttachments.size());
@@ -893,13 +908,11 @@ bool VulkanRenderer::createFrameBuffers()
     /* Create internal render targets for color and highlight */
     m_attachmentColorForwardOutput.resize(swapchainImages);
     m_attachmentHighlightForwardOutput.resize(swapchainImages);
-    m_attachmentColorPostOutput.resize(swapchainImages);
 
     for (size_t i = 0; i < swapchainImages; i++)
     {
         m_attachmentColorForwardOutput[i].init(m_physicalDevice, m_device, m_swapchainExtent.width, m_swapchainExtent.height, m_internalRenderFormat);
         m_attachmentHighlightForwardOutput[i].init(m_physicalDevice, m_device, m_swapchainExtent.width, m_swapchainExtent.height, m_internalRenderFormat);
-        m_attachmentColorPostOutput[i].init(m_physicalDevice, m_device, m_swapchainExtent.width, m_swapchainExtent.height, m_internalRenderFormat);
     }
 
     /* Create framebuffers for forward and post process pass */
@@ -933,7 +946,7 @@ bool VulkanRenderer::createFrameBuffers()
         {
             /* Create post process pass framebuffers */
             std::array<VkImageView, 1> attachments = {
-                m_attachmentColorPostOutput[i].getView(),
+                m_window->swapChainImageView(i),
             };
 
             VkFramebufferCreateInfo framebufferInfo{};
@@ -953,8 +966,9 @@ bool VulkanRenderer::createFrameBuffers()
 
         {
             /* Create UI pass framebuffers */
-            std::array<VkImageView, 1> attachments = {
+            std::array<VkImageView, 2> attachments = {
                 m_window->swapChainImageView(i),
+                m_attachmentHighlightForwardOutput[i].getView()
             };
 
             VkFramebufferCreateInfo framebufferInfo{};

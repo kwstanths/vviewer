@@ -13,12 +13,13 @@ struct MaterialData {
 };
 
 struct PushBlockForwardPass {
-    glm::vec4 selected; /* R = object is selected, R = , B = , A = */
+    glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
 };
 
 struct PushBlockForward3DUI {
     glm::mat4 modelMatrix;
     glm::vec4 color;
+    glm::vec4 selected;
 };
 
 #endif

@@ -71,5 +71,5 @@ void main() {
     color = tonemapDefault2(color, sceneData.exposure.r);
 	
     outColor = vec4(color, 1);
-	outHighlight = vec4(pushConsts.selected.r, 0, 0, 0);
+	outHighlight = pushConsts.selected;
 }

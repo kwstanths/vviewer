@@ -4,10 +4,11 @@
 #include <math/Transform.hpp>
 #include "MeshModel.hpp"
 #include "Materials.hpp"
+#include "IDGeneration.hpp"
 
 class SceneObject {
 public:
-    SceneObject() {};
+    SceneObject();
 
     SceneObject(const Mesh * mesh);
 
@@ -23,9 +24,14 @@ public:
 
     bool m_isSelected = false;
 
+    ID getID() const;
+    glm::vec3 getIDRGB() const;
+
 protected:
     const Mesh * m_mesh = nullptr;
     Material * m_material = nullptr;
+    ID m_id;
+    glm::vec3 m_idRGB;
 };
 
 #endif

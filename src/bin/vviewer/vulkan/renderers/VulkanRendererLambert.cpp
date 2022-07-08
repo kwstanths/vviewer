@@ -9,6 +9,7 @@
 #include "vulkan/Shader.hpp"
 #include "vulkan/VulkanMesh.hpp"
 #include "vulkan/VulkanDataStructs.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
 
 VulkanRendererLambert::VulkanRendererLambert()
 {
@@ -102,7 +103,7 @@ void VulkanRendererLambert::renderObjects(VkCommandBuffer& cmdBuf, VkDescriptorS
         };
 
         PushBlockForwardPass pushConstants;
-        pushConstants.selected.r = static_cast<float>(object->m_isSelected);
+        pushConstants.selected = glm::vec4(object->getIDRGB(), object->m_isSelected);
         vkCmdPushConstants(cmdBuf,
             m_pipelineLayout,
             VK_SHADER_STAGE_FRAGMENT_BIT,
