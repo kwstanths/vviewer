@@ -8,12 +8,12 @@
 #include <rapidjson/document.h>
 
 #include "Camera.hpp"
-#include "SceneGraph.hpp"
+#include "SceneObject.hpp"
 #include "Materials.hpp"
 
-void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std::vector<std::shared_ptr<SceneNode>>& sceneObjects, EnvironmentMap * envMap);
+void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, EnvironmentMap * envMap);
 
-void parseSceneNode(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneNode>& sceneNode, std::unordered_set<Material*>& materials);
+void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials);
 
 void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, const Transform& t);
 

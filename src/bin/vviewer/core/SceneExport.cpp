@@ -9,7 +9,7 @@
 
 using namespace rapidjson;
 
-void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std::vector<std::shared_ptr<SceneNode>>& sceneGraph, EnvironmentMap* envMap)
+void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std::vector<std::shared_ptr<SceneObject>>& sceneGraph, EnvironmentMap* envMap)
 {
     std::string fileName = name + ".json";
 
@@ -126,7 +126,7 @@ void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std
 
         for (auto& itr : sceneGraph)
         {
-            parseSceneNode(d, scene, itr, materials);
+            parseSceneObject(d, scene, itr, materials);
         }
 
         d.AddMember("scene", scene, d.GetAllocator());
@@ -180,17 +180,17 @@ void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std
     d.Accept(writer);
 }
 
-void parseSceneNode(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneNode>& sceneNode, std::unordered_set<Material*>& materials)
+void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials)
 {
-    if (sceneNode->m_so->getMesh() != nullptr) {
-        addJsonSceneObject(d, v, sceneNode->m_so, sceneNode->m_parent->m_localTransform);
+    if (sceneObject->getMesh() != nullptr) {
+        addJsonSceneObject(d, v, sceneObject, sceneObject->m_parent->m_localTransform);
 
-        Material* mat = sceneNode->m_so->getMaterial();
+        Material* mat = sceneObject->getMaterial();
         materials.insert(mat);
     }
 
-    for (auto& child : sceneNode->m_children) {
-        parseSceneNode(d, v, child, materials);
+    for (auto& child : sceneObject->m_children) {
+        parseSceneObject(d, v, std::dynamic_pointer_cast<SceneObject>(child), materials);
     }
 }
 

@@ -61,6 +61,17 @@ void VulkanWindow::mousePressEvent(QMouseEvent * ev)
 
 void VulkanWindow::mouseReleaseEvent(QMouseEvent * ev)
 {
+    if (ev->button() == Qt::LeftButton) {
+        /* Select object from scene */
+        QPointF pos = ev->localPos();
+        QSize size = this->size();
+        ID objectID = IDGeneration::fromRGB(m_renderer->selectObject(pos.x() / size.width(), pos.y() / size.height()));
+
+        std::shared_ptr<SceneObject> object = m_scene->getSceneObject(objectID);
+        if (object.get() == nullptr) return;
+
+        emit sceneObjectSelected(object);
+    }
 }
 
 void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)

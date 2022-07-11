@@ -8,7 +8,7 @@
 typedef uint32_t ID;
 
 /**
-    A singleton generates unique ids
+    A singleton that generates unique ids
 */
 class IDGeneration {
 public:
@@ -28,7 +28,7 @@ public:
 private:
     IDGeneration() {}
 
-    ID m_index = 0;
+    ID m_index = 1;
 };
 
 #endif

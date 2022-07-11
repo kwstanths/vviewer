@@ -1,9 +1,11 @@
 #include "VulkanSceneObject.hpp"
 
 VulkanSceneObject::VulkanSceneObject(const Mesh * mesh, VulkanDynamicUBO<ModelData>& transformDynamicUBO, int transformUBOBlock)
-    : SceneObject(mesh), m_transformDataSotrage(transformDynamicUBO)
+    : SceneObject(Transform()), m_transformDataSotrage(transformDynamicUBO)
 {
+    m_mesh = mesh;
     m_transformUBOBlock = transformUBOBlock;
+
     updateModelMatrixData(glm::mat4(1.0f));
 }
 

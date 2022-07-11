@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <stb_image_write.h>
+
 #include <chrono>
 
 #include <utils/Console.hpp>
@@ -136,6 +138,7 @@ void VulkanRenderer::initSwapChainResources()
 
     createRenderPasses();
     createFrameBuffers();
+    createColorSelectionTempImage();
     createUniformBuffers();
     createDescriptorPool(100);
     createDescriptorSets();
@@ -202,6 +205,9 @@ void VulkanRenderer::releaseSwapChainResources()
     m_devFunctions->vkDestroyRenderPass(m_device, m_renderPassForward, nullptr);
     m_devFunctions->vkDestroyRenderPass(m_device, m_renderPassPost, nullptr);
     m_devFunctions->vkDestroyRenderPass(m_device, m_renderPassUI, nullptr);
+
+    m_devFunctions->vkDestroyImage(m_device, m_imageTempColorSelection.image, nullptr);
+    m_devFunctions->vkFreeMemory(m_device, m_imageTempColorSelection.memory, nullptr);
 }
 
 void VulkanRenderer::releaseResources()
@@ -381,8 +387,8 @@ void VulkanRenderer::startNextFrame()
         m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         
         /* Render a transform if an object is selected */
-        if (m_selectedNode != nullptr) {
-            glm::vec3 transformPosition = m_selectedNode->getWorldPosition();
+        if (m_selectedObject != nullptr) {
+            glm::vec3 transformPosition = m_selectedObject->getWorldPosition();
             m_renderer3DUI.renderTransform(cmdBuf,
                 m_descriptorSetsScene[imageIndex],
                 imageIndex,
@@ -390,6 +396,34 @@ void VulkanRenderer::startNextFrame()
                 glm::distance(transformPosition, m_scene->getCamera()->getTransform().getPosition()));
         }
         m_devFunctions->vkCmdEndRenderPass(cmdBuf);
+    }
+
+    /* Copy highlight output to temp color selection iamge */
+    {
+        uint32_t width = m_swapchainExtent.width, height = m_swapchainExtent.height;
+        VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+        /* Transition highlight render output to transfer source optimal */
+        transitionImageLayout(cmdBuf, 
+            m_attachmentHighlightForwardOutput[imageIndex].getImage(), 
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+            subresourceRange);
+
+        /* Copy highlight image to temp image */
+        VkImageCopy copyRegion{};
+        copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+        copyRegion.srcOffset = { 0, 0, 0 };
+        copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+        copyRegion.dstOffset = { 0, 0, 0 };
+        copyRegion.extent = { width, height, 1 };
+        m_devFunctions->vkCmdCopyImage(cmdBuf, 
+            m_attachmentHighlightForwardOutput[imageIndex].getImage(), 
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+            m_imageTempColorSelection.image, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+            1, 
+            &copyRegion);
     }
 
     m_window->frameReady();
@@ -458,15 +492,42 @@ Material * VulkanRenderer::createMaterial(std::string name, MaterialType type, b
     return temp;
 }
 
-void VulkanRenderer::setSelectedNode(std::shared_ptr<SceneNode> sceneNode)
+void VulkanRenderer::setSelectedObject(std::shared_ptr<SceneObject> sceneObject)
 {
-    m_selectedNode = sceneNode;
+    m_selectedObject = sceneObject;
 }
 
 void VulkanRenderer::renderRT()
 {
     m_scene->updateSceneGraph();
     m_rendererRayTracing.renderScene(m_scene);
+}
+
+glm::vec3 VulkanRenderer::selectObject(float x, float y)
+{
+    /* Get the texel color at this row and column of the highlight render target */
+    uint32_t row = y * m_swapchainExtent.height;
+    uint32_t column = x * m_swapchainExtent.width;
+
+    /* vulkan render target transform */
+    uint32_t vi = row;
+    uint32_t vj = (column + row) % (m_swapchainExtent.width - 1);
+    uint32_t index = (vi * m_swapchainExtent.width * 4 + vj * 4);
+
+    /* Store highlight render result for that texel to the disk */
+    glm::vec3 highlightTexelColor;
+    float* highlight;
+    VkResult res = m_devFunctions->vkMapMemory(
+        m_device,
+        m_imageTempColorSelection.memory,
+        index * sizeof(float),
+        4,
+        0,
+        reinterpret_cast<void**>(&highlight)
+    );
+    memcpy(&highlightTexelColor[0], highlight, 3 * sizeof(float));
+    m_devFunctions->vkUnmapMemory(m_device, m_imageTempColorSelection.memory);
+    return highlightTexelColor;
 }
 
 Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format, bool keepImage)
@@ -912,7 +973,7 @@ bool VulkanRenderer::createFrameBuffers()
     for (size_t i = 0; i < swapchainImages; i++)
     {
         m_attachmentColorForwardOutput[i].init(m_physicalDevice, m_device, m_swapchainExtent.width, m_swapchainExtent.height, m_internalRenderFormat);
-        m_attachmentHighlightForwardOutput[i].init(m_physicalDevice, m_device, m_swapchainExtent.width, m_swapchainExtent.height, m_internalRenderFormat);
+        m_attachmentHighlightForwardOutput[i].init(m_physicalDevice, m_device, m_swapchainExtent.width, m_swapchainExtent.height, m_internalRenderFormat, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
     }
 
     /* Create framebuffers for forward and post process pass */
@@ -1179,6 +1240,41 @@ bool VulkanRenderer::createDescriptorSets()
         std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteScene, descriptorWriteModel };
         m_devFunctions->vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
     }
+
+    return true;
+}
+
+bool VulkanRenderer::createColorSelectionTempImage()
+{
+    /* Create temp image used to copy render result from gpu memory to cpu memory */
+    bool ret = createImage(m_physicalDevice,
+        m_device,
+        m_swapchainExtent.width,
+        m_swapchainExtent.height,
+        1,
+        m_internalRenderFormat,
+        VK_IMAGE_TILING_LINEAR,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_imageTempColorSelection.image,
+        m_imageTempColorSelection.memory);
+
+    /* Transition images to the approriate layout ready for render */
+    VkCommandBuffer cmdBuf = beginSingleTimeCommands(m_device, m_window->graphicsCommandPool());
+
+    transitionImageLayout(cmdBuf,
+        m_imageTempColorSelection.image,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_GENERAL,
+        { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+    transitionImageLayout(cmdBuf,
+        m_imageTempColorSelection.image,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+    endSingleTimeCommands(m_device, m_window->graphicsCommandPool(), m_window->graphicsQueue(), cmdBuf);
 
     return true;
 }

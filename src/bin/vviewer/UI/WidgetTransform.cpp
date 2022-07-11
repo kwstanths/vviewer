@@ -6,9 +6,9 @@
 
 #include <glm/glm.hpp>
 
-WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sceneNode, QString groupBoxName) : QWidget(parent)
+WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneObject> sceneObject, QString groupBoxName) : QWidget(parent)
 {
-    m_sceneNode = sceneNode;
+    m_sceneObject = sceneObject;
 
     QGroupBox * groupBox = new QGroupBox(groupBoxName);
     QVBoxLayout * layoutTest = new QVBoxLayout();
@@ -29,7 +29,7 @@ WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneNode> sc
     setLayout(layoutMain);
     setFixedHeight(130);
 
-    if (m_sceneNode != nullptr) setTransform(m_sceneNode->m_localTransform);
+    if (m_sceneObject != nullptr) setTransform(m_sceneObject->m_localTransform);
 
     connect(m_positionX, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
     connect(m_positionY, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
@@ -126,5 +126,5 @@ QWidget * WidgetTransform::createRow(QString name, QDoubleSpinBox ** X, QDoubleS
 }
 
 void WidgetTransform::onTransformChangedSlot(double d) {
-    if (m_sceneNode != nullptr) m_sceneNode->m_localTransform = getTransform();
+    if (m_sceneObject != nullptr) m_sceneObject->m_localTransform = getTransform();
 }

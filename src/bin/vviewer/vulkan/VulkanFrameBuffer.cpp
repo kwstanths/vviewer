@@ -2,7 +2,7 @@
 
 #include "VulkanUtils.hpp"
 
-bool VulkanFrameBufferAttachment::init(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format)
+bool VulkanFrameBufferAttachment::init(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags extraUsageFlags)
 {
     m_format = format;
 
@@ -13,7 +13,7 @@ bool VulkanFrameBufferAttachment::init(VkPhysicalDevice physicalDevice, VkDevice
         1,
         format,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | extraUsageFlags,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_image,
         m_memory);
@@ -37,4 +37,9 @@ void VulkanFrameBufferAttachment::destroy(VkDevice device)
 VkImageView VulkanFrameBufferAttachment::getView() const
 {
     return m_view;
+}
+
+VkImage VulkanFrameBufferAttachment::getImage() const
+{
+    return m_image;
 }

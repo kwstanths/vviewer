@@ -43,7 +43,7 @@ QWidget * MainWindow::initLeftPanel()
 
     m_sceneGraphWidget = new QTreeWidget(this);
     m_sceneGraphWidget->setStyleSheet("background-color: rgba(240, 240, 240, 255);");
-    connect(m_sceneGraphWidget, &QTreeWidget::itemSelectionChanged, this, &MainWindow::onSelectedSceneObjectChangedSlot);
+    connect(m_sceneGraphWidget, &QTreeWidget::itemSelectionChanged, this, &MainWindow::onSelectedSceneObjectChangedSlotUI);
     
     m_sceneGraphWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_sceneGraphWidget, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(onContextMenuSceneGraph(const QPoint&)));
@@ -98,6 +98,7 @@ QWidget * MainWindow::initVulkanWindowWidget()
 
     m_vulkanWindow = new VulkanWindow();
     m_vulkanWindow->setVulkanInstance(m_vulkanInstance);
+    connect(m_vulkanWindow, &VulkanWindow::sceneObjectSelected, this, &MainWindow::onSelectedSceneObjectChangedSlot3DScene);
 
     return QWidget::createWindowContainer(m_vulkanWindow);
 }
@@ -153,9 +154,11 @@ void MainWindow::createMenu()
     m_actionCreateMaterial->setStatusTip(tr("Add a material"));
     connect(m_actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
 
-    QAction* m_actionRender = new QAction(tr("&Render scene"), this);
+    QAction* m_actionRender = new QAction(tr("&Render scene (GPU) WIP"), this);
     m_actionRender->setStatusTip(tr("Render scene"));
     connect(m_actionRender, &QAction::triggered, this, &MainWindow::onRenderSceneSlot);
+    /* work in progress, currently broken */
+    m_actionRender->setEnabled(false);
 
     QAction* m_actionExport = new QAction(tr("&Export scene"), this);
     m_actionExport->setStatusTip(tr("EXport scene"));
@@ -177,6 +180,62 @@ void MainWindow::createMenu()
     m_menuExport->addAction(m_actionExport);
 }
 
+void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
+{
+    /* If it's the previously selected item, return */
+    if (selectedItem == m_selectedPreviousWidgetItem) return;
+    m_sceneGraphWidget->blockSignals(true);
+
+    /* When the selected object on the scene list changes, remove previous widgets from the controls, and add new */
+    if (m_selectedObjectWidgetName != nullptr) {
+        delete m_selectedObjectWidgetName;
+        m_selectedObjectWidgetName = nullptr;
+    }
+    if (m_selectedObjectWidgetTransform != nullptr) {
+        delete m_selectedObjectWidgetTransform;
+        m_selectedObjectWidgetTransform = nullptr;
+    }
+    if (m_selectedObjectWidgetMaterial != nullptr) {
+        delete m_selectedObjectWidgetMaterial;
+        m_selectedObjectWidgetMaterial = nullptr;
+    }
+
+    /* Get selected object */
+    std::shared_ptr<SceneObject> sceneObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+    /* Remove UI selection if needed */
+    if (!selectedItem->isSelected()) {
+        selectedItem->setSelected(true);
+        selectedItem->setExpanded(true);
+    }
+
+    /* Remove selection from previously selected item */
+    if (m_selectedPreviousWidgetItem != nullptr) {
+        m_selectedPreviousWidgetItem->setSelected(false);
+        std::shared_ptr<SceneObject> previousSelected = m_selectedPreviousWidgetItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+        previousSelected->m_isSelected = false;
+    }
+
+    /* Set selection to new item */
+    m_selectedPreviousWidgetItem = selectedItem;
+    sceneObject->m_isSelected = true;
+    m_vulkanWindow->m_renderer->setSelectedObject(sceneObject);
+
+    /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
+    m_selectedObjectWidgetName = new WidgetName(nullptr, QString(sceneObject->m_name.c_str()));
+    connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
+
+    m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, sceneObject);
+    m_layoutControls->addWidget(m_selectedObjectWidgetName);
+    m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
+
+    if (sceneObject->getMesh() != nullptr) {
+        m_selectedObjectWidgetMaterial = new WidgetMaterial(nullptr, sceneObject.get());
+        m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
+    }
+
+    m_sceneGraphWidget->blockSignals(false);
+}
+
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
@@ -189,12 +248,6 @@ void MainWindow::onImportModelSlot()
  
     if (ret) {
         utils::ConsoleInfo("Model imported");
-        if (m_selectedObjectWidgetMeshModel != nullptr) {
-            m_selectedObjectWidgetMeshModel->m_models->blockSignals(true);
-            m_selectedObjectWidgetMeshModel->m_models->clear();
-            m_selectedObjectWidgetMeshModel->m_models->addItems(getImportedModels());
-            m_selectedObjectWidgetMeshModel->m_models->blockSignals(false);
-        }
     }
 }
 
@@ -290,26 +343,28 @@ void MainWindow::onAddSceneObjectRootSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
+    std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
 
-    if (sceneNode == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
+    if (sceneObject == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
     else {
         /* Set a name for the object */
         /* TODO set a some other way name */
-        sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
+        sceneObject->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
-        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
+        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneObject->m_name.c_str()) });
         QVariant data;
-        data.setValue(sceneNode);
+        data.setValue(sceneObject);
         parentItem->setData(0, Qt::UserRole, data);
         m_sceneGraphWidget->addTopLevelItem(parentItem);
+        m_treeWidgetItems.insert({ sceneObject->getID(), parentItem });
 
-        for (auto& child : sceneNode->m_children) {
-            QTreeWidgetItem* item = new QTreeWidgetItem({ QString(child->m_so->m_name.c_str()) });
+        for (auto& child : sceneObject->m_children) {
+            QTreeWidgetItem* item = new QTreeWidgetItem({ QString(child->m_name.c_str()) });
             QVariant data;
             data.setValue(child);
             item->setData(0, Qt::UserRole, data);
             parentItem->addChild(item);
+            m_treeWidgetItems.insert({ child->getID(), item });
         }
     }
 }
@@ -330,43 +385,47 @@ void MainWindow::onAddSceneObjectSlot()
     if (selectedModel == "") return;
 
     /* Get node selected from ui tree item */
-    std::shared_ptr<SceneNode> selectedNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
+    std::shared_ptr<SceneObject> selectedObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
 
-    /* Create node on scene graph as child of currently selected item */
-    std::shared_ptr<SceneNode> sceneNode = m_scene->addSceneObject(selectedNode, selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
+    /* Create an object on the scene graph as a child of the currently selected item */
+    std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject(selectedObject, selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
 
-    if (sceneNode == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
+    if (sceneObject == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
     else {
         /* Set a name for the object */
         /* TODO set the name some other way */
-        sceneNode->m_so->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
+        sceneObject->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
 
-        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneNode->m_so->m_name.c_str()) });
+        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneObject->m_name.c_str()) });
         QVariant data;
-        data.setValue(sceneNode);
+        data.setValue(sceneObject);
         parentItem->setData(0, Qt::UserRole, data);
         selectedItem->addChild(parentItem);
+        m_treeWidgetItems.insert({ sceneObject->getID(), parentItem });
 
-        for (auto& child : sceneNode->m_children) {
-            QTreeWidgetItem* childItem = new QTreeWidgetItem({ QString(child->m_so->m_name.c_str()) });
+        for (auto& child : sceneObject->m_children) {
+            QTreeWidgetItem* childItem = new QTreeWidgetItem({ QString(child->m_name.c_str()) });
             QVariant data;
             data.setValue(child);
             childItem->setData(0, Qt::UserRole, data);
             parentItem->addChild(childItem);
+            m_treeWidgetItems.insert({ child->getID(), childItem });
         }
     }
 }
 
 void MainWindow::onRemoveSceneObjectSlot()
 {
+    /* TODO remove scene objects from m_treeWidgetItems */
+
     /* Get the currently selected tree item */
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
-    std::shared_ptr<SceneNode> selectedNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
+    std::shared_ptr<SceneObject> selectedObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
 
-    m_scene->removeSceneObject(selectedNode);
+    m_scene->removeSceneObject(selectedObject);
     
     /* Remove from UI */
-    if (selectedNode->m_parent == nullptr) {
+    if (selectedObject->m_parent == nullptr) {
         m_sceneGraphWidget->removeItemWidget(selectedItem, 0);
         delete selectedItem;
     }
@@ -406,47 +465,22 @@ void MainWindow::onExportSceneSlot()
     m_scene->exportScene("testScene");
 }
 
-void MainWindow::onSelectedSceneObjectChangedSlot()
+void MainWindow::onSelectedSceneObjectChangedSlotUI()
 {
-    /* When the selected object on the scene list changes, remove previous widgets from the controls, and add new */
-    if (m_selectedObjectWidgetName != nullptr) {
-        delete m_selectedObjectWidgetName;
-        delete m_selectedObjectWidgetTransform;
-        delete m_selectedObjectWidgetMeshModel;
-        delete m_selectedObjectWidgetMaterial;
-        m_selectedObjectWidgetName = nullptr;
-        m_selectedObjectWidgetTransform = nullptr;
-        m_selectedObjectWidgetMeshModel = nullptr;
-        m_selectedObjectWidgetMaterial = nullptr;
-    }
-
     /* Get currently selected object, and the corresponding SceneObject */
     QTreeWidgetItem * selectedItem = m_sceneGraphWidget->currentItem();
     /* When all items have been removed, this function is called with a null object selected */
     if (selectedItem == nullptr) return;
-    std::shared_ptr<SceneNode> sceneNode = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
 
-    if (m_selectedPrevious != nullptr) m_selectedPrevious->m_so->m_isSelected = false;
-    sceneNode->m_so->m_isSelected = true;
-    m_selectedPrevious = sceneNode;
-    m_vulkanWindow->m_renderer->setSelectedNode(sceneNode);
+    selectObject(selectedItem);
+}
 
-    /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
-    m_selectedObjectWidgetName = new WidgetName(nullptr, QString(sceneNode->m_so->m_name.c_str()));
-    connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
-
-    m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, sceneNode);
-    m_layoutControls->addWidget(m_selectedObjectWidgetName);
-    m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
-
-    if (sceneNode->m_so.get()->getMesh() == nullptr)
-        return;
-
-    //m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneNode->m_so.get(), getImportedModels());
-    m_selectedObjectWidgetMaterial = new WidgetMaterial(nullptr, sceneNode->m_so.get());
-
-    //m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
-    m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
+void MainWindow::onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<SceneObject> object)
+{
+    auto itr = m_treeWidgetItems.find(object->getID());
+    if (itr == m_treeWidgetItems.end()) return;
+    QTreeWidgetItem* treeItem = itr->second;
+    selectObject(treeItem);
 }
 
 void MainWindow::onSelectedSceneObjectNameChangedSlot()
@@ -455,9 +489,9 @@ void MainWindow::onSelectedSceneObjectNameChangedSlot()
     QString newName = m_selectedObjectWidgetName->m_text->toPlainText();
 
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
-    std::shared_ptr<SceneNode> object = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneNode>>();
+    std::shared_ptr<SceneObject> object = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
 
-    object->m_so->m_name = newName.toStdString();
+    object->m_name = newName.toStdString();
     selectedItem->setText(0, newName);
 }
 

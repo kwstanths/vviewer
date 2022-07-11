@@ -1,19 +1,20 @@
 #include "SceneObject.hpp"
 
-SceneObject::SceneObject()
+#include "vulkan/VulkanSceneObject.hpp"
+
+SceneObject::SceneObject(const Transform& t) : SceneNode(t)
 {
     m_id = IDGeneration::getInstance().getID();
     m_idRGB = IDGeneration::toRGB(m_id);
 }
 
-SceneObject::SceneObject(const Mesh * mesh) : SceneObject()
+SceneObject::SceneObject(const Transform& t, const Mesh* mesh) : SceneObject(t)
 {
-    m_mesh= mesh;
+    m_mesh = mesh;
 }
 
 void SceneObject::setModelMatrix(const glm::mat4& modelMatrix)
 {
-    
 }
 
 const Mesh * SceneObject::getMesh() const

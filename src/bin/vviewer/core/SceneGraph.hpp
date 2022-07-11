@@ -5,27 +5,27 @@
 #include <memory>
 
 #include <math/Transform.hpp>
-#include "SceneObject.hpp"
 
+template<typename T>
 class SceneNode {
 public:
-	SceneNode(std::shared_ptr<SceneObject> so, Transform transform) : m_so(so), m_localTransform(transform) {};
+	SceneNode(Transform transform) : m_localTransform(transform) {};
 
 	Transform m_localTransform;
 	glm::mat4 m_modelMatrix = glm::mat4(1.0f);
 	glm::vec3 getWorldPosition() const;
 
-	SceneNode* m_parent = nullptr;
-	std::vector<std::shared_ptr<SceneNode>> m_children;
+	SceneNode<T> * m_parent = nullptr;
+	std::vector<std::shared_ptr<T>> m_children;
 
-	std::shared_ptr<SceneObject> m_so;
-
-	std::shared_ptr<SceneNode> addChild(std::shared_ptr<SceneObject> so, Transform transform);
+	std::shared_ptr<T> addChild(std::shared_ptr<T> node);
 
 	void update();
 
-	std::vector<std::shared_ptr<SceneObject>> getSceneObjects();
-	std::vector<std::shared_ptr<SceneObject>> getSceneObjects(std::vector<glm::mat4>& modelMatrices);
+	std::vector<std::shared_ptr<T>> getSceneObjects();
+	std::vector<std::shared_ptr<T>> getSceneObjects(std::vector<glm::mat4>& modelMatrices);
+
+	virtual void setModelMatrix(const glm::mat4& modelMatrix) = 0;
 
 private:
 

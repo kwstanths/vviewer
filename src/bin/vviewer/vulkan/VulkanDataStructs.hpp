@@ -3,6 +3,8 @@
 
 #include <glm/glm.hpp>
 
+#include "IncludeVulkan.hpp"
+
 struct ModelData {
     glm::mat4 m_modelMatrix;
 };
@@ -20,6 +22,16 @@ struct PushBlockForward3DUI {
     glm::mat4 modelMatrix;
     glm::vec4 color;
     glm::vec4 selected;
+};
+
+struct StorageImage
+{
+    VkDeviceMemory memory;
+    VkImage image;
+    VkImageView view;
+    VkFormat format;
+
+    void destroy(VkDevice device);
 };
 
 #endif

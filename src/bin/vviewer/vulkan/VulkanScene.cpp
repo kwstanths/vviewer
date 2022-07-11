@@ -21,31 +21,6 @@ SceneData VulkanScene::getSceneData() const
     return sceneData;
 }
 
-std::shared_ptr<SceneNode> VulkanScene::addSceneObject(std::string meshModel, Transform transform, std::string material)
-{
-    std::vector<std::shared_ptr<VulkanSceneObject>> objects = createObject(meshModel, material);
-    
-    std::shared_ptr<SceneNode> parentNode = std::make_shared<SceneNode>(std::make_shared<SceneObject>(nullptr), transform);
-    m_sceneGraph.push_back(parentNode);
-    for (auto& s : objects) {
-        parentNode->addChild(s, Transform());
-    }
-
-    return parentNode;
-}
-
-std::shared_ptr<SceneNode> VulkanScene::addSceneObject(std::shared_ptr<SceneNode> node, std::string meshModel, Transform transform, std::string material)
-{
-    std::vector<std::shared_ptr<VulkanSceneObject>> objects = createObject(meshModel, material);
-
-    std::shared_ptr<SceneNode> parentNode = node->addChild(std::make_shared<SceneObject>(nullptr), transform);
-    for (auto& s : objects) {
-        parentNode->addChild(s, Transform());
-    }
-
-    return parentNode;
-}
-
 void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
 {
     /* Update scene data buffer */
@@ -67,7 +42,7 @@ void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
     }
 }
 
-std::vector<std::shared_ptr<VulkanSceneObject>> VulkanScene::createObject(std::string meshModel, std::string material)
+std::vector<std::shared_ptr<SceneObject>> VulkanScene::createObject(std::string meshModel, std::string material)
 {
     AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
     if (!instanceModels.isPresent(meshModel))
@@ -85,7 +60,7 @@ std::vector<std::shared_ptr<VulkanSceneObject>> VulkanScene::createObject(std::s
     MeshModel* vkmeshModel = instanceModels.Get(meshModel);
     std::vector<Mesh*> modelMeshes = vkmeshModel->getMeshes();
     
-    std::vector<std::shared_ptr<VulkanSceneObject>> objects;
+    std::vector<std::shared_ptr<SceneObject>> objects;
     for (auto& m : modelMeshes) {
         auto object = std::make_shared<VulkanSceneObject>(m, m_modelDataDynamicUBO, m_transformIndexUBO++);
         object->setMaterial(instanceMaterials.Get(material));

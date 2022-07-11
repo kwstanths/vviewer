@@ -16,7 +16,7 @@
 #include "core/Scene.hpp"
 #include "vulkan/VulkanWindow.hpp"
 
-Q_DECLARE_METATYPE(std::shared_ptr<SceneNode>)
+Q_DECLARE_METATYPE(std::shared_ptr<SceneObject>)
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -38,7 +38,8 @@ private:
     /* Holds a pointer to the scene graph widget */
     QTreeWidget* m_sceneGraphWidget = nullptr;
     /* Previously selected item */
-    std::shared_ptr<SceneNode> m_selectedPrevious = nullptr;
+    QTreeWidgetItem* m_selectedPreviousWidgetItem = nullptr;
+    std::unordered_map<ID, QTreeWidgetItem*> m_treeWidgetItems;
 
     /* Widgets that appear on the controls on the right panel */
     WidgetName * m_selectedObjectWidgetName = nullptr;
@@ -51,6 +52,8 @@ private:
     QWidget * initVulkanWindowWidget();
     QWidget * initControlsWidget();
     void createMenu();
+
+    void selectObject(QTreeWidgetItem* selectedItem);
 
 private slots:
     /* Import a model */
@@ -78,8 +81,10 @@ private slots:
     /* Export scene */
     void onExportSceneSlot();
     
-    /* Currently selected item in the scene changed */
-    void onSelectedSceneObjectChangedSlot();
+    /* Currently selected item in the scene changed from UI */
+    void onSelectedSceneObjectChangedSlotUI();
+    /* Currently selected item in the scene changed from the 3d scene */
+    void onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<SceneObject> object);
     /* Currently selected item's name in the scene changed */
     void onSelectedSceneObjectNameChangedSlot();
 

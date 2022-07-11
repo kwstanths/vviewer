@@ -2,11 +2,12 @@
 #define __Scene_hpp__
 
 #include <memory>
+#include <utility>
 
 #include "Camera.hpp"
 #include "Lights.hpp"
 #include "SceneObject.hpp"
-#include "SceneGraph.hpp"
+#include "IDGeneration.hpp"
 
 struct SceneData {
     glm::mat4 m_view;
@@ -38,24 +39,32 @@ public:
     MaterialSkybox* getSkybox() const;
 
     /* Add a new scene object at the root of the scene graph */
-    virtual std::shared_ptr<SceneNode> addSceneObject(std::string meshModel, Transform transform, std::string material) = 0;
+    std::shared_ptr<SceneObject> addSceneObject(std::string meshModel, Transform transform, std::string material);
     /* Add a new scene object as a child of a node */
-    virtual std::shared_ptr<SceneNode> addSceneObject(std::shared_ptr<SceneNode> node, std::string meshModel, Transform transform, std::string material) = 0;
+    std::shared_ptr<SceneObject> addSceneObject(std::shared_ptr<SceneObject> node, std::string meshModel, Transform transform, std::string material);
 
-    void removeSceneObject(std::shared_ptr<SceneNode> node);
+    void removeSceneObject(std::shared_ptr<SceneObject> node);
 
     void updateSceneGraph();
     std::vector<std::shared_ptr<SceneObject>> getSceneObjects() const;
     std::vector<std::shared_ptr<SceneObject>> getSceneObjects(std::vector<glm::mat4>& modelMatrices) const;
 
+    std::shared_ptr<SceneObject> getSceneObject(ID id) const;
+    
     void exportScene(std::string name) const;
 
 protected:
     float m_exposure = 0.0f;
+    
     std::shared_ptr<Camera> m_camera;
     std::shared_ptr<DirectionalLight> m_directionalLight;
-    std::vector<std::shared_ptr<SceneNode>> m_sceneGraph;
+    
+    std::vector<std::shared_ptr<SceneObject>> m_sceneGraph;
+    std::unordered_map<ID, std::shared_ptr<SceneObject>> m_objectsMap;
+
     MaterialSkybox* m_skybox = nullptr;
+
+    virtual std::vector<std::shared_ptr<SceneObject>> createObject(std::string meshModel, std::string material) = 0;
 };
 
 #endif

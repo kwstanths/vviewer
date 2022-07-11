@@ -6,6 +6,7 @@
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanScene.hpp"
+#include "vulkan/VulkanDataStructs.hpp"
 
 class VulkanRendererRayTracing {
     friend class VulkanRenderer;
@@ -68,13 +69,6 @@ private:
     /* Image result data */
     VkFormat m_format;
     uint32_t m_width, m_height;
-    struct StorageImage
-    {
-        VkDeviceMemory memory;
-        VkImage image;
-        VkImageView view;
-        VkFormat format;
-    };
     StorageImage m_renderResult, m_tempImage;
 
     /* Objects description data for meshes in the scene */

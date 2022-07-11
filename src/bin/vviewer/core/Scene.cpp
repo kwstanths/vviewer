@@ -73,8 +73,37 @@ MaterialSkybox* Scene::getSkybox() const
     return m_skybox;
 }
 
-void Scene::removeSceneObject(std::shared_ptr<SceneNode> node)
+std::shared_ptr<SceneObject> Scene::addSceneObject(std::string meshModel, Transform transform, std::string material)
 {
+    std::vector<std::shared_ptr<SceneObject>> objects = createObject(meshModel, material);
+
+    std::shared_ptr<SceneObject> parentObject = std::make_shared<SceneObject>(transform);
+    m_sceneGraph.push_back(parentObject);
+    for (auto& s : objects) {
+        parentObject->addChild(s);
+        m_objectsMap.insert({ s->getID(), s });
+    }
+
+    return parentObject;
+}
+
+std::shared_ptr<SceneObject> Scene::addSceneObject(std::shared_ptr<SceneObject> node, std::string meshModel, Transform transform, std::string material)
+{
+    std::vector<std::shared_ptr<SceneObject>> objects = createObject(meshModel, material);
+
+    std::shared_ptr<SceneObject> parentObject = node->addChild(std::make_shared<SceneObject>(transform));
+    for (auto& s : objects) {
+        parentObject->addChild(s);
+        m_objectsMap.insert({ s->getID(), s });
+    }
+
+    return parentObject;
+}
+
+void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)
+{
+    /* TODO remove scene objects from m_objectsMap */
+
     if (node->m_parent == nullptr) {
         /* Remove scene node from root */
         m_sceneGraph.erase(std::remove(m_sceneGraph.begin(), m_sceneGraph.end(), node), m_sceneGraph.end());
@@ -101,7 +130,9 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects() const
 
     for (auto&& rootNode : m_sceneGraph)
     {
+        temp.push_back(rootNode);
         auto rootNodeObjects = rootNode->getSceneObjects();
+
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
     }
 
@@ -112,9 +143,11 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects(std::vector<glm
 {
     std::vector<std::shared_ptr<SceneObject>> temp;
     modelMatrices.clear();
-
+    
     for (auto&& rootNode : m_sceneGraph)
     {
+        temp.push_back(rootNode);
+        modelMatrices.push_back(rootNode->m_modelMatrix);
         std::vector<glm::mat4> rootNodeMatrices;
         auto rootNodeObjects = rootNode->getSceneObjects(rootNodeMatrices);
 
@@ -123,6 +156,13 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects(std::vector<glm
     }
 
     return temp;
+}
+
+std::shared_ptr<SceneObject> Scene::getSceneObject(ID id) const
+{
+    auto itr = m_objectsMap.find(id);
+    if (itr == m_objectsMap.end()) return std::shared_ptr<SceneObject>(nullptr);
+    return itr->second;
 }
 
 void Scene::exportScene(std::string name) const

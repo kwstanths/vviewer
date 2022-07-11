@@ -56,9 +56,11 @@ public:
     EnvironmentMap* createEnvironmentMap(std::string imagePath, bool keepTexture = false);
     Material* createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
-    void setSelectedNode(std::shared_ptr<SceneNode> sceneNode);
+    void setSelectedObject(std::shared_ptr<SceneObject> sceneObject);
 
     void renderRT();
+
+    glm::vec3 selectObject(float x, float y);
 
 private:
 
@@ -78,6 +80,7 @@ private:
     bool updateUniformBuffers(size_t index);
     bool createDescriptorPool(size_t nMaterials);
     bool createDescriptorSets();
+    bool createColorSelectionTempImage();
     
 private:
     /* Qt vulkan data */
@@ -86,14 +89,8 @@ private:
     QVulkanDeviceFunctions * m_devFunctions;
     
     /* Swpachain data */
-    std::vector<VkFramebuffer> m_framebuffersForward;
-    std::vector<VkFramebuffer> m_framebuffersPost;
-    std::vector<VkFramebuffer> m_framebuffersUI;
     VkExtent2D m_swapchainExtent;
     VkFormat m_swapchainFormat;
-    VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-    std::vector<VulkanFrameBufferAttachment> m_attachmentColorForwardOutput;
-    std::vector<VulkanFrameBufferAttachment> m_attachmentHighlightForwardOutput;
 
     /* Device data */
     VkDebugUtilsMessengerEXT m_debugCallback;
@@ -101,10 +98,19 @@ private:
     VkDevice m_device;
     VkPhysicalDeviceProperties m_physicalDeviceProperties;
 
-    /* Renderers */
+    /* Render pipeline data  */
     VkRenderPass m_renderPassForward;
     VkRenderPass m_renderPassPost;
     VkRenderPass m_renderPassUI;
+    std::vector<VkFramebuffer> m_framebuffersForward;
+    std::vector<VkFramebuffer> m_framebuffersPost;
+    std::vector<VkFramebuffer> m_framebuffersUI;
+    VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+    std::vector<VulkanFrameBufferAttachment> m_attachmentColorForwardOutput;
+    std::vector<VulkanFrameBufferAttachment> m_attachmentHighlightForwardOutput;
+    StorageImage m_imageTempColorSelection;
+
+    /* Renderers */
     VulkanRendererPBR m_rendererPBR;
     VulkanRendererLambert m_rendererLambert;
     VulkanRendererSkybox m_rendererSkybox;
@@ -128,7 +134,7 @@ private:
 
     glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
 
-    std::shared_ptr<SceneNode> m_selectedNode = nullptr;
+    std::shared_ptr<SceneObject> m_selectedObject = nullptr;
 };
 
 #endif

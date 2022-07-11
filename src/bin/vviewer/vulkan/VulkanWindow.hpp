@@ -26,6 +26,9 @@ public:
 
     VulkanScene* m_scene = nullptr;
 
+signals:
+    void sceneObjectSelected(std::shared_ptr<SceneObject> object);
+
 protected:
     void resizeEvent(QResizeEvent *ev) override;
     void keyPressEvent(QKeyEvent *ev) override;

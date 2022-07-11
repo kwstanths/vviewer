@@ -20,11 +20,6 @@ public:
 
     virtual SceneData getSceneData() const override;
 
-    /* Add a new scene object at the root of the scene graph */
-    std::shared_ptr<SceneNode> addSceneObject(std::string meshModel, Transform transform, std::string material) override;
-    /* Add a new scene object as a child of a node */
-    std::shared_ptr<SceneNode> addSceneObject(std::shared_ptr<SceneNode> node, std::string meshModel, Transform transform, std::string material) override;
-
     /* Flush buffer changes to gpu */
     void updateBuffers(VkDevice device, uint32_t imageIndex) const;
 
@@ -38,7 +33,7 @@ private:
     std::vector<VkBuffer> m_uniformBuffersScene;
     std::vector<VkDeviceMemory> m_uniformBuffersSceneMemory;
 
-    std::vector<std::shared_ptr<VulkanSceneObject>> createObject(std::string meshModel, std::string material);
+    std::vector<std::shared_ptr<SceneObject>> createObject(std::string meshModel, std::string material) override;
 };
 
 #endif // !__VulkanScene_hpp__

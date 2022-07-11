@@ -6,11 +6,12 @@
 class VulkanFrameBufferAttachment {
 public:
 
-	bool init(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format);
+	bool init(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags extraUsageFlags = 0);
 
 	void destroy(VkDevice device);
 
 	VkImageView getView() const;
+	VkImage getImage() const;
 
 private:
 	VkImage m_image;

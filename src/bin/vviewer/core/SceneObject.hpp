@@ -5,16 +5,16 @@
 #include "MeshModel.hpp"
 #include "Materials.hpp"
 #include "IDGeneration.hpp"
+#include "SceneGraph.hpp"
 
-class SceneObject {
+class SceneObject : public SceneNode<SceneObject> {
 public:
-    SceneObject();
-
-    SceneObject(const Mesh * mesh);
+    SceneObject(const Transform& t);
+    SceneObject(const Transform& t, const Mesh * mesh);
 
     std::string m_name = "";
 
-    virtual void setModelMatrix(const glm::mat4& modelMatrix);
+    virtual void setModelMatrix(const glm::mat4& modelMatrix) override;
 
     const Mesh * getMesh() const;
     void setMesh(const Mesh * newMeshModel);
