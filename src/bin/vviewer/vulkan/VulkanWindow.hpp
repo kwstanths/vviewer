@@ -27,7 +27,10 @@ public:
     VulkanScene* m_scene = nullptr;
 
 signals:
+    /* emitted when the selected object changes from the 3D scene */
     void sceneObjectSelected(std::shared_ptr<SceneObject> object);
+    /* emitted when the position of the selected object changes from the 3D scene */
+    void selectedObjectPositionChanged();
 
 protected:
     void resizeEvent(QResizeEvent *ev) override;
@@ -41,6 +44,8 @@ private:
     std::unordered_map<int, bool> m_keysPressed;
     bool m_mousePosFirst = true;
     QPointF m_mousePos;
+
+    ID m_selectedPressed = 0;
 
     QTimer * m_updateCameraTimer;
 

@@ -497,6 +497,11 @@ void VulkanRenderer::setSelectedObject(std::shared_ptr<SceneObject> sceneObject)
     m_selectedObject = sceneObject;
 }
 
+std::shared_ptr<SceneObject> VulkanRenderer::getSelectedObject() const
+{
+    return m_selectedObject;
+}
+
 void VulkanRenderer::renderRT()
 {
     m_scene->updateSceneGraph();

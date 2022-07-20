@@ -30,6 +30,9 @@ private:
 private slots:
     void onTransformChangedSlot(double d);
 
+public slots:
+    void onPositionChangedFrom3DScene();
+
 };
 
 #endif

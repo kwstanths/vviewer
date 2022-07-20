@@ -225,6 +225,8 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
 
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, sceneObject);
+    connect(m_vulkanWindow, &VulkanWindow::selectedObjectPositionChanged, m_selectedObjectWidgetTransform, &WidgetTransform::onPositionChangedFrom3DScene);
+
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
 

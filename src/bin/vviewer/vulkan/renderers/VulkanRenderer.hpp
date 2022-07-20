@@ -57,6 +57,7 @@ public:
     Material* createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
     void setSelectedObject(std::shared_ptr<SceneObject> sceneObject);
+    std::shared_ptr<SceneObject> getSelectedObject() const;
 
     void renderRT();
 

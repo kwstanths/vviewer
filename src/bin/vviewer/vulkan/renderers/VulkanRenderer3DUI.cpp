@@ -25,11 +25,11 @@ void VulkanRenderer3DUI::initResources(VkPhysicalDevice physicalDevice,
     std::vector<Mesh> meshes = assimpLoadModel("assets/models/arrow.obj");
     m_arrow = new VulkanMeshModel(m_physicalDevice, m_device, queue, commandPool, meshes);
 
-    ID rightID = IDGeneration::getInstance().getID();
+    ID rightID = static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW);
     m_rightID = IDGeneration::toRGB(rightID);
-    ID upID = IDGeneration::getInstance().getID();
+    ID upID = static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW);
     m_upID = IDGeneration::toRGB(upID);
-    ID forwardID = IDGeneration::getInstance().getID();
+    ID forwardID = static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW);
     m_forwardID = IDGeneration::toRGB(forwardID);
 }
 
@@ -68,6 +68,9 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
     glm::vec3 position,
     float cameraDistance) const
 {
+    /* Keep size the same */
+    float scale = cameraDistance * 0.01;
+
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     
     const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(m_arrow->getMeshes()[0]);
@@ -84,10 +87,8 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
         0, 1, &descriptorSets[0], 0, nullptr);
 
     PushBlockForward3DUI pushConstants;
-    
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0F), position);
-    /* Keep size the same */
-    float scale = cameraDistance * 0.006;
+    
     pushConstants.modelMatrix = glm::scale(modelMatrix, { scale, scale, scale });
     pushConstants.color = glm::vec4(0, 0, 1, 1);
     pushConstants.selected = glm::vec4(m_forwardID, 0);

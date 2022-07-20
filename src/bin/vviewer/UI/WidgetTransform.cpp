@@ -125,6 +125,18 @@ QWidget * WidgetTransform::createRow(QString name, QDoubleSpinBox ** X, QDoubleS
     return widgetMain;
 }
 
+void WidgetTransform::onPositionChangedFrom3DScene()
+{
+    this->blockSignals(true);
+    if (m_sceneObject != nullptr) {
+        glm::vec3 position = m_sceneObject->m_localTransform.getPosition();
+        m_positionX->setValue(position.x);
+        m_positionY->setValue(position.y);
+        m_positionZ->setValue(position.z);
+    }
+    this->blockSignals(false);
+}
+
 void WidgetTransform::onTransformChangedSlot(double d) {
     if (m_sceneObject != nullptr) m_sceneObject->m_localTransform = getTransform();
 }

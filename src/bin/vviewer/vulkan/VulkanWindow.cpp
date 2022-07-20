@@ -57,21 +57,24 @@ void VulkanWindow::keyReleaseEvent(QKeyEvent * ev)
 
 void VulkanWindow::mousePressEvent(QMouseEvent * ev)
 {
-}
-
-void VulkanWindow::mouseReleaseEvent(QMouseEvent * ev)
-{
     if (ev->button() == Qt::LeftButton) {
         /* Select object from scene */
         QPointF pos = ev->localPos();
         QSize size = this->size();
         ID objectID = IDGeneration::fromRGB(m_renderer->selectObject(pos.x() / size.width(), pos.y() / size.height()));
 
-        std::shared_ptr<SceneObject> object = m_scene->getSceneObject(objectID);
-        if (object.get() == nullptr) return;
-
-        emit sceneObjectSelected(object);
+        m_selectedPressed = objectID;
     }
+}
+
+void VulkanWindow::mouseReleaseEvent(QMouseEvent * ev)
+{
+    std::shared_ptr<SceneObject> object = m_scene->getSceneObject(m_selectedPressed);
+    m_selectedPressed = 0;
+
+    if (object.get() == nullptr) return;
+
+    emit sceneObjectSelected(object);
 }
 
 void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
@@ -83,20 +86,100 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
         return;
     }
  
+    /* Calculate diff with the previous position */
     QPointF newMousePos = ev->localPos();
-    QPointF mousePosDiff = m_mousePos - newMousePos;
+    QPointF mousePosDiff = newMousePos - m_mousePos;
     m_mousePos = newMousePos;
 
-    float mouseSensitivity = 0.002f;
+    /* Perform camera movement if right button is pressed */
     Qt::MouseButtons buttons = ev->buttons();
     Transform& cameraTransform = m_scene->getCamera()->getTransform();
     if (buttons & Qt::RightButton) {
+        float mouseSensitivity = 0.002f;
+        
         /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.getRotation();
-        glm::quat qPitch = glm::angleAxis((float)-mousePosDiff.y() * mouseSensitivity, glm::vec3(1, 0, 0));
-        glm::quat qYaw = glm::angleAxis((float)-mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
+        glm::quat qPitch = glm::angleAxis((float)mousePosDiff.y() * mouseSensitivity, glm::vec3(1, 0, 0));
+        glm::quat qYaw = glm::angleAxis((float)mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
 
         cameraTransform.setRotation(glm::normalize(qPitch * rotation * qYaw));
+    }
+
+    /* Perform movement pf selected object if left button is pressed */
+    if (buttons & Qt::LeftButton) {
+        std::shared_ptr<SceneObject> selectedObject = m_renderer->getSelectedObject();
+        if (selectedObject.get() == nullptr) return;
+
+        Transform& selectedObjectTransform = selectedObject->m_localTransform;
+        glm::vec3 position = selectedObjectTransform.getPosition();
+
+        /* 
+            The UI transform is not rendered taking into account the rotation, so the movement must happen on the primary axes of the transform to be
+            consistent with the UI. If the UI transform is rendered taking int account the local rotation, then these vectors should be selectedObjectTransform.getRight() etc.
+        */
+        glm::vec3 right = glm::vec3(1, 0, 0);
+        glm::vec3 up = glm::vec3(0, 1, 0);
+        glm::vec3 forward = glm::vec3(0, 0, 1);
+        
+        switch (m_selectedPressed)
+        {
+        case static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW):
+        {
+            /* Find if right vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
+            float cameraRightDot = glm::dot(right, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(right, cameraTransform.getUp());
+            float movement;
+            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
+                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+            }
+            else {
+                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
+            }
+            position += right * 0.02f * movement;
+            
+            selectedObjectTransform.setPosition(position);
+            emit selectedObjectPositionChanged();
+            break;
+        }
+        case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW):
+        {
+            /* Find if forward vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
+            float cameraRightDot = glm::dot(forward, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(forward, cameraTransform.getUp());
+            float movement;
+            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
+                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+            }
+            else {
+                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
+            }
+            position += forward * 0.02f * movement;
+
+            selectedObjectTransform.setPosition(position);
+            emit selectedObjectPositionChanged();
+            break;
+        }
+        case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW):
+        {
+            /* Find if up vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
+            float cameraRightDot = glm::dot(up, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(up, cameraTransform.getUp());
+            float movement;
+            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
+                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+            }
+            else {
+                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
+            }
+            position += up * 0.02f * movement;
+
+            selectedObjectTransform.setPosition(position);
+            emit selectedObjectPositionChanged();
+            break;
+        }
+        default:
+            break;
+        }
     }
 }
 

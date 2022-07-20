@@ -7,6 +7,12 @@
 
 typedef uint32_t ID;
 
+enum class ReservedObjectID {
+    RIGHT_TRANSFORM_ARROW = 1,
+    FORWARD_TRANSFORM_ARROW = 2,
+    UP_TRANSFORM_ARROW = 3,
+};
+
 /**
     A singleton that generates unique ids
 */
@@ -28,7 +34,7 @@ public:
 private:
     IDGeneration() {}
 
-    ID m_index = 1;
+    ID m_index = 4;
 };
 
 #endif
