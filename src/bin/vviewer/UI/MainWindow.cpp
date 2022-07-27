@@ -425,6 +425,9 @@ void MainWindow::onRemoveSceneObjectSlot()
     std::shared_ptr<SceneObject> selectedObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
 
     m_scene->removeSceneObject(selectedObject);
+
+    m_vulkanWindow->m_renderer->setSelectedObject(nullptr);
+    m_selectedPreviousWidgetItem = nullptr;
     
     /* Remove from UI */
     if (selectedObject->m_parent == nullptr) {
