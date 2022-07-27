@@ -514,24 +514,28 @@ glm::vec3 VulkanRenderer::selectObject(float x, float y)
     uint32_t row = y * m_swapchainExtent.height;
     uint32_t column = x * m_swapchainExtent.width;
 
-    /* vulkan render target transform */
-    uint32_t vi = row;
-    uint32_t vj = (column + row) % (m_swapchainExtent.width - 1);
-    uint32_t index = (vi * m_swapchainExtent.width * 4 + vj * 4);
+    /* Since the image is stored in linear tiling, get the subresource layout to calcualte the padding */
+    VkImageSubresource subResource{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+    VkSubresourceLayout subResourceLayout;
+    m_devFunctions->vkGetImageSubresourceLayout(m_device, m_imageTempColorSelection.image, &subResource, &subResourceLayout);
+
+    /* Byte index of x,y texel */
+    uint32_t index = (row * subResourceLayout.rowPitch + column * 4 * sizeof(float));
 
     /* Store highlight render result for that texel to the disk */
-    glm::vec3 highlightTexelColor;
     float* highlight;
     VkResult res = m_devFunctions->vkMapMemory(
         m_device,
         m_imageTempColorSelection.memory,
-        index * sizeof(float),
-        4,
+        subResourceLayout.offset + index,
+        3 * sizeof(float),
         0,
         reinterpret_cast<void**>(&highlight)
     );
+    glm::vec3 highlightTexelColor;
     memcpy(&highlightTexelColor[0], highlight, 3 * sizeof(float));
     m_devFunctions->vkUnmapMemory(m_device, m_imageTempColorSelection.memory);
+
     return highlightTexelColor;
 }
 
@@ -1264,14 +1268,8 @@ bool VulkanRenderer::createColorSelectionTempImage()
         m_imageTempColorSelection.image,
         m_imageTempColorSelection.memory);
 
-    /* Transition images to the approriate layout ready for render */
+    /* Transition image to the approriate layout ready for render */
     VkCommandBuffer cmdBuf = beginSingleTimeCommands(m_device, m_window->graphicsCommandPool());
-
-    transitionImageLayout(cmdBuf,
-        m_imageTempColorSelection.image,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_GENERAL,
-        { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
     transitionImageLayout(cmdBuf,
         m_imageTempColorSelection.image,
