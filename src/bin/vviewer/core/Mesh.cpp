@@ -8,7 +8,7 @@ Mesh::Mesh()
 {
 }
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, bool hasNormals, bool hasUVs)
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool hasNormals, bool hasUVs)
 {
     m_vertices = vertices;
     m_indices = indices;
@@ -23,7 +23,7 @@ const std::vector<Vertex>& Mesh::getVertices() const
     return m_vertices;
 }
 
-const std::vector<uint16_t>& Mesh::getIndices() const
+const std::vector<uint32_t>& Mesh::getIndices() const
 {
     return m_indices;
 }

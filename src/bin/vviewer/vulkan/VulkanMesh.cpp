@@ -54,7 +54,7 @@ VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue
         {{-1.0,  1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)}
     };
 
-    std::vector<uint16_t> indices = {
+    std::vector<uint32_t> indices = {
         0, 1, 2,
         2, 3, 0,
         1, 5, 6,

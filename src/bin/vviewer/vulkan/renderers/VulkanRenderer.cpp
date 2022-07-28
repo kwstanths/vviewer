@@ -114,7 +114,6 @@ void VulkanRenderer::initResources()
     createVulkanMeshModel("assets/models/uvsphere.obj");
     createVulkanMeshModel("assets/models/plane.obj");
     createVulkanMeshModel("assets/models/rtscene.obj");
-    createVulkanMeshModel("assets/models/cube.obj");
 
     /* Create a skybox material */
     {

@@ -295,7 +295,7 @@ uint64_t VulkanRendererRayTracing::getBufferDeviceAddress(VkDevice device, VkBuf
 VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& t)
 {
     const std::vector<Vertex>& vertices = mesh.getVertices();
-    const std::vector<uint16_t> indices = mesh.getIndices();
+    const std::vector<uint32_t> indices = mesh.getIndices();
     uint32_t indexCount = static_cast<uint32_t>(indices.size());
 
     VkTransformMatrixKHR transformMatrix = {
@@ -322,7 +322,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     VkDeviceMemory indexBufferMemory;
     createBuffer(m_physicalDevice,
         m_device,
-        indices.size() * sizeof(uint16_t),
+        indices.size() * sizeof(indices[0]),
         usageFlags,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         indices.data(),
@@ -362,7 +362,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     accelerationStructureGeometry.geometry.triangles.vertexData = vertexBufferDeviceAddress;
     accelerationStructureGeometry.geometry.triangles.maxVertex = maxVertex;
     accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(Vertex);
-    accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT16;
+    accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
     accelerationStructureGeometry.geometry.triangles.indexData = indexBufferDeviceAddress;
     accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
     accelerationStructureGeometry.geometry.triangles.transformData.hostAddress = nullptr;

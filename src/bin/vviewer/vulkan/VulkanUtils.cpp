@@ -146,7 +146,7 @@ bool createIndexBuffer(VkPhysicalDevice physicalDevice,
     VkDevice device,
     VkQueue transferQueue,
     VkCommandPool transferCommandPool,
-    const std::vector<uint16_t>& indices,
+    const std::vector<uint32_t>& indices,
     VkBuffer& buffer,
     VkDeviceMemory& bufferMemory)
 {

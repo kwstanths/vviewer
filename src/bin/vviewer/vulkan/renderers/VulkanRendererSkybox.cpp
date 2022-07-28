@@ -84,7 +84,7 @@ void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet 
         VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         VkDescriptorSet descriptorSets[2] = {
             cameraDescriptorSet,
@@ -612,7 +612,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
                 VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
                 VkDeviceSize offsets[] = { 0 };
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+                vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
 
                 vkCmdEndRenderPass(commandBuffer);
@@ -1295,7 +1295,7 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
                 VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
                 VkDeviceSize offsets[] = { 0 };
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+                vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
 
                 vkCmdEndRenderPass(commandBuffer);
@@ -1916,7 +1916,7 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
                     VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
                     VkDeviceSize offsets[] = { 0 };
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                    vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+                    vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
                     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
 
                     vkCmdEndRenderPass(commandBuffer);

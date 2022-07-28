@@ -13,7 +13,7 @@ std::vector<Mesh> assimpLoadModel(std::string filename)
 {
     Assimp::Importer importer;
 
-    const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace);
+    const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_CalcTangentSpace);
     if (!scene) {
         throw std::runtime_error("Failed to load model: " + filename);
     }
@@ -42,7 +42,7 @@ std::vector<Mesh> assimpLoadNode(aiNode * node, const aiScene * scene)
 Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
 {
     std::vector<Vertex> vertices;
-    std::vector<uint16_t> indices;
+    std::vector<uint32_t> indices;
     bool hasNormals = mesh->HasNormals();
     bool hasUVs = mesh->HasTextureCoords(0);
     bool hasTangents = mesh->HasTangentsAndBitangents();

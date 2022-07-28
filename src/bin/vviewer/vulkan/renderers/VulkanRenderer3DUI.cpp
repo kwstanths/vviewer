@@ -78,7 +78,7 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
     VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     VkDescriptorSet descriptorSets[1] = {
         descriptorScene,
