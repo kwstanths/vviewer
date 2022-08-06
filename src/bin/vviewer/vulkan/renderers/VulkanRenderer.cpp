@@ -96,7 +96,7 @@ void VulkanRenderer::initResources()
     }
     
     try {
-        m_rendererRayTracing.initResources(m_physicalDevice, VK_FORMAT_R32G32B32A32_SFLOAT, 1024u, 1024u);
+        m_rendererRayTracing.initResources(m_physicalDevice, VK_FORMAT_R32G32B32A32_SFLOAT);
     }
     catch (std::exception& e) {
         utils::ConsoleWarning("Failed to initialize GPU ray tracing renderer: " + std::string(e.what()));
@@ -124,7 +124,6 @@ void VulkanRenderer::initResources()
         m_scene->setSkybox(skybox);
     }
 
-    //m_scene->addSceneObject("assets/models/uvsphere.obj", Transform(), "defaultMaterial");
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -146,6 +145,8 @@ void VulkanRenderer::initSwapChainResources()
     m_rendererLambert.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
     m_rendererPost.initSwapChainResources(m_swapchainExtent, m_renderPassPost, m_window->swapChainImageCount(), m_attachmentColorForwardOutput, m_attachmentHighlightForwardOutput);
     m_renderer3DUI.initSwapChainResources(m_swapchainExtent, m_renderPassUI, m_window->swapChainImageCount());
+    m_rendererRayTracing.initSwapChainResources(m_swapchainExtent);
+
     /* Update descriptor sets */
     {
         AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
@@ -501,10 +502,20 @@ std::shared_ptr<SceneObject> VulkanRenderer::getSelectedObject() const
     return m_selectedObject;
 }
 
+bool VulkanRenderer::isRTEnabled() const
+{
+    return m_rendererRayTracing.isInitialized();
+}
+
 void VulkanRenderer::renderRT()
 {
-    m_scene->updateSceneGraph();
-    m_rendererRayTracing.renderScene(m_scene);
+    if (m_rendererRayTracing.isInitialized()) {
+        m_scene->updateSceneGraph();
+        m_rendererRayTracing.renderScene(m_scene);
+    }
+    else {
+        utils::ConsoleWarning("GPU Ray tracing is not supported");
+    }
 }
 
 glm::vec3 VulkanRenderer::selectObject(float x, float y)

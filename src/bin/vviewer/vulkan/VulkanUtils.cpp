@@ -342,7 +342,7 @@ void endSingleTimeCommands(VkDevice device,
     vkQueueSubmit(queue, 1, &submitInfo, fence);
     
     // Wait for the fence to signal that command buffer has finished executing
-    vkWaitForFences(device, 1, &fence, VK_TRUE, 1000000000);
+    vkWaitForFences(device, 1, &fence, VK_TRUE, 10000000000);
     vkDestroyFence(device, fence, nullptr);
     if (freeCommandBuffer)
     {

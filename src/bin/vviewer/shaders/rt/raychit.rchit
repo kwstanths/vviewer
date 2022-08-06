@@ -27,7 +27,7 @@ struct Vertex
 
 /* Types for the arrays of vertices and indices of the currently hit object */
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
-layout(buffer_reference, scalar) buffer Indices {u16vec3 i[]; };
+layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 /* Type for the object description geonetry of a mesh in the scene */
 struct ObjDesc
@@ -62,7 +62,7 @@ void main()
 	Vertices vertices = Vertices(objResource.vertexAddress);
 
 	/* Get hit triangle info */
-	u16vec3 ind = indices.i[gl_PrimitiveID];
+	ivec3  ind = indices.i[gl_PrimitiveID];
 	Vertex v0 = vertices.v[ind.x];
 	Vertex v1 = vertices.v[ind.y];
 	Vertex v2 = vertices.v[ind.z];
@@ -84,11 +84,11 @@ void main()
 	/* Send shadow ray*/
 	float tmin = 0.001;
 	float tmax = 10000.0;
-	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+	vec3 origin = worldPos;
 	shadowed = true;
 	/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
 	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 1, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 1);
 	if (shadowed) {
-		hitValue *= 0.3;
+		hitValue *= 0.5;
 	}
 }

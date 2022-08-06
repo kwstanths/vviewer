@@ -157,8 +157,6 @@ void MainWindow::createMenu()
     QAction* m_actionRender = new QAction(tr("&Render scene (GPU) WIP"), this);
     m_actionRender->setStatusTip(tr("Render scene"));
     connect(m_actionRender, &QAction::triggered, this, &MainWindow::onRenderSceneSlot);
-    /* work in progress, currently broken */
-    m_actionRender->setEnabled(false);
 
     QAction* m_actionExport = new QAction(tr("&Export scene"), this);
     m_actionExport->setStatusTip(tr("EXport scene"));

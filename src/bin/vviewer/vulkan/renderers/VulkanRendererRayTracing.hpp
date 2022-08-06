@@ -11,17 +11,20 @@
 class VulkanRendererRayTracing {
     friend class VulkanRenderer;
 public:
+    enum class OutputFileType {
+        PNG = 0,
+        HDR = 1,
+    };
+
     VulkanRendererRayTracing();
 
-    void initResources(VkPhysicalDevice physicalDevice, VkFormat colorFormat, uint32_t width, uint32_t height);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
+    void initResources(VkPhysicalDevice physicalDevice, VkFormat colorFormat);
+    void initSwapChainResources(VkExtent2D swapchainExtent);
 
     void releaseSwapChainResources();
     void releaseResources();
 
-    VkPipeline getPipeline() const;
-    VkPipelineLayout getPipelineLayout() const;
-    VkDescriptorSetLayout getDescriptorSetLayout() const;
+    bool isInitialized() const;
 
     void renderScene(const VulkanScene* scene);
 
@@ -40,6 +43,7 @@ private:
     } m_devF;
 
     /* Device data */
+    bool m_isInitialized = false;
     VkPhysicalDevice m_physicalDevice{};
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR  m_rayTracingPipelineProperties{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures{};
@@ -123,6 +127,8 @@ private:
     void updateDescriptorSets();
 
     void render();
+
+    void storeToDisk(std::string filename, OutputFileType type) const;
 
     /**
         Create a scratch buffer to hold temporary data for a ray tracing acceleration structure

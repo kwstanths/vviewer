@@ -1,17 +1,19 @@
 #include "VulkanRendererRayTracing.hpp"
 
-#include "vulkan/Shader.hpp"
+#include <iostream>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
-#include <iostream>
+#include <utils/Console.hpp>
+
+#include "vulkan/Shader.hpp"
 
 VulkanRendererRayTracing::VulkanRendererRayTracing()
 {
 }
 
-void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, VkFormat format, uint32_t width, uint32_t height)
+void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, VkFormat format)
 {
     /* Check if physical device supports ray tracing */
     std::vector< VkExtensionProperties> extensions;
@@ -23,8 +25,6 @@ void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, Vk
 
     m_physicalDevice = physicalDevice;
     m_format = format;
-    m_width = width;
-    m_height = height;
 
     /* Create logical device from scratch for ray tracing, since current version of qt(6.2.4) doesn't support setting custom features for the logical device 
     * thus the required ray tracing features cannot be enabled
@@ -76,35 +76,24 @@ void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, Vk
         }
     }
 
-    createStorageImage();
     createUniformBuffers();
     createRayTracingPipeline();
     createShaderBindingTable();
     createDescriptorSets();
-
-    ///* Create a command buffer */
-    //{
-    //    VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
-    //    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    //    commandBufferAllocateInfo.pNext = NULL;
-    //    commandBufferAllocateInfo.commandPool = m_commandPool;
-    //    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    //    commandBufferAllocateInfo.commandBufferCount = 1;
-
-    //    VkResult res = vkAllocateCommandBuffers(m_device, &commandBufferAllocateInfo, &m_commandBuffer);
-
-    //    if (res != VK_SUCCESS) {
-    //        throw std::runtime_error("Unable to create a command buffer for ray tracing");
-    //    }
-    //}
+    m_isInitialized = true;
 }
 
-void VulkanRendererRayTracing::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages)
+void VulkanRendererRayTracing::initSwapChainResources(VkExtent2D swapchainExtent)
 {
+    m_width = swapchainExtent.width;
+    m_height = swapchainExtent.height;
+
+    createStorageImage();
 }
 
 void VulkanRendererRayTracing::releaseSwapChainResources()
 {
+    m_renderResult.destroy(m_device);
 }
 
 void VulkanRendererRayTracing::releaseResources()
@@ -112,37 +101,32 @@ void VulkanRendererRayTracing::releaseResources()
     /* TODO destroy descriptor set */
     /* TODO delete pipeline and rt pipeline */
     /* TODO destroy shader binding table */
-    /* TODO Delete storage image */
     /* TODO delete command pool */
     /* TODO delete device */
 }
 
-VkPipeline VulkanRendererRayTracing::getPipeline() const
+bool VulkanRendererRayTracing::isInitialized() const
 {
-	return VkPipeline();
-}
-
-VkPipelineLayout VulkanRendererRayTracing::getPipelineLayout() const
-{
-	return VkPipelineLayout();
-}
-
-VkDescriptorSetLayout VulkanRendererRayTracing::getDescriptorSetLayout() const
-{
-	return VkDescriptorSetLayout();
+    return m_isInitialized;
 }
 
 void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 {
-    std::vector<glm::mat4> sceneObjectsMatrices;
-    std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectsMatrices);
+    std::vector<glm::mat4> sceneObjectMatrices;
+    std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectMatrices);
+    if (sceneObjects.size() == 0)
+    {
+        utils::ConsoleWarning("Trying to ray trace an empty scene");
+        return;
+    }
+
     const SceneData& sceneData = scene->getSceneData();
 
     /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
     for (size_t i = 0; i < sceneObjects.size(); i++)
     {
         auto so = sceneObjects[i];
-        auto transform = sceneObjectsMatrices[i];
+        auto transform = sceneObjectMatrices[i];
 
         const VulkanMesh* mesh = reinterpret_cast<const VulkanMesh*>(so->getMesh());
         if (mesh != nullptr)
@@ -574,7 +558,14 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
 
 void VulkanRendererRayTracing::destroyAccellerationStructures()
 {
-    /* TODO cleanup accelleration structures */
+    m_sceneObjects.clear();
+
+    for (auto& blas : m_blas) {
+        m_devF.vkDestroyAccelerationStructureKHR(m_device, blas.first.handle, nullptr);
+    }
+    m_blas.clear();
+
+    m_devF.vkDestroyAccelerationStructureKHR(m_device, m_tlas.handle, nullptr);
 }
 
 void VulkanRendererRayTracing::createStorageImage()
@@ -587,7 +578,7 @@ void VulkanRendererRayTracing::createStorageImage()
         1,
         m_format,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         m_renderResult.image,
         m_renderResult.memory);
@@ -653,6 +644,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
 
 void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData)
 {
+    /* BUffer holding scene data */
     {
         void* data;
         vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, sizeof(SceneData), 0, &data);
@@ -660,6 +652,7 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData)
         vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
     }
 
+    /* Buffer holding the description of geometry objects */
     {
         void* data;
         vkMapMemory(m_device, m_uniformBufferObjectDescrptionMemory, 0, VK_WHOLE_SIZE, 0, &data);
@@ -994,6 +987,16 @@ void VulkanRendererRayTracing::render()
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
     vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, 0);
     
+    /* Clear render result */
+    VkClearColorValue clearColorValue = { { 0, 0, 0, 0} };
+    vkCmdClearColorImage(
+        cmdBuf,
+        m_renderResult.image,
+        VK_IMAGE_LAYOUT_GENERAL,
+        &clearColorValue,
+        1,
+        &subresourceRange);
+    
     /*
         Dispatch the ray tracing commands
     */
@@ -1022,11 +1025,20 @@ void VulkanRendererRayTracing::render()
     /* Transition render result back to layout general */
     transitionImageLayout(cmdBuf, m_renderResult.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
 
-    endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf);
+    endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true);
+    vkQueueWaitIdle(m_queue);
 
+    storeToDisk("test", OutputFileType::HDR);
+}
+
+void VulkanRendererRayTracing::storeToDisk(std::string filename, OutputFileType type) const
+{
     /* Store result from temp image to the disk */
-    /* format assumed to be RGBA FLOAT */
-    std::vector<float>imageDataFloat(m_width * m_height * 4);
+    if (m_format != VK_FORMAT_R32G32B32A32_SFLOAT) {
+        utils::ConsoleCritical("VulkanRayTracing::StoreToDisk(): Format supported is VK_FORMAT_R32G32B32A32_SFLOAT");
+        return;
+    }
+
     float* input;
     VkResult res = vkMapMemory(
         m_device,
@@ -1036,18 +1048,45 @@ void VulkanRendererRayTracing::render()
         0,
         reinterpret_cast<void**>(&input));
 
-    memcpy(imageDataFloat.data(), input, m_width * m_height * 4 * sizeof(float));
+    VkImageSubresource subResource{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+    VkSubresourceLayout subResourceLayout;
+    vkGetImageSubresourceLayout(m_device, m_tempImage.image, &subResource, &subResourceLayout);
+    uint32_t rowPitchFloats = subResourceLayout.rowPitch / sizeof(float);
+
+    std::vector<float>imageDataFloat(m_width * m_height * 4);
+    uint32_t indexGPUIMage = subResourceLayout.offset;
+    uint32_t indexOutputImage = 0;
+    for (uint32_t i = 0; i < m_height; i++) {
+        memcpy(&imageDataFloat[0] + indexOutputImage, &input[0] + indexGPUIMage, 4 * m_width * sizeof(float));
+        indexGPUIMage += rowPitchFloats;
+        indexOutputImage += 4 * m_width;
+    }
     vkUnmapMemory(m_device, m_tempImage.memory);
 
-    stbi_write_hdr("test.hdr", m_width, m_height, 4, imageDataFloat.data());
-
-    /* TODO apply exposure */
-    std::vector<unsigned char> imageDataInt(m_width * m_height * 4, 255);
-    for (size_t i = 0; i < m_width * m_height * 4; i++)
+    switch (type)
     {
-        imageDataInt[i] = imageDataFloat[i] * 255.0f;
+    case VulkanRendererRayTracing::OutputFileType::PNG:
+    {
+        /* TODO apply exposure */
+        std::vector<unsigned char> imageDataInt(m_width * m_height * 4, 255);
+        for (size_t i = 0; i < m_width * m_height * 4; i++)
+        {
+            imageDataInt[i] = imageDataFloat[i] * 255.0f;
+        }
+        stbi_write_png((filename + ".png").c_str(), m_width, m_height, 4, imageDataInt.data(), m_width * 4 * sizeof(char));
+        break;
     }
-    stbi_write_png("test.png", m_width, m_height, 4, imageDataInt.data(), m_width * 4 * sizeof(char));
+    case VulkanRendererRayTracing::OutputFileType::HDR:
+    {
+
+        stbi_write_hdr((filename + ".hdr").c_str(), m_width, m_height, 4, imageDataFloat.data());
+        break;
+    }
+    default:
+        utils::ConsoleWarning("VulkanRayTracing::StoreToDisk(): Unknown output file type");
+        break;
+    }
+
 }
 
 VulkanRendererRayTracing::RayTracingScratchBuffer VulkanRendererRayTracing::createScratchBuffer(VkDeviceSize size)
