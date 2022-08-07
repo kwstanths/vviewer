@@ -1,6 +1,8 @@
 #version 460
 #extension GL_EXT_ray_tracing : enable
 
+#include "rng.glsl"
+
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
 layout(binding = 1, set = 0, rgba8) uniform image2D image;
 layout(binding = 2, set = 0) uniform SceneData 
@@ -18,22 +20,39 @@ layout(location = 0) rayPayloadEXT vec3 hitValue;
 
 void main() 
 {
+	/* Initialize an RNG state [Ray tracing gems II, chapter 14] */
+	uint rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, 0);
+
 	/* Calculate pixel uvs */
-	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
-	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeEXT.xy);
-	vec2 d = inUV * 2.0 - 1.0;
+	const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
+	
+	uint samples = 16;
+	for(int s = 1; s <= samples; s++) 
+	{
+		/* Calculate ray target offset */
+		vec2 offset = vec2(rand(rngState), rand(rngState));
+		const vec2 inUV = (pixelLeftCorner + offset) / vec2(gl_LaunchSizeEXT.xy);
+		vec2 d = inUV * 2.0 - 1.0;
 
-	/* Calculate ray direction */
-	vec4 origin = sceneData.viewInverse * vec4(0,0,0,1);
-	vec4 target = sceneData.projectionInverse * vec4(d.x, d.y, 1, 1) ;
-	vec4 direction = sceneData.viewInverse*vec4(normalize(target.xyz), 0) ;
+		/* Calculate ray direction */
+		vec4 origin = sceneData.viewInverse * vec4(0,0,0,1);
+		vec4 target = sceneData.projectionInverse * vec4(d.x, d.y, 1, 1) ;
+		vec4 direction = sceneData.viewInverse*vec4(normalize(target.xyz), 0) ;
 
-	uint rayFlags = gl_RayFlagsOpaqueEXT;
-	uint cullMask = 0xff;
-	float tmin = 0.001;
-	float tmax = 10000.0;
+		/* Launch ray */
+		uint rayFlags = gl_RayFlagsOpaqueEXT;
+		uint cullMask = 0xff;
+		float tmin = 0.001;
+		float tmax = 10000.0;
+		traceRayEXT(topLevelAS, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 
-    traceRayEXT(topLevelAS, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
-
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(hitValue, 1.0));
+		/* Accumulate color */
+		vec4 prevColor = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
+		vec4 newColor = prevColor + vec4(hitValue, 1.0);
+		imageStore(image, ivec2(gl_LaunchIDEXT.xy), newColor);
+	}
+	
+	/* Average results */
+	vec4 accumulated = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy), accumulated / samples);
 }

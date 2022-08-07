@@ -123,7 +123,6 @@ void VulkanRenderer::initResources()
         instance.Add(skybox->m_name, skybox);
         m_scene->setSkybox(skybox);
     }
-
 }
 
 void VulkanRenderer::initSwapChainResources()
