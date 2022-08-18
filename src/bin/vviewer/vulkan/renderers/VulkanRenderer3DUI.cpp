@@ -4,6 +4,9 @@
 
 #include <models/AssimpLoadModel.hpp>
 
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 #include "vulkan/Shader.hpp"
 
 VulkanRenderer3DUI::VulkanRenderer3DUI()
@@ -88,12 +91,19 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
 
     PushBlockForward3DUI pushConstants;
     
-    glm::mat4 modelMatrixUnscaled = modelMatrix;
-    modelMatrixUnscaled[0][0] = 1.f;
-    modelMatrixUnscaled[1][1] = 1.f;
-    modelMatrixUnscaled[2][2] = 1.f;
+    /* Calculate the unscaled version of the input model matrix */
+    glm::mat4 modelMatrixUnscaled;
+    {
+        glm::vec3 scaleM, translation;
+        glm::quat rotation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(modelMatrix, scaleM, rotation, translation, skew, perspective);
+        modelMatrixUnscaled = glm::translate(glm::mat4(1.0f), translation) * glm::toMat4(rotation);
+    }
 
-    pushConstants.modelMatrix = glm::scale(modelMatrix, { scale, scale, scale });
+    /* Render Z arrow */
+    pushConstants.modelMatrix = glm::scale(modelMatrixUnscaled, { scale, scale, scale });
     pushConstants.color = glm::vec4(0, 0, 1, 1);
     pushConstants.selected = glm::vec4(m_forwardID, 0);
     vkCmdPushConstants(cmdBuf,
@@ -103,8 +113,8 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
         sizeof(PushBlockForward3DUI),
         &pushConstants);
     vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
-
-    pushConstants.modelMatrix = glm::scale(glm::rotate(modelMatrix, glm::radians(90.F), { 0, 1, 0 }), {scale, scale, scale});
+    /* Render X arrow */
+    pushConstants.modelMatrix = glm::scale(glm::rotate(modelMatrixUnscaled, glm::radians(90.F), { 0, 1, 0 }), {scale, scale, scale});
     pushConstants.color = glm::vec4(1, 0, 0, 1);
     pushConstants.selected = glm::vec4(m_rightID, 0);
     vkCmdPushConstants(cmdBuf,
@@ -114,8 +124,8 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
         sizeof(PushBlockForward3DUI),
         &pushConstants);
     vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
-
-    pushConstants.modelMatrix = glm::scale(glm::rotate(modelMatrix, glm::radians(-90.F), { 1, 0, 0 }), { scale, scale, scale });
+    /* Render Y arrow */
+    pushConstants.modelMatrix = glm::scale(glm::rotate(modelMatrixUnscaled, glm::radians(-90.F), { 1, 0, 0 }), { scale, scale, scale });
     pushConstants.color = glm::vec4(0, 1, 0, 1);
     pushConstants.selected = glm::vec4(m_upID, 0);
     vkCmdPushConstants(cmdBuf,
