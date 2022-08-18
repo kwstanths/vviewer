@@ -14,7 +14,7 @@ VulkanWindow::VulkanWindow()
     
     Transform cameraTransform;
     cameraTransform.setPosition(glm::vec3(1, 3, 10));
-    cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(0.0f), 0)));
+    cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(180.0f), 0)));
     camera->getTransform() = cameraTransform;
     
     m_scene->setCamera(std::shared_ptr<Camera>(camera));
@@ -100,12 +100,13 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
         /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.getRotation();
         glm::quat qPitch = glm::angleAxis((float)mousePosDiff.y() * mouseSensitivity, glm::vec3(1, 0, 0));
-        glm::quat qYaw = glm::angleAxis((float)mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
+        glm::quat qYaw = glm::angleAxis(-(float)mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
 
-        cameraTransform.setRotation(glm::normalize(qPitch * rotation * qYaw));
+        cameraTransform.setRotation(glm::normalize(qYaw * rotation * qPitch));
     }
 
     /* Perform movement pf selected object if left button is pressed */
+    float movementSensitivity = 0.02f;
     if (buttons & Qt::LeftButton) {
         std::shared_ptr<SceneObject> selectedObject = m_renderer->getSelectedObject();
         if (selectedObject.get() == nullptr) return;
@@ -113,13 +114,10 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
         Transform& selectedObjectTransform = selectedObject->m_localTransform;
         glm::vec3 position = selectedObjectTransform.getPosition();
 
-        /* 
-            The UI transform is not rendered taking into account the rotation, so the movement must happen on the primary axes of the transform to be
-            consistent with the UI. If the UI transform is rendered taking int account the local rotation, then these vectors should be selectedObjectTransform.getRight() etc.
-        */
-        glm::vec3 right = glm::vec3(1, 0, 0);
-        glm::vec3 up = glm::vec3(0, 1, 0);
-        glm::vec3 forward = glm::vec3(0, 0, 1);
+        /* The transform UI is rendered with the global right/up/forard vectors, so use these for movement */
+        glm::vec3 right = selectedObject->m_modelMatrix * glm::vec4(1, 0, 0, 0);
+        glm::vec3 up = selectedObject->m_modelMatrix * glm::vec4(0, 1, 0, 0);
+        glm::vec3 forward = selectedObject->m_modelMatrix * glm::vec4(0, 0, 1, 0);
         
         switch (m_selectedPressed)
         {
@@ -130,12 +128,12 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
             float cameraUpDot = glm::dot(right, cameraTransform.getUp());
             float movement;
             if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
-                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+                movement = ((cameraRightDot > 0) ? -1 : 1) * (float)mousePosDiff.x();
             }
             else {
                 movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
             }
-            position += right * 0.02f * movement;
+            position += selectedObjectTransform.getRight() * movementSensitivity * movement;
             
             selectedObjectTransform.setPosition(position);
             emit selectedObjectPositionChanged();
@@ -148,12 +146,12 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
             float cameraUpDot = glm::dot(forward, cameraTransform.getUp());
             float movement;
             if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
-                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+                movement = ((cameraRightDot > 0) ? -1 : 1) * (float)mousePosDiff.x();
             }
             else {
                 movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
             }
-            position += forward * 0.02f * movement;
+            position += selectedObjectTransform.getForward() * movementSensitivity * movement;
 
             selectedObjectTransform.setPosition(position);
             emit selectedObjectPositionChanged();
@@ -166,12 +164,12 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
             float cameraUpDot = glm::dot(up, cameraTransform.getUp());
             float movement;
             if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
-                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+                movement = ((cameraRightDot > 0) ? -1 : 1) * (float)mousePosDiff.x();
             }
             else {
                 movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
             }
-            position += up * 0.02f * movement;
+            position += selectedObjectTransform.getUp() * movementSensitivity * movement;
 
             selectedObjectTransform.setPosition(position);
             emit selectedObjectPositionChanged();
@@ -194,9 +192,9 @@ void VulkanWindow::onUpdateCamera()
 
     Transform& cameraTransform = m_scene->getCamera()->getTransform();
     cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.getForward() * speed);
-    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * speed);
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * speed);
-    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * speed);
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * speed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * speed);
     cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_Q]) * cameraTransform.getUp() * speed);
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * speed);
 }

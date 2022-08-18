@@ -391,7 +391,7 @@ void VulkanRenderer::startNextFrame()
             m_renderer3DUI.renderTransform(cmdBuf,
                 m_descriptorSetsScene[imageIndex],
                 imageIndex,
-                transformPosition,
+                m_selectedObject->m_modelMatrix,
                 glm::distance(transformPosition, m_scene->getCamera()->getTransform().getPosition()));
         }
         m_devFunctions->vkCmdEndRenderPass(cmdBuf);

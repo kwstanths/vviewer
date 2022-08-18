@@ -18,7 +18,7 @@ public:
     int getTransformUBOBlock() const;
 
 private:
-    VulkanDynamicUBO<ModelData>& m_transformDataSotrage;
+    ModelData* m_modelData = nullptr;
     int m_transformUBOBlock = -1;
 };
 

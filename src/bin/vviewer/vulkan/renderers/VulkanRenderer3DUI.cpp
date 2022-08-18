@@ -65,7 +65,7 @@ VkPipelineLayout VulkanRenderer3DUI::getPipelineLayout() const
 void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf, 
     VkDescriptorSet& descriptorScene, 
     uint32_t imageIndex, 
-    glm::vec3 position,
+    const glm::mat4& modelMatrix,
     float cameraDistance) const
 {
     /* Keep size the same */
@@ -87,8 +87,12 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
         0, 1, &descriptorSets[0], 0, nullptr);
 
     PushBlockForward3DUI pushConstants;
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0F), position);
     
+    glm::mat4 modelMatrixUnscaled = modelMatrix;
+    modelMatrixUnscaled[0][0] = 1.f;
+    modelMatrixUnscaled[1][1] = 1.f;
+    modelMatrixUnscaled[2][2] = 1.f;
+
     pushConstants.modelMatrix = glm::scale(modelMatrix, { scale, scale, scale });
     pushConstants.color = glm::vec4(0, 0, 1, 1);
     pushConstants.selected = glm::vec4(m_forwardID, 0);

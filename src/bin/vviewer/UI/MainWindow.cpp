@@ -112,7 +112,7 @@ QWidget * MainWindow::initControlsWidget()
     widget_controls->setFixedWidth(280);
 
     Transform lightTransform;
-    lightTransform.setRotationEuler(0, 0, 0);
+    lightTransform.setRotationEuler(0, glm::radians(180.0f), 0);
     auto light = std::make_shared<DirectionalLight>(lightTransform, glm::vec3(1, 0.9, 0.8));
     m_vulkanWindow->m_scene->setDirectionalLight(light);
     

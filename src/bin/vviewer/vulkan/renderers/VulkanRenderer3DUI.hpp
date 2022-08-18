@@ -29,7 +29,7 @@ public:
     void renderTransform(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,
         uint32_t imageIndex,
-        glm::vec3 position,
+        const glm::mat4& modelMatrix,
         float cameraDistance) const;
 
 private:

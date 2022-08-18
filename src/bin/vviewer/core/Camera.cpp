@@ -4,11 +4,7 @@
 
 glm::mat4 Camera::getViewMatrix() const
 {
-    glm::mat4 translation = glm::translate(glm::mat4(1.0f), -m_transform.getPosition());
-    glm::mat4 rotation = glm::toMat4(m_transform.getRotation());
-    glm::mat4 view = rotation * translation;
-
-    return view;
+    return glm::lookAt(m_transform.getPosition(), m_transform.getPosition() + m_transform.getForward(), m_transform.getUp());
 }
 
 glm::mat4 Camera::getViewMatrixInverse() const
