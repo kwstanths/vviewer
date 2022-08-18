@@ -144,7 +144,7 @@ void VulkanRenderer::initSwapChainResources()
     m_rendererLambert.initSwapChainResources(m_swapchainExtent, m_renderPassForward, m_window->swapChainImageCount());
     m_rendererPost.initSwapChainResources(m_swapchainExtent, m_renderPassPost, m_window->swapChainImageCount(), m_attachmentColorForwardOutput, m_attachmentHighlightForwardOutput);
     m_renderer3DUI.initSwapChainResources(m_swapchainExtent, m_renderPassUI, m_window->swapChainImageCount());
-    m_rendererRayTracing.initSwapChainResources(m_swapchainExtent);
+    if (isRTEnabled()) m_rendererRayTracing.initSwapChainResources(m_swapchainExtent);
 
     /* Update descriptor sets */
     {
@@ -199,7 +199,7 @@ void VulkanRenderer::releaseSwapChainResources()
     m_rendererLambert.releaseSwapChainResources();
     m_rendererPost.releaseSwapChainResources();
     m_renderer3DUI.releaseSwapChainResources();
-    m_rendererRayTracing.releaseSwapChainResources();
+    if (isRTEnabled()) m_rendererRayTracing.releaseSwapChainResources();
 
     m_devFunctions->vkDestroyRenderPass(m_device, m_renderPassForward, nullptr);
     m_devFunctions->vkDestroyRenderPass(m_device, m_renderPassPost, nullptr);
@@ -255,7 +255,7 @@ void VulkanRenderer::releaseResources()
     m_rendererLambert.releaseResources();
     m_rendererPost.releaseResources();
     m_renderer3DUI.releaseResources();
-    m_rendererRayTracing.releaseResources();
+    if (isRTEnabled()) m_rendererRayTracing.releaseResources();
 
     /* Destroy imported models */
     {
