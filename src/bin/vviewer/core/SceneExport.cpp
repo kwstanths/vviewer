@@ -7,13 +7,35 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/ostreamwrapper.h"
 
+#include <qdir.h>
+
 using namespace rapidjson;
+
+std::string copyFileToDirectoryAndGetRelativeName(std::string file, std::string directory)
+{
+    /* Copy file to the directory with the same name */
+    QFile sourceFile(QString::fromStdString(file));
+    QString destination = QString::fromStdString(directory) + QFileInfo(sourceFile.fileName()).fileName();
+    sourceFile.copy(destination);
+    /* Get the path relative to the scene file */
+    QStringList destinationSplit = destination.split("/");
+    destinationSplit.pop_front();
+    QString relativePathName = destinationSplit.join("/");
+    return relativePathName.toStdString();
+}
 
 void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std::vector<std::shared_ptr<SceneObject>>& sceneGraph, EnvironmentMap* envMap)
 {
-    std::string fileName = name + ".json";
+    /* Create folder with scene */
+    std::string sceneFolderName = name + "/"; /* Make sure the final back slash exists */
+    std::string sceneMeshesFolderName = sceneFolderName + "meshes/";
+    std::string sceneMaterialsFolderName = sceneFolderName + "materials/";
+    QDir().mkdir(QString::fromStdString(sceneFolderName));
+    QDir().mkdir(QString::fromStdString(sceneMeshesFolderName));
+    QDir().mkdir(QString::fromStdString(sceneMaterialsFolderName));
 
-    // 1. Parse a JSON string into DOM.
+    std::string fileName = name + "/scene.json";
+
     Document d;
     d.SetObject();
 
@@ -107,7 +129,7 @@ void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std
         }
 
         if (sceneCamera->getType() != CameraType::PERSPECTIVE)
-            throw std::runtime_error("SceneExport: Only perspective camera not supported");
+            throw std::runtime_error("SceneExport: Only perspective camera supported");
         float cameraFoV = dynamic_cast<PerspectiveCamera*>(sceneCamera.get())->getFoV();
 
         Value fov;
@@ -126,7 +148,7 @@ void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std
 
         for (auto& itr : sceneGraph)
         {
-            parseSceneObject(d, scene, itr, materials);
+            parseSceneObject(d, scene, itr, materials, sceneMeshesFolderName);
         }
 
         d.AddMember("scene", scene, d.GetAllocator());
@@ -139,7 +161,7 @@ void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std
 
         for (auto& itr : materials)
         {
-            addJsonSceneMaterial(d, mats, itr);
+            addJsonSceneMaterial(d, mats, itr, sceneMaterialsFolderName);
         }
 
         d.AddMember("materials", mats, d.GetAllocator());
@@ -150,8 +172,11 @@ void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std
         Value environment;
         environment.SetObject();
 
+        /* Copy environment map */
+        std::string relativePath = copyFileToDirectoryAndGetRelativeName(envMap->m_name, sceneFolderName);
+
         Value path;
-        path.SetString(envMap->m_name.c_str(), d.GetAllocator());
+        path.SetString(relativePath.c_str(), d.GetAllocator());
         environment.AddMember("path", path, d.GetAllocator());
 
         Value rotation;
@@ -180,21 +205,21 @@ void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std
     d.Accept(writer);
 }
 
-void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials)
+void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials, std::string meshDirectory)
 {
     if (sceneObject->getMesh() != nullptr) {
-        addJsonSceneObject(d, v, sceneObject, sceneObject->m_parent->m_localTransform);
+        addJsonSceneObject(d, v, sceneObject, sceneObject->m_parent->m_localTransform, meshDirectory);
 
         Material* mat = sceneObject->getMaterial();
         materials.insert(mat);
     }
 
     for (auto& child : sceneObject->m_children) {
-        parseSceneObject(d, v, std::dynamic_pointer_cast<SceneObject>(child), materials);
+        parseSceneObject(d, v, child, materials, meshDirectory);
     }
 }
 
-void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, const Transform& t)
+void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, const Transform& t, std::string meshDirectory)
 {
     Value meshObject;
     meshObject.SetObject();
@@ -204,8 +229,12 @@ void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::
     meshObject.AddMember("name", name, d.GetAllocator());
 
     std::string meshName = sceneObject->getMesh()->m_meshModel->getName();
+    /* Copy mesh to mesh folder, and get a file path relative to the scene file */
+    std::string relativePathName = copyFileToDirectoryAndGetRelativeName(meshName, meshDirectory);
+
+    /* Set the path to the copied file */
     Value path;
-    path.SetString(meshName.c_str(), d.GetAllocator());
+    path.SetString(relativePathName.c_str(), d.GetAllocator());
     meshObject.AddMember("path", path, d.GetAllocator());
 
     std::string materialName = sceneObject->getMaterial()->m_name;
@@ -215,6 +244,7 @@ void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::
 
     addJsonSceneTransform(d, meshObject, t);
 
+    /* If mesh is emmisive add it as a light */
     const MaterialLambert* mat = dynamic_cast<const MaterialLambert*>(sceneObject->getMaterial());
     if (mat != nullptr && mat->getEmissive() >= 0.0001) {
         Value light;
@@ -296,7 +326,7 @@ void addJsonSceneTransform(rapidjson::Document& d, rapidjson::Value& v, const Tr
     v.AddMember("transform", transform, d.GetAllocator());
 }
 
-void addJsonSceneMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* material)
+void addJsonSceneMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* material, std::string materialsDirectory)
 {
     Value mat;
     mat.SetObject();
@@ -304,6 +334,9 @@ void addJsonSceneMaterial(rapidjson::Document& d, rapidjson::Value& v, const Mat
     Value name;
     name.SetString(material->m_name.c_str(), d.GetAllocator());
     mat.AddMember("name", name, d.GetAllocator());
+    /* Create a directory for textures for that material */
+    std::string materialDirectory = materialsDirectory + material->m_name + "/";
+    QDir().mkdir(QString::fromStdString(materialDirectory));
 
     switch (material->getType())
     {
@@ -315,14 +348,26 @@ void addJsonSceneMaterial(rapidjson::Document& d, rapidjson::Value& v, const Mat
         type.SetString("DIFFUSE");
         mat.AddMember("type", type, d.GetAllocator());
 
+        /* Set albedo */
         Value albedo;
-        albedo.SetObject();
-        addJsonSceneColor(d, albedo, m->getAlbedo());
-        mat.AddMember("albedo", albedo, d.GetAllocator());
+        if (m->getAlbedoTexture() == nullptr || m->getAlbedoTexture()->m_name == "whiteColor") {
+            albedo.SetObject();
+            addJsonSceneColor(d, albedo, m->getAlbedo());
+            mat.AddMember("albedo", albedo, d.GetAllocator());
+        }
+        else {
+            std::string relativePath = copyFileToDirectoryAndGetRelativeName(m->getAlbedoTexture()->m_name, materialDirectory);
 
+            albedo.SetString(relativePath.c_str(), d.GetAllocator());
+            mat.AddMember("albedo", albedo, d.GetAllocator());
+        }
+
+        /* Set normal */
         if (m->getNormalTexture()->m_name != "normalmapdefault") {
+            std::string relativePath = copyFileToDirectoryAndGetRelativeName(m->getNormalTexture()->m_name, materialDirectory);
+
             Value normal;
-            normal.SetString(m->getNormalTexture()->m_name.c_str(), d.GetAllocator());
+            normal.SetString(relativePath.c_str(), d.GetAllocator());
             mat.AddMember("normalMap", normal, d.GetAllocator());
         }
 
@@ -336,25 +381,53 @@ void addJsonSceneMaterial(rapidjson::Document& d, rapidjson::Value& v, const Mat
         type.SetString("DISNEY12");
         mat.AddMember("type", type, d.GetAllocator());
 
+        /* Set albedo */
         Value albedo;
-        albedo.SetString(m->getAlbedoTexture()->m_name.c_str(), d.GetAllocator());
-        mat.AddMember("albedo", albedo, d.GetAllocator());
+        if (m->getAlbedoTexture() == nullptr || m->getAlbedoTexture()->m_name == "whiteColor") {
+            albedo.SetObject();
+            addJsonSceneColor(d, albedo, m->getAlbedo());
+            mat.AddMember("albedo", albedo, d.GetAllocator());
+        }
+        else {
+            std::string relativePath = copyFileToDirectoryAndGetRelativeName(m->getAlbedoTexture()->m_name, materialDirectory);
 
+            albedo.SetString(relativePath.c_str(), d.GetAllocator());
+            mat.AddMember("albedo", albedo, d.GetAllocator());
+        }
+
+        /* Set roughness */
         Value roughness;
-        roughness.SetFloat(m->getRoughness());
-        mat.AddMember("roughness", roughness, d.GetAllocator());
+        if (m->getRoughnessTexture() == nullptr || m->getRoughnessTexture()->m_name == "white") {
+            roughness.SetFloat(m->getRoughness());
+            mat.AddMember("roughness", roughness, d.GetAllocator());
+        }
+        else {
+            std::string relativePath = copyFileToDirectoryAndGetRelativeName(m->getRoughnessTexture()->m_name, materialDirectory);
 
+            roughness.SetString(relativePath.c_str(), d.GetAllocator());
+            mat.AddMember("roughness", roughness, d.GetAllocator());
+        }
+
+
+        /* Set metallic */
         Value metallic;
-        metallic.SetFloat(m->getMetallic());
-        mat.AddMember("metallic", metallic, d.GetAllocator());
+        if (m->getMetallicTexture() == nullptr || m->getMetallicTexture()->m_name == "white") {
+            metallic.SetFloat(m->getMetallic());
+            mat.AddMember("metallic", metallic, d.GetAllocator());
+        }
+        else {
+            std::string relativePath = copyFileToDirectoryAndGetRelativeName(m->getMetallicTexture()->m_name, materialDirectory);
 
-        Value specular;
-        specular.SetFloat(0.5F);
-        mat.AddMember("specular", specular, d.GetAllocator());
+            metallic.SetString(relativePath.c_str(), d.GetAllocator());
+            mat.AddMember("metallic", metallic, d.GetAllocator());
+        }
 
+        /* Set normal map*/
         if (m->getNormalTexture()->m_name != "normalmapdefault") {
+            std::string relativePath = copyFileToDirectoryAndGetRelativeName(m->getNormalTexture()->m_name, materialDirectory);
+
             Value normal;
-            normal.SetString(m->getNormalTexture()->m_name.c_str(), d.GetAllocator());
+            normal.SetString(relativePath.c_str(), d.GetAllocator());
             mat.AddMember("normalMap", normal, d.GetAllocator());
         }
 

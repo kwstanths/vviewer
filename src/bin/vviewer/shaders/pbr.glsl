@@ -1,10 +1,10 @@
+#include "constants.glsl"
+
 struct PBRStandard {
     vec3 albedo;
     float metallic;
     float roughness;
 };
-
-#define PI 3.1415926538
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {

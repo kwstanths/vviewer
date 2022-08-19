@@ -23,5 +23,5 @@ void main()
 {
     outColor.xyz = tonemapDefault2(textureLod(skybox, normalize(direction), 0).xyz, sceneData.exposure.r);
 	outColor.a = 0;
-	outHighlight = vec4(0, 0, 0, 0);
+	outHighlight = vec4(0., 0., 0., 0.);
 }

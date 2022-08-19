@@ -104,7 +104,7 @@ void VulkanRenderer::initResources()
 
     /* Create a default material */
     MaterialPBRStandard * defaultMaterial = static_cast<MaterialPBRStandard *>(createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD, false));
-    defaultMaterial->albedo() = glm::vec4(0.5, 0.5, 0.5, 1);
+    defaultMaterial->albedo() = glm::vec4(1, 1, 1, 1);
     defaultMaterial->metallic() = 0.5;
     defaultMaterial->roughness() = 0.5;
     defaultMaterial->ao() = 1.0f;
@@ -466,7 +466,7 @@ Material * VulkanRenderer::createMaterial(std::string name, MaterialType type, b
     {
     case MaterialType::MATERIAL_PBR_STANDARD:
     {
-        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 1, 1, 0, m_materialsUBO, m_materialsIndexUBO++);
+        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_materialsUBO, m_materialsIndexUBO++);
         break;
     }
     case MaterialType::MATERIAL_LAMBERT:

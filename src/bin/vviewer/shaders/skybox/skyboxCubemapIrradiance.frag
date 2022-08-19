@@ -9,7 +9,7 @@ layout(push_constant) uniform PushConsts {
 	layout (offset = 68) float deltaTheta;
 } pushConsts;
 
-#define PI 3.1415926535897932384626433832795
+#include "../constants.glsl"
 
 void main()
 {
