@@ -41,14 +41,18 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     if (!instance.isPresent("white")) {
         throw std::runtime_error("White texture not present");
     }
+    if (!instance.isPresent("whiteColor")) {
+        throw std::runtime_error("White color texture not present");
+    }
     if (!instance.isPresent("normalmapdefault")) {
         throw std::runtime_error("Normal default texture not present");
     }
 
-    Texture * white = instance.Get("white");
+    Texture* white = instance.Get("white");
+    Texture * whiteColor = instance.Get("whiteColor");
     Texture * normalmap = instance.Get("normalmapdefault");
 
-    setAlbedoTexture(white);
+    setAlbedoTexture(whiteColor);
     setMetallicTexture(white);
     setRoughnessTexture(white);
     setAOTexture(white);
@@ -251,14 +255,18 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     if (!instance.isPresent("white")) {
         throw std::runtime_error("White texture not present");
     }
+    if (!instance.isPresent("whiteColor")) {
+        throw std::runtime_error("White color texture not present");
+    }
     if (!instance.isPresent("normalmapdefault")) {
         throw std::runtime_error("Normal default texture not present");
     }
 
     Texture* white = instance.Get("white");
+    Texture* whiteColor = instance.Get("whiteColor");
     Texture* normalmap = instance.Get("normalmapdefault");
 
-    setAlbedoTexture(white);
+    setAlbedoTexture(whiteColor);
     setAOTexture(white);
     setEmissiveTexture(white);
     setNormalTexture(normalmap);

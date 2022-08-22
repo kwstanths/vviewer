@@ -165,7 +165,7 @@ std::shared_ptr<SceneObject> Scene::getSceneObject(ID id) const
     return itr->second;
 }
 
-void Scene::exportScene(std::string name) const
+void Scene::exportScene(std::string name, uint32_t width, uint32_t height, uint32_t samples) const
 {
-    exportJson(name, m_camera, m_sceneGraph, m_skybox->getMap());
+    exportJson(name, m_camera, m_sceneGraph, m_skybox->getMap(), width, height, samples);
 }

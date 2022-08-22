@@ -11,6 +11,7 @@
 
 #include "DialogAddSceneObject.hpp"
 #include "DialogCreateMaterial.hpp"
+#include "DialogSceneExport.hpp"
 #include "WidgetMaterial.hpp"
 #include "UIUtils.hpp"
 
@@ -465,7 +466,15 @@ void MainWindow::onRenderSceneSlot()
 
 void MainWindow::onExportSceneSlot()
 {
-    m_scene->exportScene("testScene");
+    DialogSceneExport* dialog = new DialogSceneExport(nullptr);
+    dialog->exec();
+
+    std::string folderName = dialog->getDestinationFolderName();
+    if (folderName == "") return;
+
+    m_scene->exportScene(dialog->getDestinationFolderName(), dialog->getResolutionWidth(), dialog->getResolutionHeight(), dialog->getSamples());
+
+    delete dialog;
 }
 
 void MainWindow::onSelectedSceneObjectChangedSlotUI()

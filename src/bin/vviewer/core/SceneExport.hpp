@@ -11,7 +11,11 @@
 #include "SceneObject.hpp"
 #include "Materials.hpp"
 
-void exportJson(std::string name, std::shared_ptr<Camera> sceneCamera, const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, EnvironmentMap * envMap);
+void exportJson(std::string name, 
+	std::shared_ptr<Camera> sceneCamera, 
+	const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, 
+	EnvironmentMap * envMap,
+	uint32_t width, uint32_t height, uint32_t samples);
 
 void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials, std::string meshDirectory);
 

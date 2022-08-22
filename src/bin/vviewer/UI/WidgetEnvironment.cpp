@@ -13,7 +13,7 @@
 #include "UIUtils.hpp"
 
 
-WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene * scene) : QWidget(parent)
+WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(parent)
 {
     m_scene = scene;
     m_light = m_scene->getDirectionalLight();
