@@ -22,6 +22,8 @@ public:
     ~VulkanWindow();
     QVulkanWindowRenderer * createRenderer() override;
 
+    Material* importMaterial(std::string name, std::string stackDirectory);
+
     VulkanRenderer * m_renderer = nullptr;
 
     VulkanScene* m_scene = nullptr;

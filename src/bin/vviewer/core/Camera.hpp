@@ -50,7 +50,7 @@ public:
     void setFoV(float fov);
     float getFoV() const;
 private:
-    float m_fov;
+    float m_fov = 60.0f;
 };
 
 class OrthographicCamera : public Camera {

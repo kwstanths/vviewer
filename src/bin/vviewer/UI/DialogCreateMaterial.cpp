@@ -62,7 +62,7 @@ void DialogCreateMaterial::onButtonOk()
     }
 
     m_selectedName = m_name->toPlainText();
-    m_selectedMaterial = static_cast<MaterialType>(m_materialType->currentIndex());
+    m_selectedMaterialType = static_cast<MaterialType>(m_materialType->currentIndex());
     close();
 }
 

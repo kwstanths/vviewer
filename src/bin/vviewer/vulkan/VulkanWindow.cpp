@@ -9,7 +9,7 @@ VulkanWindow::VulkanWindow()
 
     /*OrthographicCamera * camera = new OrthographicCamera();
     camera->setOrthoWidth(10.f);*/
-    PerspectiveCamera * camera = new PerspectiveCamera();
+    auto camera = std::make_shared<PerspectiveCamera>();
     camera->setFoV(60.0f);
     
     Transform cameraTransform;
@@ -17,7 +17,7 @@ VulkanWindow::VulkanWindow()
     cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(180.0f), 0)));
     camera->getTransform() = cameraTransform;
     
-    m_scene->setCamera(std::shared_ptr<Camera>(camera));
+    m_scene->setCamera(camera);
 
     m_updateCameraTimer = new QTimer();
     m_updateCameraTimer->setInterval(16);
@@ -38,6 +38,26 @@ QVulkanWindowRenderer * VulkanWindow::createRenderer()
     m_renderer = new VulkanRenderer(this, m_scene);
 
     return m_renderer;
+}
+
+Material* VulkanWindow::importMaterial(std::string name, std::string stackDirectory)
+{
+    Material* material = m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
+    if (material == nullptr) return nullptr;
+
+    Texture* albedo = m_renderer->createTexture(stackDirectory + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
+    Texture* ao = m_renderer->createTexture(stackDirectory + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* metallic = m_renderer->createTexture(stackDirectory + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* normal = m_renderer->createTexture(stackDirectory + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
+    Texture* roughness = m_renderer->createTexture(stackDirectory + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
+
+    if (albedo != nullptr) static_cast<MaterialPBRStandard*>(material)->setAlbedoTexture(albedo);
+    if (ao != nullptr) static_cast<MaterialPBRStandard*>(material)->setAOTexture(ao);
+    if (metallic != nullptr)  static_cast<MaterialPBRStandard*>(material)->setMetallicTexture(metallic);
+    if (normal != nullptr)  static_cast<MaterialPBRStandard*>(material)->setNormalTexture(normal);
+    if (roughness != nullptr) static_cast<MaterialPBRStandard*>(material)->setRoughnessTexture(roughness);
+
+    return material;
 }
 
 void VulkanWindow::resizeEvent(QResizeEvent * ev)

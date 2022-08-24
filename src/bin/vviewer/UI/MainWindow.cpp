@@ -15,6 +15,8 @@
 #include "WidgetMaterial.hpp"
 #include "UIUtils.hpp"
 
+#include "core/SceneImport.hpp"
+
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     
     QWidget * widgetVulkan = initVulkanWindowWidget();
@@ -129,54 +131,58 @@ QWidget * MainWindow::initControlsWidget()
 
 void MainWindow::createMenu()
 {
-    QAction * m_actionImportModel = new QAction(tr("&Import a model"), this);
-    m_actionImportModel->setStatusTip(tr("Import a model"));
-    connect(m_actionImportModel, &QAction::triggered, this, &MainWindow::onImportModelSlot);
-    QAction * m_actionImportColorTexture = new QAction(tr("&Import color textures"), this);
-    m_actionImportColorTexture->setStatusTip(tr("Import color textures"));
-    connect(m_actionImportColorTexture, &QAction::triggered, this, &MainWindow::onImportTextureColorSlot);
-    QAction * m_actionImportOtherTexture = new QAction(tr("&Import other textures"), this);
-    m_actionImportOtherTexture->setStatusTip(tr("Import other textures"));
-    connect(m_actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportTextureOtherSlot);
-    QAction * m_actionImportHDRTexture = new QAction(tr("&Import HDR texture"), this);
-    m_actionImportHDRTexture->setStatusTip(tr("Import HDR texture"));
-    connect(m_actionImportHDRTexture, &QAction::triggered, this, &MainWindow::onImportTextureHDRSlot);
-    QAction* m_actionImportEnvironmentMap = new QAction(tr("&Import environment map"), this);
-    m_actionImportEnvironmentMap->setStatusTip(tr("Import environment map"));
-    connect(m_actionImportEnvironmentMap, &QAction::triggered, this, &MainWindow::onImportEnvironmentMap);
-    QAction* m_actionImportMaterial = new QAction(tr("&Import material"), this);
-    m_actionImportMaterial->setStatusTip(tr("Import material"));
-    connect(m_actionImportMaterial, &QAction::triggered, this, &MainWindow::onImportMaterial);
+    QAction * actionImportModel = new QAction(tr("&Import a model"), this);
+    actionImportModel->setStatusTip(tr("Import a model"));
+    connect(actionImportModel, &QAction::triggered, this, &MainWindow::onImportModelSlot);
+    QAction * actionImportColorTexture = new QAction(tr("&Import color textures"), this);
+    actionImportColorTexture->setStatusTip(tr("Import color textures"));
+    connect(actionImportColorTexture, &QAction::triggered, this, &MainWindow::onImportTextureColorSlot);
+    QAction * actionImportOtherTexture = new QAction(tr("&Import other textures"), this);
+    actionImportOtherTexture->setStatusTip(tr("Import other textures"));
+    connect(actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportTextureOtherSlot);
+    QAction * actionImportHDRTexture = new QAction(tr("&Import HDR texture"), this);
+    actionImportHDRTexture->setStatusTip(tr("Import HDR texture"));
+    connect(actionImportHDRTexture, &QAction::triggered, this, &MainWindow::onImportTextureHDRSlot);
+    QAction* actionImportEnvironmentMap = new QAction(tr("&Import environment map"), this);
+    actionImportEnvironmentMap->setStatusTip(tr("Import environment map"));
+    connect(actionImportEnvironmentMap, &QAction::triggered, this, &MainWindow::onImportEnvironmentMap);
+    QAction* actionImportMaterial = new QAction(tr("&Import material"), this);
+    actionImportMaterial->setStatusTip(tr("Import material"));
+    connect(actionImportMaterial, &QAction::triggered, this, &MainWindow::onImportMaterial);
+    QAction* actionImportScene = new QAction(tr("&Import scene"), this);
+    actionImportScene->setStatusTip(tr("Import scene"));
+    connect(actionImportScene, &QAction::triggered, this, &MainWindow::onImportScene);
 
     QAction * onAddSceneObjectRootSlot = new QAction(tr("&Add a scene object at root"), this);
     onAddSceneObjectRootSlot->setStatusTip(tr("Add a scene object at root"));
     connect(onAddSceneObjectRootSlot, &QAction::triggered, this, &MainWindow::onAddSceneObjectRootSlot);
-    QAction * m_actionCreateMaterial = new QAction(tr("&Add a material"), this);
-    m_actionCreateMaterial->setStatusTip(tr("Add a material"));
-    connect(m_actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
+    QAction * actionCreateMaterial = new QAction(tr("&Add a material"), this);
+    actionCreateMaterial->setStatusTip(tr("Add a material"));
+    connect(actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
 
-    QAction* m_actionRender = new QAction(tr("&Render scene (GPU) WIP"), this);
-    m_actionRender->setStatusTip(tr("Render scene"));
-    connect(m_actionRender, &QAction::triggered, this, &MainWindow::onRenderSceneSlot);
+    QAction* actionRender = new QAction(tr("&Render scene (GPU) WIP"), this);
+    actionRender->setStatusTip(tr("Render scene"));
+    connect(actionRender, &QAction::triggered, this, &MainWindow::onRenderSceneSlot);
 
-    QAction* m_actionExport = new QAction(tr("&Export scene"), this);
-    m_actionExport->setStatusTip(tr("EXport scene"));
-    connect(m_actionExport, &QAction::triggered, this, &MainWindow::onExportSceneSlot);
+    QAction* actionExport = new QAction(tr("&Export scene"), this);
+    actionExport->setStatusTip(tr("EXport scene"));
+    connect(actionExport, &QAction::triggered, this, &MainWindow::onExportSceneSlot);
 
     QMenu * m_menuImport = menuBar()->addMenu(tr("&Import"));
-    m_menuImport->addAction(m_actionImportModel);
-    m_menuImport->addAction(m_actionImportColorTexture);
-    m_menuImport->addAction(m_actionImportOtherTexture);
-    m_menuImport->addAction(m_actionImportHDRTexture);
-    m_menuImport->addAction(m_actionImportEnvironmentMap);
-    m_menuImport->addAction(m_actionImportMaterial);
+    m_menuImport->addAction(actionImportModel);
+    m_menuImport->addAction(actionImportColorTexture);
+    m_menuImport->addAction(actionImportOtherTexture);
+    m_menuImport->addAction(actionImportHDRTexture);
+    m_menuImport->addAction(actionImportEnvironmentMap);
+    m_menuImport->addAction(actionImportMaterial);
+    m_menuImport->addAction(actionImportScene);
     QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
     m_menuAdd->addAction(onAddSceneObjectRootSlot);
-    m_menuAdd->addAction(m_actionCreateMaterial);
+    m_menuAdd->addAction(actionCreateMaterial);
     QMenu* m_menuRender = menuBar()->addMenu(tr("&Render"));
-    m_menuRender->addAction(m_actionRender);
+    m_menuRender->addAction(actionRender);
     QMenu* m_menuExport = menuBar()->addMenu(tr("&Export"));
-    m_menuExport->addAction(m_actionExport);
+    m_menuExport->addAction(actionExport);
 }
 
 void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
@@ -235,6 +241,53 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     }
 
     m_sceneGraphWidget->blockSignals(false);
+}
+
+void MainWindow::removeObjectFromScene(QTreeWidgetItem* treeItem)
+{
+    std::shared_ptr<SceneObject> selectedObject = treeItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+
+    m_scene->removeSceneObject(selectedObject);
+
+    m_vulkanWindow->m_renderer->setSelectedObject(nullptr);
+    m_selectedPreviousWidgetItem = nullptr;
+
+    /* Remove from UI */
+    if (selectedObject->m_parent == nullptr) {
+        m_sceneGraphWidget->removeItemWidget(treeItem, 0);
+        delete treeItem;
+    }
+    else {
+        treeItem->parent()->removeChild(treeItem);
+        delete treeItem;
+    }
+}
+
+void MainWindow::addSceneObjectRoot(std::string name, std::string modelName, Transform transform, std::string material)
+{
+    std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject(modelName, transform, material);
+
+    if (sceneObject == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + modelName + ", with material: " + material);
+    else {
+        /* Set a name for the object */
+        sceneObject->m_name = name;
+
+        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneObject->m_name.c_str()) });
+        QVariant data;
+        data.setValue(sceneObject);
+        parentItem->setData(0, Qt::UserRole, data);
+        m_sceneGraphWidget->addTopLevelItem(parentItem);
+        m_treeWidgetItems.insert({ sceneObject->getID(), parentItem });
+
+        for (auto& child : sceneObject->m_children) {
+            QTreeWidgetItem* item = new QTreeWidgetItem({ QString(child->m_name.c_str()) });
+            QVariant data;
+            data.setValue(child);
+            item->setData(0, Qt::UserRole, data);
+            parentItem->addChild(item);
+            m_treeWidgetItems.insert({ child->getID(), item });
+        }
+    }
 }
 
 void MainWindow::onImportModelSlot()
@@ -320,20 +373,80 @@ void MainWindow::onImportMaterial()
     std::string materialName = dir.split('/').back().toStdString();
     std::string dirStd = dir.toStdString();
 
-    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, MaterialType::MATERIAL_PBR_STANDARD);
-    if (material == nullptr) return;
+    m_vulkanWindow->importMaterial(materialName, dirStd);
+}
 
-    Texture* albedo = m_vulkanWindow->m_renderer->createTexture(dirStd + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
-    Texture* ao = m_vulkanWindow->m_renderer->createTexture(dirStd + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* metallic = m_vulkanWindow->m_renderer->createTexture(dirStd + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* normal = m_vulkanWindow->m_renderer->createTexture(dirStd + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* roughness = m_vulkanWindow->m_renderer->createTexture(dirStd + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
+void MainWindow::onImportScene()
+{
+    /* Select json file */
+    QString sceneFile = QFileDialog::getOpenFileName(this,
+        tr("Import scene"), "./assets/",
+        tr("Model (*.json);;All Files (*)"));
 
-    if (albedo != nullptr) static_cast<MaterialPBRStandard*>(material)->setAlbedoTexture(albedo);
-    if (ao != nullptr) static_cast<MaterialPBRStandard*>(material)->setAOTexture(ao);
-    if (metallic != nullptr)  static_cast<MaterialPBRStandard*>(material)->setMetallicTexture(metallic);
-    if (normal != nullptr)  static_cast<MaterialPBRStandard*>(material)->setNormalTexture(normal);
-    if (roughness != nullptr) static_cast<MaterialPBRStandard*>(material)->setRoughnessTexture(roughness);
+    /* Parse json file */
+    ImportedSceneCamera camera; 
+    std::vector<ImportedSceneMaterial> materials;
+    ImportedSceneEnvironment env;
+    std::vector<ImportedSceneObject> sceneObjects;
+    std::string sceneFolder = importScene(sceneFile.toStdString(), camera, materials, env, sceneObjects);
+
+    /* Set camera */
+    {
+        auto newCamera = std::make_shared<PerspectiveCamera>();
+        Transform& cameraTransform = newCamera->getTransform();
+        cameraTransform.setPosition(camera.position);
+        cameraTransform.setRotation(glm::normalize(camera.target - camera.position), camera.up);
+
+        newCamera->setFoV(camera.fov);
+        newCamera->setWindowSize(m_vulkanWindow->size().width(), m_vulkanWindow->size().height());
+
+        m_scene->setCamera(newCamera);
+        m_widgetEnvironment->setCamera(newCamera);
+    }
+
+    /* Create materials */
+    utils::ConsoleInfo("Importing materials...");
+    for (auto& m : materials) {
+        if (m.type == ImportedSceneMaterialType::STACK)
+        {
+            m_vulkanWindow->importMaterial(m.name, sceneFolder + m.stackDir);
+        }
+    }
+
+    /* Create and set the environment map */
+    EnvironmentMap* envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
+    if (envMap) {
+        utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
+        m_widgetEnvironment->updateMaps();
+
+        AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
+        MaterialSkybox* material = materials.Get("skybox");
+
+        material->setMap(envMap);
+    }
+
+    /* Remove old scene */
+    while(m_sceneGraphWidget->topLevelItemCount() != 0)
+    {
+        removeObjectFromScene(m_sceneGraphWidget->topLevelItem(0));
+    }
+    /* Create new scene */
+    utils::ConsoleInfo("Importing models...");
+    for (auto& o : sceneObjects) 
+    {
+        bool ret = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + o.path);
+        if (ret) {
+            utils::ConsoleInfo(sceneFolder + o.path + " imported");
+        }
+
+        Transform t;
+        t.setPosition(o.position);
+        t.setScale(o.scale);
+        t.setRotationEuler(glm::radians(o.rotation.x), glm::radians(o.rotation.y), glm::radians(o.rotation.z));
+        addSceneObjectRoot(o.name, sceneFolder + o.path, t, o.material);
+    }
+
+    utils::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
 
 void MainWindow::onAddSceneObjectRootSlot()
@@ -344,30 +457,11 @@ void MainWindow::onAddSceneObjectRootSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject(selectedModel, dialog->getTransform(), dialog->getSelectedMaterial());
-
-    if (sceneObject == nullptr) utils::ConsoleWarning("Unable to add object to scene: " + selectedModel + ", with material: " + dialog->getSelectedMaterial());
-    else {
-        /* Set a name for the object */
-        /* TODO set a some other way name */
-        sceneObject->m_name = "New object (" + std::to_string(m_nObjects++) + ")";
-
-        QTreeWidgetItem* parentItem = new QTreeWidgetItem({ QString(sceneObject->m_name.c_str()) });
-        QVariant data;
-        data.setValue(sceneObject);
-        parentItem->setData(0, Qt::UserRole, data);
-        m_sceneGraphWidget->addTopLevelItem(parentItem);
-        m_treeWidgetItems.insert({ sceneObject->getID(), parentItem });
-
-        for (auto& child : sceneObject->m_children) {
-            QTreeWidgetItem* item = new QTreeWidgetItem({ QString(child->m_name.c_str()) });
-            QVariant data;
-            data.setValue(child);
-            item->setData(0, Qt::UserRole, data);
-            parentItem->addChild(item);
-            m_treeWidgetItems.insert({ child->getID(), item });
-        }
-    }
+    /* TODO set a some other way name */
+    addSceneObjectRoot("New object (" + std::to_string(m_nObjects++) + ")", 
+        selectedModel, 
+        dialog->getTransform(), 
+        dialog->getSelectedMaterial());
 }
 
 void MainWindow::onAddSceneObjectSlot()
@@ -417,26 +511,11 @@ void MainWindow::onAddSceneObjectSlot()
 
 void MainWindow::onRemoveSceneObjectSlot()
 {
-    /* TODO remove scene objects from m_treeWidgetItems */
+    /* TODO remove scene objects from m_treeWidgetItems, resursively */
 
     /* Get the currently selected tree item */
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
-    std::shared_ptr<SceneObject> selectedObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
-
-    m_scene->removeSceneObject(selectedObject);
-
-    m_vulkanWindow->m_renderer->setSelectedObject(nullptr);
-    m_selectedPreviousWidgetItem = nullptr;
-    
-    /* Remove from UI */
-    if (selectedObject->m_parent == nullptr) {
-        m_sceneGraphWidget->removeItemWidget(selectedItem, 0);
-        delete selectedItem;
-    }
-    else {
-        selectedItem->parent()->removeChild(selectedItem);
-        delete selectedItem;
-    }
+    removeObjectFromScene(selectedItem);
 }
 
 void MainWindow::onCreateMaterialSlot()
@@ -445,7 +524,7 @@ void MainWindow::onCreateMaterialSlot()
     dialog->exec();
 
     std::string selectedModel = dialog->m_selectedName.toStdString();
-    if (dialog->m_selectedMaterial == MaterialType::MATERIAL_NOT_SET) return;
+    if (dialog->m_selectedMaterialType == MaterialType::MATERIAL_NOT_SET) return;
 
     std::string materialName = dialog->m_selectedName.toStdString();
     if (materialName == "") {
@@ -453,7 +532,7 @@ void MainWindow::onCreateMaterialSlot()
         return;
     }
 
-    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, dialog->m_selectedMaterial);
+    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     }

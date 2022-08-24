@@ -119,6 +119,11 @@ void WidgetEnvironment::updateMaps()
     m_comboMaps->blockSignals(false);
 }
 
+void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
+{
+    m_camera = c;
+}
+
 void WidgetEnvironment::updateCamera()
 {
     /* If the transform was changed from the UI, update camera and return */

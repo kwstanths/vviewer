@@ -109,6 +109,20 @@ void Transform::setRotationEuler(float x, float y, float z)
     computeBasisVectors();
 }
 
+void Transform::setRotation(glm::vec3 direction, glm::vec3 up)
+{
+    glm::vec3 right = glm::cross(up, direction);
+    glm::vec3 newUp = glm::cross(direction, right);
+    glm::mat4 rotation = {
+        glm::vec4(right, 0),
+        glm::vec4(newUp, 0),
+        glm::vec4(direction, 0),
+        {0, 0, 0, 1}
+    };
+    m_rotation = quat_cast(rotation);
+    computeBasisVectors();
+}
+
 glm::vec3 Transform::getScale() const
 {
     return m_scale;

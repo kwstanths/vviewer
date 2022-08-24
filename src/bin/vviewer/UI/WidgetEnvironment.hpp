@@ -23,6 +23,8 @@ public:
     WidgetEnvironment(QWidget* parent, Scene* scene);
 
     void updateMaps();
+
+    void setCamera(std::shared_ptr<Camera> c);
 private:
     QComboBox* m_comboMaps;
     QSlider* m_exposureSlider;

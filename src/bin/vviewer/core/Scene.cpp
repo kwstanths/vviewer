@@ -102,7 +102,7 @@ std::shared_ptr<SceneObject> Scene::addSceneObject(std::shared_ptr<SceneObject> 
 
 void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)
 {
-    /* TODO remove scene objects from m_objectsMap */
+    /* TODO remove scene objects from m_objectsMap, resursively */
 
     if (node->m_parent == nullptr) {
         /* Remove scene node from root */

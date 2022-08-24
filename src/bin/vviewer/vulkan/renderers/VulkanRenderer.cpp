@@ -571,7 +571,7 @@ Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format, 
 
         return temp;
     } catch (std::runtime_error& e) {
-        utils::ConsoleCritical("Failed to create a vulkan texture: " + std::string(e.what()));
+        utils::ConsoleWarning("Can't create a vulkan texture: " + std::string(e.what()));
         return nullptr;
     }
 
@@ -615,11 +615,13 @@ Texture * VulkanRenderer::createTexture(std::string id, Image<stbi_uc> * image, 
 Texture * VulkanRenderer::createTextureHDR(std::string imagePath, bool keepImage)
 {
     try {
+        /* Check an hdr texture has already been created for that image */
         AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
         if (instance.isPresent(imagePath)) {
             return instance.Get(imagePath);
         }
         
+        /* Check if the image has already been imported, if not read it from disk  */
         Image<float> * image = nullptr;
         AssetManager<std::string, Image<float> *>& images = AssetManager<std::string, Image<float> *>::getInstance();
         if (images.isPresent(imagePath)) {
@@ -630,6 +632,7 @@ Texture * VulkanRenderer::createTextureHDR(std::string imagePath, bool keepImage
             images.Add(imagePath, image);
         }
 
+        /* Create texture for that image */
         VulkanTexture * temp = new VulkanTexture(imagePath, 
             image, 
             TextureType::HDR, 
@@ -640,6 +643,7 @@ Texture * VulkanRenderer::createTextureHDR(std::string imagePath, bool keepImage
             false);
         instance.Add(imagePath, temp);
 
+        /* If you are not to keep the image in memory, remove from the assets, and delete it */
         if (!keepImage) {
             images.Remove(imagePath);
             delete image;
@@ -687,6 +691,7 @@ EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath, bool
         /* Compute prefiltered map */
         VulkanCubemap* prefiltered = m_rendererSkybox.createPrefilteredCubemap(cubemap);
 
+        /* Added created cubemaps to the cubemap assets */
         AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
         instance.Add(cubemap->m_name, cubemap);
         instance.Add(irradiance->m_name, irradiance);

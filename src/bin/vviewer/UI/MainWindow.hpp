@@ -54,6 +54,8 @@ private:
     void createMenu();
 
     void selectObject(QTreeWidgetItem* selectedItem);
+    void removeObjectFromScene(QTreeWidgetItem* treeItem);
+    void addSceneObjectRoot(std::string name, std::string modelName, Transform transform, std::string material);
 
 private slots:
     /* Import a model */
@@ -68,6 +70,8 @@ private slots:
     void onImportEnvironmentMap();
     /* Import a material */
     void onImportMaterial();
+    /* Import a scene */
+    void onImportScene();
     /* Add an object in the scene at root */
     void onAddSceneObjectRootSlot();
     /* Add an object in the scene as a child to the currently selected node */

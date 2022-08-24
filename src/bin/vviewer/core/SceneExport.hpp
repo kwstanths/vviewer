@@ -1,5 +1,5 @@
 #ifndef __SceneExport_hpp__
-#define __SceneEXport_hpp__
+#define __SceneExport_hpp__
 
 #include <iostream>
 #include <vector>
