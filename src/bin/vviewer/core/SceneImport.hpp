@@ -5,6 +5,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include <rapidjson/document.h>
+
 #include <glm/glm.hpp>
 
 struct ImportedSceneCamera {
@@ -29,26 +31,27 @@ static std::unordered_map<std::string, ImportedSceneMaterialType> importedMateri
 struct ImportedSceneMaterial {
 	std::string name;
 	ImportedSceneMaterialType type;
-	std::string albedo;
-	std::string roughness;
-	std::string metallic;
-	std::string normal;
-	std::string ao;
-	std::string emissive;
-	std::string stackDir;
+	std::string albedoTexture = "";
+	glm::vec3 albedoValue = {1, 1, 1};
+	std::string roughnessTexture;
+	float roughnessValue = 1;
+	std::string metallicTexture;
+	float metallicValue = 1;
+	std::string normalTexture;
+	std::string stackDir = "";
 };
 
 struct ImportedSceneEnvironment {
-	std::string path;
+	std::string path = "";
 };
 
 struct ImportedSceneObject {
 	std::string name;
 	std::string path;
 	std::string material;
-	glm::vec3 position;
-	glm::vec3 scale;
-	glm::vec3 rotation;
+	glm::vec3 position = {0, 0, 0};
+	glm::vec3 scale = { 1, 1, 1 };
+	glm::vec3 rotation = { 0, 0, 0 };
 };
 
 std::string importScene(std::string filename, 
@@ -56,6 +59,8 @@ std::string importScene(std::string filename,
 	std::vector<ImportedSceneMaterial>& materials, 
 	ImportedSceneEnvironment& e,
 	std::vector<ImportedSceneObject>& sceneObjects
-	);
+);
+
+void parseAlbedo(ImportedSceneMaterial& m, const rapidjson::Value& o);
 
 #endif

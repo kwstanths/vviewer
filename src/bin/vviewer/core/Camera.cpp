@@ -50,7 +50,7 @@ CameraType PerspectiveCamera::getType() const
 glm::mat4 PerspectiveCamera::getProjectionMatrix() const
 {
     assert(m_aspectRatio != 0);
-    return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.01f, 50.0f);
+    return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.01f, 200.0f);
 }
 
 glm::mat4 PerspectiveCamera::getProjectionMatrixInverse() const

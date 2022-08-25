@@ -72,6 +72,35 @@ std::string importScene(std::string filename,
         {
             materials[m].stackDir = doc["materials"][m]["path"].GetString();
         }
+        else if (materials[m].type == DISNEY) {
+            parseAlbedo(materials[m], doc["materials"][m]);
+
+            if (doc["materials"][m].HasMember("roughness")) {
+                if (doc["materials"][m]["roughness"].IsFloat()) {
+                    materials[m].roughnessValue = doc["materials"][m]["roughness"].GetFloat();
+                }
+                else if (doc["materials"][m]["roughness"].IsString()) {
+                    materials[m].roughnessTexture = doc["materials"][m]["roughness"].GetString();
+                }
+            }
+
+            if (doc["materials"][m].HasMember("metallic")) {
+                if (doc["materials"][m]["metallic"].IsFloat()) {
+                    materials[m].metallicValue = doc["materials"][m]["metallic"].GetFloat();
+                }
+                else if (doc["materials"][m]["metallic"].IsString()) {
+                    materials[m].metallicTexture = doc["materials"][m]["metallic"].GetString();
+                }
+            }
+
+            if (doc["materials"][m].HasMember("normal")) {
+                materials[m].normalTexture = doc["materials"][m]["normal"].GetString();
+            }
+
+        }
+        else if (materials[m].type == DIFFUSE) {
+            parseAlbedo(materials[m], doc["materials"][m]);
+        }
     }
 
     /* Parse scene objects */
@@ -81,25 +110,50 @@ std::string importScene(std::string filename,
         sceneObjects[o].name = doc["scene"][o]["name"].GetString();
         sceneObjects[o].path = doc["scene"][o]["path"].GetString();
         sceneObjects[o].material = doc["scene"][o]["material"].GetString();
-        sceneObjects[o].position = glm::vec3(
-            doc["scene"][o]["transform"]["position"]["x"].GetFloat(),
-            doc["scene"][o]["transform"]["position"]["y"].GetFloat(),
-            doc["scene"][o]["transform"]["position"]["z"].GetFloat()
-        );
-        sceneObjects[o].scale = glm::vec3(
-            doc["scene"][o]["transform"]["scale"]["x"].GetFloat(),
-            doc["scene"][o]["transform"]["scale"]["y"].GetFloat(),
-            doc["scene"][o]["transform"]["scale"]["z"].GetFloat()
-        );
-        sceneObjects[o].rotation = glm::vec3(
-            doc["scene"][o]["transform"]["rotation"]["x"].GetFloat(),
-            doc["scene"][o]["transform"]["rotation"]["y"].GetFloat(),
-            doc["scene"][o]["transform"]["rotation"]["z"].GetFloat()
-        );
+
+        if (doc["scene"][o].HasMember("tranasform")) {
+            sceneObjects[o].position = glm::vec3(
+                doc["scene"][o]["transform"]["position"]["x"].GetFloat(),
+                doc["scene"][o]["transform"]["position"]["y"].GetFloat(),
+                doc["scene"][o]["transform"]["position"]["z"].GetFloat()
+            );
+            sceneObjects[o].scale = glm::vec3(
+                doc["scene"][o]["transform"]["scale"]["x"].GetFloat(),
+                doc["scene"][o]["transform"]["scale"]["y"].GetFloat(),
+                doc["scene"][o]["transform"]["scale"]["z"].GetFloat()
+            );
+            sceneObjects[o].rotation = glm::vec3(
+                doc["scene"][o]["transform"]["rotation"]["x"].GetFloat(),
+                doc["scene"][o]["transform"]["rotation"]["y"].GetFloat(),
+                doc["scene"][o]["transform"]["rotation"]["z"].GetFloat()
+            );
+        }
     }
 
     /* Parse environment */
-    e.path = doc["environment"]["path"].GetString();
+    if (doc.HasMember("environment"))
+    {
+        e.path = doc["environment"]["path"].GetString();
+    }
 
     return sceneFolder;
+}
+
+void parseAlbedo(ImportedSceneMaterial& m, const rapidjson::Value& o)
+{
+    if (o.HasMember("albedo")) {
+        if (o["albedo"].IsObject()) {
+            m.albedoValue = glm::vec3(
+                o["albedo"]["r"].GetFloat(),
+                o["albedo"]["g"].GetFloat(),
+                o["albedo"]["b"].GetFloat()
+            );
+        }
+        else if (o["albedo"].IsFloat()) {
+            m.albedoValue = glm::vec3(o["albedo"].GetFloat());
+        }
+        else if (o["albedo"].IsString()) {
+            m.albedoTexture = o["albedo"].GetString();
+        }
+    }
 }

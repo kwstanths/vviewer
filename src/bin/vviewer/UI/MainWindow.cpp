@@ -411,18 +411,54 @@ void MainWindow::onImportScene()
         {
             m_vulkanWindow->importMaterial(m.name, sceneFolder + m.stackDir);
         }
+        else if (m.type == ImportedSceneMaterialType::DIFFUSE)
+        {
+            MaterialLambert* mat = dynamic_cast<MaterialLambert*>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
+            
+            mat->albedo() = glm::vec4(m.albedoValue, 1);
+            if (m.albedoTexture != "") {
+                Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                mat->setAlbedoTexture(tex);
+            }
+        } 
+        else if (m.type == ImportedSceneMaterialType::DISNEY)
+        {
+            MaterialPBRStandard* mat = dynamic_cast<MaterialPBRStandard*>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
+
+            mat->albedo() = glm::vec4(m.albedoValue, 1);
+            if (m.albedoTexture != "") {
+                Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                if (tex != nullptr) mat->setAlbedoTexture(tex);
+            }
+            mat->roughness() = m.roughnessValue;
+            if (m.roughnessTexture != "") {
+                Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                if (tex != nullptr) mat->setRoughnessTexture(tex);
+            }
+            mat->metallic() = m.metallicValue;
+            if (m.metallicTexture != "") {
+                Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                if (tex != nullptr) mat->setMetallicTexture(tex);
+            }
+            if (m.normalTexture != "") {
+                Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                if (tex != nullptr) mat->setNormalTexture(tex);
+            }
+        }
     }
 
     /* Create and set the environment map */
-    EnvironmentMap* envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
-    if (envMap) {
-        utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
-        m_widgetEnvironment->updateMaps();
+    if (env.path != "") {
+        EnvironmentMap* envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
+        if (envMap) {
+            utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
+            m_widgetEnvironment->updateMaps();
 
-        AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
-        MaterialSkybox* material = materials.Get("skybox");
+            AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
+            MaterialSkybox* material = materials.Get("skybox");
 
-        material->setMap(envMap);
+            material->setMap(envMap);
+        }
     }
 
     /* Remove old scene */

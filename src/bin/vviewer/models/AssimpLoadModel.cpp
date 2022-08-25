@@ -15,10 +15,13 @@ std::vector<Mesh> assimpLoadModel(std::string filename)
 
     const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_CalcTangentSpace);
     if (!scene) {
+        importer.FreeScene();
         throw std::runtime_error("Failed to load model: " + filename);
     }
 
-    return assimpLoadNode(scene->mRootNode, scene);
+    std::vector<Mesh> temp = assimpLoadNode(scene->mRootNode, scene);
+    importer.FreeScene();
+    return temp;
 }
 
 std::vector<Mesh> assimpLoadNode(aiNode * node, const aiScene * scene)
