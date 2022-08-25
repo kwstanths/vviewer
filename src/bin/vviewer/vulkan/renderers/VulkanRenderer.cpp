@@ -615,7 +615,7 @@ Texture * VulkanRenderer::createTexture(std::string id, Image<stbi_uc> * image, 
 Texture * VulkanRenderer::createTextureHDR(std::string imagePath, bool keepImage)
 {
     try {
-        /* Check an hdr texture has already been created for that image */
+        /* Check if an hdr texture has already been created for that image */
         AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
         if (instance.isPresent(imagePath)) {
             return instance.Get(imagePath);

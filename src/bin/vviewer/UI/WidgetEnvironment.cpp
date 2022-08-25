@@ -105,8 +105,9 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     setLayout(layoutMain);
     //setFixedHeight(300);
 
+    /* Set an update timer for the camera transform widget */
     m_updateTimer = new QTimer();
-    m_updateTimer->setInterval(16);
+    m_updateTimer->setInterval(30);
     connect(m_updateTimer, SIGNAL(timeout()), this, SLOT(updateCamera()));
     m_updateTimer->start();
 }
@@ -133,10 +134,17 @@ void WidgetEnvironment::updateCamera()
         return;
     }
 
-    /* Else, update the UI itself, block signals to not trigger position change for the camera again */
-    m_cameraTransformWidget->blockSignals(true);
-    m_cameraTransformWidget->setTransform(m_camera->getTransform());
-    m_cameraTransformWidget->blockSignals(false);
+    /* 
+        Else, check if the scene camera changed and update the UI with blocked signals, so as to not trigger
+        another widget signal
+    */
+    if (!(m_cameraTransformWidget->getTransform() == m_camera->getTransform()))
+    {
+        m_cameraTransformWidget->blockSignals(true);
+        m_cameraTransformWidget->setTransform(m_camera->getTransform());
+        m_cameraTransformWidget->blockSignals(false);
+    }
+
 }
 
 void WidgetEnvironment::setLightButtonColor()
@@ -186,7 +194,10 @@ void WidgetEnvironment::onExposureChanged(int)
 
 void WidgetEnvironment::onCameraWidgetChanged(double)
 {
-    /* Only set the transform to change if the signals haven't been blocked for the widget */
+    /* 
+        If this is called with the signals blocked, it means that the camera signal change was triggered 
+        because we updated the UI manually in updateCamera(), don't register another update
+    */
     if (!m_cameraTransformWidget->signalsBlocked())
     {
         m_cameraTransformWidgetChanged = true;

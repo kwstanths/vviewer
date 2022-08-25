@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#define EPSILON_EQUAL_GLM 0.0001
+
 class Transform {
 public:
     Transform();
@@ -33,6 +35,10 @@ public:
     glm::mat4 getModelMatrix() const;
 
     void rotate(const glm::vec3& axis, const float angle);
+
+    inline bool operator==(const Transform& o) {
+        return (m_position == o.m_position) && (m_rotation == o.m_rotation) && (m_scale == o.m_scale);
+    }
 
 private:
     glm::vec3 m_position;
