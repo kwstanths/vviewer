@@ -66,7 +66,7 @@ void main() {
     vec3 Lo = sceneData.directionalLightColor.xyz * albedo * max(dot(N, L), 0.0) * INV_PI;
     vec3 emission = albedo * emissive;
     
-    vec3 color = ambient + Lo + emission;
+    vec3 color = sceneData.exposure.g * ambient + Lo + emission;
     
     color = tonemapDefault2(color, sceneData.exposure.r);
 	

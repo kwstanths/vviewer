@@ -383,6 +383,8 @@ void MainWindow::onImportScene()
         tr("Import scene"), "./assets/",
         tr("Model (*.json);;All Files (*)"));
 
+    if (sceneFile == "") return;
+
     /* Parse json file */
     ImportedSceneCamera camera; 
     std::vector<ImportedSceneMaterial> materials;

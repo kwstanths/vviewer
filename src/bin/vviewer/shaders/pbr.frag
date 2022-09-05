@@ -69,7 +69,7 @@ void main() {
     vec3 Lo = sceneData.directionalLightColor.xyz * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H);
     vec3 emission = pbr.albedo * emissive;
     
-    vec3 color = ambient + Lo + emission;
+    vec3 color = sceneData.exposure.g * ambient + Lo + emission;
     
     color = tonemapDefault2(color, sceneData.exposure.r);
 	

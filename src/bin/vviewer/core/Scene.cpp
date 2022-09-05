@@ -42,6 +42,16 @@ void Scene::setExposure(float exposure)
     m_exposure = exposure;
 }
 
+float Scene::getAmbientIBL() const
+{
+    return m_ambientIBL;
+}
+
+void Scene::setAmbientIBL(float ambientIBL)
+{
+    m_ambientIBL = ambientIBL;
+}
+
 SceneData Scene::getSceneData() const
 {
     SceneData sceneData;
@@ -49,7 +59,7 @@ SceneData Scene::getSceneData() const
     sceneData.m_viewInverse = m_camera->getViewMatrixInverse();
     sceneData.m_projection = m_camera->getProjectionMatrix();
     sceneData.m_projectionInverse = m_camera->getProjectionMatrixInverse();
-    sceneData.m_exposure = glm::vec4(getExposure(), 0, 0, 0);
+    sceneData.m_exposure = glm::vec4(getExposure(), getAmbientIBL(), 0, 0);
 
     std::shared_ptr<DirectionalLight> light = getDirectionalLight();
     if (light != nullptr) {
@@ -71,6 +81,26 @@ void Scene::setSkybox(MaterialSkybox* skybox)
 MaterialSkybox* Scene::getSkybox() const
 {
     return m_skybox;
+}
+
+EnvironmentType Scene::getEnvironmentType() const
+{
+    return m_environmentType;
+}
+
+void Scene::setEnvironmentType(EnvironmentType type)
+{
+    m_environmentType = type;
+}
+
+glm::vec3 Scene::getBackgroundColor() const
+{
+    return m_backgroundColor;
+}
+
+void Scene::setBackgroundColor(glm::vec3 color)
+{
+    m_backgroundColor = color;
 }
 
 std::shared_ptr<SceneObject> Scene::addSceneObject(std::string meshModel, Transform transform, std::string material)

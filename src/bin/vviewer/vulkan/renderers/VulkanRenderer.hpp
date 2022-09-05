@@ -134,8 +134,6 @@ private:
     VulkanDynamicUBO<MaterialData> m_materialsUBO;
     size_t m_materialsIndexUBO = 0;
 
-    glm::vec4 m_clearColor = glm::vec4(0, 0.5, 0.5, 1);
-
     std::shared_ptr<SceneObject> m_selectedObject = nullptr;
 };
 

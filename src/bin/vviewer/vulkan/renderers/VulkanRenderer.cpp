@@ -286,9 +286,10 @@ void VulkanRenderer::startNextFrame()
 
     /* Forward pass */
     {
+        glm::vec3 clearColor = m_scene->getBackgroundColor();
         std::array<VkClearValue, 3> clearValues{};
-        VkClearColorValue clearColor = { { m_clearColor.r, m_clearColor.g, m_clearColor.b, m_clearColor.a } };
-        clearValues[0].color = clearColor;
+        VkClearColorValue cl = { { clearColor.r, clearColor.g, clearColor.b, 1.0F } };
+        clearValues[0].color = cl;
         clearValues[1].color = { 0, 0, 0, 0 };
         clearValues[2].depthStencil = { 1.0f, 0 };
 
@@ -304,10 +305,19 @@ void VulkanRenderer::startNextFrame()
         rpBeginInfo.pClearValues = clearValues.data();
         m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        /* Draw skybox */
+        /* Get skybox material and check if its paremters have changed */
         VulkanMaterialSkybox* skybox = dynamic_cast<VulkanMaterialSkybox*>(m_scene->getSkybox());
         assert(skybox != nullptr);
-        m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsScene[imageIndex], imageIndex, skybox);
+        /* If material parameters have changed, update descriptor */
+        if (skybox->needsUpdate(imageIndex))
+        {
+            skybox->updateDescriptorSet(m_device, imageIndex);
+        }
+
+        /* Draw skybox if needed */
+        if (m_scene->getEnvironmentType() == EnvironmentType::HDRI) {
+            m_rendererSkybox.renderSkybox(cmdBuf, m_descriptorSetsScene[imageIndex], imageIndex, skybox);
+        }
 
         /* Batch objects into materials */
         std::vector<std::shared_ptr<SceneObject>> pbrStandardObjects;

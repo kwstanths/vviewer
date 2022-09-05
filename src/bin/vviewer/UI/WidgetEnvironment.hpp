@@ -8,6 +8,8 @@
 #include <qcombobox.h>
 #include <qlabel.h>
 #include <qtimer.h>
+#include <qlayout.h>
+#include <qgroupbox.h>
 
 #include "core/Materials.hpp"
 #include "core/Lights.hpp"
@@ -26,7 +28,13 @@ public:
 
     void setCamera(std::shared_ptr<Camera> c);
 private:
+    QComboBox* m_environmentPicker;
     QComboBox* m_comboMaps;
+    QPushButton* m_backgroundColorButton;
+    QColor m_backgroundColor;
+    QWidget* m_backgroundColorWidget;
+    QVBoxLayout* m_layoutEnvironmentGroupBox;
+
     QSlider* m_exposureSlider;
 
     /* Directional light widgets */
@@ -44,18 +52,23 @@ private:
     std::shared_ptr<DirectionalLight> m_light;
     std::shared_ptr<Camera> m_camera;
 
-    void setLightButtonColor();
+    QWidget* createColorPickWidget(QPushButton ** button);
+    void setButtonColor(QPushButton* button, QColor color);
+
     void setLightColor(QColor color, float intensity);
 
     /* Update timer */
     QTimer* m_updateTimer;
 
 private slots:
-    void onMapChanged(int);
+    void onEnvironmentChanged(int);
+    void onEnvironmentMapChanged(int);
     void onLightColorButton();
     void onLightDirectionChanged(double);
     void onLightColorChanged(QColor color);
     void onLightIntensityChanged(int);
+    void onBackgroundColorButton();
+    void onBackgroundColorChanged(QColor color);
     void onExposureChanged(int);
     void onCameraWidgetChanged(double);
 
