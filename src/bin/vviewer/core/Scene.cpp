@@ -197,5 +197,11 @@ std::shared_ptr<SceneObject> Scene::getSceneObject(ID id) const
 
 void Scene::exportScene(std::string name, uint32_t width, uint32_t height, uint32_t samples) const
 {
-    exportJson(name, m_camera, m_sceneGraph, m_skybox->getMap(), width, height, samples);
+    EnvironmentMap* temp = nullptr;
+    if (m_skybox != nullptr && getEnvironmentType() == EnvironmentType::HDRI)
+    {
+        temp = m_skybox->getMap();
+    }
+
+    exportJson(name, m_camera, m_sceneGraph, temp, width, height, samples);
 }

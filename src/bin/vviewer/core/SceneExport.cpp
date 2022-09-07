@@ -171,6 +171,7 @@ void exportJson(std::string name,
     }
 
     /* Environment */
+    if (envMap != nullptr)
     {
         Value environment;
         environment.SetObject();
