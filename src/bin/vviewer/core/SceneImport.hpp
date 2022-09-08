@@ -16,7 +16,7 @@ struct ImportedSceneCamera {
 	float fov;
 };
 
-typedef enum ImportedSceneMaterialType {
+enum ImportedSceneMaterialType {
 	DIFFUSE = 0,
 	DISNEY = 1,
 	STACK = 2,

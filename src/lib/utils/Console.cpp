@@ -104,7 +104,7 @@ namespace utils {
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), TerminalColor::DEF_FG);
 #endif
 #ifdef __linux__
-        std::cout << "\033[0;" << Color::DEF_FG << "m" << std::flush;
+        std::cout << "\033[0;" << TerminalColor::DEF_FG << "m" << std::flush;
 #endif 
     }
 

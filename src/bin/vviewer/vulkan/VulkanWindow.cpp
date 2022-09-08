@@ -79,7 +79,7 @@ void VulkanWindow::mousePressEvent(QMouseEvent * ev)
 {
     if (ev->button() == Qt::LeftButton) {
         /* Select object from scene */
-        QPointF pos = ev->localPos();
+        QPointF pos = ev->position();
         QSize size = this->size();
         ID objectID = IDGeneration::fromRGB(m_renderer->selectObject(pos.x() / size.width(), pos.y() / size.height()));
 
@@ -101,13 +101,13 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
 {
     /* Ignore first movement */
     if (m_mousePosFirst) {
-        m_mousePos = ev->localPos();
+        m_mousePos = ev->position();
         m_mousePosFirst = false;
         return;
     }
  
     /* Calculate diff with the previous position */
-    QPointF newMousePos = ev->localPos();
+    QPointF newMousePos = ev->position();
     QPointF mousePosDiff = newMousePos - m_mousePos;
     m_mousePos = newMousePos;
 

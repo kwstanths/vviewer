@@ -3,11 +3,13 @@
 #include <iostream>
 #include "SceneObject.hpp"
 
+template<>
 glm::vec3 SceneNode<SceneObject>::getWorldPosition() const
 {
 	return glm::vec3(m_modelMatrix[3][0], m_modelMatrix[3][1], m_modelMatrix[3][2]);
 }
 
+template<>
 std::shared_ptr<SceneObject> SceneNode<SceneObject>::addChild(std::shared_ptr<SceneObject> node)
 {
 	m_children.push_back(node);
@@ -15,6 +17,7 @@ std::shared_ptr<SceneObject> SceneNode<SceneObject>::addChild(std::shared_ptr<Sc
 	return m_children.back();
 }
 
+template<>
 void SceneNode<SceneObject>::update()
 {
 	if (m_parent) {
@@ -32,6 +35,7 @@ void SceneNode<SceneObject>::update()
 	}
 }
 
+template<>
 std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjects()
 {
 	std::vector<std::shared_ptr<SceneObject>> temp;
@@ -47,6 +51,7 @@ std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObject
 	return temp;
 }
 
+template<>
 std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjects(std::vector<glm::mat4>& modelMatrices)
 {
 	std::vector<std::shared_ptr<SceneObject>> temp;

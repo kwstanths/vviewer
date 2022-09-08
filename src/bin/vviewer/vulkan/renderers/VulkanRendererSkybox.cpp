@@ -101,7 +101,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
         VkImageView cubemapImageView;
         VkSampler cubemapSampler;
 
-        uint32_t cubemapWidth = static_cast<uint32_t>(std::min(inputImage->m_width / 4, 1080ull));
+        uint32_t cubemapWidth = static_cast<uint32_t>(std::min(inputImage->m_width / 4, size_t(1080)));
         uint32_t cubemapHeight = cubemapWidth;
         uint32_t numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(cubemapWidth, cubemapHeight)))) + 1;
         VkFormat format = inputImage->getFormat();
@@ -2131,7 +2131,7 @@ bool VulkanRendererSkybox::createGraphicsPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = FALSE;
+    depthStencil.depthWriteEnable = VK_FALSE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f; // Optional

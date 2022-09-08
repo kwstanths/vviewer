@@ -1,7 +1,7 @@
 macro(SetupEnvironment)
 
 	set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
-	set(LIBS_ROOT C:/Users/konstantinos/Documents/LIBS)
+	set(LIBS_ROOT $ENV{LIBS_ROOT})
     
 	# Check compiler for c++11
 	include(CheckCXXCompilerFlag)
@@ -19,12 +19,6 @@ macro(SetupEnvironment)
     set(QT_INCLUDE_DIRS ${Qt6Widgets_INCLUDE_DIRS})
     set(QT_LIBRARIES Qt6::Widgets)
     
-    # VULKAN
-    set(VULKAN_DIR ${LIBS_ROOT}/VulkanSDK/1.3.204.1)
-    set(VULKAN_INCLUDE_DIRS ${VULKAN_DIR}/Include)
-    set(VULKAN_LIBS_DIR ${VULKAN_DIR}/Lib)
-    set(VULKAN_LIBRARIES ${VULKAN_LIBS_DIR}/vulkan-1.lib)
-    
     # GLM
     set(GLM_DIR ${PROJECT_ROOT}/src/lib/external/glm/)
     set(GLM_INCLUDE_DIRS ${GLM_DIR})
@@ -32,12 +26,6 @@ macro(SetupEnvironment)
     #STB
     set(STB_DIR ${PROJECT_ROOT}/src/lib/external/stb)
     set(STB_INCLUDE_DIRS ${STB_DIR})
-    
-    #ASSIMP
-    set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP_LIBS)
-    set(ASSIMP_INCLUDE_DIRS ${ASSIMP_DIR}/include)
-    set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib64)
-    set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc143-mt.lib)
     
     #RAPIDJSON
     set(RAPIDJSON_DIR ${PROJECT_ROOT}/src/lib/external/rapidjson)
@@ -48,9 +36,29 @@ macro(SetupEnvironment)
     set(UTILS_LIBRARIES utils)
     
     if(MSVC)
+        # VULKAN
+        set(VULKAN_DIR ${LIBS_ROOT}/VulkanSDK/1.3.204.1)
+        set(VULKAN_INCLUDE_DIRS ${VULKAN_DIR}/Include)
+        set(VULKAN_LIBS_DIR ${VULKAN_DIR}/Lib)
+        set(VULKAN_LIBRARIES ${VULKAN_LIBS_DIR}/vulkan-1.lib)
     
+        #ASSIMP
+        set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP_LIBS)
+        set(ASSIMP_INCLUDE_DIRS ${ASSIMP_DIR}/include)
+        set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib64)
+        set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc143-mt.lib)
     elseif(UNIX)
-	
+        # VULKAN
+        find_package(Vulkan COMPONENTS glslc REQUIRED)
+        set(VULKAN_INCLUDE_DIRS ${Vulkan_INCLUDE_DIRS})
+        set(VULKAN_LIBRARIES Vulkan::Vulkan)
+    
+        #ASSIMP
+        # assimp inlude dirs are installed in /usr/include
+        #set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP_LIBS)
+        #set(ASSIMP_INCLUDE_DIRS ${ASSIMP_DIR}/include)
+        
+        set(ASSIMP_LIBRARIES /usr/lib/x86_64-linux-gnu/libassimp.so)
     endif()
 
 endmacro()

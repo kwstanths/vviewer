@@ -27,7 +27,7 @@ public:
         m_blockAlignment = (sizeof(Block) + m_minUniformBufferOffsetAlignment - 1) & ~(m_minUniformBufferOffsetAlignment - 1);
 
         /* Allocate aligned memory for nBlocks */
-        m_dataTransferSpace = (Block *)_aligned_malloc(m_blockAlignment * nBlocks, m_blockAlignment);
+        m_dataTransferSpace = (Block *) std::aligned_alloc(m_blockAlignment, m_blockAlignment * nBlocks);
         isInited = true;
         return true;
     }
@@ -117,7 +117,7 @@ public:
     bool destroyCPUMemory()
     {
         if (isInited)
-            _aligned_free(m_dataTransferSpace);
+            free(m_dataTransferSpace);
 
         return true;
     }

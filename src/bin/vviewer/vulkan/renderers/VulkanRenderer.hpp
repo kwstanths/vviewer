@@ -24,7 +24,7 @@
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanTexture.hpp"
-#include "Vulkan/VulkanFramebuffer.hpp"
+#include "vulkan/VulkanFramebuffer.hpp"
 #include "VulkanRendererPBRStandard.hpp"
 #include "VulkanRendererLambert.hpp"
 #include "VulkanRendererSkybox.hpp"
