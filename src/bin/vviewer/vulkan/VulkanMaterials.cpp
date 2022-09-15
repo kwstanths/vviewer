@@ -25,9 +25,8 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     float e,
     VkDevice device,
     VkDescriptorSetLayout descriptorLayout,
-    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
-    uint32_t materialsUBOBlock)
-    : VulkanMaterialStorage<MaterialData>(materialsDynamicUBO, materialsUBOBlock), MaterialPBRStandard(name)
+    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO)
+    : VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), MaterialPBRStandard(name)
 {
     m_descriptorSetLayout = descriptorLayout;
 
@@ -241,9 +240,8 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     float e, 
     VkDevice device, 
     VkDescriptorSetLayout descriptorLayout,
-    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO, 
-    uint32_t materialsUBOBlock)
-    :VulkanMaterialStorage<MaterialData>(materialsDynamicUBO, materialsUBOBlock), MaterialLambert(name)
+    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO)
+    :VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), MaterialLambert(name)
 {
     m_descriptorSetLayout = descriptorLayout;
 

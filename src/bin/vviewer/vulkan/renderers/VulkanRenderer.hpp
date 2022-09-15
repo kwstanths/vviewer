@@ -130,9 +130,8 @@ private:
     std::vector<VkDescriptorSet> m_descriptorSetsScene;
     std::vector<VkDescriptorSet> m_descriptorSetsModel;
 
-    /* Dynamic uniform buffer object to hold material data, and current index */
+    /* Dynamic uniform buffer object to hold material data */
     VulkanDynamicUBO<MaterialData> m_materialsUBO;
-    size_t m_materialsIndexUBO = 0;
 
     std::shared_ptr<SceneObject> m_selectedObject = nullptr;
 };

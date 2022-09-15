@@ -32,8 +32,7 @@ public:
 
     VulkanMaterialPBRStandard* createMaterial(std::string name,
         glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
-        VulkanDynamicUBO<MaterialData>& materialsUBO,
-        uint32_t index);
+        VulkanDynamicUBO<MaterialData>& materialsUBO);
 
     void renderObjects(VkCommandBuffer& cmdBuf, 
         VkDescriptorSet& descriptorScene,

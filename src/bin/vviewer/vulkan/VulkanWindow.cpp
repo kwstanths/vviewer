@@ -5,7 +5,7 @@
 
 VulkanWindow::VulkanWindow()
 {
-    m_scene = new VulkanScene();
+    m_scene = new VulkanScene(150);
 
     /*OrthographicCamera * camera = new OrthographicCamera();
     camera->setOrthoWidth(10.f);*/

@@ -134,6 +134,8 @@ void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)
 {
     /* TODO remove scene objects from m_objectsMap, resursively */
 
+    /* TODO remove object transform index from the model matrix buffers, VulkanScene::removeObject maybe? */
+
     if (node->m_parent == nullptr) {
         /* Remove scene node from root */
         m_sceneGraph.erase(std::remove(m_sceneGraph.begin(), m_sceneGraph.end(), node), m_sceneGraph.end());

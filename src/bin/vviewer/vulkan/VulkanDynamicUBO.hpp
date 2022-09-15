@@ -4,34 +4,38 @@
 #include "IncludeVulkan.hpp"
 #include "VulkanUtils.hpp"
 
+#include "utils/FreeList.hpp"
+
 /**
     A class to manage a dynamic uniform buffer that stores data of type Block
 */
 template<typename Block>
-class VulkanDynamicUBO {
+class VulkanDynamicUBO : public FreeList {
     friend class VulkanRenderer;
 public:
-    VulkanDynamicUBO() {};
+    VulkanDynamicUBO(uint32_t nBlocks) : FreeList(nBlocks)
+    {
+        m_nBlocks = nBlocks;
+    };
 
     /**
         Allocate cpu memory for nBlocks aligned based on the minUniformBufferOffsetAlignment
         @param minUniformBufferOffsetAlignment The device's minimum alignment
         @paramn nBlocks The numbers of blocks to allocate
     */
-    bool init(uint32_t minUniformBufferOffsetAlignment, uint32_t nBlocks)
+    bool init(uint32_t minUniformBufferOffsetAlignment)
     {
         m_minUniformBufferOffsetAlignment = minUniformBufferOffsetAlignment;
-        m_nBlocks = nBlocks;
 
         /* Calculate block alignment */
         m_blockAlignment = (sizeof(Block) + m_minUniformBufferOffsetAlignment - 1) & static_cast<uint32_t>(~(m_minUniformBufferOffsetAlignment - 1));
 
-        /* Allocate aligned memory for nBlocks */
+        /* Allocate aligned memory for m_nBlocks */
         /* std::aligned_alloc is not defined in Visual Studio compiler */
 #ifndef _MSC_VER
-        m_dataTransferSpace = (Block *) std::aligned_alloc(m_blockAlignment, m_blockAlignment * nBlocks);
+        m_dataTransferSpace = (Block *) std::aligned_alloc(m_blockAlignment, m_blockAlignment * m_nBlocks);
 #else
-        m_dataTransferSpace = (Block*)_aligned_malloc(m_blockAlignment * nBlocks, m_blockAlignment);
+        m_dataTransferSpace = (Block*)_aligned_malloc(m_blockAlignment * m_nBlocks, m_blockAlignment);
 #endif // !_MSC_VER
 
         isInited = true;

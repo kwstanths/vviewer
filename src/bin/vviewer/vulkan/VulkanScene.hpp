@@ -15,7 +15,7 @@
 class VulkanScene : public Scene {
     friend class VulkanRenderer;
 public:
-    VulkanScene();
+    VulkanScene(uint32_t maxObjects);
     ~VulkanScene();
 
     virtual SceneData getSceneData() const override;
@@ -28,7 +28,6 @@ private:
 
     /* Dynamic uniform buffer to hold model positions */
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
-    size_t m_transformIndexUBO = 0;
     /* Buffers to hold the scene data */
     std::vector<VkBuffer> m_uniformBuffersScene;
     std::vector<VkDeviceMemory> m_uniformBuffersSceneMemory;

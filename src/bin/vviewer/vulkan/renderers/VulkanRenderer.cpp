@@ -16,7 +16,8 @@
 #include "vulkan/Shader.hpp"
 #include "vulkan/VulkanUtils.hpp"
 
-VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) : m_window(window) 
+VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) : 
+    m_window(window), m_materialsUBO(100)
 {
     m_scene = scene;
 }
@@ -50,10 +51,10 @@ void VulkanRenderer::initResources()
 
     m_functions->vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
     
-    /* Initialize dynamic uniform buffers for model matrix data, max 100 items */
-    m_scene->m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
-    /* Initialize dynamic uniform buffers for material data, max 100 items */
-    m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment, 100);
+    /* Initialize dynamic uniform buffers for model matrix data */
+    m_scene->m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
+    /* Initialize dynamic uniform buffers for material data */
+    m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
 
     /* Create descriptor set layouts for scene and model data */
     createDescriptorSetsLayouts();
@@ -476,12 +477,12 @@ Material * VulkanRenderer::createMaterial(std::string name, MaterialType type, b
     {
     case MaterialType::MATERIAL_PBR_STANDARD:
     {
-        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_materialsUBO, static_cast<uint32_t>(m_materialsIndexUBO++));
+        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_materialsUBO);
         break;
     }
     case MaterialType::MATERIAL_LAMBERT:
     {
-        temp = m_rendererLambert.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 0, m_materialsUBO, static_cast<uint32_t>(m_materialsIndexUBO++));
+        temp = m_rendererLambert.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 0, m_materialsUBO);
         break;
     }
     default:

@@ -432,10 +432,9 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
 
 VulkanMaterialPBRStandard* VulkanRendererPBR::createMaterial(std::string name,
     glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
-    VulkanDynamicUBO<MaterialData>& materialsUBO,
-    uint32_t index)
+    VulkanDynamicUBO<MaterialData>& materialsUBO)
 {
-    return new VulkanMaterialPBRStandard(name, albedo, metallic, roughness, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO, index++);
+    return new VulkanMaterialPBRStandard(name, albedo, metallic, roughness, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO);
 }
 
 void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf, 

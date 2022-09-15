@@ -11,13 +11,16 @@
 template<typename T> 
 class VulkanMaterialStorage {
 public:
-    VulkanMaterialStorage(VulkanDynamicUBO<T>& materialsDynamicUBO, int materialsUBOBlockIndex)
-        : m_materialsDataStorage(materialsDynamicUBO), m_materialsUBOBlockIndex(materialsUBOBlockIndex)
+    VulkanMaterialStorage(VulkanDynamicUBO<T>& materialsDynamicUBO)
+        : m_materialsDataStorage(materialsDynamicUBO)
     {
+        /* Get an index for a free block */
+        m_materialsUBOBlockIndex = static_cast<uint32_t>(m_materialsDataStorage.getFree());
+        /* Get pointer to free block */
         m_data = m_materialsDataStorage.getBlock(m_materialsUBOBlockIndex);
     }
 
-    int getUBOBlockIndex() const {
+    uint32_t getUBOBlockIndex() const {
         return m_materialsUBOBlockIndex;
     }
 
@@ -27,7 +30,7 @@ public:
 
 protected:
     VulkanDynamicUBO<T>& m_materialsDataStorage;
-    int m_materialsUBOBlockIndex = -1;
+    uint32_t m_materialsUBOBlockIndex = -1;
     T * m_data = nullptr;
 };
 
@@ -64,8 +67,7 @@ public:
         float emissive, 
         VkDevice device,
         VkDescriptorSetLayout descriptorLayout,
-        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
-        uint32_t materialsUBOBlock);
+        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO);
 
     glm::vec4& albedo() override;
     glm::vec4 getAlbedo() const override;
@@ -106,8 +108,7 @@ public:
         float emissive,
         VkDevice device,
         VkDescriptorSetLayout descriptorLayout,
-        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO,
-        uint32_t materialsUBOBlock);
+        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO);
 
     glm::vec4& albedo() override;
     glm::vec4 getAlbedo() const override;

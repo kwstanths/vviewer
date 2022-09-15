@@ -63,10 +63,9 @@ VkDescriptorSetLayout VulkanRendererLambert::getDescriptorSetLayout() const
 }
 
 VulkanMaterialLambert* VulkanRendererLambert::createMaterial(std::string name, glm::vec4 albedo, float ao, float emissive,
-    VulkanDynamicUBO<MaterialData>& materialsUBO,
-    uint32_t index)
+    VulkanDynamicUBO<MaterialData>& materialsUBO)
 {
-    return new VulkanMaterialLambert(name, albedo, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO, index);
+    return new VulkanMaterialLambert(name, albedo, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO);
 }
 
 void VulkanRendererLambert::renderObjects(VkCommandBuffer& cmdBuf, VkDescriptorSet& descriptorScene, VkDescriptorSet& descriptorModel, VulkanMaterialSkybox* skybox, uint32_t imageIndex, VulkanDynamicUBO<ModelData>& dynamicUBOModels, std::vector<std::shared_ptr<SceneObject>>& objects) const
