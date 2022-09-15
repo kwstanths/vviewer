@@ -1,4 +1,4 @@
-set glslcLocation=C:\Users\konstantinos\Documents\LIBS\VulkanSDK\1.3.204.1\Bin\glslc.exe
+set glslcLocation=%VULKAN_SDK%\Bin\glslc.exe
 
 %glslcLocation% standard.vert -o SPIRV/standardVert.spv
 %glslcLocation% pbr.frag -o SPIRV/pbrFrag.spv

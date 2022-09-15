@@ -302,8 +302,8 @@ void VulkanTexture::generateMipMaps(VkDevice device, VkCommandPool commandPool, 
     resourceRange.layerCount = 1;
     resourceRange.levelCount = 1;
 
-    int32_t mipWidth = m_width;
-    int32_t mipHeight = m_height;
+    int32_t mipWidth = static_cast<int32_t>(m_width);
+    int32_t mipHeight = static_cast<int32_t>(m_height);
 
     for (uint32_t i = 1; i < m_numMips; i++) {
 

@@ -62,7 +62,7 @@ std::vector<std::shared_ptr<SceneObject>> VulkanScene::createObject(std::string 
     
     std::vector<std::shared_ptr<SceneObject>> objects;
     for (auto& m : modelMeshes) {
-        auto object = std::make_shared<VulkanSceneObject>(m, m_modelDataDynamicUBO, m_transformIndexUBO++);
+        auto object = std::make_shared<VulkanSceneObject>(m, m_modelDataDynamicUBO, static_cast<uint32_t>(m_transformIndexUBO++));
         object->setMaterial(instanceMaterials.Get(material));
         object->m_name = m->m_name;
         objects.push_back(object);

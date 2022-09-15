@@ -476,12 +476,12 @@ Material * VulkanRenderer::createMaterial(std::string name, MaterialType type, b
     {
     case MaterialType::MATERIAL_PBR_STANDARD:
     {
-        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_materialsUBO, m_materialsIndexUBO++);
+        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_materialsUBO, static_cast<uint32_t>(m_materialsIndexUBO++));
         break;
     }
     case MaterialType::MATERIAL_LAMBERT:
     {
-        temp = m_rendererLambert.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 0, m_materialsUBO, m_materialsIndexUBO++);
+        temp = m_rendererLambert.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 0, m_materialsUBO, static_cast<uint32_t>(m_materialsIndexUBO++));
         break;
     }
     default:
@@ -1040,7 +1040,7 @@ bool VulkanRenderer::createFrameBuffers()
         {
             /* Create post process pass framebuffers */
             std::array<VkImageView, 1> attachments = {
-                m_window->swapChainImageView(i),
+                m_window->swapChainImageView(static_cast<int>(i)),
             };
 
             VkFramebufferCreateInfo framebufferInfo{};
@@ -1061,7 +1061,7 @@ bool VulkanRenderer::createFrameBuffers()
         {
             /* Create UI pass framebuffers */
             std::array<VkImageView, 2> attachments = {
-                m_window->swapChainImageView(i),
+                m_window->swapChainImageView(static_cast<int>(i)),
                 m_attachmentHighlightForwardOutput[i].getView()
             };
 
@@ -1155,7 +1155,7 @@ bool VulkanRenderer::createUniformBuffers()
 bool VulkanRenderer::updateUniformBuffers(size_t index)
 {
     /* Flush scene data changes to GPU */
-    m_scene->updateBuffers(m_device, index);
+    m_scene->updateBuffers(m_device, static_cast<uint32_t>(index));
     /* Flush material data changes to GPU */
     {
         void* data;

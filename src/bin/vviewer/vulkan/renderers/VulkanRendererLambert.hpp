@@ -31,7 +31,7 @@ public:
     VulkanMaterialLambert* createMaterial(std::string name,
         glm::vec4 albedo, float ao, float emissive,
         VulkanDynamicUBO<MaterialData>& materialsUBO,
-        int index);
+        uint32_t index);
 
     void renderObjects(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,

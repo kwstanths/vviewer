@@ -72,7 +72,7 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
     float cameraDistance) const
 {
     /* Keep size the same */
-    float scale = cameraDistance * 0.01;
+    float scale = cameraDistance * 0.01f;
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     

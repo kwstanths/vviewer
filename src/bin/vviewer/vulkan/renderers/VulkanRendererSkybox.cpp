@@ -580,8 +580,8 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             VkRect2D scissor = {};
-            scissor.extent.width = static_cast<float>(cubemapWidth);
-            scissor.extent.height = static_cast<float>(cubemapHeight);
+            scissor.extent.width = cubemapWidth;
+            scissor.extent.height = cubemapHeight;
             scissor.offset.x = 0;
             scissor.offset.y = 0;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -1259,8 +1259,8 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
             vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
             VkViewport viewport = {};
-            viewport.width = cubemapWidth;
-            viewport.height = cubemapHeight;
+            viewport.width = static_cast<float>(cubemapWidth);
+            viewport.height = static_cast<float>(cubemapHeight);
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             VkRect2D scissor = {};
@@ -1868,8 +1868,8 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             VkRect2D scissor = {};
-            scissor.extent.width = static_cast<float>(cubemapWidth);
-            scissor.extent.height = static_cast<float>(cubemapHeight);
+            scissor.extent.width = cubemapWidth;
+            scissor.extent.height = cubemapHeight;
             scissor.offset.x = 0;
             scissor.offset.y = 0;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);

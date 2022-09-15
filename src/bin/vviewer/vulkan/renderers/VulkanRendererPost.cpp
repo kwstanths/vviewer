@@ -331,7 +331,6 @@ bool VulkanRendererPost::createSampler()
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
 
-    VkSampler sampler;
     if (vkCreateSampler(m_device, &samplerInfo, nullptr, &m_inputSampler) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create a texture sampler");
     }

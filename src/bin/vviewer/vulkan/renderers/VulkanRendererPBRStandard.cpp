@@ -433,7 +433,7 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
 VulkanMaterialPBRStandard* VulkanRendererPBR::createMaterial(std::string name,
     glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
     VulkanDynamicUBO<MaterialData>& materialsUBO,
-    int index)
+    uint32_t index)
 {
     return new VulkanMaterialPBRStandard(name, albedo, metallic, roughness, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO, index++);
 }
@@ -467,8 +467,8 @@ void VulkanRendererPBR::renderObjects(VkCommandBuffer& cmdBuf,
         
         /* Calculate model data offsets */
         uint32_t dynamicOffsets[2] = {
-            static_cast<uint32_t>(dynamicUBOModels.getBlockSizeAligned()) * object->getTransformUBOBlock(),
-            static_cast<uint32_t>(material->getBlockSizeAligned()) * material->getUBOBlockIndex()
+            dynamicUBOModels.getBlockSizeAligned() * object->getTransformUBOBlock(),
+            material->getBlockSizeAligned() * material->getUBOBlockIndex()
         };
         VkDescriptorSet descriptorSets[4] = {
             descriptorScene,
