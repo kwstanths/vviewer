@@ -23,8 +23,8 @@ DialogCreateMaterial::DialogCreateMaterial(QWidget *parent, const char *name, QS
     m_materialType = new QComboBox();
 
     QStringList availableMaterials;
-    for (auto itr = materialTypeNames.begin(); itr != materialTypeNames.end(); ++itr) {
-        availableMaterials.push_back(QString::fromStdString(itr->second));
+    for (size_t m=0; m<materialTypeNames.size(); m++) {
+        availableMaterials.push_back(QString::fromStdString(materialTypeNames.find(static_cast<MaterialType>(m))->second));
     }
     m_materialType->addItems(availableMaterials);
 
