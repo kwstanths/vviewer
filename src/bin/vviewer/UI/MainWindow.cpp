@@ -390,7 +390,13 @@ void MainWindow::onImportScene()
     std::vector<ImportedSceneMaterial> materials;
     ImportedSceneEnvironment env;
     std::vector<ImportedSceneObject> sceneObjects;
-    std::string sceneFolder = importScene(sceneFile.toStdString(), camera, materials, env, sceneObjects);
+    std::string sceneFolder;
+    try{
+        sceneFolder = importScene(sceneFile.toStdString(), camera, materials, env, sceneObjects);
+    } catch (std::runtime_error& e) {
+        utils::ConsoleWarning("Unable to open scene file: " + std::string(e.what()));
+        return;
+    }
 
     /* Set camera */
     {
@@ -416,7 +422,9 @@ void MainWindow::onImportScene()
         else if (m.type == ImportedSceneMaterialType::DIFFUSE)
         {
             MaterialLambert* mat = dynamic_cast<MaterialLambert*>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
-            
+
+            if (mat == nullptr) continue;
+
             mat->albedo() = glm::vec4(m.albedoValue, 1);
             if (m.albedoTexture != "") {
                 Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
@@ -426,6 +434,8 @@ void MainWindow::onImportScene()
         else if (m.type == ImportedSceneMaterialType::DISNEY)
         {
             MaterialPBRStandard* mat = dynamic_cast<MaterialPBRStandard*>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
+
+            if (mat == nullptr) continue;
 
             mat->albedo() = glm::vec4(m.albedoValue, 1);
             if (m.albedoTexture != "") {

@@ -93,8 +93,8 @@ std::string importScene(std::string filename,
                 }
             }
 
-            if (doc["materials"][m].HasMember("normal")) {
-                materials[m].normalTexture = doc["materials"][m]["normal"].GetString();
+            if (doc["materials"][m].HasMember("normalMap")) {
+                materials[m].normalTexture = doc["materials"][m]["normalMap"].GetString();
             }
 
         }
@@ -111,7 +111,7 @@ std::string importScene(std::string filename,
         sceneObjects[o].path = doc["scene"][o]["path"].GetString();
         sceneObjects[o].material = doc["scene"][o]["material"].GetString();
 
-        if (doc["scene"][o].HasMember("tranasform")) {
+        if (doc["scene"][o].HasMember("transform")) {
             sceneObjects[o].position = glm::vec3(
                 doc["scene"][o]["transform"]["position"]["x"].GetFloat(),
                 doc["scene"][o]["transform"]["position"]["y"].GetFloat(),

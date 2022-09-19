@@ -30,7 +30,8 @@ std::vector<Mesh> assimpLoadNode(aiNode * node, const aiScene * scene)
 
     /* Loop through all meshes in this node */
     for (size_t i = 0; i < node->mNumMeshes; i++) {
-        meshList.push_back(assimpLoadMesh(scene->mMeshes[node->mMeshes[i]], scene));
+        aiMesh * mesh = scene->mMeshes[node->mMeshes[i]];
+        meshList.push_back(assimpLoadMesh(mesh, scene));
     }
 
     /* Loop through all nodes attached to this node, and append their meshes */
