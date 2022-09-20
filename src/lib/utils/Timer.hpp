@@ -1,18 +1,16 @@
 #ifndef __Timer_HPP__
 #define __Timer_HPP__
 
-#include <sys/timeb.h>
 #include <iostream>
 #include <string>
+#include <chrono>
 
-#define __time_start(start) ftime(&start);
-#define __time_stop(end) ftime(&end);
-
-namespace debug_tools {
+namespace utils {
 
     class Timer {
         private:
-            struct timeb start_, end_;
+            std::chrono::high_resolution_clock::time_point m_start;
+            std::chrono::high_resolution_clock::time_point m_end;
 
         public:
             /**
@@ -39,13 +37,13 @@ namespace debug_tools {
               Get the time difference of the stored values in milliseconds in a string 
               @return Elapsed time
              */
-            std::string ToString();
+            std::string ToString() const;
 
             /**
               Get the time difference of the stoerd values in milliseconds in an integer
               @return Elapsed time
              */
-            int64_t ToInt();
+            int64_t ToInt() const;
 
     };
 }

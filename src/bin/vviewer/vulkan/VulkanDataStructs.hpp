@@ -10,18 +10,23 @@ struct ModelData {
 };
 
 struct MaterialData {
-    glm::vec4 albedo; /* RGB: albedo, A:alpha (unused) */
+    glm::vec4 albedo; /* RGB: albedo, A: alpha */
     glm::vec4 metallicRoughnessAOEmissive;  /* R = metallic, G = roughness, B = AO, A = emissive */
 };
 
-struct PushBlockForwardPass {
+struct PushBlockForwardBasePass {
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
+};
+
+struct PushBlockForwardAddPass {
+    glm::vec4 lightPosition; /* RGB = World space light position,  A = unused */
+    glm::vec4 lightColor;   /* RGB = light color, A = unused */
 };
 
 struct PushBlockForward3DUI {
     glm::mat4 modelMatrix;
-    glm::vec4 color;
-    glm::vec4 selected;
+    glm::vec4 color;    /* RGB = color of the UI, A = unused */
+    glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
 };
 
 struct StorageImage

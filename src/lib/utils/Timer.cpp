@@ -1,29 +1,31 @@
 #include "Timer.hpp"
 
-namespace debug_tools {
+namespace utils {
     Timer::Timer() {
         Start();
     }
 
     void Timer::Start() {
-        __time_start(start_);
+        m_start = std::chrono::high_resolution_clock::now();
     }
 
     void Timer::Stop() {
-        __time_stop(end_);
+        m_end = std::chrono::high_resolution_clock::now();
     }
 
-    std::string Timer::ToString() {
-        double value = (1000.0 * (end_.time - start_.time) + (end_.millitm - start_.millitm));
-        return std::to_string(value);
+    std::string Timer::ToString() const 
+    {
+        return std::to_string(ToInt());
     }
 
-    int64_t Timer::ToInt() {
-        return (1000 * (end_.time - start_.time) + (end_.millitm - start_.millitm));
+    int64_t Timer::ToInt() const 
+    {
+        std::chrono::milliseconds diff = std::chrono::duration_cast<std::chrono::milliseconds>(m_end - m_start);
+        return diff.count();
     }
 
     std::ostream & operator<<(std::ostream & stream, Timer const & R){
-        return stream << (1000.0 * (R.end_.time - R.start_.time) + (R.end_.millitm - R.start_.millitm));
+        return stream << R.ToInt();
     }
 
 }

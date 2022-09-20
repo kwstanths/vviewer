@@ -1,8 +1,10 @@
 glslcLocation=${VULKAN_SDK}/bin/glslc
 
 $glslcLocation standard.vert -o SPIRV/standardVert.spv
-$glslcLocation pbr.frag -o SPIRV/pbrFrag.spv
-$glslcLocation lambert.frag -o SPIRV/lambertFrag.spv
+$glslcLocation pbrBase.frag -o SPIRV/pbrFragBase.spv
+$glslcLocation pbrAdd.frag -o SPIRV/pbrFragAdd.spv
+$glslcLocation lambertBase.frag -o SPIRV/lambertFragBase.spv
+$glslcLocation lambertAdd.frag -o SPIRV/lambertFragAdd.spv
 $glslcLocation 3dui.vert -o SPIRV/3duiVert.spv
 $glslcLocation 3dui.frag -o SPIRV/3duiFrag.spv
 

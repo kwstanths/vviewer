@@ -341,7 +341,7 @@ void VulkanRenderer::startNextFrame()
         }
 
         /* Draw PBR material objects */
-        m_rendererPBR.renderObjects(cmdBuf,
+        m_rendererPBR.renderObjectsBasePass(cmdBuf,
             m_descriptorSetsScene[imageIndex],
             m_descriptorSetsModel[imageIndex],
             skybox,
@@ -350,7 +350,7 @@ void VulkanRenderer::startNextFrame()
             pbrStandardObjects);
 
         /* Draw lambert material objects */
-        m_rendererLambert.renderObjects(cmdBuf,
+        m_rendererLambert.renderObjectsBasePass(cmdBuf,
             m_descriptorSetsScene[imageIndex],
             m_descriptorSetsModel[imageIndex],
             skybox,

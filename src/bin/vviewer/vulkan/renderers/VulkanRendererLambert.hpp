@@ -24,21 +24,47 @@ public:
     void releaseSwapChainResources();
     void releaseResources();
 
-    VkPipeline getPipeline() const;
-    VkPipelineLayout getPipelineLayout() const;
-    VkDescriptorSetLayout getDescriptorSetLayout() const;
-
     VulkanMaterialLambert* createMaterial(std::string name,
         glm::vec4 albedo, float ao, float emissive,
         VulkanDynamicUBO<MaterialData>& materialsUBO);
 
-    void renderObjects(VkCommandBuffer& cmdBuf,
+    /**
+     * @brief Render objects with the base pass, IBL + directional light + selection info
+     * 
+     * @param cmdBuf 
+     * @param descriptorScene 
+     * @param descriptorModel 
+     * @param skybox 
+     * @param imageIndex 
+     * @param dynamicUBOModels 
+     * @param objects 
+     */
+    void renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
         VulkanMaterialSkybox* skybox,
         uint32_t imageIndex,
-        VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
         std::vector<std::shared_ptr<SceneObject>>& objects) const;
+
+    /**
+     * @brief Render objects with an additive pass
+     * 
+     * @param cmdBuf 
+     * @param descriptorScene 
+     * @param descriptorModel 
+     * @param skybox 
+     * @param imageIndex 
+     * @param dynamicUBOModels 
+     * @param objects 
+     */
+    void renderObjectsAddPass(VkCommandBuffer& cmdBuf, 
+        VkDescriptorSet& descriptorScene,
+        VkDescriptorSet& descriptorModel,
+        uint32_t imageIndex, 
+        const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        std::shared_ptr<SceneObject> object,
+        const PushBlockForwardAddPass& lightInfo) const;
 
 private:
     VkDevice m_device;
@@ -52,12 +78,13 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
     VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
 
-    VkPipelineLayout m_pipelineLayout;
-    VkPipeline m_graphicsPipeline;
+    VkPipelineLayout m_pipelineLayoutBasePass, m_pipelineLayoutAddPass;
+    VkPipeline m_graphicsPipelineBasePass, m_graphicsPipelineAddPass;
     VkRenderPass m_renderPass;
 
     bool createDescriptorSetsLayout();
-    bool createGraphicsPipeline();
+    bool createGraphicsPipelineBasePass();
+    bool createGraphicsPipelineAddPass();
 };
 
 #endif

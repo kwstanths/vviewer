@@ -71,8 +71,8 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
     const glm::mat4& modelMatrix,
     float cameraDistance) const
 {
-    /* Keep size the same */
-    float scale = cameraDistance * 0.01f;
+    /* Keep size the same of the transform on screen at all times, control the size with the cameraDistance multiplier */
+    float scale = cameraDistance * 0.0125f;
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     
