@@ -25,4 +25,3 @@ set glslcLocation=%VULKAN_SDK%\Bin\glslc.exe
 %glslcLocation% --target-spv=spv1.4 rt/raymiss.rmiss -o SPIRV/rt/raymiss.rmiss.spv
 %glslcLocation% --target-spv=spv1.4 rt/shadow.rmiss -o SPIRV/rt/shadow.rmiss.spv
 
-pause
