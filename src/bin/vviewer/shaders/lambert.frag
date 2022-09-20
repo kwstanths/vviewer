@@ -42,7 +42,7 @@ vec3 getCameraPosition(mat4 invViewMatrix)
 
 void main() {
 
-	vec3 cameraPosition = getCameraPosition(inverse(sceneData.view));
+	vec3 cameraPosition = getCameraPosition(sceneData.viewInverse);
     vec3 V = normalize(cameraPosition - fragWorldPos);
 
     vec3 L = -sceneData.directionalLightDir.xyz;

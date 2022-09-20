@@ -52,7 +52,7 @@ void main() {
     N = N * 2.0 - 1.0;
     N = normalize(TBN * N);
     
-    vec3 cameraPosition = getCameraPosition(inverse(sceneData.view));
+    vec3 cameraPosition = getCameraPosition(sceneData.viewInverse);
     vec3 V = normalize(cameraPosition - fragWorldPos);
     vec3 H = normalize(V + L);
     
