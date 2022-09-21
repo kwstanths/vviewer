@@ -43,31 +43,9 @@ void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
     }
 }
 
-std::vector<std::shared_ptr<SceneObject>> VulkanScene::createObject(std::string meshModel, std::string material)
+std::shared_ptr<SceneObject> VulkanScene::createObject(std::string name)
 {
-    AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
-    if (!instanceModels.isPresent(meshModel))
-    {
-        utils::ConsoleWarning("VulkanScene::CreateObject(): Mesh model " + meshModel + " is not imported");
-        return {};
-    }
-    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
-    if (!instanceMaterials.isPresent(material)) 
-    {
-        utils::ConsoleWarning("VulkanScene::CreateObject(): Material " + material + " is not created");
-        return {};
-    }
-
-    MeshModel* vkmeshModel = instanceModels.Get(meshModel);
-    std::vector<Mesh*> modelMeshes = vkmeshModel->getMeshes();
-    
-    std::vector<std::shared_ptr<SceneObject>> objects;
-    for (auto& m : modelMeshes) {
-        auto object = std::make_shared<VulkanSceneObject>(m, m_modelDataDynamicUBO);
-        object->setMaterial(instanceMaterials.Get(material));
-        object->m_name = m->m_name;
-        objects.push_back(object);
-    }
-
-    return objects;
+    auto object = std::make_shared<VulkanSceneObject>(m_modelDataDynamicUBO);
+    object->m_name = name;
+    return object;
 }

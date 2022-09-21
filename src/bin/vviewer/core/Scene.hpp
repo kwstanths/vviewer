@@ -4,10 +4,10 @@
 #include <memory>
 #include <utility>
 
+#include <utils/IDGeneration.hpp>
 #include "Camera.hpp"
 #include "Lights.hpp"
 #include "SceneObject.hpp"
-#include "IDGeneration.hpp"
 
 enum class EnvironmentType {
     SOLID_COLOR = 0,
@@ -55,9 +55,9 @@ public:
     virtual SceneData getSceneData() const;
 
     /* Add a new scene object at the root of the scene graph */
-    std::shared_ptr<SceneObject> addSceneObject(std::string meshModel, Transform transform, std::string material);
+    std::shared_ptr<SceneObject> addSceneObject(std::string name, Transform transform);
     /* Add a new scene object as a child of a node */
-    std::shared_ptr<SceneObject> addSceneObject(std::shared_ptr<SceneObject> node, std::string meshModel, Transform transform, std::string material);
+    std::shared_ptr<SceneObject> addSceneObject(std::string name, std::shared_ptr<SceneObject> node, Transform transform);
 
     void removeSceneObject(std::shared_ptr<SceneObject> node);
 
@@ -83,7 +83,7 @@ protected:
     MaterialSkybox* m_skybox = nullptr;
     glm::vec3 m_backgroundColor = { 0, 0.5, 0.5 };
 
-    virtual std::vector<std::shared_ptr<SceneObject>> createObject(std::string meshModel, std::string material) = 0;
+    virtual std::shared_ptr<SceneObject> createObject(std::string name) = 0;
 };
 
 #endif

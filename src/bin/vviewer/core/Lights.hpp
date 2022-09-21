@@ -3,17 +3,25 @@
 
 #include "glm/glm.hpp"
 
-#include "math/Transform.hpp"
+#include <math/Transform.hpp>
+#include <utils/ECS.hpp>
 
 struct Light {
     glm::vec3 color;
-    Transform transform;
 
-    Light(Transform t, glm::vec3 c) : transform(t), color(c) {};
+    Light(glm::vec3 c) : color(c) {};
 };
 
-struct DirectionalLight : public Light {
-    DirectionalLight(Transform t, glm::vec3 c) : Light(t, c) {};
+struct DirectionalLight : public Light 
+{
+    Transform transform;
+    
+    DirectionalLight(Transform t, glm::vec3 c) : Light(c), transform(t) {};
+};
+
+struct PointLight : public Light, public Component
+{
+    PointLight(glm::vec3 c): Light(c), Component(ComponentType::POINT_LIGHT) {};
 };
 
 #endif

@@ -1,9 +1,8 @@
 #include "VulkanSceneObject.hpp"
 
-VulkanSceneObject::VulkanSceneObject(const Mesh * mesh, VulkanDynamicUBO<ModelData>& transformDynamicUBO)
+VulkanSceneObject::VulkanSceneObject(VulkanDynamicUBO<ModelData>& transformDynamicUBO)
     : SceneObject(Transform())
 {
-    m_mesh = mesh;
     /* Get a free block index to store the model matrix */
     m_transformUBOBlock = static_cast<uint32_t>(transformDynamicUBO.getFree());
     m_modelData = transformDynamicUBO.getBlock(m_transformUBOBlock);

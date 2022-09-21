@@ -71,10 +71,10 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
     {
         VulkanSceneObject* object = static_cast<VulkanSceneObject*>(objects[i].get());
 
-        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->getMesh());
+        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->get<Mesh *>(ComponentType::MESH));
         if (vkmesh == nullptr) continue;
 
-        VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(object->getMaterial());
+        VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(object->get<Material*>(ComponentType::MATERIAL));
         /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
 
@@ -122,10 +122,10 @@ void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
 
     VulkanSceneObject* vobject = static_cast<VulkanSceneObject*>(object.get());
-    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->getMesh());
+    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->get<Mesh *>(ComponentType::MESH));
     if (vkmesh == nullptr) return;
 
-    VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(vobject->getMaterial());
+    VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(vobject->get<Material*>(ComponentType::MATERIAL));
     /* Check if material parameters have changed for that imageIndex descriptor set */
     if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
 

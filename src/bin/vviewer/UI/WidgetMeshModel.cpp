@@ -12,7 +12,7 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject, QS
     m_models = new QComboBox();
     m_models->addItems(availableModels);
     if (sceneObject != nullptr) {
-        m_models->setCurrentText(QString::fromStdString(sceneObject->getMesh()->m_name));
+        m_models->setCurrentText(QString::fromStdString(sceneObject->get<Mesh*>(ComponentType::MESH)->m_name));
     }
     connect(m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshModelChangedSlot(int)));
 

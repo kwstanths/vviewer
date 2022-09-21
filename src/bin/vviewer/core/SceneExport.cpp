@@ -211,10 +211,10 @@ void exportJson(std::string name,
 
 void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials, std::string meshDirectory)
 {
-    if (sceneObject->getMesh() != nullptr) {
+    if (sceneObject->get<Mesh*>(ComponentType::MESH) != nullptr) {
         addJsonSceneObject(d, v, sceneObject, sceneObject->m_parent->m_localTransform, meshDirectory);
 
-        Material* mat = sceneObject->getMaterial();
+        Material* mat = sceneObject->get<Material*>(ComponentType::MATERIAL);
         materials.insert(mat);
     }
 
@@ -232,7 +232,7 @@ void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::
     name.SetString(sceneObject->m_name.c_str(), d.GetAllocator());
     meshObject.AddMember("name", name, d.GetAllocator());
 
-    std::string meshName = sceneObject->getMesh()->m_meshModel->getName();
+    std::string meshName = sceneObject->get<Mesh*>(ComponentType::MESH)->m_meshModel->getName();
     /* Copy mesh to mesh folder, and get a file path relative to the scene file */
     std::string relativePathName = "meshes/" + copyFileToDirectoryAndGetFileName(meshName, meshDirectory);
 
@@ -241,7 +241,7 @@ void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::
     path.SetString(relativePathName.c_str(), d.GetAllocator());
     meshObject.AddMember("path", path, d.GetAllocator());
 
-    std::string materialName = sceneObject->getMaterial()->m_name;
+    std::string materialName = sceneObject->get<Material*>(ComponentType::MATERIAL)->m_name;
     Value material;
     material.SetString(materialName.c_str(), d.GetAllocator());
     meshObject.AddMember("material", material, d.GetAllocator());
@@ -249,7 +249,7 @@ void addJsonSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::
     addJsonSceneTransform(d, meshObject, t);
 
     /* If mesh is emmisive add it as a light */
-    const MaterialLambert* mat = dynamic_cast<const MaterialLambert*>(sceneObject->getMaterial());
+    const MaterialLambert* mat = dynamic_cast<const MaterialLambert*>(sceneObject->get<Material*>(ComponentType::MATERIAL));
     if (mat != nullptr && mat->getEmissive() >= 0.0001) {
         Value light;
         light.SetObject();

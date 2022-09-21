@@ -2,35 +2,26 @@
 #define __SceneObject_hpp__
 
 #include <math/Transform.hpp>
+#include <utils/IDGeneration.hpp>
+#include <utils/ECS.hpp>
 #include "MeshModel.hpp"
 #include "Materials.hpp"
-#include "IDGeneration.hpp"
 #include "SceneGraph.hpp"
 
-class SceneObject : public SceneNode<SceneObject> {
+class SceneObject : public SceneNode<SceneObject> , public Entity {
 public:
     SceneObject(const Transform& t);
-    SceneObject(const Transform& t, const Mesh * mesh);
+    virtual ~SceneObject();
 
     std::string m_name = "";
 
     virtual void setModelMatrix(const glm::mat4& modelMatrix) override;
 
-    const Mesh * getMesh() const;
-    void setMesh(const Mesh * newMeshModel);
-
-    Material * getMaterial() const;
-    void setMaterial(Material * newMaterial);
-
     bool m_isSelected = false;
 
-    ID getID() const;
     glm::vec3 getIDRGB() const;
 
 protected:
-    const Mesh * m_mesh = nullptr;
-    Material * m_material = nullptr;
-    ID m_id;
     glm::vec3 m_idRGB;
 };
 

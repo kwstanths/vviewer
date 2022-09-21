@@ -32,7 +32,7 @@ private:
     std::vector<VkBuffer> m_uniformBuffersScene;
     std::vector<VkDeviceMemory> m_uniformBuffersSceneMemory;
 
-    std::vector<std::shared_ptr<SceneObject>> createObject(std::string meshModel, std::string material) override;
+    std::shared_ptr<SceneObject> createObject(std::string name) override;
 };
 
 #endif // !__VulkanScene_hpp__

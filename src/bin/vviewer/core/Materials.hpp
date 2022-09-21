@@ -6,6 +6,7 @@
 
 #include <glm/glm.hpp>
 
+#include <utils/ECS.hpp>
 #include "Texture.hpp"
 #include "Cubemap.hpp"
 #include "EnvironmentMap.hpp"
@@ -23,10 +24,10 @@ static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
     { MaterialType::MATERIAL_LAMBERT, "Lambert" },
 };
 
-class Material {
+class Material : public Component {
 public:
-    Material() {};
-    Material(std::string name) : m_name(name) {};
+    Material() : Component(ComponentType::MATERIAL) {};
+    Material(std::string name) : Component(ComponentType::MATERIAL), m_name(name) {};
 
     std::string m_name;
 

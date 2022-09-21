@@ -14,7 +14,7 @@
 WidgetMaterial::WidgetMaterial(QWidget* parent, SceneObject* sceneObject)
 {
     m_sceneObject = sceneObject;
-    Material * material = sceneObject->getMaterial();
+    Material * material = sceneObject->get<Material*>(ComponentType::MATERIAL);
 
     QStringList availableMaterials = getCreatedMaterials();
 
@@ -83,5 +83,5 @@ void WidgetMaterial::onMaterialChanged(int)
     }
 
     createUI(createMaterialWidget(material));
-    m_sceneObject->setMaterial(material);
+    m_sceneObject->add(material);
 }

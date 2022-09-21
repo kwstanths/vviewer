@@ -2,44 +2,20 @@
 
 #include "vulkan/VulkanSceneObject.hpp"
 
-SceneObject::SceneObject(const Transform& t) : SceneNode(t)
+SceneObject::SceneObject(const Transform& t) : SceneNode(t), Entity()
 {
-    m_id = IDGeneration::getInstance().getID();
-    m_idRGB = IDGeneration::toRGB(m_id);
+    m_idRGB = IDGeneration::toRGB(getID());
 }
 
-SceneObject::SceneObject(const Transform& t, const Mesh* mesh) : SceneObject(t)
+SceneObject::~SceneObject()
 {
-    m_mesh = mesh;
+    if (has(ComponentType::POINT_LIGHT)){
+        delete get(ComponentType::POINT_LIGHT);
+    }
 }
 
 void SceneObject::setModelMatrix(const glm::mat4& modelMatrix)
 {
-}
-
-const Mesh * SceneObject::getMesh() const
-{
-    return m_mesh;
-}
-
-void SceneObject::setMesh(const Mesh * newMesh)
-{
-    m_mesh = newMesh;
-}
-
-Material * SceneObject::getMaterial() const
-{
-    return m_material;
-}
-
-void SceneObject::setMaterial(Material * newMaterial)
-{
-    m_material = newMaterial;
-}
-
-ID SceneObject::getID() const
-{
-    return m_id;
 }
 
 glm::vec3 SceneObject::getIDRGB() const

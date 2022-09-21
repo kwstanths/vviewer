@@ -55,7 +55,7 @@ private:
 
     void selectObject(QTreeWidgetItem* selectedItem);
     void removeObjectFromScene(QTreeWidgetItem* treeItem);
-    void addSceneObjectRoot(std::string name, std::string modelName, Transform transform, std::string material);
+    void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
 
 private slots:
     /* Import a model */
@@ -80,6 +80,8 @@ private slots:
     void onRemoveSceneObjectSlot();
     /* Create a material */
     void onCreateMaterialSlot();
+    /* */
+    void onAddPointLightSlot();
     /* Render scene */
     void onRenderSceneSlot();
     /* Export scene */

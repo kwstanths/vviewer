@@ -103,31 +103,26 @@ void Scene::setBackgroundColor(glm::vec3 color)
     m_backgroundColor = color;
 }
 
-std::shared_ptr<SceneObject> Scene::addSceneObject(std::string meshModel, Transform transform, std::string material)
+std::shared_ptr<SceneObject> Scene::addSceneObject(std::string name, Transform transform)
 {
-    std::vector<std::shared_ptr<SceneObject>> objects = createObject(meshModel, material);
-
-    std::shared_ptr<SceneObject> parentObject = std::make_shared<SceneObject>(transform);
-    m_sceneGraph.push_back(parentObject);
-    for (auto& s : objects) {
-        parentObject->addChild(s);
-        m_objectsMap.insert({ s->getID(), s });
-    }
-
-    return parentObject;
+    std::shared_ptr<SceneObject> object = createObject(name);
+    object->m_localTransform = transform;
+    m_sceneGraph.push_back(object);
+    
+    m_objectsMap.insert({ object->getID(), object });
+    
+    return object;
 }
 
-std::shared_ptr<SceneObject> Scene::addSceneObject(std::shared_ptr<SceneObject> node, std::string meshModel, Transform transform, std::string material)
+std::shared_ptr<SceneObject> Scene::addSceneObject(std::string name, std::shared_ptr<SceneObject> node, Transform transform)
 {
-    std::vector<std::shared_ptr<SceneObject>> objects = createObject(meshModel, material);
-
-    std::shared_ptr<SceneObject> parentObject = node->addChild(std::make_shared<SceneObject>(transform));
-    for (auto& s : objects) {
-        parentObject->addChild(s);
-        m_objectsMap.insert({ s->getID(), s });
-    }
-
-    return parentObject;
+    std::shared_ptr<SceneObject> object = createObject(name);
+    object->m_localTransform = transform;
+    node->addChild(object);
+    
+    m_objectsMap.insert({ object->getID(), object });
+    
+    return object;
 }
 
 void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)

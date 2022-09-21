@@ -323,21 +323,28 @@ void VulkanRenderer::startNextFrame()
         /* Batch objects into materials */
         std::vector<std::shared_ptr<SceneObject>> pbrStandardObjects;
         std::vector<std::shared_ptr<SceneObject>> lambertObjects;
+        std::vector<std::shared_ptr<SceneObject>> pointLights;
         for (auto& itr : sceneObjects)
         {
-            if (itr->getMaterial() == nullptr) continue;
-
-            switch (itr->getMaterial()->getType())
+            if (itr->has(ComponentType::MATERIAL)) 
             {
-            case MaterialType::MATERIAL_PBR_STANDARD:
-                pbrStandardObjects.push_back(itr);
-                break;
-            case MaterialType::MATERIAL_LAMBERT:
-                lambertObjects.push_back(itr);
-                break;
-            default:
-                break;
+                switch (itr->get<Material*>(ComponentType::MATERIAL)->getType())
+                {
+                case MaterialType::MATERIAL_PBR_STANDARD:
+                    pbrStandardObjects.push_back(itr);
+                    break;
+                case MaterialType::MATERIAL_LAMBERT:
+                    lambertObjects.push_back(itr);
+                    break;
+                default:
+                    break;
+                }
             }
+
+            if (itr->has(ComponentType::POINT_LIGHT)){
+                pointLights.push_back(itr);
+            }
+
         }
 
         /* Draw PBR material objects */
@@ -348,6 +355,28 @@ void VulkanRenderer::startNextFrame()
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
             pbrStandardObjects);
+
+        for (auto& obj : pbrStandardObjects)
+        {
+            for (auto& pl : pointLights)
+            {
+                PointLight* light = pl->get<PointLight*>(ComponentType::POINT_LIGHT);
+
+                PushBlockForwardAddPass t;
+                t.lightColor = glm::vec4(light->color, 0);
+                t.lightPosition = glm::vec4(pl->getWorldPosition(), 0);
+
+
+                m_rendererPBR.renderObjectsAddPass(cmdBuf,
+                    m_descriptorSetsScene[imageIndex],
+                    m_descriptorSetsModel[imageIndex],
+                    imageIndex,
+                    m_scene->m_modelDataDynamicUBO,
+                    obj,
+                    t
+                );
+            }
+        }
 
         /* Draw lambert material objects */
         m_rendererLambert.renderObjectsBasePass(cmdBuf,
