@@ -12,6 +12,7 @@
 #include "WidgetTransform.hpp"
 #include "WidgetMeshModel.hpp"
 #include "WidgetEnvironment.hpp"
+#include "WidgetPointLight.hpp"
 
 #include "core/Scene.hpp"
 #include "vulkan/VulkanWindow.hpp"
@@ -44,8 +45,8 @@ private:
     /* Widgets that appear on the controls on the right panel */
     WidgetName * m_selectedObjectWidgetName = nullptr;
     WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
-    WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
     QWidget * m_selectedObjectWidgetMaterial = nullptr;
+    WidgetPointLight * m_selectedObjectWidgetPointLight = nullptr;
     WidgetEnvironment * m_widgetEnvironment = nullptr;
 
     QWidget * initLeftPanel();
@@ -53,6 +54,7 @@ private:
     QWidget * initControlsWidget();
     void createMenu();
 
+    QTreeWidgetItem* createTreeWidgetItem(std::shared_ptr<SceneObject> object);
     void selectObject(QTreeWidgetItem* selectedItem);
     void removeObjectFromScene(QTreeWidgetItem* treeItem);
     void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
@@ -80,7 +82,9 @@ private slots:
     void onRemoveSceneObjectSlot();
     /* Create a material */
     void onCreateMaterialSlot();
-    /* */
+    /* Add a point light at root */
+    void onAddPointLightRootSlot();
+    /* Add a point light as a child of the currently selected node */
     void onAddPointLightSlot();
     /* Render scene */
     void onRenderSceneSlot();

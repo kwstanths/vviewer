@@ -17,10 +17,11 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
 {
     m_scene = scene;
     m_light = m_scene->getDirectionalLight();
-    m_camera = m_scene->getCamera();
+    m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(m_scene->getCamera());
 
     /* Initialize camera widget */
-    m_cameraTransformWidget = new WidgetTransform(nullptr, nullptr, "Camera transform:");
+    /* Initialize camera trasform */
+    m_cameraTransformWidget = new WidgetTransform(nullptr, nullptr, "Transform:");
     m_cameraTransformWidget->setTransform(m_camera->getTransform());
     connect(m_cameraTransformWidget->m_rotationX, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
     connect(m_cameraTransformWidget->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
@@ -28,6 +29,24 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     connect(m_cameraTransformWidget->m_positionX, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
     connect(m_cameraTransformWidget->m_positionY, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
     connect(m_cameraTransformWidget->m_positionZ, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
+    /* Initialize camera field of view */
+    m_cameraFov = new QDoubleSpinBox(nullptr);
+    m_cameraFov->setMinimum(1);
+    m_cameraFov->setMaximum(179);
+    m_cameraFov->setValue(m_camera->getFoV());
+    connect(m_cameraFov, SIGNAL(valueChanged(double)), this, SLOT(onCameraFovChanged(double)));
+    QHBoxLayout * layoutCameraFoV = new QHBoxLayout();
+    layoutCameraFoV->addWidget(new QLabel("Field of view: "));
+    layoutCameraFoV->addWidget(m_cameraFov);
+    layoutCameraFoV->setContentsMargins(0, 0, 0, 0);
+    QWidget * widgetCameraFoV = new QWidget();
+    widgetCameraFoV->setLayout(layoutCameraFoV);
+    /* Prepate group box */
+    QGroupBox* cameraGroupBox = new QGroupBox("Camera:");
+    QVBoxLayout * cameraLayout = new QVBoxLayout();
+    cameraLayout->addWidget(m_cameraTransformWidget);
+    cameraLayout->addWidget(widgetCameraFoV);
+    cameraGroupBox->setLayout(cameraLayout);
 
     /* Initialize environment maps dropdown list widget */
     QGroupBox* envGroupBox = new QGroupBox("Environment:");
@@ -44,7 +63,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
         m_comboMaps->addItems(getImportedEnvironmentMaps());
         connect(m_comboMaps, SIGNAL(currentIndexChanged(int)), this, SLOT(onEnvironmentMapChanged(int)));
 
-        m_backgroundColorWidget = createColorPickWidget(&m_backgroundColorButton);
+        m_backgroundColorWidget = createColorWidget(&m_backgroundColorButton);
         glm::vec3 backgroundColor = m_scene->getBackgroundColor();
         m_backgroundColor = QColor(backgroundColor.r * 255, backgroundColor.g * 255, backgroundColor.b * 255);
         setButtonColor(m_backgroundColorButton, m_backgroundColor);
@@ -81,7 +100,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     connect(m_lightTransform->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
     connect(m_lightTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
     /* Color */
-    QWidget* widgetLightColor = createColorPickWidget(&m_lightColorButton);
+    QWidget* widgetLightColor = createColorWidget(&m_lightColorButton);
     m_lightColor = QColor(m_light->color.r * 255, m_light->color.g * 255, m_light->color.b * 255);
     setButtonColor(m_lightColorButton, m_lightColor);
     connect(m_lightColorButton, SIGNAL(pressed()), this, SLOT(onLightColorButton()));
@@ -89,7 +108,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     m_lightIntensitySlider = new QSlider(Qt::Horizontal);
     m_lightIntensitySlider->setMinimum(0);
     m_lightIntensitySlider->setMaximum(1000);
-    m_lightIntensitySlider->setValue(100);
+    m_lightIntensitySlider->setValue(m_light->intensity * 100.f);
     connect(m_lightIntensitySlider, SIGNAL(valueChanged(int)), this, SLOT(onLightIntensityChanged(int)));
     m_lightIntensityValue = new QLabel("1");
     QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
@@ -109,7 +128,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
 
     /* Complete layout */
     QVBoxLayout* layoutMain = new QVBoxLayout();
-    layoutMain->addWidget(m_cameraTransformWidget);
+    layoutMain->addWidget(cameraGroupBox);
     layoutMain->addWidget(envGroupBox);
     layoutMain->addWidget(widgetExposure);
     layoutMain->addWidget(lightGroupBox);
@@ -135,7 +154,8 @@ void WidgetEnvironment::updateMaps()
 
 void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
 {
-    m_camera = c;
+    m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(c);
+    m_cameraFov->setValue(m_camera->getFoV());
 }
 
 void WidgetEnvironment::updateCamera()
@@ -157,31 +177,16 @@ void WidgetEnvironment::updateCamera()
         m_cameraTransformWidget->setTransform(m_camera->getTransform());
         m_cameraTransformWidget->blockSignals(false);
     }
-
 }
 
-QWidget* WidgetEnvironment::createColorPickWidget(QPushButton** button)
+void WidgetEnvironment::setLightColor(QColor color)
 {
-    *button = new QPushButton();
-    (*button)->setFixedWidth(25);
-    QHBoxLayout* ColorLayout = new QHBoxLayout();
-    ColorLayout->addWidget(new QLabel("Color: "));
-    ColorLayout->addWidget(*button);
-    ColorLayout->setContentsMargins(0, 0, 0, 0);
-    QWidget* widgetColor = new QWidget();
-    widgetColor->setLayout(ColorLayout);
-    return widgetColor;
+    m_light->color = glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f);
 }
 
-void WidgetEnvironment::setButtonColor(QPushButton* button, QColor color)
+float WidgetEnvironment::getIntensity()
 {
-    QString qss = QString("background-color: %1").arg(color.name());
-    button->setStyleSheet(qss);
-}
-
-void WidgetEnvironment::setLightColor(QColor color, float intensity)
-{
-    m_light->color = intensity * glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f);
+    return (float)m_lightIntensitySlider->value() / 100.;
 }
 
 void WidgetEnvironment::onLightColorButton()
@@ -202,14 +207,14 @@ void WidgetEnvironment::onLightDirectionChanged(double)
 void WidgetEnvironment::onLightColorChanged(QColor color)
 {
     m_lightColor = color;
-    setLightColor(m_lightColor, (float)m_lightIntensitySlider->value() / 100.);
+    setLightColor(m_lightColor);
 }
 
 void WidgetEnvironment::onLightIntensityChanged(int val)
 {
-    float realValue = (float)val / 100.;
-    m_lightIntensityValue->setText(QString::number(realValue));
-    setLightColor(m_lightColor, realValue);
+    float intensity  = getIntensity();
+    m_lightIntensityValue->setText(QString::number(intensity));
+    m_light->intensity = intensity;
 }
 
 void WidgetEnvironment::onBackgroundColorButton()
@@ -274,6 +279,11 @@ void WidgetEnvironment::onEnvironmentChanged(int)
     default:
         break;
     }
+}
+
+void WidgetEnvironment::onCameraFovChanged(double)
+{
+    m_camera->setFoV(m_cameraFov->value());
 }
 
 void WidgetEnvironment::onEnvironmentMapChanged(int)

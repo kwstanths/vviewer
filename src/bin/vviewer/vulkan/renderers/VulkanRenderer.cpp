@@ -347,7 +347,7 @@ void VulkanRenderer::startNextFrame()
 
         }
 
-        /* Draw PBR material objects */
+        /* Draw PBR material objects, base pass */
         m_rendererPBR.renderObjectsBasePass(cmdBuf,
             m_descriptorSetsScene[imageIndex],
             m_descriptorSetsModel[imageIndex],
@@ -355,18 +355,23 @@ void VulkanRenderer::startNextFrame()
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
             pbrStandardObjects);
-
-        for (auto& obj : pbrStandardObjects)
+        /* Draw lambert material objects, base pass */
+        m_rendererLambert.renderObjectsBasePass(cmdBuf,
+            m_descriptorSetsScene[imageIndex],
+            m_descriptorSetsModel[imageIndex],
+            skybox,
+            imageIndex,
+            m_scene->m_modelDataDynamicUBO,
+            lambertObjects);
+        /* Draw additive pass for all point lights in the scene */
+        for (auto& pl : pointLights)
         {
-            for (auto& pl : pointLights)
+            PointLight* light = pl->get<PointLight*>(ComponentType::POINT_LIGHT);
+            PushBlockForwardAddPass t;
+            t.lightColor = light->intensity * glm::vec4(light->color, 0);
+            t.lightPosition = glm::vec4(pl->getWorldPosition(), 0);
+            for (auto& obj : pbrStandardObjects)
             {
-                PointLight* light = pl->get<PointLight*>(ComponentType::POINT_LIGHT);
-
-                PushBlockForwardAddPass t;
-                t.lightColor = glm::vec4(light->color, 0);
-                t.lightPosition = glm::vec4(pl->getWorldPosition(), 0);
-
-
                 m_rendererPBR.renderObjectsAddPass(cmdBuf,
                     m_descriptorSetsScene[imageIndex],
                     m_descriptorSetsModel[imageIndex],
@@ -376,16 +381,18 @@ void VulkanRenderer::startNextFrame()
                     t
                 );
             }
+            for (auto& obj : lambertObjects)
+            {
+                m_rendererLambert.renderObjectsAddPass(cmdBuf,
+                    m_descriptorSetsScene[imageIndex],
+                    m_descriptorSetsModel[imageIndex],
+                    imageIndex,
+                    m_scene->m_modelDataDynamicUBO,
+                    obj,
+                    t
+                );
+            }
         }
-
-        /* Draw lambert material objects */
-        m_rendererLambert.renderObjectsBasePass(cmdBuf,
-            m_descriptorSetsScene[imageIndex],
-            m_descriptorSetsModel[imageIndex],
-            skybox,
-            imageIndex,
-            m_scene->m_modelDataDynamicUBO,
-            lambertObjects);
 
         m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     }

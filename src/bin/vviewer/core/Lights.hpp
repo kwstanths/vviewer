@@ -8,20 +8,21 @@
 
 struct Light {
     glm::vec3 color;
+    float intensity;
 
-    Light(glm::vec3 c) : color(c) {};
+    Light(glm::vec3 c, float i) : color(c), intensity(i) {};
 };
 
 struct DirectionalLight : public Light 
 {
     Transform transform;
     
-    DirectionalLight(Transform t, glm::vec3 c) : Light(c), transform(t) {};
+    DirectionalLight(Transform t, glm::vec3 color, float intensity) : Light(color, intensity), transform(t) {};
 };
 
 struct PointLight : public Light, public Component
 {
-    PointLight(glm::vec3 c): Light(c), Component(ComponentType::POINT_LIGHT) {};
+    PointLight(glm::vec3 color, float intensity): Light(color, intensity), Component(ComponentType::POINT_LIGHT) {};
 };
 
 #endif

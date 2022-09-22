@@ -64,7 +64,7 @@ SceneData Scene::getSceneData() const
     std::shared_ptr<DirectionalLight> light = getDirectionalLight();
     if (light != nullptr) {
         sceneData.m_directionalLightDir = glm::vec4(light->transform.getForward(), 0);
-        sceneData.m_directionalLightColor = glm::vec4(light->color, 0);
+        sceneData.m_directionalLightColor = light->intensity * glm::vec4(light->color, 0);
     }
     else {
         sceneData.m_directionalLightColor = glm::vec4(0, 0, 0, 0);

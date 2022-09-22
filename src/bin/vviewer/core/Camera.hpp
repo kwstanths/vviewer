@@ -47,6 +47,7 @@ public:
     glm::mat4 getProjectionMatrix() const;
     glm::mat4 getProjectionMatrixInverse() const;
 
+    /* In degrees */
     void setFoV(float fov);
     float getFoV() const;
 private:

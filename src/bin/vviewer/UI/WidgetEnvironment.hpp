@@ -47,15 +47,14 @@ private:
     /* Camera widgets */
     WidgetTransform* m_cameraTransformWidget;
     bool m_cameraTransformWidgetChanged = false;
+    QDoubleSpinBox * m_cameraFov = nullptr;
 
     Scene* m_scene;
     std::shared_ptr<DirectionalLight> m_light;
-    std::shared_ptr<Camera> m_camera;
+    std::shared_ptr<PerspectiveCamera> m_camera;
 
-    QWidget* createColorPickWidget(QPushButton ** button);
-    void setButtonColor(QPushButton* button, QColor color);
-
-    void setLightColor(QColor color, float intensity);
+    void setLightColor(QColor color);
+    float getIntensity();
 
     /* Update timer */
     QTimer* m_updateTimer;
@@ -71,6 +70,7 @@ private slots:
     void onBackgroundColorChanged(QColor color);
     void onExposureChanged(int);
     void onCameraWidgetChanged(double);
+    void onCameraFovChanged(double);
 
     void updateCamera();
 };
