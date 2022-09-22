@@ -17,11 +17,6 @@ WidgetPointLight::WidgetPointLight(QWidget * parent, PointLight * light) : QWidg
     setButtonColor(m_colorButton, m_lightColor);
     connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onLightColorButton()));
 
-    QGroupBox* lightGroupBox = new QGroupBox("Point light");
-    QVBoxLayout* layoutLight = new QVBoxLayout();
-    layoutLight->addWidget(m_colorWidget);
-    lightGroupBox->setLayout(layoutLight);
-
     /* Create intensity slider */
     m_lightIntensitySlider = new QSlider(Qt::Horizontal);
     m_lightIntensitySlider->setMinimum(0);
@@ -37,10 +32,15 @@ WidgetPointLight::WidgetPointLight(QWidget * parent, PointLight * light) : QWidg
     QWidget* widgetLightIntensity = new QWidget();
     widgetLightIntensity->setLayout(lightIntensityLayout);
 
+    QGroupBox* lightGroupBox = new QGroupBox("Point light");
+    QVBoxLayout* layoutLight = new QVBoxLayout();
+    layoutLight->addWidget(m_colorWidget);
+    layoutLight->addWidget(widgetLightIntensity);
+    lightGroupBox->setLayout(layoutLight);
+
     /* Complete layout */
     QVBoxLayout* layoutMain = new QVBoxLayout();
     layoutMain->addWidget(lightGroupBox);
-    layoutMain->addWidget(widgetLightIntensity);
     layoutMain->setAlignment(Qt::AlignTop);
     layoutMain->setContentsMargins(0, 0, 0, 0);
 

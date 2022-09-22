@@ -1,35 +1,66 @@
 #include "WidgetMeshModel.hpp"
 
+#include <iostream>
+
 #include <qgroupbox.h>
 #include <qlayout.h>
+#include <qlabel.h>
 
 #include "core/AssetManager.hpp"
 
-WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject, QStringList availableModels) : QWidget(parent)
+#include "UIUtils.hpp"
+
+WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject) : QWidget(parent)
 {
     m_sceneObject = sceneObject;
 
-    m_models = new QComboBox();
-    m_models->addItems(availableModels);
-    if (sceneObject != nullptr) {
-        m_models->setCurrentText(QString::fromStdString(sceneObject->get<Mesh*>(ComponentType::MESH)->m_name));
+    if (!sceneObject->has(ComponentType::MESH))
+    {
+        throw std::runtime_error("WidgetMeshModel(): Object doesn't have a mesh component");
     }
-    connect(m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshModelChangedSlot(int)));
+    m_meshModel = sceneObject->get<Mesh*>(ComponentType::MESH)->m_meshModel;
 
     QGroupBox * boxPickModel = new QGroupBox(tr("Mesh Model"));
-    QVBoxLayout * layoutPickModel = new QVBoxLayout();
-    layoutPickModel->addWidget(m_models);
-    layoutPickModel->setContentsMargins(5, 5, 5, 5);
-    layoutPickModel->setAlignment(Qt::AlignTop);
 
-    boxPickModel->setLayout(layoutPickModel);
+    m_models = new QComboBox();
+    m_models->addItems(getImportedModels());
+    if (sceneObject != nullptr) {
+        m_models->setCurrentText(QString::fromStdString(m_meshModel->getName()));
+    }
+    connect(m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshModelChangedSlot(int)));    
+    QHBoxLayout * layoutPickModel = new QHBoxLayout();
+    layoutPickModel->addWidget(new QLabel("Model: "));
+    layoutPickModel->addWidget(m_models);
+    layoutPickModel->setContentsMargins(0, 0, 0, 0);
+    layoutPickModel->setAlignment(Qt::AlignTop);
+    QWidget * widgetPickModel = new QWidget();
+    widgetPickModel->setLayout(layoutPickModel);
+
+    m_meshes = new QComboBox();
+    m_meshes->addItems(getModelMeshes(m_meshModel));
+    if (sceneObject != nullptr) {
+        m_meshes->setCurrentText(QString::fromStdString(sceneObject->get<Mesh*>(ComponentType::MESH)->m_name));
+    }
+    connect(m_meshes, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshChangedSlot(int)));    
+    QHBoxLayout * layoutPickMesh = new QHBoxLayout();
+    layoutPickMesh->addWidget(new QLabel("Mesh: "));
+    layoutPickMesh->addWidget(m_meshes);
+    layoutPickMesh->setContentsMargins(0, 0, 0, 0);
+    layoutPickMesh->setAlignment(Qt::AlignTop);
+    QWidget * widgetPickMesh = new QWidget();
+    widgetPickMesh->setLayout(layoutPickMesh);
+
+    QVBoxLayout * layoutGroupBox = new QVBoxLayout();
+    layoutGroupBox->addWidget(widgetPickModel);
+    layoutGroupBox->addWidget(widgetPickMesh);
+    boxPickModel->setLayout(layoutGroupBox);
     
     QVBoxLayout * layoutMain = new QVBoxLayout();
     layoutMain->addWidget(boxPickModel);
     layoutMain->setContentsMargins(0, 0, 0, 0);
     layoutMain->setAlignment(Qt::AlignTop);
     setLayout(layoutMain);
-    setFixedHeight(55);
+    setFixedHeight(90);
 }
 
 std::string WidgetMeshModel::getSelectedModel() const
@@ -37,13 +68,42 @@ std::string WidgetMeshModel::getSelectedModel() const
     return m_models->currentText().toStdString();
 }
 
+std::string WidgetMeshModel::getSelectedMesh() const
+{
+    return m_meshes->currentText().toStdString();
+}
+
+QStringList WidgetMeshModel::getModelMeshes(const MeshModel * model)
+{
+    QStringList list;
+    for(auto itr : model->getMeshes())
+    {
+        list.push_back(QString::fromStdString(itr->m_name));
+    }
+    return list;
+}
+
 void WidgetMeshModel::onMeshModelChangedSlot(int)
 {
-    if (m_sceneObject == nullptr) return;
-
-    /* Selected object name widget changed */
     std::string newModel = getSelectedModel();
 
     AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
-    //m_sceneObject->setMesh(instance.Get(newModel));
+    m_meshModel = instance.Get(newModel);
+
+    /* Update mesh combo box with the relevant meshes */
+    m_meshes->clear();
+    m_meshes->addItems(getModelMeshes(m_meshModel));
+}
+
+void WidgetMeshModel::onMeshChangedSlot(int)
+{
+    /* Find the mesh from the selected mesh model, and assign it to the scene object */
+    std::string selectedMesh = getSelectedMesh();
+    for(auto itr : m_meshModel->getMeshes())
+    {
+        if (itr->m_name == selectedMesh)
+        {
+            m_sceneObject->assign(itr);
+        }
+    }
 }

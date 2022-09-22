@@ -14,7 +14,7 @@ Entity::Entity()
     m_id = IDGeneration::getInstance().getID();
 };
 
-void Entity::add(Component *c)
+void Entity::assign(Component *c)
 {
     m_components[c->getType()] = c;
 }

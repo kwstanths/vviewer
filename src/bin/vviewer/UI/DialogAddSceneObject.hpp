@@ -21,11 +21,11 @@ public:
     std::string getSelectedMaterial() const;
 
 private:
-    WidgetMeshModel * m_widgetMeshModel = nullptr;
     QPushButton * m_buttonOk = nullptr;
     QPushButton * m_buttonCancel = nullptr;
     WidgetTransform * m_widgetTransform = nullptr;
     QComboBox * m_comboBoxAvailableMaterials = nullptr;
+    QComboBox * m_models = nullptr;
 
     std::string m_pickedModel = "";
     std::string m_pickedMaterial = "";

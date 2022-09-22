@@ -11,16 +11,22 @@ class WidgetMeshModel : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMeshModel(QWidget * parent, SceneObject * sceneObject, QStringList availableModels);
+    WidgetMeshModel(QWidget * parent, SceneObject * sceneObject);
 
     std::string getSelectedModel() const;
+    std::string getSelectedMesh() const;
 
-    QComboBox * m_models = nullptr;
 private:
     SceneObject * m_sceneObject = nullptr;
+    QComboBox * m_models = nullptr;
+    QComboBox * m_meshes = nullptr;
+    const MeshModel * m_meshModel;
+
+    QStringList getModelMeshes(const MeshModel * model);
 
 private slots:
     void onMeshModelChangedSlot(int);
+    void onMeshChangedSlot(int);
 
 };
 

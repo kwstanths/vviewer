@@ -31,7 +31,7 @@ WidgetMaterial::WidgetMaterial(QWidget* parent, SceneObject* sceneObject)
     m_layoutMain->setContentsMargins(0, 0, 0, 0);
 
     setLayout(m_layoutMain);
-    //setFixedHeight(600);
+    setFixedHeight(490);
 }
 
 void WidgetMaterial::createUI(QWidget* widgetMaterial)
@@ -83,5 +83,5 @@ void WidgetMaterial::onMaterialChanged(int)
     }
 
     createUI(createMaterialWidget(material));
-    m_sceneObject->add(material);
+    m_sceneObject->assign(material);
 }

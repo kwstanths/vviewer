@@ -207,22 +207,7 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     m_sceneGraphWidget->blockSignals(true);
 
     /* When the selected object on the scene list changes, remove previous widgets from the controls, and add new */
-    if (m_selectedObjectWidgetName != nullptr) {
-        delete m_selectedObjectWidgetName;
-        m_selectedObjectWidgetName = nullptr;
-    }
-    if (m_selectedObjectWidgetTransform != nullptr) {
-        delete m_selectedObjectWidgetTransform;
-        m_selectedObjectWidgetTransform = nullptr;
-    }
-    if (m_selectedObjectWidgetMaterial != nullptr) {
-        delete m_selectedObjectWidgetMaterial;
-        m_selectedObjectWidgetMaterial = nullptr;
-    }
-    if (m_selectedObjectWidgetPointLight != nullptr) {
-        delete m_selectedObjectWidgetPointLight;
-        m_selectedObjectWidgetPointLight = nullptr;
-    }
+    clearControlsUI();
 
     /* Get selected object */
     std::shared_ptr<SceneObject> sceneObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
@@ -253,6 +238,12 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
 
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
+
+    if (sceneObject->has(ComponentType::MESH))
+    {
+        m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneObject.get());
+        m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
+    }
 
     if (sceneObject->has(ComponentType::MATERIAL)) 
     {
@@ -312,12 +303,36 @@ void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string 
     /* For all meshes inside the mesh model, add then in the scene and the UI */
     for (auto& m : modelMeshes) {
         std::shared_ptr<SceneObject> child = m_scene->addSceneObject(m->m_name, parentObject, Transform());
-        child->add(m);
-        child->add(instanceMaterials.Get(material));
+        child->assign(m);
+        child->assign(instanceMaterials.Get(material));
 
         QTreeWidgetItem* childItem = createTreeWidgetItem(child);
 
         parentItem->addChild(childItem);
+    }
+}
+
+void MainWindow::clearControlsUI()
+{
+    if (m_selectedObjectWidgetName != nullptr) {
+        delete m_selectedObjectWidgetName;
+        m_selectedObjectWidgetName = nullptr;
+    }
+    if (m_selectedObjectWidgetTransform != nullptr) {
+        delete m_selectedObjectWidgetTransform;
+        m_selectedObjectWidgetTransform = nullptr;
+    }
+    if (m_selectedObjectWidgetMeshModel != nullptr) {
+        delete m_selectedObjectWidgetMeshModel;
+        m_selectedObjectWidgetMeshModel = nullptr;
+    }
+    if (m_selectedObjectWidgetMaterial != nullptr) {
+        delete m_selectedObjectWidgetMaterial;
+        m_selectedObjectWidgetMaterial = nullptr;
+    }
+    if (m_selectedObjectWidgetPointLight != nullptr) {
+        delete m_selectedObjectWidgetPointLight;
+        m_selectedObjectWidgetPointLight = nullptr;
     }
 }
 
@@ -509,6 +524,7 @@ void MainWindow::onImportScene()
     {
         removeObjectFromScene(m_sceneGraphWidget->topLevelItem(0));
     }
+    m_selectedPreviousWidgetItem = nullptr;
 
     /* Create new scene */
     /* Create a top level item, and add everything below it */
@@ -531,6 +547,8 @@ void MainWindow::onImportScene()
 
         addSceneObjectMeshes(parentItem, sceneFolder + o.path, o.material);
     }
+
+    selectObject(parentItem);
 
     utils::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
@@ -615,7 +633,7 @@ void MainWindow::onAddPointLightRootSlot()
 {
     std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject("Point light", Transform());
     PointLight * light = new PointLight({1, 1, 1}, 1.F);
-    sceneObject->add(light);
+    sceneObject->assign(light);
     
     QTreeWidgetItem* item = createTreeWidgetItem(sceneObject);
 
@@ -635,7 +653,7 @@ void MainWindow::onAddPointLightSlot()
 
     std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject("Point light", selected, Transform());
     PointLight * light = new PointLight({1, 1, 1}, 1.F);
-    sceneObject->add(light);
+    sceneObject->assign(light);
 
     QTreeWidgetItem* item = createTreeWidgetItem(sceneObject);
 

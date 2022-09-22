@@ -122,13 +122,12 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBRStandard * mat
     layoutMain->addWidget(groupBoxAO);
     layoutMain->addWidget(groupBoxEmssive);
     layoutMain->addWidget(groupBoxNormal);
-    layoutMain->setContentsMargins(5, 5, 5, 5);
     layoutMain->setSpacing(15);
     layoutMain->setAlignment(Qt::AlignTop);
     layoutMain->setContentsMargins(0, 0, 0, 0);
 
     setLayout(layoutMain);
-    setFixedHeight(480);
+    setFixedHeight(490);
 
     connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onColorButton()));
     connect(m_metallic, &QSlider::valueChanged, this, &WidgetMaterialPBR::onMetallicChanged);

@@ -27,7 +27,7 @@ public:
     Entity();
     virtual ~Entity() = default;
 
-    void add(Component *c);
+    void assign(Component *c);
 
     Component * get(ComponentType type) const;
 

@@ -13,6 +13,7 @@
 #include "WidgetMeshModel.hpp"
 #include "WidgetEnvironment.hpp"
 #include "WidgetPointLight.hpp"
+#include "WidgetMeshModel.hpp"
 
 #include "core/Scene.hpp"
 #include "vulkan/VulkanWindow.hpp"
@@ -47,6 +48,7 @@ private:
     WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
     QWidget * m_selectedObjectWidgetMaterial = nullptr;
     WidgetPointLight * m_selectedObjectWidgetPointLight = nullptr;
+    WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
     WidgetEnvironment * m_widgetEnvironment = nullptr;
 
     QWidget * initLeftPanel();
@@ -58,6 +60,7 @@ private:
     void selectObject(QTreeWidgetItem* selectedItem);
     void removeObjectFromScene(QTreeWidgetItem* treeItem);
     void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
+    void clearControlsUI();
 
 private slots:
     /* Import a model */
