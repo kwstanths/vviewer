@@ -113,6 +113,26 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBRStandard * mat
     layoutNormal->setContentsMargins(5, 5, 5, 5);
     groupBoxNormal->setLayout(layoutNormal);
 
+
+    m_uTiling = new QDoubleSpinBox();
+    m_uTiling->setMinimum(0);
+    m_uTiling->setMaximum(65536);
+    m_uTiling->setValue(material->getUTiling());
+    connect(m_uTiling, SIGNAL(valueChanged(double)), this, SLOT(onUTilingChanged(double)));
+    m_vTiling = new QDoubleSpinBox();
+    m_vTiling->setMinimum(0);
+    m_vTiling->setMaximum(65536);
+    m_vTiling->setValue(material->getVTiling());
+    connect(m_vTiling, SIGNAL(valueChanged(double)), this, SLOT(onVTilingChanged(double)));
+    QGroupBox * groupBoxUVTiling = new QGroupBox(tr("UV tiling"));
+    QHBoxLayout * layoutUVTiling = new QHBoxLayout();
+    layoutUVTiling->addWidget(new QLabel("U:"));
+    layoutUVTiling->addWidget(m_uTiling);
+    layoutUVTiling->addWidget(new QLabel("V: "));
+    layoutUVTiling->addWidget(m_vTiling);
+    layoutUVTiling->setContentsMargins(5, 5, 5, 5);
+    groupBoxUVTiling->setLayout(layoutUVTiling);
+
     auto itr = materialTypeNames.find(MaterialType::MATERIAL_PBR_STANDARD);
     QVBoxLayout * layoutMain = new QVBoxLayout();
     layoutMain->addWidget(new QLabel(QString::fromStdString("Type: " + itr->second)));
@@ -122,12 +142,13 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBRStandard * mat
     layoutMain->addWidget(groupBoxAO);
     layoutMain->addWidget(groupBoxEmssive);
     layoutMain->addWidget(groupBoxNormal);
+    layoutMain->addWidget(groupBoxUVTiling);
     layoutMain->setSpacing(15);
     layoutMain->setAlignment(Qt::AlignTop);
     layoutMain->setContentsMargins(0, 0, 0, 0);
 
     setLayout(layoutMain);
-    setFixedHeight(490);
+    setFixedHeight(550);
 
     connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onColorButton()));
     connect(m_metallic, &QSlider::valueChanged, this, &WidgetMaterialPBR::onMetallicChanged);
@@ -248,6 +269,16 @@ void WidgetMaterialPBR::onNormalTextureChanged(int)
     Texture * texture = instance.Get(newTexture);
 
     m_material->setNormalTexture(texture);
+}
+
+void WidgetMaterialPBR::onUTilingChanged(double) 
+{
+    m_material->uTiling() = m_uTiling->value();
+}
+
+void WidgetMaterialPBR::onVTilingChanged(double) 
+{
+    m_material->vTiling() = m_vTiling->value();
 }
 
 

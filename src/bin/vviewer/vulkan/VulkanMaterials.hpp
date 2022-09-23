@@ -79,6 +79,10 @@ public:
     float getAO() const override;
     float& emissive() override;
     float getEmissive() const override;
+    float& uTiling() override;
+    float getUTiling() const override;
+    float& vTiling() override;
+    float getVTiling() const override;
 
     void setAlbedoTexture(Texture * texture) override;
     void setMetallicTexture(Texture * texture) override;
@@ -116,6 +120,10 @@ public:
     float getAO() const override;
     float& emissive() override;
     float getEmissive() const override;
+    float& uTiling() override;
+    float getUTiling() const override;
+    float& vTiling() override;
+    float getVTiling() const override;
 
     void setAlbedoTexture(Texture* texture) override;
     void setAOTexture(Texture* texture) override;

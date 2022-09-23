@@ -27,6 +27,8 @@ public:
     QComboBox * m_comboBoxEmissive;
     QComboBox * m_comboBoxNormal;
     
+    QDoubleSpinBox * m_uTiling;
+    QDoubleSpinBox * m_vTiling;
 private:
     MaterialPBRStandard * m_material = nullptr;
 
@@ -45,7 +47,8 @@ private slots:
     void onEmissiveChanged();
     void onEmissiveTextureChanged(int);
     void onNormalTextureChanged(int);
-
+    void onUTilingChanged(double);
+    void onVTilingChanged(double);
 };
 
 #endif

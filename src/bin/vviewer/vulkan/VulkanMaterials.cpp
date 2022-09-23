@@ -35,6 +35,8 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     roughness() = r;
     ao() = ambient;
     emissive() = e;
+    uTiling() = 1.F;
+    vTiling() = 1.F;
 
     AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
     if (!instance.isPresent("white")) {
@@ -112,6 +114,26 @@ float & VulkanMaterialPBRStandard::emissive()
 float VulkanMaterialPBRStandard::getEmissive() const
 {
     return m_data->metallicRoughnessAOEmissive.a;
+}
+
+float& VulkanMaterialPBRStandard::uTiling()
+{
+    return m_data->uvTiling.r;
+}
+
+float VulkanMaterialPBRStandard::getUTiling() const 
+{
+    return m_data->uvTiling.r;
+}
+
+float& VulkanMaterialPBRStandard::vTiling()
+{
+    return m_data->uvTiling.g;
+}
+
+float VulkanMaterialPBRStandard::getVTiling() const
+{
+    return m_data->uvTiling.g;
 }
 
 void VulkanMaterialPBRStandard::setAlbedoTexture(Texture * texture)
@@ -248,6 +270,8 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     albedo() = a;
     ao() = ambient;
     emissive() = e;
+    uTiling() = 1.F;
+    vTiling() = 1.F;
 
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
     if (!instance.isPresent("white")) {
@@ -298,6 +322,26 @@ float& VulkanMaterialLambert::emissive()
 float VulkanMaterialLambert::getEmissive() const
 {
     return m_data->metallicRoughnessAOEmissive.a;
+}
+
+float& VulkanMaterialLambert::uTiling()
+{
+    return m_data->uvTiling.r;
+}
+
+float VulkanMaterialLambert::getUTiling() const 
+{
+    return m_data->uvTiling.r;
+}
+
+float& VulkanMaterialLambert::vTiling()
+{
+    return m_data->uvTiling.g;
+}
+
+float VulkanMaterialLambert::getVTiling() const
+{
+    return m_data->uvTiling.g;
 }
 
 void VulkanMaterialLambert::setAlbedoTexture(Texture* texture)

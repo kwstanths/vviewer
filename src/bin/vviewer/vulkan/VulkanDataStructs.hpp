@@ -12,6 +12,7 @@ struct ModelData {
 struct MaterialData {
     glm::vec4 albedo; /* RGB: albedo, A: alpha */
     glm::vec4 metallicRoughnessAOEmissive;  /* R = metallic, G = roughness, B = AO, A = emissive */
+    glm::vec4 uvTiling; /* R = u tiling, G = v tiling, B = unused, A = unused */
 };
 
 struct PushBlockForwardBasePass {

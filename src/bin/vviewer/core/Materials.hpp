@@ -56,6 +56,10 @@ public:
     virtual float getAO() const = 0;
     virtual float& emissive() = 0;
     virtual float getEmissive() const = 0;
+    virtual float& uTiling() = 0;
+    virtual float getUTiling() const = 0;
+    virtual float& vTiling() = 0;
+    virtual float getVTiling() const = 0;
 
     virtual void setAlbedoTexture(Texture * texture);
     virtual void setMetallicTexture(Texture * texture);
@@ -95,6 +99,10 @@ public:
     virtual float getAO() const = 0;
     virtual float& emissive() = 0;
     virtual float getEmissive() const = 0;
+    virtual float& uTiling() = 0;
+    virtual float getUTiling() const = 0;
+    virtual float& vTiling() = 0;
+    virtual float getVTiling() const = 0;
 
     virtual void setAlbedoTexture(Texture* texture);
     virtual void setAOTexture(Texture* texture);

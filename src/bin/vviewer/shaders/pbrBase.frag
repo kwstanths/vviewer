@@ -27,6 +27,7 @@ layout(set = 0, binding = 0) uniform SceneData {
 layout(set = 2, binding = 0) uniform MaterialData {
     vec4 albedo;
     vec4 metallicRoughnessAOEmissive;
+    vec4 uvTiling;
 } materialData;
 layout(set = 2, binding = 1) uniform sampler2D materialTextures[7];
 
@@ -45,10 +46,11 @@ vec3 getCameraPosition(mat4 invViewMatrix)
 void main() {
 
     vec3 L = -sceneData.directionalLightDir.xyz;
+    vec2 tiledUV = materialData.uvTiling.rg * fragUV;
     
     /* Normal mapping */
     mat3 TBN = mat3(fragWorldTangent, fragWorldBiTangent, fragWorldNormal);
-    vec3 N = texture(materialTextures[5], fragUV).rgb;
+    vec3 N = texture(materialTextures[5], tiledUV).rgb;
     N = N * 2.0 - 1.0;
     N = normalize(TBN * N);
     
@@ -58,11 +60,11 @@ void main() {
     
     /* Calculate PBR components */
     PBRStandard pbr;
-    pbr.albedo = materialData.albedo.rgb * texture(materialTextures[0], fragUV).rgb;
-    pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(materialTextures[1], fragUV).r;
-    pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(materialTextures[2], fragUV).r;
-    float ao = materialData.metallicRoughnessAOEmissive.b * texture(materialTextures[3], fragUV).r;
-    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(materialTextures[4], fragUV).r;
+    pbr.albedo = materialData.albedo.rgb * texture(materialTextures[0], tiledUV).rgb;
+    pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(materialTextures[1], tiledUV).r;
+    pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(materialTextures[2], tiledUV).r;
+    float ao = materialData.metallicRoughnessAOEmissive.b * texture(materialTextures[3], tiledUV).r;
+    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(materialTextures[4], tiledUV).r;
     
     
     vec3 ambient = ao * calculateIBLContribution(pbr, N, V, skyboxIrradiance, skyboxPrefiltered, materialTextures[6]);

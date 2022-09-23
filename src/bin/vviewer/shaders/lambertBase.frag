@@ -26,6 +26,7 @@ layout(set = 0, binding = 0) uniform SceneData {
 layout(set = 2, binding = 0) uniform MaterialData {
     vec4 albedo;
     vec4 metallicRoughnessAOEmissive;
+    vec4 uvTiling;
 } materialData;
 layout(set = 2, binding = 1) uniform sampler2D materialTextures[4];
 
@@ -44,18 +45,19 @@ void main() {
 
 	vec3 cameraPosition = getCameraPosition(sceneData.viewInverse);
     vec3 V = normalize(cameraPosition - fragWorldPos);
+    vec2 tiledUV = materialData.uvTiling.rg * fragUV;
 
     vec3 L = -sceneData.directionalLightDir.xyz;
     
     /* Normal mapping */
     mat3 TBN = mat3(fragWorldTangent, fragWorldBiTangent, fragWorldNormal);
-    vec3 N = texture(materialTextures[3], fragUV).rgb;
+    vec3 N = texture(materialTextures[3], tiledUV).rgb;
     N = N * 2.0 - 1.0;
     N = normalize(TBN * N);
     
-	vec3 albedo = materialData.albedo.rgb * texture(materialTextures[0], fragUV).rgb;
-    float ao = materialData.metallicRoughnessAOEmissive.b * texture(materialTextures[1], fragUV).r;
-    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(materialTextures[2], fragUV).r;
+	vec3 albedo = materialData.albedo.rgb * texture(materialTextures[0], tiledUV).rgb;
+    float ao = materialData.metallicRoughnessAOEmissive.b * texture(materialTextures[1], tiledUV).r;
+    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(materialTextures[2], tiledUV).r;
 	
 	vec3 irradiance = texture(skyboxIrradiance, N).rgb;
     vec3 diffuse    = irradiance * albedo;
