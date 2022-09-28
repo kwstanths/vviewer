@@ -149,6 +149,7 @@ void WidgetEnvironment::updateMaps()
     m_comboMaps->blockSignals(true);
     m_comboMaps->clear();
     m_comboMaps->addItems(getImportedEnvironmentMaps());
+    m_comboMaps->setCurrentText(QString::fromStdString(m_scene->getSkybox()->getMap()->m_name));
     m_comboMaps->blockSignals(false);
 }
 

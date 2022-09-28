@@ -16,10 +16,11 @@ class WidgetMaterial : public QWidget
 public:
     WidgetMaterial(QWidget* parent, SceneObject* sceneObject);
 
-    QComboBox* m_comboBoxAvailableMaterials;
-
+    void updateAvailableMaterials();
 private:
     SceneObject* m_sceneObject = nullptr;
+
+    QComboBox* m_comboBoxAvailableMaterials;
     QWidget* m_materialWidget = nullptr;
 
     void createUI(QWidget* widgetMaterial);

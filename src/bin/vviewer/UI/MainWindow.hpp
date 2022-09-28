@@ -11,6 +11,7 @@
 #include "WidgetName.hpp"
 #include "WidgetTransform.hpp"
 #include "WidgetMeshModel.hpp"
+#include "WidgetMaterial.hpp"
 #include "WidgetEnvironment.hpp"
 #include "WidgetPointLight.hpp"
 #include "WidgetMeshModel.hpp"
@@ -46,7 +47,7 @@ private:
     /* Widgets that appear on the controls on the right panel */
     WidgetName * m_selectedObjectWidgetName = nullptr;
     WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
-    QWidget * m_selectedObjectWidgetMaterial = nullptr;
+    WidgetMaterial * m_selectedObjectWidgetMaterial = nullptr;
     WidgetPointLight * m_selectedObjectWidgetPointLight = nullptr;
     WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
     WidgetEnvironment * m_widgetEnvironment = nullptr;

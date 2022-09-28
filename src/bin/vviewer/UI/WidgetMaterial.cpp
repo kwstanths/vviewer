@@ -16,11 +16,8 @@ WidgetMaterial::WidgetMaterial(QWidget* parent, SceneObject* sceneObject)
     m_sceneObject = sceneObject;
     Material * material = sceneObject->get<Material*>(ComponentType::MATERIAL);
 
-    QStringList availableMaterials = getCreatedMaterials();
-
     m_comboBoxAvailableMaterials = new QComboBox();
-    m_comboBoxAvailableMaterials->addItems(availableMaterials);
-    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(material->m_name));
+    updateAvailableMaterials();
     connect(m_comboBoxAvailableMaterials, SIGNAL(currentIndexChanged(int)), this, SLOT(onMaterialChanged(int)));
 
     m_widgetGroupBox = new QGroupBox(tr("Material"));
@@ -32,6 +29,16 @@ WidgetMaterial::WidgetMaterial(QWidget* parent, SceneObject* sceneObject)
 
     setLayout(m_layoutMain);
     setFixedHeight(620);
+}
+
+void WidgetMaterial::updateAvailableMaterials()
+{
+    QStringList availableMaterials = getCreatedMaterials();
+    m_comboBoxAvailableMaterials->blockSignals(true);
+    m_comboBoxAvailableMaterials->clear();
+    m_comboBoxAvailableMaterials->addItems(availableMaterials);
+    m_comboBoxAvailableMaterials->blockSignals(false);
+    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_sceneObject->get<Material*>(ComponentType::MATERIAL)->m_name));
 }
 
 void WidgetMaterial::createUI(QWidget* widgetMaterial)

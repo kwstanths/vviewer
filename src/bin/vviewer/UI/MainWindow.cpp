@@ -419,7 +419,10 @@ void MainWindow::onImportMaterial()
     std::string materialName = dir.split('/').back().toStdString();
     std::string dirStd = dir.toStdString();
 
-    m_vulkanWindow->importMaterial(materialName, dirStd);
+    Material * mat = m_vulkanWindow->importMaterial(materialName, dirStd);
+    if (mat != nullptr) {
+        if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
+    }
 }
 
 void MainWindow::onImportScene()
@@ -614,7 +617,6 @@ void MainWindow::onCreateMaterialSlot()
     DialogCreateMaterial * dialog = new DialogCreateMaterial(nullptr, "Create a material", getImportedModels());
     dialog->exec();
 
-    std::string selectedModel = dialog->m_selectedName.toStdString();
     if (dialog->m_selectedMaterialType == MaterialType::MATERIAL_NOT_SET) return;
 
     std::string materialName = dialog->m_selectedName.toStdString();
@@ -626,6 +628,8 @@ void MainWindow::onCreateMaterialSlot()
     Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
+    } else {
+        if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
     }
 }
 
