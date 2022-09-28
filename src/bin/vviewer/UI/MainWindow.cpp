@@ -35,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     createMenu();
 
     setCentralWidget(widget_main);
-    resize(1600, 1000);
+    resize(1600, 1100);
 }
 
 MainWindow::~MainWindow() {

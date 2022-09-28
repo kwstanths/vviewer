@@ -36,10 +36,11 @@ void VulkanRenderer3DUI::initResources(VkPhysicalDevice physicalDevice,
     m_forwardID = IDGeneration::toRGB(forwardID);
 }
 
-void VulkanRenderer3DUI::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages)
+void VulkanRenderer3DUI::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples)
 {
     m_swapchainExtent = swapchainExtent;
     m_renderPass = renderPass;
+    m_msaaSamples = msaaSamples;
 
     createGraphicsPipeline();
 }
@@ -210,7 +211,7 @@ bool VulkanRenderer3DUI::createGraphicsPipeline()
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = m_msaaSamples;
     multisampling.minSampleShading = 1.0f; // Optional
     multisampling.pSampleMask = nullptr; // Optional
     multisampling.alphaToCoverageEnable = VK_FALSE; // Optional

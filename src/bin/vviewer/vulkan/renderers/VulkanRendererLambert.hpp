@@ -19,7 +19,7 @@ public:
         VkDescriptorSetLayout cameraDescriptorLayout,
         VkDescriptorSetLayout modelDescriptorLayout,
         VkDescriptorSetLayout skyboxDescriptorLayout);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
+    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples);
 
     void releaseSwapChainResources();
     void releaseResources();
@@ -81,6 +81,7 @@ private:
     VkPipelineLayout m_pipelineLayoutBasePass, m_pipelineLayoutAddPass;
     VkPipeline m_graphicsPipelineBasePass, m_graphicsPipelineAddPass;
     VkRenderPass m_renderPass;
+    VkSampleCountFlagBits m_msaaSamples;
 
     bool createDescriptorSetsLayout();
     bool createGraphicsPipelineBasePass();

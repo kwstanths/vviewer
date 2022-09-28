@@ -17,7 +17,7 @@ public:
         VkQueue queue,
         VkCommandPool commandPool,
         VkDescriptorSetLayout cameraDescriptorLayout);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages);
+    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples);
 
     void releaseSwapChainResources();
     void releaseResources();
@@ -45,6 +45,7 @@ private:
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     VkRenderPass m_renderPass;
+    VkSampleCountFlagBits m_msaaSamples;
 
     VulkanMeshModel* m_arrow = nullptr;
     glm::vec3 m_rightID, m_upID, m_forwardID;

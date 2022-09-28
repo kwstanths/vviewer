@@ -18,6 +18,7 @@ public:
     void initSwapChainResources(VkExtent2D swapchainExtent, 
         VkRenderPass renderPass, 
         uint32_t swapchainImages, 
+        VkSampleCountFlagBits msaaSamples,
         const std::vector<VulkanFrameBufferAttachment>& colorattachments, 
         const std::vector<VulkanFrameBufferAttachment>& highlightAttachments);
 
@@ -40,6 +41,7 @@ private:
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     VkRenderPass m_renderPass;
+    VkSampleCountFlagBits m_msaaSamples;
 
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSetLayout m_descriptorSetLayout;

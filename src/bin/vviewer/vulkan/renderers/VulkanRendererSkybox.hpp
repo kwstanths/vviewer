@@ -16,7 +16,7 @@ public:
     VulkanRendererSkybox();
     
     void initResources(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkDescriptorSetLayout cameraDescriptorLayout);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass);
+    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, VkSampleCountFlagBits msaaSamples);
 
     void releaseSwapChainResources();
     void releaseResources();
@@ -58,6 +58,8 @@ private:
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
     VkRenderPass m_renderPass;
+    VkSampleCountFlagBits m_msaaSamples;
+
     bool createGraphicsPipeline();
     bool createDescriptorSetsLayout();
 

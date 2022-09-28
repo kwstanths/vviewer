@@ -24,11 +24,13 @@ void VulkanRendererPost::initResources(VkPhysicalDevice physicalDevice, VkDevice
 void VulkanRendererPost::initSwapChainResources(VkExtent2D swapchainExtent, 
     VkRenderPass renderPass, 
     uint32_t swapchainImages, 
+    VkSampleCountFlagBits msaaSamples,
     const std::vector<VulkanFrameBufferAttachment>& colorAttachments, 
     const std::vector<VulkanFrameBufferAttachment>& highlightAttachments)
 {
 	m_swapchainExtent = swapchainExtent;
 	m_renderPass = renderPass;
+    m_msaaSamples = msaaSamples;
 
     createDescriptorPool(swapchainImages);
     createDescriptors(swapchainImages, colorAttachments, highlightAttachments);
@@ -144,7 +146,7 @@ bool VulkanRendererPost::createGraphicsPipeline()
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = m_msaaSamples;
     /* ---------------- DEPTH STENCIL ---------------------- */
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -280,7 +282,7 @@ bool VulkanRendererPost::createDescriptors(uint32_t imageCount,
     {
         VkDescriptorImageInfo colorAttachmentDescriptor{};
         colorAttachmentDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        colorAttachmentDescriptor.imageView = colorAttachments[i].getView();
+        colorAttachmentDescriptor.imageView = colorAttachments[i].getViewResolve();
         colorAttachmentDescriptor.sampler = m_inputSampler;
         VkWriteDescriptorSet colorWrite{};
         colorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -293,7 +295,7 @@ bool VulkanRendererPost::createDescriptors(uint32_t imageCount,
 
         VkDescriptorImageInfo highlightAttachmentDescriptor{};
         highlightAttachmentDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        highlightAttachmentDescriptor.imageView = highlightAttachments[i].getView();
+        highlightAttachmentDescriptor.imageView = highlightAttachments[i].getViewResolve();
         highlightAttachmentDescriptor.sampler = m_inputSampler;
         VkWriteDescriptorSet highlightWrite{};
         highlightWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

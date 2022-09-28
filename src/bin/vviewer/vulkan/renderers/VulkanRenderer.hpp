@@ -70,7 +70,8 @@ private:
     void destroyDebugCallback();
 
     bool pickPhysicalDevice();
-    bool isPhysicalDeviceSuitable(VkPhysicalDeviceProperties device);
+    bool isPhysicalDeviceSuitable(const VkPhysicalDeviceProperties& deviceProperties);
+    VkSampleCountFlagBits getMaxUsableSampleCount(const VkPhysicalDeviceProperties& deviceProperties);
 
     /* Graphics pipeline */
     bool createRenderPasses();
@@ -99,6 +100,7 @@ private:
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
     VkPhysicalDeviceProperties m_physicalDeviceProperties;
+    VkSampleCountFlagBits m_msaaSamples;
 
     /* Render pipeline data  */
     VkRenderPass m_renderPassForward;

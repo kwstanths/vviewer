@@ -12,12 +12,12 @@ void main()
 	outColor = texture(inputColor, inUV).rgba;
 	vec4 highlightInfo = texture(inputHighlight, inUV).rgba;
     
-	if (highlightInfo.a == 1.0f){
+	if (highlightInfo.a > 0.5f){
 		vec2 size = 1.0f / textureSize(inputHighlight, 0);
 
-        for (int i = -2; i <= +2; i++)
+        for (int i = -3; i <= +3; i++)
         {
-            for (int j = -2; j <= +2; j++)
+            for (int j = -3; j <= +3; j++)
             {
                 if (i == 0 && j == 0)
                 {
@@ -26,10 +26,9 @@ void main()
 
                 vec2 offset = vec2(i, j) * size;
 
-                if (texture(inputHighlight, inUV + offset).a == 0.0f)
+                if (texture(inputHighlight, inUV + offset).a < 0.5f)
                 {
-                    outColor = vec4(vec3(1.0f), 1.0f);
-                    return;
+                    outColor = vec4(vec3(highlightInfo.a), 1.0f);
                 }
             }
         }

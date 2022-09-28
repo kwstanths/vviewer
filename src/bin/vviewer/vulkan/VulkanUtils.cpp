@@ -184,6 +184,7 @@ bool createImage(VkPhysicalDevice physicalDevice,
     uint32_t width, 
     uint32_t height, 
     uint32_t numMips,
+    VkSampleCountFlagBits numSamples,
     VkFormat format, 
     VkImageTiling tiling, 
     VkImageUsageFlags usage, 
@@ -203,7 +204,7 @@ bool createImage(VkPhysicalDevice physicalDevice,
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.samples = numSamples;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {

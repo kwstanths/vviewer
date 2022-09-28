@@ -28,10 +28,11 @@ void VulkanRendererSkybox::initResources(VkPhysicalDevice physicalDevice, VkDevi
     m_cube = new VulkanCube(m_physicalDevice, m_device, queue, commandPool);
 }
 
-void VulkanRendererSkybox::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass)
+void VulkanRendererSkybox::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, VkSampleCountFlagBits msaaSamples)
 {
     m_swapchainExtent = swapchainExtent;
     m_renderPass = renderPass;
+    m_msaaSamples = msaaSamples;
 
     createGraphicsPipeline();
 }
@@ -2121,7 +2122,7 @@ bool VulkanRendererSkybox::createGraphicsPipeline()
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = m_msaaSamples;
     multisampling.minSampleShading = 1.0f; // Optional
     multisampling.pSampleMask = nullptr; // Optional
     multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
