@@ -86,19 +86,15 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBRStandard * mat
     groupBoxAO->setLayout(layoutAO);
 
 
-    m_comboBoxEmissive = new QComboBox();
-    m_comboBoxEmissive->addItems(availableLinearTextures);
-    m_comboBoxEmissive->setCurrentText(QString::fromStdString(material->getEmissiveTexture()->m_name));
-    connect(m_comboBoxEmissive, SIGNAL(currentIndexChanged(int)), this, SLOT(onEmissiveTextureChanged(int)));
-    m_emissive = new QSlider(Qt::Horizontal);
-    m_emissive->setMaximum(100);
+    m_emissive = new QDoubleSpinBox();
+    m_emissive->setMaximum(10000);
     m_emissive->setMinimum(0);
     m_emissive->setSingleStep(1);
-    m_emissive->setValue(material->getEmissive() * 100);
+    m_emissive->setValue(material->getEmissive());
     QGroupBox * groupBoxEmssive = new QGroupBox(tr("Emissive"));
-    QVBoxLayout * layoutEmissive = new QVBoxLayout();
+    QHBoxLayout * layoutEmissive = new QHBoxLayout();
+    layoutEmissive->addWidget(new QLabel("Emissive: "));
     layoutEmissive->addWidget(m_emissive);
-    layoutEmissive->addWidget(m_comboBoxEmissive);
     layoutEmissive->setContentsMargins(5, 5, 5, 5);
     groupBoxEmssive->setLayout(layoutEmissive);
 
@@ -154,7 +150,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBRStandard * mat
     connect(m_metallic, &QSlider::valueChanged, this, &WidgetMaterialPBR::onMetallicChanged);
     connect(m_roughness, &QSlider::valueChanged, this, &WidgetMaterialPBR::onRoughnessChanged);
     connect(m_ao, &QSlider::valueChanged, this, &WidgetMaterialPBR::onAOChanged);
-    connect(m_emissive, &QSlider::valueChanged, this, &WidgetMaterialPBR::onEmissiveChanged);
+    connect(m_emissive, &QDoubleSpinBox::valueChanged, this, &WidgetMaterialPBR::onEmissiveChanged);
 }
 
 void WidgetMaterialPBR::onColorButton()
@@ -246,19 +242,9 @@ void WidgetMaterialPBR::onAOTextureChanged(int)
     m_material->setAOTexture(texture);
 }
 
-void WidgetMaterialPBR::onEmissiveChanged()
+void WidgetMaterialPBR::onEmissiveChanged(double)
 {
-    m_material->emissive() = static_cast<float>(m_emissive->value()) / 100;
-}
-
-void WidgetMaterialPBR::onEmissiveTextureChanged(int)
-{
-    std::string newTexture = m_comboBoxEmissive->currentText().toStdString();
-
-    AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
-    Texture * texture = instance.Get(newTexture);
-
-    m_material->setEmissiveTexture(texture);
+    m_material->emissive() = static_cast<float>(m_emissive->value());
 }
 
 void WidgetMaterialPBR::onNormalTextureChanged(int)

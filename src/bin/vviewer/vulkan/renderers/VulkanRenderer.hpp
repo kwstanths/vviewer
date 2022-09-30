@@ -45,7 +45,7 @@ public:
 
     void startNextFrame() override;
     
-    bool createVulkanMeshModel(std::string filename);
+    MeshModel * createVulkanMeshModel(std::string filename);
 
     VulkanScene* getActiveScene() const;
 

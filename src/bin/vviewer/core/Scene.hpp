@@ -10,6 +10,7 @@
 #include "SceneObject.hpp"
 
 enum class EnvironmentType {
+    /* Order matters for the UI */
     SOLID_COLOR = 0,
     HDRI = 1,
     SOLID_COLOR_WITH_HDRI_LIGHTING = 2

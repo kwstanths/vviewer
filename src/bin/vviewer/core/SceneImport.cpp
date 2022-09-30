@@ -97,6 +97,9 @@ std::string importScene(std::string filename,
                 materials[m].normalTexture = doc["materials"][m]["normalMap"].GetString();
             }
 
+            if (doc["materials"][m].HasMember("emissive")) {
+                materials[m].emissiveValue = doc["materials"][m]["emissive"].GetFloat();
+            }
         }
         else if (materials[m].type == DIFFUSE) {
             parseAlbedo(materials[m], doc["materials"][m]);
@@ -104,30 +107,9 @@ std::string importScene(std::string filename,
     }
 
     /* Parse scene objects */
-    sceneObjects = std::vector<ImportedSceneObject>(doc["scene"].Size());
     for (size_t o = 0; o < doc["scene"].Size(); o++)
     {
-        sceneObjects[o].name = doc["scene"][o]["name"].GetString();
-        sceneObjects[o].path = doc["scene"][o]["path"].GetString();
-        sceneObjects[o].material = doc["scene"][o]["material"].GetString();
-
-        if (doc["scene"][o].HasMember("transform")) {
-            sceneObjects[o].position = glm::vec3(
-                doc["scene"][o]["transform"]["position"]["x"].GetFloat(),
-                doc["scene"][o]["transform"]["position"]["y"].GetFloat(),
-                doc["scene"][o]["transform"]["position"]["z"].GetFloat()
-            );
-            sceneObjects[o].scale = glm::vec3(
-                doc["scene"][o]["transform"]["scale"]["x"].GetFloat(),
-                doc["scene"][o]["transform"]["scale"]["y"].GetFloat(),
-                doc["scene"][o]["transform"]["scale"]["z"].GetFloat()
-            );
-            sceneObjects[o].rotation = glm::vec3(
-                doc["scene"][o]["transform"]["rotation"]["x"].GetFloat(),
-                doc["scene"][o]["transform"]["rotation"]["y"].GetFloat(),
-                doc["scene"][o]["transform"]["rotation"]["z"].GetFloat()
-            );
-        }
+        sceneObjects.push_back(parseSceneObject(doc["scene"][o]));
     }
 
     /* Parse environment */
@@ -137,6 +119,95 @@ std::string importScene(std::string filename,
     }
 
     return sceneFolder;
+}
+
+ImportedSceneObject parseSceneObject(const rapidjson::Value& o)
+{
+    ImportedSceneObject object;
+    object.name = o["name"].GetString();
+    
+    object.mesh = parseMesh(o);
+    
+    if (o.HasMember("material")) {
+        object.material = o["material"].GetString();
+    }
+
+    object.light = parseLight(o);
+
+    if (o.HasMember("transform")) {
+        if (o["transform"].HasMember("position")) {
+            object.position = glm::vec3(
+                o["transform"]["position"]["x"].GetFloat(),
+                o["transform"]["position"]["y"].GetFloat(),
+                o["transform"]["position"]["z"].GetFloat()
+            );
+        }
+        if (o["transform"].HasMember("scale")) {
+            object.scale = glm::vec3(
+                o["transform"]["scale"]["x"].GetFloat(),
+                o["transform"]["scale"]["y"].GetFloat(),
+                o["transform"]["scale"]["z"].GetFloat()
+            );
+        }
+        if (o["transform"].HasMember("rotation")) {            
+            object.rotation = glm::vec3(
+                o["transform"]["rotation"]["x"].GetFloat(),
+                o["transform"]["rotation"]["y"].GetFloat(),
+                o["transform"]["rotation"]["z"].GetFloat()
+            );
+        }
+    }
+
+    if (o.HasMember("children")) {
+        for (size_t c = 0; c < o["children"].Size(); c++)
+        {
+            object.children.push_back(parseSceneObject(o["children"][c]));
+        }
+    }
+
+    return object;
+}
+
+ImportedSceneObjectMesh * parseMesh(const rapidjson::Value& o)
+{
+    ImportedSceneObjectMesh * mesh = nullptr;
+    if (o.HasMember("path")) {
+        mesh = new ImportedSceneObjectMesh();
+        mesh->path = o["path"].GetString();
+    } else return mesh;
+
+    if (o.HasMember("submesh")){
+        mesh->submesh = o["submesh"].GetInt();
+    }
+
+    return mesh;
+}
+
+ImportedSceneObjectLight * parseLight(const rapidjson::Value& o)
+{
+    ImportedSceneObjectLight * light = nullptr;
+    if (o.HasMember("light")) {
+        light = new ImportedSceneObjectLight();
+    } else return nullptr;
+
+    std::string lightType = o["light"]["type"].GetString();
+    if (lightType == "POINT") light->type = ImportedScenePointLightType::POINT;
+    else if (lightType == "DISTANT") light->type = ImportedScenePointLightType::DISTANT;
+    else utils::ConsoleCritical("Scene importing: Unsupported light type: " + lightType);
+
+    if (o["light"].HasMember("intensity")){
+        light->intensity = o["light"]["intensity"].GetFloat();
+    }
+
+    if (o["light"].HasMember("color")) {
+        light->color = glm::vec3(
+            o["light"]["color"]["r"].GetFloat(), 
+            o["light"]["color"]["r"].GetFloat(), 
+            o["light"]["color"]["b"].GetFloat()
+        );
+    }
+
+    return light;
 }
 
 void parseAlbedo(ImportedSceneMaterial& m, const rapidjson::Value& o)

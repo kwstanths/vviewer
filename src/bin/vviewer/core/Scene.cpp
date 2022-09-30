@@ -200,5 +200,5 @@ void Scene::exportScene(std::string name, uint32_t width, uint32_t height, uint3
         temp = m_skybox->getMap();
     }
 
-    exportJson(name, m_camera, m_sceneGraph, temp, width, height, samples);
+    exportJson(name, m_camera, m_directionalLight, m_sceneGraph, temp, width, height, samples);
 }

@@ -17,6 +17,7 @@
 #include "WidgetMeshModel.hpp"
 
 #include "core/Scene.hpp"
+#include "core/SceneImport.hpp"
 #include "vulkan/VulkanWindow.hpp"
 
 Q_DECLARE_METATYPE(std::shared_ptr<SceneObject>)
@@ -58,10 +59,13 @@ private:
     void createMenu();
 
     QTreeWidgetItem* createTreeWidgetItem(std::shared_ptr<SceneObject> object);
+    std::shared_ptr<SceneObject> getSceneObject(QTreeWidgetItem* item) const;
+
     void selectObject(QTreeWidgetItem* selectedItem);
     void removeObjectFromScene(QTreeWidgetItem* treeItem);
     void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
     void clearControlsUI();
+    void addImportedSceneObject(const ImportedSceneObject& object, QTreeWidgetItem * parentItem, std::string sceneFolder);
 
 private slots:
     /* Import a model */

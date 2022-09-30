@@ -110,7 +110,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     m_lightIntensitySlider->setMaximum(1000);
     m_lightIntensitySlider->setValue(m_light->intensity * 100.f);
     connect(m_lightIntensitySlider, SIGNAL(valueChanged(int)), this, SLOT(onLightIntensityChanged(int)));
-    m_lightIntensityValue = new QLabel("1");
+    m_lightIntensityValue = new QLabel(QString::number(m_light->intensity));
     QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
     lightIntensityLayout->addWidget(new QLabel("Intensity:"));
     lightIntensityLayout->addWidget(m_lightIntensitySlider);
@@ -157,6 +157,38 @@ void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
 {
     m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(c);
     m_cameraFov->setValue(m_camera->getFoV());
+}
+
+void WidgetEnvironment::setEnvironmentType(const EnvironmentType& type, bool updateUI)
+{
+    if (updateUI){
+        m_environmentPicker->setCurrentIndex(static_cast<int>(type));
+    }
+
+    switch (type)
+    {
+    case EnvironmentType::SOLID_COLOR:
+        m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR);
+        /* Set the contribution of IBL lighting to 0 */
+        m_scene->setAmbientIBL(0);
+        m_comboMaps->hide();
+        m_backgroundColorWidget->show();
+        break;
+    case EnvironmentType::HDRI:
+        m_scene->setEnvironmentType(EnvironmentType::HDRI);
+        m_scene->setAmbientIBL(1);
+        m_comboMaps->show();
+        m_backgroundColorWidget->hide();
+        break;
+    case EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING:
+        m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING);
+        m_scene->setAmbientIBL(1);
+        m_comboMaps->show();
+        m_backgroundColorWidget->show();
+        break;
+    default:
+        break;
+    }
 }
 
 void WidgetEnvironment::updateCamera()
@@ -255,31 +287,7 @@ void WidgetEnvironment::onCameraWidgetChanged(double)
 void WidgetEnvironment::onEnvironmentChanged(int)
 {
     EnvironmentType environmentType = static_cast<EnvironmentType>(m_environmentPicker->currentIndex());
-
-    switch (environmentType)
-    {
-    case EnvironmentType::SOLID_COLOR:
-        m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR);
-        /* Set the contribution of IBL lighting to 0 */
-        m_scene->setAmbientIBL(0);
-        m_comboMaps->hide();
-        m_backgroundColorWidget->show();
-        break;
-    case EnvironmentType::HDRI:
-        m_scene->setEnvironmentType(EnvironmentType::HDRI);
-        m_scene->setAmbientIBL(1);
-        m_comboMaps->show();
-        m_backgroundColorWidget->hide();
-        break;
-    case EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING:
-        m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING);
-        m_scene->setAmbientIBL(1);
-        m_comboMaps->show();
-        m_backgroundColorWidget->show();
-        break;
-    default:
-        break;
-    }
+    setEnvironmentType(environmentType, false);
 }
 
 void WidgetEnvironment::onCameraFovChanged(double)

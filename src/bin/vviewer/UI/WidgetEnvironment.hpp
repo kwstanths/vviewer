@@ -27,6 +27,9 @@ public:
     void updateMaps();
 
     void setCamera(std::shared_ptr<Camera> c);
+
+    void setEnvironmentType(const EnvironmentType& type, bool updateUI = false);
+
 private:
     QComboBox* m_environmentPicker;
     QComboBox* m_comboMaps;

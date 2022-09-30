@@ -117,7 +117,7 @@ QWidget * MainWindow::initControlsWidget()
 
     Transform lightTransform;
     lightTransform.setRotationEuler(0, glm::radians(180.0f), 0);
-    auto light = std::make_shared<DirectionalLight>(lightTransform, glm::vec3(1, 0.9, 0.8), 1.F);
+    auto light = std::make_shared<DirectionalLight>(lightTransform, glm::vec3(1, 0.9, 0.8), 0.F);
     m_vulkanWindow->m_scene->setDirectionalLight(light);
     
     m_widgetEnvironment = new WidgetEnvironment(nullptr, m_vulkanWindow->m_scene);
@@ -200,6 +200,11 @@ QTreeWidgetItem* MainWindow::createTreeWidgetItem(std::shared_ptr<SceneObject> o
     return item;
 }
 
+std::shared_ptr<SceneObject> MainWindow::getSceneObject(QTreeWidgetItem* item) const
+{
+    return item->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+}
+
 void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
 {
     /* If it's the previously selected item, return */
@@ -210,7 +215,7 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     clearControlsUI();
 
     /* Get selected object */
-    std::shared_ptr<SceneObject> sceneObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+    std::shared_ptr<SceneObject> sceneObject = getSceneObject(selectedItem);
     /* Remove UI selection if needed */
     if (!selectedItem->isSelected()) {
         selectedItem->setSelected(true);
@@ -220,7 +225,7 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     /* Remove selection from previously selected item */
     if (m_selectedPreviousWidgetItem != nullptr) {
         m_selectedPreviousWidgetItem->setSelected(false);
-        std::shared_ptr<SceneObject> previousSelected = m_selectedPreviousWidgetItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+        std::shared_ptr<SceneObject> previousSelected = getSceneObject(m_selectedPreviousWidgetItem);
         previousSelected->m_isSelected = false;
     }
 
@@ -262,7 +267,7 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
 
 void MainWindow::removeObjectFromScene(QTreeWidgetItem* treeItem)
 {
-    std::shared_ptr<SceneObject> selectedObject = treeItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+    std::shared_ptr<SceneObject> selectedObject = getSceneObject(treeItem);
 
     m_scene->removeSceneObject(selectedObject);
 
@@ -285,20 +290,20 @@ void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string 
     AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
     if (!instanceModels.isPresent(modelName))
     {
-        utils::ConsoleWarning("VulkanScene::CreateObject(): Mesh model " + modelName + " is not imported");
+        utils::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Mesh model " + modelName + " is not imported");
         return;
     }
     AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
     if (!instanceMaterials.isPresent(material)) 
     {
-        utils::ConsoleWarning("VulkanScene::CreateObject(): Material " + material + " is not created");
+        utils::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Material " + material + " is not created");
         return;
     }
 
     MeshModel* meshhModel = instanceModels.Get(modelName);
     std::vector<Mesh*> modelMeshes = meshhModel->getMeshes();
     
-    std::shared_ptr<SceneObject> parentObject = parentItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+    std::shared_ptr<SceneObject> parentObject = getSceneObject(parentItem);
 
     /* For all meshes inside the mesh model, add then in the scene and the UI */
     for (auto& m : modelMeshes) {
@@ -336,6 +341,74 @@ void MainWindow::clearControlsUI()
     }
 }
 
+void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTreeWidgetItem * parentItem, std::string sceneFolder)
+{
+    /* Create scene object */
+    std::shared_ptr<SceneObject> sceneObject;
+    QTreeWidgetItem* sceneItem;
+    if (parentItem == nullptr)
+    {
+        /* Add in root */
+        sceneObject = m_scene->addSceneObject(object.name, Transform());
+        sceneItem = createTreeWidgetItem(sceneObject);
+        m_sceneGraphWidget->addTopLevelItem(sceneItem);
+    } else {
+        std::shared_ptr<SceneObject> parentObject = getSceneObject(parentItem);
+
+        sceneObject = m_scene->addSceneObject(object.name, parentObject, Transform());
+        sceneItem = createTreeWidgetItem(sceneObject);
+        parentItem->addChild(sceneItem);
+    }
+
+    /* Add mesh component */
+    if (object.mesh != nullptr) {
+        const MeshModel * meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.mesh->path);
+        if (meshModel != nullptr) {
+            if (object.mesh->submesh >= meshModel->getMeshes().size()) {
+                /* Imported mesh defines a path, but not a submesh, import everything under this scene object and return */
+                addSceneObjectMeshes(sceneItem,sceneFolder + object.mesh->path, object.material);
+                return;
+            } else{
+                Mesh * mesh = meshModel->getMeshes()[object.mesh->submesh];
+                sceneObject->assign(mesh);
+            }
+        } else {
+            utils::ConsoleWarning("Can't import: " + sceneFolder + object.mesh->path);
+        }
+        delete object.mesh;
+    }
+
+    /* Add material */
+    if (object.material != ""){
+        AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
+        if (!instanceMaterials.isPresent(object.material)) 
+        {
+            utils::ConsoleWarning("Material " + object.material + " is not created");
+            return;
+        }
+        sceneObject->assign(instanceMaterials.Get(object.material));
+    }
+
+    /* Add light */
+    if (object.light != nullptr && object.light->type == ImportedScenePointLightType::POINT) {
+        PointLight * light = new PointLight(object.light->color, object.light->intensity);
+        sceneObject->assign(light);
+    }
+
+    /* Set transform */
+    Transform t;
+    t.setPosition(object.position);
+    t.setScale(object.scale);
+    t.setRotationEuler(glm::radians(object.rotation.x), glm::radians(object.rotation.y), glm::radians(object.rotation.z));
+    sceneObject->m_localTransform = t;
+
+    /* Add children */
+    for(auto itr : object.children)
+    {
+        addImportedSceneObject(itr, sceneItem, sceneFolder);
+    }
+}
+
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
@@ -344,7 +417,7 @@ void MainWindow::onImportModelSlot()
 
     if (filename == "") return;
 
-    bool ret = m_vulkanWindow->m_renderer->createVulkanMeshModel(filename.toStdString());
+    bool ret = m_vulkanWindow->m_renderer->createVulkanMeshModel(filename.toStdString()) != nullptr;
  
     if (ret) {
         utils::ConsoleInfo("Model imported");
@@ -479,6 +552,7 @@ void MainWindow::onImportScene()
                 Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                 mat->setAlbedoTexture(tex);
             }
+            mat->emissive() = m.emissiveValue;
         } 
         else if (m.type == ImportedSceneMaterialType::DISNEY)
         {
@@ -505,6 +579,7 @@ void MainWindow::onImportScene()
                 Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                 if (tex != nullptr) mat->setNormalTexture(tex);
             }
+            mat->emissive() = m.emissiveValue;
         }
     }
 
@@ -513,13 +588,17 @@ void MainWindow::onImportScene()
         EnvironmentMap* envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
         if (envMap) {
             utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
-            m_widgetEnvironment->updateMaps();
 
             AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
             MaterialSkybox* material = materials.Get("skybox");
 
             material->setMap(envMap);
-        }
+
+            m_widgetEnvironment->updateMaps();
+            m_widgetEnvironment->setEnvironmentType(EnvironmentType::HDRI);
+        } 
+    } else {
+        m_widgetEnvironment->setEnvironmentType(EnvironmentType::SOLID_COLOR);
     }
 
     /* Remove old scene */
@@ -530,28 +609,11 @@ void MainWindow::onImportScene()
     m_selectedPreviousWidgetItem = nullptr;
 
     /* Create new scene */
-    /* Create a top level item, and add everything below it */
-    std::shared_ptr<SceneObject> object = m_scene->addSceneObject("New object (" + std::to_string(m_nObjects++) + ")", Transform());
-    QTreeWidgetItem* parentItem = createTreeWidgetItem(object);
-    m_sceneGraphWidget->addTopLevelItem(parentItem);
-
     utils::ConsoleInfo("Importing models...");
     for (auto& o : sceneObjects) 
     {
-        bool ret = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + o.path);
-        if (ret) {
-            utils::ConsoleInfo(sceneFolder + o.path + " imported");
-        }
-
-        Transform t;
-        t.setPosition(o.position);
-        t.setScale(o.scale);
-        t.setRotationEuler(glm::radians(o.rotation.x), glm::radians(o.rotation.y), glm::radians(o.rotation.z));
-
-        addSceneObjectMeshes(parentItem, sceneFolder + o.path, o.material);
+        addImportedSceneObject(o, nullptr, sceneFolder);
     }
-
-    selectObject(parentItem);
 
     utils::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
@@ -590,7 +652,7 @@ void MainWindow::onAddSceneObjectSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    std::shared_ptr<SceneObject> parentObject = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+    std::shared_ptr<SceneObject> parentObject = getSceneObject(selectedItem);
 
     /* Create parent oject */
     /* TODO set a some other way name */
@@ -653,7 +715,7 @@ void MainWindow::onAddPointLightSlot()
         onAddPointLightRootSlot();
         return;
     }
-    std::shared_ptr<SceneObject> selected = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+    std::shared_ptr<SceneObject> selected = getSceneObject(selectedItem);
 
     std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject("Point light", selected, Transform());
     PointLight * light = new PointLight({1, 1, 1}, 1.F);
@@ -678,6 +740,8 @@ void MainWindow::onExportSceneSlot()
     if (folderName == "") return;
 
     m_scene->exportScene(dialog->getDestinationFolderName(), dialog->getResolutionWidth(), dialog->getResolutionHeight(), dialog->getSamples());
+
+    utils::ConsoleInfo("Scene exported: " + folderName);
 
     delete dialog;
 }
@@ -706,7 +770,7 @@ void MainWindow::onSelectedSceneObjectNameChangedSlot()
     QString newName = m_selectedObjectWidgetName->m_text->toPlainText();
 
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
-    std::shared_ptr<SceneObject> object = selectedItem->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+    std::shared_ptr<SceneObject> object = getSceneObject(selectedItem);
 
     object->m_name = newName.toStdString();
     selectedItem->setText(0, newName);

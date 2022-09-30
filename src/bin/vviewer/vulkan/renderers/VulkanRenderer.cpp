@@ -117,7 +117,7 @@ void VulkanRenderer::initResources()
     /* Import some models */
     createVulkanMeshModel("assets/models/uvsphere.obj");
     createVulkanMeshModel("assets/models/plane.obj");
-    createVulkanMeshModel("assets/models/rtscene.obj");
+    createVulkanMeshModel("assets/models/cube.obj");
 
     /* Create a skybox material */
     {
@@ -447,28 +447,29 @@ void VulkanRenderer::startNextFrame()
 
     /* UI pass */
     {
-        VkRenderPassBeginInfo rpBeginInfo;
-        memset(&rpBeginInfo, 0, sizeof(rpBeginInfo));
-        rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        rpBeginInfo.renderPass = m_renderPassUI;
-        rpBeginInfo.framebuffer = m_framebuffersUI[imageIndex];
-        rpBeginInfo.renderArea.offset = { 0, 0 };
-        rpBeginInfo.renderArea.extent.width = m_swapchainExtent.width;
-        rpBeginInfo.renderArea.extent.height = m_swapchainExtent.height;
-        rpBeginInfo.clearValueCount = 0;
-        rpBeginInfo.pClearValues = nullptr;
-        m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        
         /* Render a transform if an object is selected */
         if (m_selectedObject != nullptr) {
+            VkRenderPassBeginInfo rpBeginInfo;
+            memset(&rpBeginInfo, 0, sizeof(rpBeginInfo));
+            rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            rpBeginInfo.renderPass = m_renderPassUI;
+            rpBeginInfo.framebuffer = m_framebuffersUI[imageIndex];
+            rpBeginInfo.renderArea.offset = { 0, 0 };
+            rpBeginInfo.renderArea.extent.width = m_swapchainExtent.width;
+            rpBeginInfo.renderArea.extent.height = m_swapchainExtent.height;
+            rpBeginInfo.clearValueCount = 0;
+            rpBeginInfo.pClearValues = nullptr;
+            m_devFunctions->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        
             glm::vec3 transformPosition = m_selectedObject->getWorldPosition();
             m_renderer3DUI.renderTransform(cmdBuf,
                 m_descriptorSetsScene[imageIndex],
                 imageIndex,
                 m_selectedObject->m_modelMatrix,
                 glm::distance(transformPosition, m_scene->getCamera()->getTransform().getPosition()));
+                
+            m_devFunctions->vkCmdEndRenderPass(cmdBuf);
         }
-        m_devFunctions->vkCmdEndRenderPass(cmdBuf);
     }
 
     /* Copy highlight output to temp color selection iamge */
@@ -503,23 +504,24 @@ void VulkanRenderer::startNextFrame()
     m_window->requestUpdate(); // render continuously, throttled by the presentation rate
 }
 
-bool VulkanRenderer::createVulkanMeshModel(std::string filename)
+MeshModel * VulkanRenderer::createVulkanMeshModel(std::string filename)
 {
     AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
 
-    if (instance.isPresent(filename)) return false;
+    if (instance.isPresent(filename)) return instance.Get(filename);
     
     try {
         std::vector<Mesh> meshes = assimpLoadModel(filename);
         VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), meshes);
         vkmesh->setName(filename);
         instance.Add(filename, vkmesh);
+        return vkmesh;
     } catch (std::runtime_error& e) {
         utils::Console(utils::DebugLevel::WARNING, "Failed to create a Vulkan Mesh Model: " + std::string(e.what()));
-        return false;
+        return nullptr;
     }
 
-    return true;
+    return nullptr;
 }
 
 VulkanScene* VulkanRenderer::getActiveScene() const

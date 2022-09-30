@@ -31,13 +31,20 @@ static std::unordered_map<std::string, ImportedSceneMaterialType> importedMateri
 struct ImportedSceneMaterial {
 	std::string name;
 	ImportedSceneMaterialType type;
+
 	std::string albedoTexture = "";
 	glm::vec3 albedoValue = {1, 1, 1};
+
 	std::string roughnessTexture;
 	float roughnessValue = 1;
+
 	std::string metallicTexture;
 	float metallicValue = 1;
+
 	std::string normalTexture;
+
+	float emissiveValue = 0;
+
 	std::string stackDir = "";
 };
 
@@ -45,13 +52,35 @@ struct ImportedSceneEnvironment {
 	std::string path = "";
 };
 
+struct ImportedSceneObjectMesh {
+	std::string path = "";
+	int submesh = -1;;
+};
+
+enum ImportedScenePointLightType {
+	POINT = 0,
+	DISTANT = 1,
+};
+struct ImportedSceneObjectLight {
+	ImportedScenePointLightType type;
+	glm::vec3 color = {1, 1, 1};
+	float intensity = 1.F;
+};
+
 struct ImportedSceneObject {
 	std::string name;
-	std::string path;
-	std::string material;
+	ImportedSceneObjectMesh * mesh = nullptr;
+	std::string material = "";
+	ImportedSceneObjectLight * light = nullptr;
 	glm::vec3 position = {0, 0, 0};
 	glm::vec3 scale = { 1, 1, 1 };
 	glm::vec3 rotation = { 0, 0, 0 };
+
+	std::vector<ImportedSceneObject> children;
+
+	void destroy() {
+		if (mesh != nullptr) delete mesh;
+	}
 };
 
 std::string importScene(std::string filename, 
@@ -61,6 +90,9 @@ std::string importScene(std::string filename,
 	std::vector<ImportedSceneObject>& sceneObjects
 );
 
+ImportedSceneObject parseSceneObject(const rapidjson::Value& o);
+ImportedSceneObjectMesh * parseMesh(const rapidjson::Value& o);
+ImportedSceneObjectLight * parseLight(const rapidjson::Value& o);
 void parseAlbedo(ImportedSceneMaterial& m, const rapidjson::Value& o);
 
 #endif

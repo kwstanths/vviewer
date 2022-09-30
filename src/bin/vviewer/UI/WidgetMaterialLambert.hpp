@@ -18,11 +18,11 @@ public:
     WidgetMaterialLambert(QWidget* parent, MaterialLambert* material);
 
     QPushButton* m_colorButton;
-    QSlider* m_ao, * m_emissive;
+    QSlider* m_ao;
+    QDoubleSpinBox* m_emissive;
 
     QComboBox* m_comboBoxAlbedo;
     QComboBox* m_comboBoxAO;
-    QComboBox* m_comboBoxEmissive;
     QComboBox* m_comboBoxNormal;
 
 private:
@@ -36,8 +36,7 @@ private slots:
     void onColorTextureChanged(int);
     void onAOChanged();
     void onAOTextureChanged(int);
-    void onEmissiveChanged();
-    void onEmissiveTextureChanged(int);
+    void onEmissiveChanged(double);
     void onNormalTextureChanged(int);
 };
 
