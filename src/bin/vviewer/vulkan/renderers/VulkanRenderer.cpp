@@ -1,12 +1,14 @@
 #include "VulkanRenderer.hpp"
 
+#include <chrono>
+
+#include "QtConcurrent/qtconcurrentrun.h"
+
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <stb_image_write.h>
-
-#include <chrono>
 
 #include <utils/Console.hpp>
 
@@ -20,6 +22,21 @@ VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) :
     m_window(window), m_materialsUBO(100)
 {
     m_scene = scene;
+
+    /* Render loop */
+    QObject::connect(&m_frameWatcher, &QFutureWatcherBase::finished, [this] {
+        /* If the window has been closed, don't request new updates */
+        if (!m_window->isVisible()){
+            return;
+        }
+
+        /* If a frame is pending, then request update */
+        if (m_framePending) {
+            m_framePending = false;
+            m_window->frameReady();
+            m_window->requestUpdate();
+        }
+    });
 }
 
 void VulkanRenderer::preInitResources()
@@ -192,6 +209,9 @@ void VulkanRenderer::initSwapChainResources()
 
 void VulkanRenderer::releaseSwapChainResources()
 {
+    /* Wait for all commands submitted to the queue to have finished running */
+    m_devFunctions->vkQueueWaitIdle(m_window->graphicsQueue());
+
     /* Destroy uniform buffers */
     for (int i = 0; i < m_window->swapChainImageCount(); i++) {
         m_devFunctions->vkDestroyBuffer(m_device, m_scene->m_uniformBuffersScene[i], nullptr);
@@ -296,6 +316,17 @@ void VulkanRenderer::releaseResources()
 }
 
 void VulkanRenderer::startNextFrame()
+{
+    /* A frame should never be pending when this is called */
+    Q_ASSERT(!m_framePending);
+
+    /* Start preparing the next frame, when finished, the m_frameWatcher:finished will be called */
+    m_framePending = true;
+    QFuture<void> future = QtConcurrent::run(&VulkanRenderer::buildFrame, this);
+    m_frameWatcher.setFuture(future);
+}
+
+void VulkanRenderer::buildFrame()
 {
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
     m_scene->updateSceneGraph();
@@ -499,10 +530,8 @@ void VulkanRenderer::startNextFrame()
             1, 
             &copyRegion);
     }
-
-    m_window->frameReady();
-    m_window->requestUpdate(); // render continuously, throttled by the presentation rate
 }
+
 
 MeshModel * VulkanRenderer::createVulkanMeshModel(std::string filename)
 {

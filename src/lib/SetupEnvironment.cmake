@@ -15,7 +15,7 @@ macro(SetupEnvironment)
     
     # QT
     set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{Qt6_DIR})
-    find_package(Qt6 COMPONENTS Widgets REQUIRED)
+    find_package(Qt6 COMPONENTS Widgets Concurrent REQUIRED)
     set(QT_INCLUDE_DIRS ${Qt6Widgets_INCLUDE_DIRS})
     set(QT_LIBRARIES Qt6::Widgets)
     

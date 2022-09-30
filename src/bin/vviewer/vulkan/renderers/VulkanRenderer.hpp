@@ -6,6 +6,7 @@
 
 #include <qvulkanwindow.h>
 #include <qvulkanfunctions.h>
+#include <qfuturewatcher.h>
 
 #include <utils/Console.hpp>
 
@@ -85,11 +86,17 @@ private:
     bool createDescriptorSets();
     bool createColorSelectionTempImage();
     
+    /* Render */
+    void buildFrame();
+
 private:
     /* Qt vulkan data */
     QVulkanWindow * m_window;
     QVulkanFunctions * m_functions;
     QVulkanDeviceFunctions * m_devFunctions;
+    /* For concurrent frame render */
+    QFutureWatcher<void> m_frameWatcher;
+    bool m_framePending;
     
     /* Swpachain data */
     VkExtent2D m_swapchainExtent;
