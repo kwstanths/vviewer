@@ -28,7 +28,7 @@ struct PointLight : public Light, public Component
 static float squareFalloff(glm::vec3 a, glm::vec3 b) 
 {
     float distance = glm::length(a - b);
-    return 1.0 / (distance * distance);
+    return 1.0F / (distance * distance);
 }
 
 #endif

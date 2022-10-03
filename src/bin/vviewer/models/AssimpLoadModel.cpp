@@ -8,6 +8,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/pbrmaterial.h>
 
+#include "utils/Console.hpp"
 
 std::vector<Mesh> assimpLoadModel(std::string filename)
 {
@@ -84,5 +85,11 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
     
     Mesh temp(vertices, indices, hasNormals, hasUVs);
     temp.m_name = mesh->mName.C_Str();
+    
+    if (!hasUVs)
+    {
+        utils::ConsoleWarning("Mesh: [" + std::string(scene->mRootNode->mName.C_Str()) + " : " + std::string(temp.m_name) + "] doesn't have UV coordinates");
+    }
+
     return temp;
 }

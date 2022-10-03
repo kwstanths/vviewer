@@ -16,17 +16,17 @@ struct ImportedSceneCamera {
 	float fov;
 };
 
-enum ImportedSceneMaterialType {
+enum class ImportedSceneMaterialType {
 	DIFFUSE = 0,
 	DISNEY = 1,
 	STACK = 2,
 };
 static std::unordered_map<std::string, ImportedSceneMaterialType> importedMaterialTypeNames = {
-	{"DIFFUSE" , DIFFUSE },
-	{"DISNEY12", DISNEY },
-	{"DISNEY15", DISNEY },
-	{"STACK12", STACK },
-	{"STACK15", STACK}
+	{"DIFFUSE" , ImportedSceneMaterialType::DIFFUSE },
+	{"DISNEY12", ImportedSceneMaterialType::DISNEY },
+	{"DISNEY15", ImportedSceneMaterialType::DISNEY },
+	{"STACK12", ImportedSceneMaterialType::STACK },
+	{"STACK15", ImportedSceneMaterialType::STACK}
 };
 struct ImportedSceneMaterial {
 	std::string name;
@@ -57,7 +57,7 @@ struct ImportedSceneObjectMesh {
 	int submesh = -1;;
 };
 
-enum ImportedScenePointLightType {
+enum class ImportedScenePointLightType {
 	POINT = 0,
 	DISTANT = 1,
 };

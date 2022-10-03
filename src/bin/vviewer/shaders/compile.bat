@@ -1,3 +1,5 @@
+echo off
+
 set glslcLocation=%VULKAN_SDK%\Bin\glslc.exe
 
 %glslcLocation% standard.vert -o SPIRV/standardVert.spv

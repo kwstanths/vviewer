@@ -68,11 +68,11 @@ std::string importScene(std::string filename,
     {
         materials[m].name = doc["materials"][m]["name"].GetString();
         materials[m].type = importedMaterialTypeNames[std::string(doc["materials"][m]["type"].GetString())];
-        if (materials[m].type == STACK)
+        if (materials[m].type == ImportedSceneMaterialType::STACK)
         {
             materials[m].stackDir = doc["materials"][m]["path"].GetString();
         }
-        else if (materials[m].type == DISNEY) {
+        else if (materials[m].type == ImportedSceneMaterialType::DISNEY) {
             parseAlbedo(materials[m], doc["materials"][m]);
 
             if (doc["materials"][m].HasMember("roughness")) {
@@ -101,7 +101,7 @@ std::string importScene(std::string filename,
                 materials[m].emissiveValue = doc["materials"][m]["emissive"].GetFloat();
             }
         }
-        else if (materials[m].type == DIFFUSE) {
+        else if (materials[m].type == ImportedSceneMaterialType::DIFFUSE) {
             parseAlbedo(materials[m], doc["materials"][m]);
         }
     }

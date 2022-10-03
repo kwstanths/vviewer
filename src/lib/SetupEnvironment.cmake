@@ -1,10 +1,10 @@
 macro(SetupEnvironment)
 
-	set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
-	set(LIBS_ROOT $ENV{LIBS_ROOT})
+    set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
+    set(LIBS_ROOT $ENV{LIBS_ROOT})
     
-	# Check compiler for c++11
-	include(CheckCXXCompilerFlag)
+    # Check compiler for c++11
+    include(CheckCXXCompilerFlag)
     CHECK_CXX_COMPILER_FLAG("/std:c++latest" _cpp_latest_flag_supported)
     if (_cpp_latest_flag_supported)
         add_compile_options("/std:c++latest")

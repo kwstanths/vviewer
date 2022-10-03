@@ -14,8 +14,6 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     m_indices = indices;
     m_hasNormals = hasNormals;
     m_hasUVs = hasNormals;
-
-    if (!hasUVs) utils::ConsoleWarning("Mesh doesn't have UV coordinates");
 }
 
 const std::vector<Vertex>& Mesh::getVertices() const

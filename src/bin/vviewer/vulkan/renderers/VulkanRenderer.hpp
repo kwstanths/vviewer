@@ -96,7 +96,7 @@ private:
     QVulkanDeviceFunctions * m_devFunctions;
     /* For concurrent frame render */
     QFutureWatcher<void> m_frameWatcher;
-    bool m_framePending;
+    bool m_framePending = false;
     
     /* Swpachain data */
     VkExtent2D m_swapchainExtent;
