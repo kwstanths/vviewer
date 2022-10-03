@@ -25,4 +25,10 @@ struct PointLight : public Light, public Component
     PointLight(glm::vec3 color, float intensity): Light(color, intensity), Component(ComponentType::POINT_LIGHT) {};
 };
 
+static float squareFalloff(glm::vec3 a, glm::vec3 b) 
+{
+    float distance = glm::length(a - b);
+    return 1.0 / (distance * distance);
+}
+
 #endif

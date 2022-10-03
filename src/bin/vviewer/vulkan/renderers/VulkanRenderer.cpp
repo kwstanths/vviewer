@@ -33,6 +33,7 @@ VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) :
         /* If a frame is pending, then request update */
         if (m_framePending) {
             m_framePending = false;
+
             m_window->frameReady();
             m_window->requestUpdate();
         }
@@ -327,7 +328,7 @@ void VulkanRenderer::startNextFrame()
 }
 
 void VulkanRenderer::buildFrame()
-{
+{   
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
     m_scene->updateSceneGraph();
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
@@ -429,25 +430,32 @@ void VulkanRenderer::buildFrame()
             t.lightPosition = glm::vec4(pl->getWorldPosition(), 0);
             for (auto& obj : pbrStandardObjects)
             {
-                m_rendererPBR.renderObjectsAddPass(cmdBuf,
-                    m_descriptorSetsScene[imageIndex],
-                    m_descriptorSetsModel[imageIndex],
-                    imageIndex,
-                    m_scene->m_modelDataDynamicUBO,
-                    obj,
-                    t
-                );
+                /* Check if light contributes enough */
+                if ( (light->intensity * squareFalloff(glm::vec3(t.lightPosition), obj->getWorldPosition())) > 0.05F )
+                {
+                    m_rendererPBR.renderObjectsAddPass(cmdBuf,
+                        m_descriptorSetsScene[imageIndex],
+                        m_descriptorSetsModel[imageIndex],
+                        imageIndex,
+                        m_scene->m_modelDataDynamicUBO,
+                        obj,
+                        t
+                    );
+                }
             }
             for (auto& obj : lambertObjects)
             {
-                m_rendererLambert.renderObjectsAddPass(cmdBuf,
-                    m_descriptorSetsScene[imageIndex],
-                    m_descriptorSetsModel[imageIndex],
-                    imageIndex,
-                    m_scene->m_modelDataDynamicUBO,
-                    obj,
-                    t
-                );
+                if ( (light->intensity * squareFalloff(glm::vec3(t.lightPosition), obj->getWorldPosition())) > 0.05F )
+                {
+                    m_rendererLambert.renderObjectsAddPass(cmdBuf,
+                        m_descriptorSetsScene[imageIndex],
+                        m_descriptorSetsModel[imageIndex],
+                        imageIndex,
+                        m_scene->m_modelDataDynamicUBO,
+                        obj,
+                        t
+                    );
+                }
             }
         }
 
@@ -861,6 +869,7 @@ bool VulkanRenderer::pickPhysicalDevice()
         if (isPhysicalDeviceSuitable(deviceProperties[i])) {
             m_window->setPhysicalDeviceIndex(i);
             m_msaaSamples = getMaxUsableSampleCount(deviceProperties[i]);
+            utils::ConsoleInfo("Using device: " + std::string(deviceProperties[i].deviceName));
             return true;
         }
     }
