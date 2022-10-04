@@ -3,6 +3,8 @@
 #include <qevent.h>
 #include <qapplication.h>
 
+#include <zip.h>
+
 VulkanWindow::VulkanWindow()
 {
     m_scene = new VulkanScene(150);
@@ -59,6 +61,115 @@ Material* VulkanWindow::importMaterial(std::string name, std::string stackDirect
 
     return material;
 }
+
+Material* VulkanWindow::importZipMaterial(std::string name, std::string filename)
+{
+    struct zip_t *zip = zip_open(filename.c_str(), 0, 'r');
+
+    /* Get .xtex file name */
+    std::string xtexName;
+    int i, n = zip_entries_total(zip);
+    for (i = 0; i < n; ++i) {
+        zip_entry_openbyindex(zip, i);
+        {
+            const std::string name = std::string(zip_entry_name(zip));
+            auto pointPos = name.find(".");
+            if (pointPos != std::string::npos && name.substr(pointPos) == ".xtex") {
+                xtexName = name;
+            }
+        }
+        zip_entry_close(zip);
+    }
+
+    void *buf = NULL;
+    size_t bufsize;
+
+    /* Parse .xtex file paremeters */
+    glm::vec2 uv(1.F);
+    if (zip_entry_open(zip, xtexName.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        std::string testT((char *)buf);
+
+        const std::string X =
+            testT.substr(0, testT.find("</width>")).substr(testT.find("<width>") + std::string("<width>").length());
+        const std::string Y =
+            testT.substr(0, testT.find("</height>")).substr(testT.find("<height>") + std::string("<height>").length());
+
+        uv *= glm::vec2(std::stof(X), std::stof(Y));
+        zip_entry_close(zip);
+    }
+
+    /* Parse albedo */
+    Texture * albedoTexture = nullptr;
+    std::string albedoZipPath = "textures/albedo.png";
+    if (zip_entry_open(zip, albedoZipPath.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        int32_t x, y;
+        stbi_uc *rawImgBuffer = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, 4);
+
+        Image<stbi_uc> image(rawImgBuffer, x, y, 4, false);
+        std::string id = filename + ":" + albedoZipPath;
+        albedoTexture = m_renderer->createTexture(id, &image, VK_FORMAT_R8G8B8A8_SRGB);
+        if (albedoTexture == nullptr) {
+            utils::ConsoleWarning("Unable to load albedo from zip texture stack");
+        }
+        /* entry_close will delete the memory */
+        zip_entry_close(zip);
+    }
+
+    /* Parse roughness */
+    Texture * roughnessTexture = nullptr;
+    std::string roughnessZipPath = "textures/roughness.png";
+    if (zip_entry_open(zip, roughnessZipPath.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        int32_t x, y;
+        stbi_uc *rawImgBuffer = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, 4);
+
+        Image<stbi_uc> image(rawImgBuffer, x, y, 4, false);
+        std::string id = filename + ":" + roughnessZipPath;
+        roughnessTexture = m_renderer->createTexture(id, &image, VK_FORMAT_R8G8B8A8_UNORM);
+        if (roughnessTexture == nullptr) {
+            utils::ConsoleWarning("Unable to load roughness from zip texture stack");
+        }
+        /* entry_close will delete the memory */
+        zip_entry_close(zip);
+    }
+
+    /* Parse normal */
+    Texture * normalTexture = nullptr;
+    std::string normalZipPath = "textures/normal.png";
+    if (zip_entry_open(zip, normalZipPath.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        int32_t x, y;
+        stbi_uc *rawImgBuffer = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, 4);
+
+        Image<stbi_uc> image(rawImgBuffer, x, y, 4, false);
+        std::string id = filename + ":" + normalZipPath;
+        normalTexture = m_renderer->createTexture(id, &image, VK_FORMAT_R8G8B8A8_UNORM);
+        if (normalTexture == nullptr) {
+            utils::ConsoleWarning("Unable to load normal from zip texture stack");
+        }
+        /* entry_close will delete the memory */
+        zip_entry_close(zip);
+    }
+
+    MaterialPBRStandard* mat = dynamic_cast<MaterialPBRStandard*>(m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
+    mat->setAlbedoTexture(albedoTexture);
+    mat->setRoughnessTexture(roughnessTexture);
+    mat->roughness() = 1.0F;
+    mat->setNormalTexture(normalTexture);
+    mat->metallic() = 0.0F;
+    mat->uTiling() = uv.x;
+    mat->vTiling() = uv.y;
+    mat->m_path = filename;
+
+    return mat;
+}
+
 
 void VulkanWindow::resizeEvent(QResizeEvent * ev)
 {

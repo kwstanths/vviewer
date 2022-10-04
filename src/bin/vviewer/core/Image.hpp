@@ -23,6 +23,15 @@ public:
         if (m_data == nullptr) throw std::runtime_error("Unable to load image from disk: " + filename);
     }
 
+    Image(T * data, int width, int height, int channels, bool freeDataOnDestroy) 
+    {
+        m_data = data;
+        m_width = width;
+        m_height = height;
+        m_channels = channels;
+        m_freeDataOnDestroy = freeDataOnDestroy;
+    }
+
     Image(Color color) {
         m_width = 1;
         m_height = 1;
@@ -72,7 +81,10 @@ public:
         }
     }
     ~Image() {
-        stbi_image_free(m_data);
+        if (m_freeDataOnDestroy) 
+        {
+            stbi_image_free(m_data);
+        }
     }
 
     T * getData() {
@@ -96,6 +108,7 @@ public:
 private:
     int m_width, m_height, m_channels;
     T * m_data;
+    bool m_freeDataOnDestroy = true;
 };
 
 template<> stbi_uc * Image<stbi_uc>::loadDiskImage(std::string filename, int& width, int& height, int& channels);

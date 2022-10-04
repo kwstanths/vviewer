@@ -5,3 +5,4 @@ endif()
 
 ### UTILS ###
 add_subdirectory(utils)
+add_subdirectory(external/zip)

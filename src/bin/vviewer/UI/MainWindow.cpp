@@ -6,6 +6,7 @@
 #include <qmenubar.h>
 #include <qfiledialog.h>
 #include <QVariant>
+
 #include <glm/glm.hpp>
 
 #include <utils/Console.hpp>
@@ -150,6 +151,9 @@ void MainWindow::createMenu()
     QAction* actionImportMaterial = new QAction(tr("&Import material"), this);
     actionImportMaterial->setStatusTip(tr("Import material"));
     connect(actionImportMaterial, &QAction::triggered, this, &MainWindow::onImportMaterial);
+    QAction* actionImportMaterialZipStack = new QAction(tr("&Import material ZIP"), this);
+    actionImportMaterialZipStack->setStatusTip(tr("Import material ZIP"));
+    connect(actionImportMaterialZipStack, &QAction::triggered, this, &MainWindow::onImportMaterialZipStackSlot);
     QAction* actionImportScene = new QAction(tr("&Import scene"), this);
     actionImportScene->setStatusTip(tr("Import scene"));
     connect(actionImportScene, &QAction::triggered, this, &MainWindow::onImportScene);
@@ -179,6 +183,7 @@ void MainWindow::createMenu()
     m_menuImport->addAction(actionImportHDRTexture);
     m_menuImport->addAction(actionImportEnvironmentMap);
     m_menuImport->addAction(actionImportMaterial);
+    m_menuImport->addAction(actionImportMaterialZipStack);
     m_menuImport->addAction(actionImportScene);
     QMenu * m_menuAdd = menuBar()->addMenu(tr("&Add"));
     m_menuAdd->addAction(addSceneObjectRootSlot);
@@ -498,6 +503,22 @@ void MainWindow::onImportMaterial()
     }
 }
 
+void MainWindow::onImportMaterialZipStackSlot()
+{
+    QString filename = QFileDialog::getOpenFileName(this,
+        tr("Import zip stack material"), "./assets/materials/",
+        tr("Model (*.zip);;All Files (*)"));
+
+    if (filename == "") return;
+
+    std::string materialName = filename.split('/').back().toStdString();
+
+    Material * mat = m_vulkanWindow->importZipMaterial(materialName, filename.toStdString());
+    if (mat != nullptr) {
+        if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
+    }
+}
+
 void MainWindow::onImportScene()
 {
     /* Select json file */
@@ -539,7 +560,9 @@ void MainWindow::onImportScene()
     for (auto& m : materials) {
         if (m.type == ImportedSceneMaterialType::STACK)
         {
-            m_vulkanWindow->importMaterial(m.name, sceneFolder + m.stackDir);
+            /* Check if it's a zip file, or a directory of textures */
+            if (m.stackDir != "") m_vulkanWindow->importMaterial(m.name, sceneFolder + m.stackDir);
+            else if (m.stackFile != "") m_vulkanWindow->importZipMaterial(m.name, sceneFolder + m.stackFile);
         }
         else if (m.type == ImportedSceneMaterialType::DIFFUSE)
         {

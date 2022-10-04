@@ -151,6 +151,23 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, MaterialPBRStandard * mat
     connect(m_roughness, &QSlider::valueChanged, this, &WidgetMaterialPBR::onRoughnessChanged);
     connect(m_ao, &QSlider::valueChanged, this, &WidgetMaterialPBR::onAOChanged);
     connect(m_emissive, &QDoubleSpinBox::valueChanged, this, &WidgetMaterialPBR::onEmissiveChanged);
+
+    /* If it'a material parsed from a zip file, disable the UI */
+    if (material->m_path != "")
+    {
+        m_colorButton->setEnabled(false);
+        m_metallic->setEnabled(false);
+        m_roughness->setEnabled(false);
+        m_ao->setEnabled(false);
+        m_emissive->setEnabled(false);
+        m_comboBoxAlbedo->setEnabled(false);
+        m_comboBoxMetallic->setEnabled(false);
+        m_comboBoxRoughness->setEnabled(false);
+        m_comboBoxAO->setEnabled(false);
+        m_comboBoxNormal->setEnabled(false);
+        m_uTiling->setEnabled(false);
+        m_vTiling->setEnabled(false);
+    }
 }
 
 void WidgetMaterialPBR::onColorButton()

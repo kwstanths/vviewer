@@ -25,8 +25,9 @@ static std::unordered_map<std::string, ImportedSceneMaterialType> importedMateri
 	{"DIFFUSE" , ImportedSceneMaterialType::DIFFUSE },
 	{"DISNEY12", ImportedSceneMaterialType::DISNEY },
 	{"DISNEY15", ImportedSceneMaterialType::DISNEY },
+	{"STACK", ImportedSceneMaterialType::STACK },
 	{"STACK12", ImportedSceneMaterialType::STACK },
-	{"STACK15", ImportedSceneMaterialType::STACK}
+	{"STACK15", ImportedSceneMaterialType::STACK }
 };
 struct ImportedSceneMaterial {
 	std::string name;
@@ -45,6 +46,7 @@ struct ImportedSceneMaterial {
 
 	float emissiveValue = 0;
 
+	std::string stackFile = "";
 	std::string stackDir = "";
 };
 

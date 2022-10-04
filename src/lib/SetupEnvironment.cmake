@@ -36,6 +36,11 @@ macro(SetupEnvironment)
     set(RAPIDJSON_DIR ${PROJECT_ROOT}/src/lib/external/rapidjson)
     set(RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_DIR}/include)
 
+    #kuba-zip
+    set(ZIP_DIR ${PROJECT_ROOT}/src/lib/external/zip)
+    set(ZIP_INCLUDE_DIRS ${ZIP_DIR}/src)
+    set(ZIP_LIBRARIES zip)
+
     # UTILS
     set(UTILS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/utils/)
     set(UTILS_LIBRARIES utils)

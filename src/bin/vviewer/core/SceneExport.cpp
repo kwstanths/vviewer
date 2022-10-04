@@ -443,7 +443,7 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
 
             albedo.SetString(relativePath.c_str(), d.GetAllocator());
             mat.AddMember("albedo", albedo, d.GetAllocator());
-        }
+            }
 
         /* Set normal */
         if (m->getNormalTexture()->m_name != "normalmapdefault") {
@@ -476,6 +476,21 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
     case MaterialType::MATERIAL_PBR_STANDARD:
     {
         const MaterialPBRStandard* m = dynamic_cast<const MaterialPBRStandard*>(material);
+
+        /* If it's a zip stack material */
+        if (m->m_path != "")
+        {
+            Value type;
+            type.SetString("STACK");
+            mat.AddMember("type", type, d.GetAllocator());
+
+            std::string relativePath = "materials/" + copyFileToDirectoryAndGetFileName(m->m_path, materialsDirectory);
+
+            Value path;
+            path.SetString(relativePath.c_str(), d.GetAllocator());
+            mat.AddMember("path", path, d.GetAllocator());
+            break;
+        } 
 
         Value type;
         type.SetString("DISNEY12");

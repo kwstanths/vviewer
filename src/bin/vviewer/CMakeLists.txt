@@ -19,6 +19,7 @@ include_directories(${GLM_INCLUDE_DIRS})
 include_directories(${STB_INCLUDE_DIRS})
 include_directories(${ASSIMP_INCLUDE_DIRS})
 include_directories(${RAPIDJSON_INCLUDE_DIRS})
+include_directories(${ZIP_INCLUDE_DIRS})
 
 # Sources
 file(GLOB ${NAME}_HEADERS *.hpp)
@@ -53,7 +54,7 @@ add_executable(${NAME} ${GUI_TYPE}
 target_compile_features(${NAME} PRIVATE cxx_std_17)
     
 # Libraries
-target_link_libraries(${NAME} ${QT_LIBRARIES} ${VULKAN_LIBRARIES} ${UTILS_LIBRARIES} ${ASSIMP_LIBRARIES})
+target_link_libraries(${NAME} ${QT_LIBRARIES} ${VULKAN_LIBRARIES} ${UTILS_LIBRARIES} ${ASSIMP_LIBRARIES} ${ZIP_LIBRARIES})
 
 source_group("top_level\\"	FILES	${${NAME}_HEADERS} ${${NAME}_SOURCES})
 source_group("math\\"		FILES	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES})

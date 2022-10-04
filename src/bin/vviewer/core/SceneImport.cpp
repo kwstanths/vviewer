@@ -70,7 +70,13 @@ std::string importScene(std::string filename,
         materials[m].type = importedMaterialTypeNames[std::string(doc["materials"][m]["type"].GetString())];
         if (materials[m].type == ImportedSceneMaterialType::STACK)
         {
-            materials[m].stackDir = doc["materials"][m]["path"].GetString();
+            /* Check if it's a zip file or a folder path */
+            std::string path = doc["materials"][m]["path"].GetString();
+            if (path.substr(path.find_last_of(".") + 1) == "zip"){
+                materials[m].stackFile = path;
+            }else {
+                materials[m].stackDir = path;
+            }
         }
         else if (materials[m].type == ImportedSceneMaterialType::DISNEY) {
             parseAlbedo(materials[m], doc["materials"][m]);

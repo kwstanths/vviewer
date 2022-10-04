@@ -7,3 +7,6 @@
 [submodule "src/lib/external/rapidjson"]
 	path = src/lib/external/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "src/lib/external/zip"]
+	path = src/lib/external/zip
+	url = https://github.com/kuba--/zip.git

@@ -98,7 +98,7 @@ uint32_t DialogSceneExport::getSamples() const
 
 void DialogSceneExport::onButtonSetDestinationFolder()
 {
-	QString dir = QFileDialog::getExistingDirectory(this, "Choose directory", "./assets/scene/", QFileDialog::ShowDirsOnly);
+	QString dir = QFileDialog::getExistingDirectory(this, "Choose directory", "./assets/scenes/", QFileDialog::ShowDirsOnly);
 	if (dir == "") return;
 	
 	m_destinationFolderWidget->setText(dir);

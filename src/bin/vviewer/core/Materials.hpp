@@ -31,6 +31,9 @@ public:
 
     std::string m_name;
 
+    /* If it's a zip stack material */
+    std::string m_path = "";
+
     virtual MaterialType getType() const = 0;
 
 private:

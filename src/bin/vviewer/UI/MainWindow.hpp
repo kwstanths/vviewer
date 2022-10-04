@@ -80,6 +80,8 @@ private slots:
     void onImportEnvironmentMap();
     /* Import a material */
     void onImportMaterial();
+    /* Import a material from a zip stack */
+    void onImportMaterialZipStackSlot();
     /* Import a scene */
     void onImportScene();
     /* Add an object in the scene at root */
