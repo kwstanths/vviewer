@@ -11,6 +11,8 @@ class VulkanSceneObject : public SceneObject
 public:
     VulkanSceneObject(VulkanDynamicUBO<ModelData>& transformDynamicUBO);
 
+    ~VulkanSceneObject();
+
     void setModelMatrix(const glm::mat4& modelMatrix) override;
 
     void updateModelMatrixData(const glm::mat4& modelMatrix);
@@ -20,6 +22,7 @@ public:
 private:
     ModelData* m_modelData = nullptr;
     uint32_t m_transformUBOBlock = -1;
+    VulkanDynamicUBO<ModelData>& m_transformDynamicUBO;
 };
 
 #endif

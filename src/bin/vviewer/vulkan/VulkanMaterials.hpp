@@ -14,10 +14,16 @@ public:
     VulkanMaterialStorage(VulkanDynamicUBO<T>& materialsDynamicUBO)
         : m_materialsDataStorage(materialsDynamicUBO)
     {
-        /* Get an index for a free block */
+        /* Get an index for a free block in the material storage buffers */
         m_materialsUBOBlockIndex = static_cast<uint32_t>(m_materialsDataStorage.getFree());
         /* Get pointer to free block */
         m_data = m_materialsDataStorage.getBlock(m_materialsUBOBlockIndex);
+    }
+
+    ~VulkanMaterialStorage() 
+    {
+        /* Remove block index from the buffers */
+        m_materialsDataStorage.remove(m_materialsUBOBlockIndex);
     }
 
     uint32_t getUBOBlockIndex() const {
@@ -37,6 +43,8 @@ protected:
 /* A class that wraps descriptor creation for a material, needs to be implemented by each material */
 class VulkanMaterialDescriptor {
 public:
+    VulkanMaterialDescriptor(VkDescriptorSetLayout descriptorSetLayout);
+
     virtual bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) = 0;
     virtual bool updateDescriptorSets(VkDevice device, size_t images) = 0;
     virtual bool updateDescriptorSet(VkDevice device, size_t index) = 0;

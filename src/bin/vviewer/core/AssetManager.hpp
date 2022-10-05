@@ -36,13 +36,16 @@ public:
         if (itr != m_assets.end()) {
             return itr->second;
         }
-        throw std::runtime_error("Get: Asset not found");
+        throw std::runtime_error("Find: Asset not found: " + id);
     }
 
-    void Remove(AssetID id) {
-        if (!m_assets.erase(id)) {
-            throw std::runtime_error("Erase: Asset not found");
+    Iterator Remove(AssetID id) {
+        auto itr = m_assets.find(id);
+        if (itr == m_assets.end()){
+            throw std::runtime_error("Erase: Asset not found: " + id);
         }
+
+        return m_assets.erase(itr);
     }
 
     void Reset() {

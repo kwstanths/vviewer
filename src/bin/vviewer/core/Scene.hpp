@@ -85,6 +85,8 @@ protected:
     glm::vec3 m_backgroundColor = { 0, 0.5, 0.5 };
 
     virtual std::shared_ptr<SceneObject> createObject(std::string name) = 0;
+    
+    void removeIDs(std::vector<std::shared_ptr<SceneObject>>& objects);
 };
 
 #endif

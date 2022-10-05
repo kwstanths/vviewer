@@ -7,6 +7,11 @@
 
 #include <utils/Console.hpp>
 
+VulkanMaterialDescriptor::VulkanMaterialDescriptor(VkDescriptorSetLayout descriptorSetLayout) : m_descriptorSetLayout(descriptorSetLayout)
+{
+
+}
+
 VkDescriptorSet VulkanMaterialDescriptor::getDescriptor(size_t index)
 {
     return m_descriptorSets[index];
@@ -26,10 +31,8 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     VkDevice device,
     VkDescriptorSetLayout descriptorLayout,
     VulkanDynamicUBO<MaterialData>& materialsDynamicUBO)
-    : VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), MaterialPBRStandard(name)
+    : VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), VulkanMaterialDescriptor(descriptorLayout), MaterialPBRStandard(name)
 {
-    m_descriptorSetLayout = descriptorLayout;
-
     albedo() = a;
     metallic() = m;
     roughness() = r;
@@ -263,10 +266,8 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     VkDevice device, 
     VkDescriptorSetLayout descriptorLayout,
     VulkanDynamicUBO<MaterialData>& materialsDynamicUBO)
-    :VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), MaterialLambert(name)
+    :VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), VulkanMaterialDescriptor(descriptorLayout), MaterialLambert(name)
 {
-    m_descriptorSetLayout = descriptorLayout;
-
     albedo() = a;
     ao() = ambient;
     emissive() = e;
@@ -446,10 +447,8 @@ bool VulkanMaterialLambert::updateDescriptorSet(VkDevice device, size_t index)
 /* ------------------------------------------------------------------------------------------------------------------- */
 
 VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, EnvironmentMap* envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout) 
-    : MaterialSkybox(name)
+    : VulkanMaterialDescriptor(descriptorLayout), MaterialSkybox(name)
 {
-    m_descriptorSetLayout = descriptorLayout;
-
     m_envMap = envMap;
 }
 

@@ -24,8 +24,6 @@ public:
     void updateBuffers(VkDevice device, uint32_t imageIndex) const;
 
 private:
-    VulkanMaterialSkybox* m_skybox = nullptr;
-
     /* Dynamic uniform buffer to hold model positions */
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
     /* Buffers to hold the scene data */

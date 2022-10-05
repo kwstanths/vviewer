@@ -127,10 +127,7 @@ std::shared_ptr<SceneObject> Scene::addSceneObject(std::string name, std::shared
 
 void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)
 {
-    /* TODO remove scene objects from m_objectsMap, resursively */
-
-    /* TODO remove object transform index from the model matrix buffers, VulkanScene::removeObject maybe? */
-
+    /* Remove from scene graph */
     if (node->m_parent == nullptr) {
         /* Remove scene node from root */
         m_sceneGraph.erase(std::remove(m_sceneGraph.begin(), m_sceneGraph.end(), node), m_sceneGraph.end());
@@ -142,6 +139,17 @@ void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)
             node->m_parent->m_children.end()
         );
     }
+
+    /* Remove from m_objectsMap recusrively */
+    std::function<void(std::vector<std::shared_ptr<SceneObject>>&)> removeChildren;
+    removeChildren = [&](std::vector<std::shared_ptr<SceneObject>>& children) { 
+        for(auto c : children){
+            m_objectsMap.erase(c->getID());
+            removeChildren(c->m_children);
+        }    
+    };
+    m_objectsMap.erase(node->getID());
+    removeChildren(node->m_children);
 }
 
 void Scene::updateSceneGraph()
@@ -202,3 +210,11 @@ void Scene::exportScene(std::string name, uint32_t width, uint32_t height, uint3
 
     exportJson(name, m_camera, m_directionalLight, m_sceneGraph, temp, width, height, samples);
 }
+
+// void Scene::removeIDs(std::vector<std::shared_ptr<SceneObject>>& objects)
+// {
+//     for(auto o : objects)
+//     {
+//         m_objectsMap.erase(o->getID());
+//     }
+// }

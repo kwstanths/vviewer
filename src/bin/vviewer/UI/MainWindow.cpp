@@ -272,22 +272,31 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
 
 void MainWindow::removeObjectFromScene(QTreeWidgetItem* treeItem)
 {
+    /* Get corresponding scene object */
     std::shared_ptr<SceneObject> selectedObject = getSceneObject(treeItem);
-
+    /* Remove scene object from scene */
     m_scene->removeSceneObject(selectedObject);
 
+    /* Set selected to null */
     m_vulkanWindow->m_renderer->setSelectedObject(nullptr);
     m_selectedPreviousWidgetItem = nullptr;
 
-    /* Remove from UI */
-    if (selectedObject->m_parent == nullptr) {
-        m_sceneGraphWidget->removeItemWidget(treeItem, 0);
-        delete treeItem;
+    /* Remove from widgets from m_treeWidgetItems recursively */
+    std::function<void(QTreeWidgetItem*)> removeChild;
+    removeChild = [&](QTreeWidgetItem* child) { 
+        std::shared_ptr<SceneObject> object = getSceneObject(child);
+        m_treeWidgetItems.erase(object->getID());
+        for(size_t i=0; i < child->childCount(); i++) {
+            removeChild(child->child(i));
+        }    
+    };
+    m_treeWidgetItems.erase(selectedObject->getID());
+    for(size_t i=0; i < treeItem->childCount(); i++) {
+        removeChild(treeItem->child(i));
     }
-    else {
-        treeItem->parent()->removeChild(treeItem);
-        delete treeItem;
-    }
+
+    /* Delete and remove from UI */
+    delete treeItem;
 }
 
 void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material)
@@ -523,7 +532,7 @@ void MainWindow::onImportScene()
 {
     /* Select json file */
     QString sceneFile = QFileDialog::getOpenFileName(this,
-        tr("Import scene"), "./assets/",
+        tr("Import scene"), "./assets/scenes/",
         tr("Model (*.json);;All Files (*)"));
 
     if (sceneFile == "") return;
@@ -556,6 +565,14 @@ void MainWindow::onImportScene()
     }
 
     /* Create materials */
+    /* Delete previous materials */
+    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
+    for(auto i = instanceMaterials.begin(); i != instanceMaterials.end();)
+    {
+        Material *mat = i->second;
+        i = instanceMaterials.Remove(i->first);
+        delete mat;
+    }
     utils::ConsoleInfo("Importing materials...");
     for (auto& m : materials) {
         if (m.type == ImportedSceneMaterialType::STACK)
@@ -621,7 +638,7 @@ void MainWindow::onImportScene()
             m_widgetEnvironment->setEnvironmentType(EnvironmentType::HDRI);
         } 
     } else {
-        m_widgetEnvironment->setEnvironmentType(EnvironmentType::SOLID_COLOR);
+        m_widgetEnvironment->setEnvironmentType(EnvironmentType::SOLID_COLOR, true);
     }
 
     /* Remove old scene */
@@ -690,8 +707,6 @@ void MainWindow::onAddSceneObjectSlot()
 
 void MainWindow::onRemoveSceneObjectSlot()
 {
-    /* TODO remove scene objects from m_treeWidgetItems, resursively */
-
     /* Get the currently selected tree item */
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
     removeObjectFromScene(selectedItem);
