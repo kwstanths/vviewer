@@ -14,3 +14,6 @@ elseif(UNIX)
 endif()
 # Copy shaders to build directory
 file(COPY src/bin/vviewer/shaders/ DESTINATION src/bin/vviewer/shaders/)
+
+# Copy assets to build directory
+file(COPY assets DESTINATION src/bin/vviewer/)
