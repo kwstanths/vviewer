@@ -300,7 +300,7 @@ void WidgetEnvironment::onEnvironmentMapChanged(int)
     std::string newEnvMap = m_comboMaps->currentText().toStdString();
     
     AssetManager<std::string, EnvironmentMap*>& envMaps = AssetManager<std::string, EnvironmentMap*>::getInstance();
-    EnvironmentMap* envMap = envMaps.Get(newEnvMap);
+    EnvironmentMap* envMap = envMaps.get(newEnvMap);
 
     MaterialSkybox* material = m_scene->getSkybox();
     material->setMap(envMap);

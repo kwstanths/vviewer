@@ -142,7 +142,7 @@ void VulkanRenderer::initResources()
         EnvironmentMap* envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
         VulkanMaterialSkybox* skybox = new VulkanMaterialSkybox("skybox", envMap, m_device, m_rendererSkybox.getDescriptorSetLayout());
         AssetManager<std::string, MaterialSkybox*>& instance = AssetManager<std::string, MaterialSkybox*>::getInstance();
-        instance.Add(skybox->m_name, skybox);
+        instance.add(skybox->m_name, skybox);
         m_scene->setSkybox(skybox);
     }
 }
@@ -265,19 +265,15 @@ void VulkanRenderer::releaseResources()
         AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             VulkanTexture * vkTexture = static_cast<VulkanTexture *>(itr->second);
-
-            m_devFunctions->vkDestroyImageView(m_device, vkTexture->getImageView(), nullptr);
-            m_devFunctions->vkDestroyImage(m_device, vkTexture->getImage(), nullptr);
-            m_devFunctions->vkFreeMemory(m_device, vkTexture->getImageMemory(), nullptr);
-            m_devFunctions->vkDestroySampler(m_device, vkTexture->getSampler(), nullptr);
+            vkTexture->destroy(m_device);
         }
-        instance.Reset();
+        instance.reset();
     }
 
     /* Destroy material data */
     {
         AssetManager<std::string, Material*>& instance = AssetManager<std::string, Material*>::getInstance();
-        instance.Reset();
+        instance.reset();
     }
 
     /* Destroy cubemaps */
@@ -285,11 +281,7 @@ void VulkanRenderer::releaseResources()
         AssetManager<std::string, Cubemap *>& instance = AssetManager<std::string, Cubemap *>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             VulkanCubemap * vkCubemap = static_cast<VulkanCubemap *>(itr->second);
-
-            m_devFunctions->vkDestroyImageView(m_device, vkCubemap->getImageView(), nullptr);
-            m_devFunctions->vkDestroyImage(m_device, vkCubemap->getImage(), nullptr);
-            m_devFunctions->vkFreeMemory(m_device, vkCubemap->getDeviceMemory(), nullptr);
-            m_devFunctions->vkDestroySampler(m_device, vkCubemap->getSampler(), nullptr);
+            vkCubemap->destroy(m_device);
         }
     }
 
@@ -310,7 +302,7 @@ void VulkanRenderer::releaseResources()
             VulkanMeshModel* vkmeshmodel = static_cast<VulkanMeshModel*>(itr->second);
             vkmeshmodel->destroy(m_device);
         }
-        instance.Reset();
+        instance.reset();
     }
 
     destroyDebugCallback();
@@ -545,13 +537,13 @@ MeshModel * VulkanRenderer::createVulkanMeshModel(std::string filename)
 {
     AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
 
-    if (instance.isPresent(filename)) return instance.Get(filename);
+    if (instance.isPresent(filename)) return instance.get(filename);
     
     try {
         std::vector<Mesh> meshes = assimpLoadModel(filename);
         VulkanMeshModel * vkmesh = new VulkanMeshModel(m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool(), meshes);
         vkmesh->setName(filename);
-        instance.Add(filename, vkmesh);
+        instance.add(filename, vkmesh);
         return vkmesh;
     } catch (std::runtime_error& e) {
         utils::Console(utils::DebugLevel::WARNING, "Failed to create a Vulkan Mesh Model: " + std::string(e.what()));
@@ -600,7 +592,7 @@ Material * VulkanRenderer::createMaterial(std::string name, MaterialType type, b
         matdesc->updateDescriptorSets(m_device, m_window->swapChainImageCount());
     }
 
-    instance.Add(temp->m_name, temp);
+    instance.add(temp->m_name, temp);
     return temp;
 }
 
@@ -668,17 +660,17 @@ Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format, 
         
         Image<stbi_uc> * image = nullptr;
         if (instance.isPresent(imagePath)) {
-            image = instance.Get(imagePath);
+            image = instance.get(imagePath);
         }
         else {
             image = new Image<stbi_uc>(imagePath);
-            instance.Add(imagePath, image);
+            instance.add(imagePath, image);
         }
 
         Texture * temp = createTexture(imagePath, image, format);
 
         if (!keepImage) {
-            instance.Remove(imagePath);
+            instance.remove(imagePath);
             delete image;
         }
 
@@ -697,7 +689,7 @@ Texture * VulkanRenderer::createTexture(std::string id, Image<stbi_uc> * image, 
         AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
         
         if (instance.isPresent(id)) {
-            return instance.Get(id);
+            return instance.get(id);
         }
 
         TextureType type = TextureType::NO_TYPE;
@@ -714,7 +706,7 @@ Texture * VulkanRenderer::createTexture(std::string id, Image<stbi_uc> * image, 
             format, 
             true);
 
-        instance.Add(id, temp);
+        instance.add(id, temp);
         return temp;
     }
     catch (std::runtime_error& e) {
@@ -731,18 +723,18 @@ Texture * VulkanRenderer::createTextureHDR(std::string imagePath, bool keepImage
         /* Check if an hdr texture has already been created for that image */
         AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
         if (instance.isPresent(imagePath)) {
-            return instance.Get(imagePath);
+            return instance.get(imagePath);
         }
         
         /* Check if the image has already been imported, if not read it from disk  */
         Image<float> * image = nullptr;
         AssetManager<std::string, Image<float> *>& images = AssetManager<std::string, Image<float> *>::getInstance();
         if (images.isPresent(imagePath)) {
-            image = images.Get(imagePath);
+            image = images.get(imagePath);
         }
         else {
             image = new Image<float>(imagePath);
-            images.Add(imagePath, image);
+            images.add(imagePath, image);
         }
 
         /* Create texture for that image */
@@ -754,11 +746,11 @@ Texture * VulkanRenderer::createTextureHDR(std::string imagePath, bool keepImage
             m_window->graphicsQueue(), 
             m_window->graphicsCommandPool(),
             false);
-        instance.Add(imagePath, temp);
+        instance.add(imagePath, temp);
 
         /* If you are not to keep the image in memory, remove from the assets, and delete it */
         if (!keepImage) {
-            images.Remove(imagePath);
+            images.remove(imagePath);
             delete image;
         }
 
@@ -777,11 +769,11 @@ Cubemap * VulkanRenderer::createCubemap(std::string directory)
 {
     AssetManager<std::string, Cubemap *>& instance = AssetManager<std::string, Cubemap *>::getInstance();
     if (instance.isPresent(directory)) {
-        return instance.Get(directory);
+        return instance.get(directory);
     }
 
     VulkanCubemap * cubemap = new VulkanCubemap(directory, m_physicalDevice, m_device, m_window->graphicsQueue(), m_window->graphicsCommandPool());
-    instance.Add(directory, cubemap);
+    instance.add(directory, cubemap);
     return cubemap;
 }
 
@@ -791,7 +783,7 @@ EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath, bool
         /* Check if an environment map for that imagePath already exists */
         AssetManager<std::string, EnvironmentMap*>& envMaps = AssetManager<std::string, EnvironmentMap*>::getInstance();
         if (envMaps.isPresent(imagePath)) {
-            return envMaps.Get(imagePath);
+            return envMaps.get(imagePath);
         }
 
         /* Read HDR image */
@@ -806,17 +798,17 @@ EnvironmentMap* VulkanRenderer::createEnvironmentMap(std::string imagePath, bool
 
         /* Added created cubemaps to the cubemap assets */
         AssetManager<std::string, Cubemap*>& instance = AssetManager<std::string, Cubemap*>::getInstance();
-        instance.Add(cubemap->m_name, cubemap);
-        instance.Add(irradiance->m_name, irradiance);
-        instance.Add(prefiltered->m_name, prefiltered);
+        instance.add(cubemap->m_name, cubemap);
+        instance.add(irradiance->m_name, irradiance);
+        instance.add(prefiltered->m_name, prefiltered);
 
         EnvironmentMap* envMap = new EnvironmentMap(imagePath, cubemap, irradiance, prefiltered);
-        envMaps.Add(imagePath, envMap);
+        envMaps.add(imagePath, envMap);
 
         if (!keepTexture) {
             AssetManager<std::string, Texture*>& textures = AssetManager<std::string, Texture*>::getInstance();
-            textures.Remove(imagePath);
-            hdrImage->Destroy(m_device);
+            textures.remove(imagePath);
+            hdrImage->destroy(m_device);
         }
 
         return envMap;

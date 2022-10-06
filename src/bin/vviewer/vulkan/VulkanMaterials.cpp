@@ -52,9 +52,9 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
         throw std::runtime_error("Normal default texture not present");
     }
 
-    Texture* white = instance.Get("white");
-    Texture * whiteColor = instance.Get("whiteColor");
-    Texture * normalmap = instance.Get("normalmapdefault");
+    Texture* white = instance.get("white");
+    Texture * whiteColor = instance.get("whiteColor");
+    Texture * normalmap = instance.get("normalmapdefault");
 
     setAlbedoTexture(whiteColor);
     setMetallicTexture(white);
@@ -66,7 +66,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     if (!instance.isPresent("PBR_BRDF_LUT")) {
         throw std::runtime_error("PBR_BRDF_LUT texture not present");
     }
-    m_BRDFLUT = static_cast<VulkanTexture*>(instance.Get("PBR_BRDF_LUT"));
+    m_BRDFLUT = static_cast<VulkanTexture*>(instance.get("PBR_BRDF_LUT"));
 }
 
 glm::vec4 & VulkanMaterialPBRStandard::albedo()
@@ -285,9 +285,9 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
         throw std::runtime_error("Normal default texture not present");
     }
 
-    Texture* white = instance.Get("white");
-    Texture* whiteColor = instance.Get("whiteColor");
-    Texture* normalmap = instance.Get("normalmapdefault");
+    Texture* white = instance.get("white");
+    Texture* whiteColor = instance.get("whiteColor");
+    Texture* normalmap = instance.get("normalmapdefault");
 
     setAlbedoTexture(whiteColor);
     setAOTexture(white);

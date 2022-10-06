@@ -82,7 +82,7 @@ void WidgetMaterial::onMaterialChanged(int)
     std::string newMaterial = m_comboBoxAvailableMaterials->currentText().toStdString();
 
     AssetManager<std::string, Material*>& instance = AssetManager<std::string, Material*>::getInstance();
-    Material* material = instance.Get(newMaterial);
+    Material* material = instance.get(newMaterial);
 
     if (material == nullptr) {
         utils::ConsoleWarning("Material: " + newMaterial + " doesn't exist");

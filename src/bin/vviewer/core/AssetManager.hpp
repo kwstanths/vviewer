@@ -27,11 +27,11 @@ public:
         return true;
     }
 
-    void Add(AssetID id, Asset asset) {
+    void add(AssetID id, Asset asset) {
         m_assets[id] = asset;
     }
 
-    Asset Get(AssetID id) {
+    Asset get(AssetID id) {
         auto itr = m_assets.find(id);
         if (itr != m_assets.end()) {
             return itr->second;
@@ -39,7 +39,7 @@ public:
         throw std::runtime_error("Find: Asset not found: " + id);
     }
 
-    Iterator Remove(AssetID id) {
+    Iterator remove(AssetID id) {
         auto itr = m_assets.find(id);
         if (itr == m_assets.end()){
             throw std::runtime_error("Erase: Asset not found: " + id);
@@ -48,7 +48,7 @@ public:
         return m_assets.erase(itr);
     }
 
-    void Reset() {
+    void reset() {
         m_assets.clear();
     }
 

@@ -233,7 +233,7 @@ VulkanTexture::VulkanTexture(std::string name,
 
 }
 
-void VulkanTexture::Destroy(VkDevice device)
+void VulkanTexture::destroy(VkDevice device)
 {
     vkDestroyImage(device, m_image, nullptr);
     vkDestroyImageView(device, m_imageView, nullptr);

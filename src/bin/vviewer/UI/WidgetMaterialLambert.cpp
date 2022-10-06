@@ -135,7 +135,7 @@ void WidgetMaterialLambert::onColorTextureChanged(int)
     std::string newTexture = m_comboBoxAlbedo->currentText().toStdString();
 
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    Texture* texture = instance.Get(newTexture);
+    Texture* texture = instance.get(newTexture);
 
     m_material->setAlbedoTexture(texture);
 }
@@ -150,7 +150,7 @@ void WidgetMaterialLambert::onAOTextureChanged(int)
     std::string newTexture = m_comboBoxAO->currentText().toStdString();
 
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    Texture* texture = instance.Get(newTexture);
+    Texture* texture = instance.get(newTexture);
 
     m_material->setAOTexture(texture);
 }
@@ -165,7 +165,7 @@ void WidgetMaterialLambert::onNormalTextureChanged(int)
     std::string newTexture = m_comboBoxNormal->currentText().toStdString();
 
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    Texture* texture = instance.Get(newTexture);
+    Texture* texture = instance.get(newTexture);
 
     m_material->setNormalTexture(texture);
 }

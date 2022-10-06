@@ -15,6 +15,8 @@ public:
     VkImageView getImageView() const;
     VkSampler getSampler() const;
 
+    void destroy(VkDevice device);
+
 private:
     VkImage m_cubemapImage;
     VkDeviceMemory m_cubemapMemory;

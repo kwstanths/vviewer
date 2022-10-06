@@ -314,7 +314,7 @@ void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string 
         return;
     }
 
-    MeshModel* meshhModel = instanceModels.Get(modelName);
+    MeshModel* meshhModel = instanceModels.get(modelName);
     std::vector<Mesh*> modelMeshes = meshhModel->getMeshes();
     
     std::shared_ptr<SceneObject> parentObject = getSceneObject(parentItem);
@@ -323,7 +323,7 @@ void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string 
     for (auto& m : modelMeshes) {
         std::shared_ptr<SceneObject> child = m_scene->addSceneObject(m->m_name, parentObject, Transform());
         child->assign(m);
-        child->assign(instanceMaterials.Get(material));
+        child->assign(instanceMaterials.get(material));
 
         QTreeWidgetItem* childItem = createTreeWidgetItem(child);
 
@@ -400,7 +400,7 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
             utils::ConsoleWarning("Material " + object.material + " is not created");
             return;
         }
-        sceneObject->assign(instanceMaterials.Get(object.material));
+        sceneObject->assign(instanceMaterials.get(object.material));
     }
 
     /* Add light */
@@ -567,12 +567,12 @@ void MainWindow::onImportScene()
     /* Create materials */
     /* Delete previous materials */
     AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
-    for(auto i = instanceMaterials.begin(); i != instanceMaterials.end();)
+    for(auto itr = instanceMaterials.begin(); itr != instanceMaterials.end(); ++itr)
     {
-        Material *mat = i->second;
-        i = instanceMaterials.Remove(i->first);
+        Material *mat = itr->second;
         delete mat;
     }
+    instanceMaterials.reset();
     utils::ConsoleInfo("Importing materials...");
     for (auto& m : materials) {
         if (m.type == ImportedSceneMaterialType::STACK)
@@ -630,7 +630,7 @@ void MainWindow::onImportScene()
             utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
 
             AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
-            MaterialSkybox* material = materials.Get("skybox");
+            MaterialSkybox* material = materials.get("skybox");
 
             material->setMap(envMap);
 

@@ -36,6 +36,14 @@ VkSampler VulkanCubemap::getSampler() const
     return m_cubemapSampler;
 }
 
+void VulkanCubemap::destroy(VkDevice device)
+{
+    vkDestroyImageView(device, m_cubemapImageView, nullptr);
+    vkDestroyImage(device, m_cubemapImage, nullptr);
+    vkFreeMemory(device, m_cubemapMemory, nullptr);
+    vkDestroySampler(device, m_cubemapSampler, nullptr);
+}
+
 bool VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
 {
     int width = m_image_top->getWidth();

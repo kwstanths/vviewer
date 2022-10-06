@@ -88,7 +88,7 @@ void WidgetMeshModel::onMeshModelChangedSlot(int)
     std::string newModel = getSelectedModel();
 
     AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
-    m_meshModel = instance.Get(newModel);
+    m_meshModel = instance.get(newModel);
 
     /* Update mesh combo box with the relevant meshes */
     m_meshes->clear();

@@ -35,7 +35,7 @@ void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
 
     Texture * texture = createBRDFLUT();
     AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    instance.Add(texture->m_name, texture);
+    instance.add(texture->m_name, texture);
 }
 
 void VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples)

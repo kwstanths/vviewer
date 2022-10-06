@@ -209,7 +209,7 @@ void WidgetMaterialPBR::onColorTextureChanged(int)
     std::string newTexture = m_comboBoxAlbedo->currentText().toStdString();
 
     AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
-    Texture * texture = instance.Get(newTexture);
+    Texture * texture = instance.get(newTexture);
 
     m_material->setAlbedoTexture(texture);
 }
@@ -224,7 +224,7 @@ void WidgetMaterialPBR::onMetallicTextureChanged(int)
     std::string newTexture = m_comboBoxMetallic->currentText().toStdString();
 
     AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
-    Texture * texture = instance.Get(newTexture);
+    Texture * texture = instance.get(newTexture);
 
     m_material->setMetallicTexture(texture);
 }
@@ -239,7 +239,7 @@ void WidgetMaterialPBR::onRoughnessTextureChanged(int)
     std::string newTexture = m_comboBoxRoughness->currentText().toStdString();
 
     AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
-    Texture * texture = instance.Get(newTexture);
+    Texture * texture = instance.get(newTexture);
 
     m_material->setRoughnessTexture(texture);
 }
@@ -254,7 +254,7 @@ void WidgetMaterialPBR::onAOTextureChanged(int)
     std::string newTexture = m_comboBoxAO->currentText().toStdString();
 
     AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
-    Texture * texture = instance.Get(newTexture);
+    Texture * texture = instance.get(newTexture);
 
     m_material->setAOTexture(texture);
 }
@@ -269,7 +269,7 @@ void WidgetMaterialPBR::onNormalTextureChanged(int)
     std::string newTexture = m_comboBoxNormal->currentText().toStdString();
 
     AssetManager<std::string, Texture *>& instance = AssetManager<std::string, Texture *>::getInstance();
-    Texture * texture = instance.Get(newTexture);
+    Texture * texture = instance.get(newTexture);
 
     m_material->setNormalTexture(texture);
 }
