@@ -23,10 +23,9 @@ vec3 calculateIBLContribution(PBRStandard pbr, vec3 N, vec3 V, samplerCube skybo
     vec3 diffuse    = irradiance * pbr.albedo;
     
     vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, pbr.roughness); 
+    vec3 specular = reflection * (kS * brdf.x + brdf.y);
+        
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - pbr.metallic;
-    
-    vec3 specular = reflection * (kS * brdf.x + brdf.y);
-    
     return (kD * diffuse + specular);
 }

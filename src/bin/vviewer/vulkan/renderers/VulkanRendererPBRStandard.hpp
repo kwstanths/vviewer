@@ -83,7 +83,7 @@ private:
     VkRenderPass m_renderPass;
     VkSampleCountFlagBits m_msaaSamples;
 
-    VulkanTexture* createBRDFLUT(uint32_t resolution = 512) const;
+    VulkanTexture* createBRDFLUT(uint32_t resolution = 128) const;
 
     bool createDescriptorSetsLayout();
     bool createGraphicsPipelineBasePass();

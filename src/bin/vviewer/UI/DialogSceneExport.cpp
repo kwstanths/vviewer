@@ -32,7 +32,7 @@ DialogSceneExport::DialogSceneExport(QWidget* parent)
 	m_samples = new QSpinBox();
 	m_samples->setMinimum(0);
 	m_samples->setMaximum(65536);
-	m_samples->setValue(256);
+	m_samples->setValue(64);
 	QHBoxLayout* layoutResolutionWidth = new QHBoxLayout();
 	layoutResolutionWidth->addWidget(new QLabel("Width:"));
 	layoutResolutionWidth->addWidget(m_resolutionWidth);

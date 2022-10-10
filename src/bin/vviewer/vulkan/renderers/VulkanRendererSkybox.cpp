@@ -784,8 +784,8 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
         VkImageView cubemapImageView;
         VkSampler cubemapSampler;
 
-        uint32_t cubemapWidth = resolution;
-        uint32_t cubemapHeight = resolution;
+        uint32_t cubemapWidth = 64;
+        uint32_t cubemapHeight = 64;
         VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
         /* Initialize cubemap data */
@@ -1399,8 +1399,8 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
         VkImageView cubemapImageView;
         VkSampler cubemapSampler;
 
-        const uint32_t cubemapWidth = resolution;
-        const uint32_t cubemapHeight = resolution;
+        const uint32_t cubemapWidth = 512;
+        const uint32_t cubemapHeight = 512;
         const VkFormat format = VK_FORMAT_R16G16B16A16_SFLOAT;
         const uint32_t numMips = static_cast<uint32_t>(floor(log2(resolution))) + 1;
 
