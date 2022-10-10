@@ -40,6 +40,10 @@ public:
         return (m_position == o.m_position) && (m_rotation == o.m_rotation) && (m_scale == o.m_scale);
     }
 
+    static inline glm::vec3 getForwardGlobal() { return glm::vec3(0, 0, -1); }
+    static inline glm::vec3 getRightGlobal() { return glm::vec3(1, 0, 0); }
+    static inline glm::vec3 getUpGlobal() { return glm::vec3(0, 1, 0); }
+
 private:
     glm::vec3 m_position;
     glm::quat m_rotation;

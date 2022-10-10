@@ -146,7 +146,7 @@ void Transform::rotate(const glm::vec3& axis, const float angle)
 
 void Transform::computeBasisVectors()
 {
-    m_forward = glm::rotate(m_rotation, glm::vec3(0, 0, 1));
-    m_right = glm::rotate(m_rotation, glm::vec3(1, 0, 0));
-    m_up = glm::rotate(m_rotation, glm::vec3(0, 1, 0));
+    m_forward = glm::rotate(m_rotation, getForwardGlobal());
+    m_right = glm::rotate(m_rotation, getRightGlobal());
+    m_up = glm::rotate(m_rotation, getUpGlobal());
 }
