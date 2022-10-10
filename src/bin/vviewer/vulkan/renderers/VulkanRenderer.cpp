@@ -22,22 +22,6 @@ VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) :
     m_window(window), m_materialsUBO(100)
 {
     m_scene = scene;
-
-    /* Render loop */
-    QObject::connect(&m_frameWatcher, &QFutureWatcherBase::finished, [this] {
-        /* If the window has been closed, don't request new updates */
-        if (!m_window->isVisible()){
-            return;
-        }
-
-        /* If a frame is pending, then request update */
-        if (m_framePending) {
-            m_framePending = false;
-
-            m_window->frameReady();
-            m_window->requestUpdate();
-        }
-    });
 }
 
 void VulkanRenderer::preInitResources()
@@ -310,13 +294,10 @@ void VulkanRenderer::releaseResources()
 
 void VulkanRenderer::startNextFrame()
 {
-    /* A frame should never be pending when this is called */
-    Q_ASSERT(!m_framePending);
+    buildFrame();
 
-    /* Start preparing the next frame, when finished, the m_frameWatcher:finished will be called */
-    m_framePending = true;
-    QFuture<void> future = QtConcurrent::run(&VulkanRenderer::buildFrame, this);
-    m_frameWatcher.setFuture(future);
+    m_window->frameReady();
+    m_window->requestUpdate();
 }
 
 void VulkanRenderer::buildFrame()
