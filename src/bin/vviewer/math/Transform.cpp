@@ -77,21 +77,6 @@ glm::quat Transform::getRotation() const
     return m_rotation;
 }
 
-glm::vec3 Transform::getForward() const
-{
-    return m_forward;
-}
-
-glm::vec3 Transform::getUp() const
-{
-    return m_up;
-}
-
-glm::vec3 Transform::getRight() const
-{
-    return m_right;
-}
-
 glm::mat4 Transform::getModelMatrix() const
 {
     return glm::translate(glm::mat4(1.0f), m_position) * glm::toMat4(m_rotation) * glm::scale(glm::mat4(1.0f), m_scale);
@@ -109,14 +94,17 @@ void Transform::setRotationEuler(float x, float y, float z)
     computeBasisVectors();
 }
 
-void Transform::setRotation(glm::vec3 direction, glm::vec3 up)
+void Transform::setRotation(glm::vec3 forward, glm::vec3 up)
 {
-    glm::vec3 right = glm::cross(up, direction);
-    glm::vec3 newUp = glm::cross(direction, right);
+    glm::vec3 newZ = glm::normalize(-forward);
+    glm::vec3 newY = glm::normalize(up);
+
+    glm::vec3 newX = glm::normalize(glm::cross(newY, newZ));
+    newY = glm::normalize(glm::cross(newZ, newX));
     glm::mat4 rotation = {
-        glm::vec4(right, 0),
-        glm::vec4(newUp, 0),
-        glm::vec4(direction, 0),
+        glm::vec4(newX, 0),
+        glm::vec4(newY, 0),
+        glm::vec4(newZ, 0),
         {0, 0, 0, 1}
     };
     m_rotation = quat_cast(rotation);
@@ -146,7 +134,7 @@ void Transform::rotate(const glm::vec3& axis, const float angle)
 
 void Transform::computeBasisVectors()
 {
-    m_forward = glm::rotate(m_rotation, getForwardGlobal());
-    m_right = glm::rotate(m_rotation, getRightGlobal());
-    m_up = glm::rotate(m_rotation, getUpGlobal());
+    m_x = glm::rotate(m_rotation, Transform::X);
+    m_y = glm::rotate(m_rotation, Transform::Y);
+    m_z = glm::rotate(m_rotation, Transform::Z);
 }

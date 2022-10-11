@@ -7,9 +7,10 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/ostreamwrapper.h"
 
-#include "Lights.hpp"
-
 #include <qdir.h>
+
+#include "Lights.hpp"
+#include "utils/Console.hpp"
 
 using namespace rapidjson;
 
@@ -18,7 +19,11 @@ std::string copyFileToDirectoryAndGetFileName(std::string file, std::string dire
     /* Copy file to the directory with the same name */
     QFile sourceFile(QString::fromStdString(file));
     QString destination = QString::fromStdString(directory) + QFileInfo(sourceFile.fileName()).fileName();
-    sourceFile.copy(destination);
+    bool ret = sourceFile.copy(destination);
+    if (!ret)
+    {
+        utils::ConsoleWarning("Can't export file: " + file + " with error: " + sourceFile.errorString().toStdString());
+    }
     /* Get the name of the file itself */
     QStringList destinationSplit = destination.split("/");
     QString filename = destinationSplit.back();

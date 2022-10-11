@@ -24,11 +24,11 @@ DialogSceneExport::DialogSceneExport(QWidget* parent)
 	m_resolutionWidth = new QSpinBox();
 	m_resolutionWidth->setMinimum(0);
 	m_resolutionWidth->setMaximum(16384);
-	m_resolutionWidth->setValue(1024);
+	m_resolutionWidth->setValue(512);
 	m_resolutionHeight = new QSpinBox();
 	m_resolutionHeight->setMinimum(0);
 	m_resolutionHeight->setMaximum(16384);
-	m_resolutionHeight->setValue(1024);
+	m_resolutionHeight->setValue(512);
 	m_samples = new QSpinBox();
 	m_samples->setMinimum(0);
 	m_samples->setMaximum(65536);

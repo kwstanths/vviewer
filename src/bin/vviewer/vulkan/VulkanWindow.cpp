@@ -245,18 +245,18 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
         Transform& selectedObjectTransform = selectedObject->m_localTransform;
         glm::vec3 position = selectedObjectTransform.getPosition();
 
-        /* Get the local basis vectors */
-        glm::vec3 right = selectedObject->m_modelMatrix * glm::vec4(Transform::getRightGlobal(), 0);
-        glm::vec3 up = selectedObject->m_modelMatrix * glm::vec4(Transform::getUpGlobal(), 0);
-        glm::vec3 forward = selectedObject->m_modelMatrix * glm::vec4(Transform::getForwardGlobal(), 0);
+        /* Get the basis vectors of the selected object */
+        glm::vec3 objectX = selectedObject->m_modelMatrix * glm::vec4(Transform::X, 0);
+        glm::vec3 objectY = selectedObject->m_modelMatrix * glm::vec4(Transform::Y, 0);
+        glm::vec3 objectZ = selectedObject->m_modelMatrix * glm::vec4(Transform::Z, 0);
         
         switch (m_selectedPressed)
         {
         case static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW):
         {
             /* Find if right vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
-            float cameraRightDot = glm::dot(right, cameraTransform.getRight());
-            float cameraUpDot = glm::dot(right, cameraTransform.getUp());
+            float cameraRightDot = glm::dot(objectX, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(objectX, cameraTransform.getUp());
             float movement;
             if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
                 movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
@@ -264,7 +264,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
             else {
                 movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
             }
-            position += selectedObjectTransform.getRight() * movementSensitivity * movement;
+            position += selectedObjectTransform.getX() * movementSensitivity * movement;
             
             selectedObjectTransform.setPosition(position);
             emit selectedObjectPositionChanged();
@@ -273,8 +273,8 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
         case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW):
         {
             /* Find if forward vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
-            float cameraRightDot = glm::dot(forward, cameraTransform.getRight());
-            float cameraUpDot = glm::dot(forward, cameraTransform.getUp());
+            float cameraRightDot = glm::dot(objectZ, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(objectZ, cameraTransform.getUp());
             float movement;
             if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
                 movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
@@ -282,7 +282,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
             else {
                 movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
             }
-            position += selectedObjectTransform.getForward() * movementSensitivity * movement;
+            position += selectedObjectTransform.getZ() * movementSensitivity * movement;
 
             selectedObjectTransform.setPosition(position);
             emit selectedObjectPositionChanged();
@@ -291,8 +291,8 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
         case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW):
         {
             /* Find if up vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
-            float cameraRightDot = glm::dot(up, cameraTransform.getRight());
-            float cameraUpDot = glm::dot(up, cameraTransform.getUp());
+            float cameraRightDot = glm::dot(objectY, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(objectY, cameraTransform.getUp());
             float movement;
             if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
                 movement = ((cameraRightDot > 0) ? -1 : 1) * (float)mousePosDiff.x();
@@ -300,7 +300,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
             else {
                 movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
             }
-            position += selectedObjectTransform.getUp() * movementSensitivity * movement;
+            position += selectedObjectTransform.getY() * movementSensitivity * movement;
 
             selectedObjectTransform.setPosition(position);
             emit selectedObjectPositionChanged();
