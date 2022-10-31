@@ -208,7 +208,7 @@ ImportedSceneObjectLight * parseLight(const rapidjson::Value& o)
     if (o["light"].HasMember("color")) {
         light->color = glm::vec3(
             o["light"]["color"]["r"].GetFloat(), 
-            o["light"]["color"]["r"].GetFloat(), 
+            o["light"]["color"]["g"].GetFloat(), 
             o["light"]["color"]["b"].GetFloat()
         );
     }

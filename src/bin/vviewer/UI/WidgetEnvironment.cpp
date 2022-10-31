@@ -191,6 +191,17 @@ void WidgetEnvironment::setEnvironmentType(const EnvironmentType& type, bool upd
     }
 }
 
+void WidgetEnvironment::setDirectionalLight(std::shared_ptr<DirectionalLight> light)
+{
+    m_light = light;
+
+    m_lightTransform->setTransform(m_light->transform);
+    m_lightColor = QColor(m_light->color.r * 255, m_light->color.g * 255, m_light->color.b * 255);
+    setButtonColor(m_lightColorButton, m_lightColor);
+    m_lightIntensitySlider->setValue(m_light->intensity * 100.f);
+    m_lightIntensityValue->setText(QString::number(m_light->intensity));
+}
+
 void WidgetEnvironment::updateCamera()
 {
     /* If the transform was changed from the UI, update camera and return */

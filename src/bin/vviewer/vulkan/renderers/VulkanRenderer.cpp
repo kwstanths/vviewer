@@ -404,31 +404,25 @@ void VulkanRenderer::buildFrame()
             for (auto& obj : pbrStandardObjects)
             {
                 /* Check if light contributes enough */
-                if ( (light->intensity * squareFalloff(glm::vec3(t.lightPosition), obj->getWorldPosition())) > 0.05F )
-                {
-                    m_rendererPBR.renderObjectsAddPass(cmdBuf,
-                        m_descriptorSetsScene[imageIndex],
-                        m_descriptorSetsModel[imageIndex],
-                        imageIndex,
-                        m_scene->m_modelDataDynamicUBO,
-                        obj,
-                        t
-                    );
-                }
+                m_rendererPBR.renderObjectsAddPass(cmdBuf,
+                    m_descriptorSetsScene[imageIndex],
+                    m_descriptorSetsModel[imageIndex],
+                    imageIndex,
+                    m_scene->m_modelDataDynamicUBO,
+                    obj,
+                    t
+                );
             }
             for (auto& obj : lambertObjects)
             {
-                if ( (light->intensity * squareFalloff(glm::vec3(t.lightPosition), obj->getWorldPosition())) > 0.05F )
-                {
-                    m_rendererLambert.renderObjectsAddPass(cmdBuf,
-                        m_descriptorSetsScene[imageIndex],
-                        m_descriptorSetsModel[imageIndex],
-                        imageIndex,
-                        m_scene->m_modelDataDynamicUBO,
-                        obj,
-                        t
-                    );
-                }
+                m_rendererLambert.renderObjectsAddPass(cmdBuf,
+                    m_descriptorSetsScene[imageIndex],
+                    m_descriptorSetsModel[imageIndex],
+                    imageIndex,
+                    m_scene->m_modelDataDynamicUBO,
+                    obj,
+                    t
+                );
             }
         }
 

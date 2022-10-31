@@ -30,6 +30,8 @@ public:
 
     void setEnvironmentType(const EnvironmentType& type, bool updateUI = false);
 
+    void setDirectionalLight(std::shared_ptr<DirectionalLight> light);
+
 private:
     QComboBox* m_environmentPicker;
     QComboBox* m_comboMaps;

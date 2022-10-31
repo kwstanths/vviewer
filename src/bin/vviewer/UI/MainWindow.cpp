@@ -357,6 +357,20 @@ void MainWindow::clearControlsUI()
 
 void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTreeWidgetItem * parentItem, std::string sceneFolder)
 {
+    Transform t;
+    t.setPosition(object.position);
+    t.setScale(object.scale);
+    t.setRotationEuler(glm::radians(object.rotation.x), glm::radians(object.rotation.y), glm::radians(object.rotation.z));
+
+    /* Check if it's a directional light node */
+    if (object.light != nullptr && object.light->type == ImportedScenePointLightType::DISTANT) {
+        auto light = std::make_shared<DirectionalLight>(t, object.light->color, object.light->intensity);
+    
+        m_vulkanWindow->m_scene->setDirectionalLight(light);
+        m_widgetEnvironment->setDirectionalLight(light);
+        return;
+    }
+
     /* Create scene object */
     std::shared_ptr<SceneObject> sceneObject;
     QTreeWidgetItem* sceneItem;
@@ -402,18 +416,16 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
         }
         sceneObject->assign(instanceMaterials.get(object.material));
     }
-
+    
     /* Add light */
-    if (object.light != nullptr && object.light->type == ImportedScenePointLightType::POINT) {
-        PointLight * light = new PointLight(object.light->color, object.light->intensity);
-        sceneObject->assign(light);
+    if (object.light != nullptr) {
+        if (object.light->type == ImportedScenePointLightType::POINT) {
+            PointLight * light = new PointLight(object.light->color, object.light->intensity);
+            sceneObject->assign(light);
+        }
     }
 
     /* Set transform */
-    Transform t;
-    t.setPosition(object.position);
-    t.setScale(object.scale);
-    t.setRotationEuler(glm::radians(object.rotation.x), glm::radians(object.rotation.y), glm::radians(object.rotation.z));
     sceneObject->m_localTransform = t;
 
     /* Add children */

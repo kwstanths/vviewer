@@ -14,7 +14,7 @@ std::vector<Mesh> assimpLoadModel(std::string filename)
 {
     Assimp::Importer importer;
 
-    const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_CalcTangentSpace);
+    const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
     if (!scene) {
         importer.FreeScene();
         throw std::runtime_error("Failed to load model: " + filename);
