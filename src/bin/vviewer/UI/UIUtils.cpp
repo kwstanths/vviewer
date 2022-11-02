@@ -62,19 +62,6 @@ QStringList getImportedEnvironmentMaps()
     return importedEnvMaps;
 }
 
-QWidget * createColorWidget(QPushButton ** button)
-{
-    *button = new QPushButton();
-    (*button)->setFixedWidth(25);
-    QHBoxLayout* ColorLayout = new QHBoxLayout();
-    ColorLayout->addWidget(new QLabel("Color: "));
-    ColorLayout->addWidget(*button);
-    ColorLayout->setContentsMargins(0, 0, 0, 0);
-    QWidget* widgetColor = new QWidget();
-    widgetColor->setLayout(ColorLayout);
-    return widgetColor;
-}
-
 void setButtonColor(QPushButton* button, QColor color)
 {
     QString qss = QString("background-color: %1").arg(color.name());

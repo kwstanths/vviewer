@@ -63,11 +63,8 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
         m_comboMaps->addItems(getImportedEnvironmentMaps());
         connect(m_comboMaps, SIGNAL(currentIndexChanged(int)), this, SLOT(onEnvironmentMapChanged(int)));
 
-        m_backgroundColorWidget = createColorWidget(&m_backgroundColorButton);
-        glm::vec3 backgroundColor = m_scene->getBackgroundColor();
-        m_backgroundColor = QColor(backgroundColor.r * 255, backgroundColor.g * 255, backgroundColor.b * 255);
-        setButtonColor(m_backgroundColorButton, m_backgroundColor);
-        connect(m_backgroundColorButton, SIGNAL(pressed()), this, SLOT(onBackgroundColorButton()));
+        m_backgroundColorWidget = new WidgetColorButton(this, m_scene->getBackgroundColor());
+        connect(m_backgroundColorWidget, SIGNAL(colorChanged(glm::vec3)), this, SLOT(onBackgroundColorChanged(glm::vec3)));
 
         m_layoutEnvironmentGroupBox = new QVBoxLayout();
         m_layoutEnvironmentGroupBox->addWidget(m_environmentPicker);
@@ -100,21 +97,14 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     connect(m_lightTransform->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
     connect(m_lightTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
     /* Color */
-    QWidget* widgetLightColor = createColorWidget(&m_lightColorButton);
-    m_lightColor = QColor(m_light->color.r * 255, m_light->color.g * 255, m_light->color.b * 255);
-    setButtonColor(m_lightColorButton, m_lightColor);
-    connect(m_lightColorButton, SIGNAL(pressed()), this, SLOT(onLightColorButton()));
+    m_lightColorWidget = new WidgetColorButton(this, m_light->color);
+    connect(m_lightColorWidget, SIGNAL(colorChanged(glm::vec3)), this, SLOT(onLightColorChanged(glm::vec3)));
     /* Intensity slider */
-    m_lightIntensitySlider = new QSlider(Qt::Horizontal);
-    m_lightIntensitySlider->setMinimum(0);
-    m_lightIntensitySlider->setMaximum(1000);
-    m_lightIntensitySlider->setValue(m_light->intensity * 100.f);
-    connect(m_lightIntensitySlider, SIGNAL(valueChanged(int)), this, SLOT(onLightIntensityChanged(int)));
-    m_lightIntensityValue = new QLabel(QString::number(m_light->intensity));
+    m_lightIntensityWidget = new WidgetSliderValue(this, 0, 100, m_light->intensity, 1);
+    connect(m_lightIntensityWidget, SIGNAL(valueChanged(double)), this, SLOT(onLightIntensityChanged(double)));
     QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
     lightIntensityLayout->addWidget(new QLabel("Intensity:"));
-    lightIntensityLayout->addWidget(m_lightIntensitySlider);
-    lightIntensityLayout->addWidget(m_lightIntensityValue);
+    lightIntensityLayout->addWidget(m_lightIntensityWidget);
     lightIntensityLayout->setContentsMargins(0, 0, 0, 0);
     QWidget* widgetLightIntensity = new QWidget();
     widgetLightIntensity->setLayout(lightIntensityLayout);
@@ -122,7 +112,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     QGroupBox* lightGroupBox = new QGroupBox("Directional light");
     QVBoxLayout* layoutLight = new QVBoxLayout();
     layoutLight->addWidget(m_lightTransform);
-    layoutLight->addWidget(widgetLightColor);
+    layoutLight->addWidget(m_lightColorWidget);
     layoutLight->addWidget(widgetLightIntensity);
     lightGroupBox->setLayout(layoutLight);
 
@@ -196,10 +186,8 @@ void WidgetEnvironment::setDirectionalLight(std::shared_ptr<DirectionalLight> li
     m_light = light;
 
     m_lightTransform->setTransform(m_light->transform);
-    m_lightColor = QColor(m_light->color.r * 255, m_light->color.g * 255, m_light->color.b * 255);
-    setButtonColor(m_lightColorButton, m_lightColor);
-    m_lightIntensitySlider->setValue(m_light->intensity * 100.f);
-    m_lightIntensityValue->setText(QString::number(m_light->intensity));
+    m_lightColorWidget->setColor(m_light->color);
+    m_lightIntensityWidget->setValue(m_light->intensity);
 }
 
 void WidgetEnvironment::updateCamera()
@@ -223,58 +211,25 @@ void WidgetEnvironment::updateCamera()
     }
 }
 
-void WidgetEnvironment::setLightColor(QColor color)
-{
-    m_light->color = glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f);
-}
-
-float WidgetEnvironment::getIntensity()
-{
-    return (float)m_lightIntensitySlider->value() / 100.;
-}
-
-void WidgetEnvironment::onLightColorButton()
-{
-    QColorDialog* dialog = new QColorDialog(nullptr);
-    dialog->adjustSize();
-    connect(dialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(onLightColorChanged(QColor)));
-    dialog->exec();
-
-    setButtonColor(m_lightColorButton, m_lightColor);
-}
-
 void WidgetEnvironment::onLightDirectionChanged(double)
 {
     m_light->transform = m_lightTransform->getTransform();
 }
 
-void WidgetEnvironment::onLightColorChanged(QColor color)
+void WidgetEnvironment::onLightColorChanged(glm::vec3 color)
 {
-    m_lightColor = color;
-    setLightColor(m_lightColor);
+    m_light->color = color;
 }
 
-void WidgetEnvironment::onLightIntensityChanged(int val)
+void WidgetEnvironment::onLightIntensityChanged(double)
 {
-    float intensity  = getIntensity();
-    m_lightIntensityValue->setText(QString::number(intensity));
+    float intensity  = m_lightIntensityWidget->getValue();
     m_light->intensity = intensity;
 }
 
-void WidgetEnvironment::onBackgroundColorButton()
+void WidgetEnvironment::onBackgroundColorChanged(glm::vec3 color)
 {
-    QColorDialog* dialog = new QColorDialog(nullptr);
-    dialog->adjustSize();
-    connect(dialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(onBackgroundColorChanged(QColor)));
-    dialog->exec();
-
-    setButtonColor(m_backgroundColorButton, m_backgroundColor);
-}
-
-void WidgetEnvironment::onBackgroundColorChanged(QColor color)
-{
-    m_backgroundColor = color;
-    m_scene->setBackgroundColor(glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f));
+    m_scene->setBackgroundColor(color);
 }
 
 void WidgetEnvironment::onExposureChanged(int)

@@ -17,6 +17,8 @@
 #include "math/Transform.hpp"
 
 #include "WidgetTransform.hpp"
+#include "WidgetSliderValue.hpp"
+#include "WidgetColorButton.hpp"
 
 /* A UI widget to represent environment variables */
 class WidgetEnvironment : public QWidget {
@@ -35,19 +37,15 @@ public:
 private:
     QComboBox* m_environmentPicker;
     QComboBox* m_comboMaps;
-    QPushButton* m_backgroundColorButton;
-    QColor m_backgroundColor;
-    QWidget* m_backgroundColorWidget;
+    WidgetColorButton * m_backgroundColorWidget;
     QVBoxLayout* m_layoutEnvironmentGroupBox;
 
     QSlider* m_exposureSlider;
 
     /* Directional light widgets */
     WidgetTransform* m_lightTransform;
-    QPushButton* m_lightColorButton;
-    QSlider* m_lightIntensitySlider;
-    QLabel* m_lightIntensityValue;
-    QColor m_lightColor;
+    WidgetColorButton * m_lightColorWidget;
+    WidgetSliderValue * m_lightIntensityWidget;
 
     /* Camera widgets */
     WidgetTransform* m_cameraTransformWidget;
@@ -58,21 +56,16 @@ private:
     std::shared_ptr<DirectionalLight> m_light;
     std::shared_ptr<PerspectiveCamera> m_camera;
 
-    void setLightColor(QColor color);
-    float getIntensity();
-
     /* Update timer */
     QTimer* m_updateTimer;
 
 private slots:
     void onEnvironmentChanged(int);
     void onEnvironmentMapChanged(int);
-    void onLightColorButton();
+    void onBackgroundColorChanged(glm::vec3);
     void onLightDirectionChanged(double);
-    void onLightColorChanged(QColor color);
-    void onLightIntensityChanged(int);
-    void onBackgroundColorButton();
-    void onBackgroundColorChanged(QColor color);
+    void onLightColorChanged(glm::vec3);
+    void onLightIntensityChanged(double);
     void onExposureChanged(int);
     void onCameraWidgetChanged(double);
     void onCameraFovChanged(double);

@@ -11,30 +11,22 @@ WidgetPointLight::WidgetPointLight(QWidget * parent, PointLight * light) : QWidg
     m_light = light;
 
     /* Create color button */
-    m_colorWidget = createColorWidget(&m_colorButton);
-    glm::vec3 lightColor = m_light->color;
-    m_lightColor = QColor(lightColor.r * 255, lightColor.g * 255, lightColor.b * 255);
-    setButtonColor(m_colorButton, m_lightColor);
-    connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onLightColorButton()));
+    m_lightColorWidget = new WidgetColorButton(this, light->color);
+    connect(m_lightColorWidget, SIGNAL(colorChanged(glm::vec3)), this, SLOT(onLightColorChanged(glm::vec3)));
 
     /* Create intensity slider */
-    m_lightIntensitySlider = new QSlider(Qt::Horizontal);
-    m_lightIntensitySlider->setMinimum(0);
-    m_lightIntensitySlider->setMaximum(1000);
-    m_lightIntensitySlider->setValue(light->intensity * 100.F);
-    connect(m_lightIntensitySlider, SIGNAL(valueChanged(int)), this, SLOT(onLightIntensityChanged(int)));
-    m_lightIntensityValue = new QLabel(QString::number(getIntensity()));
+    m_lightIntensityWidget = new WidgetSliderValue(this, 0, 100, m_light->intensity, 1);
+    connect(m_lightIntensityWidget, SIGNAL(valueChanged(double)), this, SLOT(onLightIntensityChanged(double)));
     QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
     lightIntensityLayout->addWidget(new QLabel("Intensity:"));
-    lightIntensityLayout->addWidget(m_lightIntensitySlider);
-    lightIntensityLayout->addWidget(m_lightIntensityValue);
+    lightIntensityLayout->addWidget(m_lightIntensityWidget);
     lightIntensityLayout->setContentsMargins(0, 0, 0, 0);
     QWidget* widgetLightIntensity = new QWidget();
     widgetLightIntensity->setLayout(lightIntensityLayout);
 
     QGroupBox* lightGroupBox = new QGroupBox("Point light");
     QVBoxLayout* layoutLight = new QVBoxLayout();
-    layoutLight->addWidget(m_colorWidget);
+    layoutLight->addWidget(m_lightColorWidget);
     layoutLight->addWidget(widgetLightIntensity);
     lightGroupBox->setLayout(layoutLight);
 
@@ -47,30 +39,13 @@ WidgetPointLight::WidgetPointLight(QWidget * parent, PointLight * light) : QWidg
     setLayout(layoutMain);
 }
 
-void WidgetPointLight::onLightColorButton()
+void WidgetPointLight::onLightColorChanged(glm::vec3 color)
 {
-    QColorDialog* dialog = new QColorDialog(nullptr);
-    dialog->adjustSize();
-    connect(dialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(onLightColorChanged(QColor)));
-    dialog->exec();
-
-    setButtonColor(m_colorButton, m_lightColor);
+    m_light->color = color;
 }
 
-void WidgetPointLight::onLightColorChanged(QColor color)
+void WidgetPointLight::onLightIntensityChanged(double)
 {
-    m_lightColor = color;
-    m_light->color = glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f);
-}
-
-void WidgetPointLight::onLightIntensityChanged(int)
-{
-    float intensity = getIntensity();
+    double intensity = m_lightIntensityWidget->getValue();
     m_light->intensity = intensity;
-    m_lightIntensityValue->setText(QString::number(intensity));
-}
-
-float WidgetPointLight::getIntensity()
-{
-    return (float)m_lightIntensitySlider->value() / 100.;
 }

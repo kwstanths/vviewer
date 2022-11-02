@@ -13,7 +13,6 @@ QStringList getImportedTextures(TextureType type);
 QStringList getImportedCubemaps();
 QStringList getImportedEnvironmentMaps();
 
-QWidget * createColorWidget(QPushButton ** button);
 void setButtonColor(QPushButton* button, QColor color);
 
 
