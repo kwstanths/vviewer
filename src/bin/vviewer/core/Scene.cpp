@@ -210,11 +210,3 @@ void Scene::exportScene(std::string name, uint32_t width, uint32_t height, uint3
 
     exportJson(name, m_camera, m_directionalLight, m_sceneGraph, temp, width, height, samples);
 }
-
-// void Scene::removeIDs(std::vector<std::shared_ptr<SceneObject>>& objects)
-// {
-//     for(auto o : objects)
-//     {
-//         m_objectsMap.erase(o->getID());
-//     }
-// }

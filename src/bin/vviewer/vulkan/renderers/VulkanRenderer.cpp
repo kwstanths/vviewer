@@ -302,6 +302,11 @@ void VulkanRenderer::startNextFrame()
 
 void VulkanRenderer::buildFrame()
 {   
+    /* calculate delat time */
+    auto currentTime = std::chrono::steady_clock::now();
+    m_deltaTime = (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_frameTimePrev).count()) / 1000.0f;
+    m_frameTimePrev = currentTime;
+
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
     m_scene->updateSceneGraph();
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
@@ -626,6 +631,11 @@ glm::vec3 VulkanRenderer::selectObject(float x, float y)
     m_devFunctions->vkUnmapMemory(m_device, m_imageTempColorSelection.memory);
 
     return highlightTexelColor;
+}
+
+float VulkanRenderer::deltaTime() const
+{
+    return m_deltaTime;
 }
 
 Texture * VulkanRenderer::createTexture(std::string imagePath, VkFormat format, bool keepImage)

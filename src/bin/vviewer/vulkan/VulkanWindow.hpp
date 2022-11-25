@@ -29,6 +29,8 @@ public:
 
     VulkanScene* m_scene = nullptr;
 
+    float delta() const;
+
 signals:
     /* emitted when the selected object changes from the 3D scene */
     void sceneObjectSelected(std::shared_ptr<SceneObject> object);

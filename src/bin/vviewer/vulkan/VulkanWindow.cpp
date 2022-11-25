@@ -170,6 +170,14 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
     return mat;
 }
 
+float VulkanWindow::delta() const
+{
+    if (m_renderer != nullptr)
+    {
+        return m_renderer->deltaTime();
+    }
+    return 0.016f;
+}
 
 void VulkanWindow::resizeEvent(QResizeEvent * ev)
 {
@@ -226,7 +234,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
     Qt::MouseButtons buttons = ev->buttons();
     Transform& cameraTransform = m_scene->getCamera()->getTransform();
     if (buttons & Qt::RightButton) {
-        float mouseSensitivity = 0.002f;
+        float mouseSensitivity = 0.125f * delta();
         
         /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.getRotation();
@@ -236,8 +244,8 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
         cameraTransform.setRotation(glm::normalize(qYaw * rotation * qPitch));
     }
 
-    /* Perform movement pf selected object if left button is pressed */
-    float movementSensitivity = 0.02f;
+    /* Perform movement of selected object if left button is pressed */
+    float movementSensitivity = 1.25f * delta();
     if (buttons & Qt::LeftButton) {
         std::shared_ptr<SceneObject> selectedObject = m_renderer->getSelectedObject();
         if (selectedObject.get() == nullptr) return;
@@ -315,17 +323,19 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
 void VulkanWindow::onUpdateCamera()
 {
     /* FPS style camera movement */
-    float cameraDefaultSpeed = 0.05f;
-    float cameraFastSpeed = 0.3f;
+    float cameraDefaultSpeed = 3.f;
+    float cameraFastSpeed = 12.f;
 
     float speed = cameraDefaultSpeed;
     if (m_keysPressed[Qt::Key_Shift]) speed = cameraFastSpeed;
 
+    float finalSpeed = speed * delta();
     Transform& cameraTransform = m_scene->getCamera()->getTransform();
-    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.getForward() * speed);
-    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * speed);
-    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * speed);
-    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * speed);
-    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_Q]) * cameraTransform.getUp() * speed);
-    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * speed);
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.getForward() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_Q]) * cameraTransform.getUp() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * finalSpeed);
+
 }

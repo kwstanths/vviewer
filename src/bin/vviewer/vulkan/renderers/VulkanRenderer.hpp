@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <vector>
+#include <chrono>
 
 #include <qvulkanwindow.h>
 #include <qvulkanfunctions.h>
@@ -64,6 +65,8 @@ public:
     void renderRT();
 
     glm::vec3 selectObject(float x, float y);
+
+    float deltaTime() const;
 
 private:
 
@@ -128,6 +131,8 @@ private:
 
     /* Active scene */
     VulkanScene * m_scene = nullptr;
+    std::chrono::steady_clock::time_point m_frameTimePrev;
+    float m_deltaTime = 0.016;
 
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayoutScene;
