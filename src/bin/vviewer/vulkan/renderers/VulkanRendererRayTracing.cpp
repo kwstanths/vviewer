@@ -16,7 +16,7 @@ VulkanRendererRayTracing::VulkanRendererRayTracing()
 void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, VkFormat format)
 {
     /* Check if physical device supports ray tracing */
-    std::vector< VkExtensionProperties> extensions;
+    std::vector<VkExtensionProperties> extensions;
     bool supportsRayTracing = VulkanRendererRayTracing::checkRayTracingSupport(physicalDevice, extensions);
     if (!supportsRayTracing)
     {
@@ -27,7 +27,7 @@ void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, Vk
     m_format = format;
 
     /* Create logical device from scratch for ray tracing, since current version of qt(6.2.4) doesn't support setting custom features for the logical device 
-    * thus the required ray tracing features cannot be enabled
+    * thus the required ray tracing features cannot be enabled for the qt provided logical device
     */
     m_device = createLogicalDevice(m_physicalDevice, m_queueFamilyIndex);
     vkGetDeviceQueue(m_device, m_queueFamilyIndex, 0, &m_queue);
@@ -161,10 +161,14 @@ std::vector<const char *> VulkanRendererRayTracing::getRequiredExtensions()
 
 bool VulkanRendererRayTracing::checkRayTracingSupport(VkPhysicalDevice device, std::vector<VkExtensionProperties>& availableExtensions)
 {
+    /* Get required extensions */
     std::vector<const char *> requiredExtensions = VulkanRendererRayTracing::getRequiredExtensions();
+
+    /* Get the number of extensions supported by the device */
     uint32_t count;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
 
+    /* Check if the required extensions are supported */
     availableExtensions = std::vector<VkExtensionProperties>(count);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &count, availableExtensions.data()); //populate buffer
     for (auto requiredExetension : requiredExtensions)
@@ -222,7 +226,7 @@ VkDevice VulkanRendererRayTracing::createLogicalDevice(VkPhysicalDevice physical
     deviceFeatures.features.shaderInt16 = VK_TRUE;
     deviceFeatures.pNext = &deviceFeatures16Storage;
 
-    /* Pick queue families */
+    /* Find queue families */
     uint32_t queueFamilyPropertyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, NULL);
     std::vector<VkQueueFamilyProperties> queueFamilyPropertiesList(queueFamilyPropertyCount);
@@ -246,6 +250,7 @@ VkDevice VulkanRendererRayTracing::createLogicalDevice(VkPhysicalDevice physical
     /* Physical device required extensions */
     std::vector<const char*> requiredExtensions = VulkanRendererRayTracing::getRequiredExtensions();
 
+    /* Create logical device */
     VkDeviceCreateInfo deviceCreateInfo = {};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pNext = &deviceFeatures;
@@ -260,7 +265,6 @@ VkDevice VulkanRendererRayTracing::createLogicalDevice(VkPhysicalDevice physical
 
     VkDevice device = VK_NULL_HANDLE;
     VkResult res = vkCreateDevice(physicalDevice, &deviceCreateInfo, NULL, &device);
-
     if (res != VK_SUCCESS) {
         throw std::runtime_error("VulkanRayTracingRenderer::createLogicalDevice(): Unable to create logical device: " + std::to_string(res));
     }
@@ -324,16 +328,16 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
         transformBuffer,
         transformBufferMemory);
 
-    /* Get the device address of the buffers and push them to the scene objects vector */
+    /* Get the device address of the geometry  buffers and push them to the scene objects vector */
     VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
-    VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
-    VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
     vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, vertexBuffer);
+    VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
     indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, indexBuffer);
+    VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
     transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, transformBuffer);
     m_sceneObjects.push_back({ vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress });
 
-    std::vector<uint32_t> numTriangles = { static_cast<uint32_t>(indices.size()) / 3 };
+    std::vector<uint32_t> numTriangles = { indexCount / 3 };
     uint32_t maxVertex = static_cast<uint32_t>(vertices.size());
 
     /* Specify an acceleration structure geometry for the mesh */
@@ -387,6 +391,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
 
     /* Create a scratch buffer used during the build of the bottom level acceleration structure */
     RayTracingScratchBuffer scratchBuffer = createScratchBuffer(accelerationStructureBuildSizesInfo.buildScratchSize);
+
     /* Build accelleration structure */
     VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{};
     accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
@@ -416,7 +421,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
 
     endSingleTimeCommands(m_device, m_commandPool, m_queue, commandBuffer);
 
-    /* Get device address */
+    /* Get the device address */
     VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
     accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
     accelerationDeviceAddressInfo.accelerationStructure = blas.handle;
@@ -429,7 +434,6 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
 
 VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createTopLevelAccelerationStructure()
 {
-
     /* Create a buffer to hold top level instances */
     std::vector<VkAccelerationStructureInstanceKHR> instances(m_blas.size());
     for (size_t i = 0; i < m_blas.size(); i++)
@@ -444,11 +448,12 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
 
         instances[i].transform = transformMatrix;
         instances[i].instanceCustomIndex = static_cast<uint32_t>(i);    /* The custom index specifies where the reference of this object 
-                                                                        is inside the array of references that is paased in the shader. 
-                                                                        This reference will tell the shader where the geometry buffers 
-                                                                        for this object are */
+                                                                        is inside the array of references that is passed in the shader. 
+                                                                        More specifically, this reference will tell the shader where the 
+                                                                        geometry buffers for this object are, the meshe's index inside 
+                                                                        the ObjectDescription buffer */
         instances[i].mask = 0xFF;
-        instances[i].instanceShaderBindingTableRecordOffset = 0;    /* TODO Specify here the chit shader to be used from the SBT */
+        instances[i].instanceShaderBindingTableRecordOffset = 0;    /* TODO Specify here the chit shader to be used from the SBT for this instance */
         instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         instances[i].accelerationStructureReference = m_blas[i].first.deviceAddress;
     }
@@ -465,7 +470,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
         instances.data(),
         instancesBuffer,
         instancesBufferMemory);
-    /* Get address of buffer */
+    /* Get address of the instances buffer */
     VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
     instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, instancesBuffer);
 
@@ -477,7 +482,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     accelerationStructureGeometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
     accelerationStructureGeometry.geometry.instances.arrayOfPointers = VK_FALSE;
     accelerationStructureGeometry.geometry.instances.data = instanceDataDeviceAddress;
-    /* Get size info for the acceleration structure */
+    /* Get the size info for the acceleration structure */
     VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
     accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
     accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
@@ -494,7 +499,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
         &instancesCount,
         &accelerationStructureBuildSizesInfo);
 
-    /* Create acceleration sturcture buffer */
+    /* Create acceleration structure buffer */
     AccelerationStructure tlas;
     createAccelerationStructureBuffer(m_physicalDevice,
         m_device,
@@ -633,8 +638,8 @@ void VulkanRendererRayTracing::createUniformBuffers()
         m_uniformBufferScene, 
         m_uniformBufferSceneMemory);
 
-    /* TODO 100 max objects in the scene  */
     /* Create a buffer to hold the object descriptions data */
+    /* TODO 100 max objects in the scene  */
     createBuffer(m_physicalDevice,
         m_device,
         100u * sizeof(ObjectDescription),
@@ -646,7 +651,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
 
 void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData)
 {
-    /* BUffer holding scene data */
+    /* Buffer holding scene data */
     {
         void* data;
         vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, sizeof(SceneData), 0, &data);
@@ -726,7 +731,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
     */
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
-    // Ray generation group
+    /* Ray generation group */
     {
         VkPipelineShaderStageCreateInfo rayGenShaderStageInfo{};
         rayGenShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -744,7 +749,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         m_shaderGroups.push_back(shaderGroup);
     }
 
-    // Miss group
+    /* Miss groups: one for primary ray miss, one for shadow raw miss */
     {
         VkPipelineShaderStageCreateInfo rayMissShaderStageInfo{};
         rayMissShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -771,7 +776,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         m_shaderGroups.push_back(shaderGroup);
     }
 
-    // Closest hit group
+    /* Closest hit group */
     {
         VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo{};
         rayClosestHitShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -783,13 +788,13 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
         shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
         shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
-        shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;  /* Only chit shader used for this closest hit group */
+        shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;  /* The closet hit shader to use for this hit group */
         shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
         shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
         m_shaderGroups.push_back(shaderGroup);
     }
 
-    // Spec only guarantees 1 level of "recursion". Check for that sad possibility here.
+    /* Spec only guarantees 1 level of "recursion". Check for that sad possibility here */
     if (m_rayTracingPipelineProperties.maxRayRecursionDepth <= 1) {
         throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Device doesn't support ray recursion");
     }
@@ -835,11 +840,11 @@ void VulkanRendererRayTracing::createShaderBindingTable()
     const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    createBuffer(m_physicalDevice, m_device, handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayGenBuffer, m_shaderRayGenBufferMemory);
+    createBuffer(m_physicalDevice, m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayGenBuffer, m_shaderRayGenBufferMemory);
     createBuffer(m_physicalDevice, m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayMissBuffer, m_shaderRayMissBufferMemory);
-    createBuffer(m_physicalDevice, m_device, handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer, m_shaderRayCHitBufferMemory);
+    createBuffer(m_physicalDevice, m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer, m_shaderRayCHitBufferMemory);
 
-    /* 1 ray gen group always */
+    /* 1 ray gen group */
     {
         void* data;
         vkMapMemory(m_device, m_shaderRayGenBufferMemory, 0, handleSize, 0, &data);

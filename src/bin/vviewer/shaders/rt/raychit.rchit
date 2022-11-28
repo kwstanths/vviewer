@@ -87,7 +87,7 @@ void main()
 	vec3 origin = worldPos;
 	shadowed = true;
 	/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
-	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 1, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 1);
+	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 1);
 	if (shadowed) {
 		hitValue *= 0.5;
 	}

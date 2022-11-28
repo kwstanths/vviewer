@@ -78,7 +78,9 @@ private:
     /* Objects description data for meshes in the scene */
     struct ObjectDescription
     {
+        /* A pointer to a buffer holding mesh vertex data */
         uint64_t vertexAddress;
+        /* A pointer to a buffer holding mesh index data*/
         uint64_t indexAddress;
     };
     std::vector<ObjectDescription> m_sceneObjects;
