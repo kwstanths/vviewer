@@ -1,0 +1,2 @@
+#define PI 3.1415926535
+#define INVPI 0.318309886

@@ -8,33 +8,19 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
+#include "structs.glsl"
+#include "frame.glsl"
+#include "sampling.glsl"
+
 hitAttributeEXT vec2 attribs;
 
 /* Ray payload */
-layout(location = 0) rayPayloadInEXT vec3 hitValue;
+layout(location = 0) rayPayloadInEXT RayPayload rayPayload;
 layout(location = 1) rayPayloadEXT bool shadowed;
-
-/* Type for vertex data stored per vertex in geometry buffers */
-struct Vertex
-{
-    vec3 position;
-    vec2 uv;
-    vec3 normal;
-    vec3 color;
-    vec3 tangent;
-    vec3 bitangent;
-};
 
 /* Types for the arrays of vertices and indices of the currently hit object */
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
-
-/* Type for the object description geonetry of a mesh in the scene */
-struct ObjDesc
-{
-	uint64_t vertexAddress;
-	uint64_t indexAddress;
-};
 
 /* Descriptors */
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
@@ -48,7 +34,15 @@ layout(binding = 2, set = 0) uniform SceneData
     vec4 directionalLightColor;
     vec4 exposure;
 } sceneData;
-/* Buffer with array of object description addresses */
+
+/* Struct for the object description geometry of a mesh in the scene */
+struct ObjDesc
+{
+    /* Pointers to GPU buffers */
+	uint64_t vertexAddress;
+	uint64_t indexAddress;
+};
+/* Descriptor with the buffer for the object description structs */
 layout(binding = 3, set = 0, scalar) buffer ObjDesc_ 
 { 
 	ObjDesc i[]; 
@@ -56,11 +50,10 @@ layout(binding = 3, set = 0, scalar) buffer ObjDesc_
 
 void main()
 {
-	/* Get the hit object geometry , its vertices and its indices buffers */
+	/* Get the hit object geometry, its vertices and its indices buffers */
 	ObjDesc objResource = objDesc.i[gl_InstanceCustomIndexEXT];
 	Indices indices = Indices(objResource.indexAddress);
 	Vertices vertices = Vertices(objResource.vertexAddress);
-
 	/* Get hit triangle info */
 	ivec3  ind = indices.i[gl_PrimitiveID];
 	Vertex v0 = vertices.v[ind.x];
@@ -69,26 +62,44 @@ void main()
 
 	/* Calculate bayrcentric coordiantes */
 	const vec3 barycentricCoords = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
-	
 	/* Compute the coordinates of the hit position */
-	const vec3 position      = v0.position * barycentricCoords.x + v1.position * barycentricCoords.y + v2.position * barycentricCoords.z;
-	const vec3 worldPos = vec3(gl_ObjectToWorldEXT * vec4(position, 1.0));
+	const vec3 localPosition      = v0.position * barycentricCoords.x + v1.position * barycentricCoords.y + v2.position * barycentricCoords.z;
+	const vec3 worldPosition = vec3(gl_ObjectToWorldEXT * vec4(localPosition, 1.0));
+	/* Compute the normal, tangent and bitangent at hit position */
+	const vec3 localNormal		= v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z;
+	const vec3 localTangent 	= v0.tangent * barycentricCoords.x + v1.tangent * barycentricCoords.y + v2.tangent * barycentricCoords.z;
+	const vec3 localBitangent	= v0.bitangent * barycentricCoords.x + v1.bitangent * barycentricCoords.y + v2.bitangent * barycentricCoords.z;
+	vec3 worldNormal = normalize(vec3(localNormal * gl_WorldToObjectEXT));
+	vec3 worldTangent = normalize(vec3(localTangent * gl_WorldToObjectEXT));
+	vec3 worldBitangent = normalize(vec3(localBitangent * gl_WorldToObjectEXT));
 	
-	/* Compute the normal at hit position */
-	const vec3 normal      = v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z;
-	const vec3 worldNormal = normalize(vec3(normal * gl_WorldToObjectEXT));
-	
-	/* Just store whatever to hitvalue */
-	hitValue = clamp(vec3(dot(worldNormal, -sceneData.directionalLightDir.xyz)), 0, 1);
-	
-	/* Send shadow ray*/
-	float tmin = 0.001;
-	float tmax = 10000.0;
-	vec3 origin = worldPos;
-	shadowed = true;
-	/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
-	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 1);
-	if (shadowed) {
-		hitValue *= 0.5;
-	}
+	Frame frame = Frame(worldNormal, worldTangent, worldBitangent);
+	bool flipped = fixFrame(frame.normal, frame.tangent, frame.bitangent, gl_WorldRayDirectionEXT);
+
+	// /* light sampling test */
+	// {
+	// 	vec3 lightRadiance = sceneData.directionalLightColor.xyz * clamp(vec3(dot(worldNormal, -sceneData.directionalLightDir.xyz)), 0, 1) * rayPayload.beta;
+
+	// 	/* Shadow ray */
+	// 	float tmin = 0.001;
+	// 	float tmax = 10000.0;
+	// 	vec3 origin = worldPosition;
+	// 	shadowed = true;
+	// 	/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
+	// 	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 1);
+		
+	// 	if (!shadowed) {
+	// 		rayPayload.radiance += lightRadiance;
+	// 	}
+	// }
+
+	rayPayload.origin = worldPosition;
+
+	float sampleDirectionPDF;
+	vec3 sampleDirection = localToWorld(frame, cosineSampleHemisphere(rayPayload.rngState, sampleDirectionPDF));
+
+	float cosTheta = abs(dot(worldNormal, sampleDirection));
+
+	rayPayload.direction = sampleDirection;
+	rayPayload.beta *= vec3(0.5, 0.5, 0.5) * cosTheta * INVPI / sampleDirectionPDF;
 }

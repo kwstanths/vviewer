@@ -1,6 +1,7 @@
 #ifndef __VulkanUtils_hpp__
 #define __VulkanUtils_hpp__
 
+#include <cstdint>
 #include <vector>
 #include <fstream>
 #include <array>
@@ -9,6 +10,11 @@
 #include <glm/glm.hpp>
 #include "core/Mesh.hpp"
 #include "vulkan/IncludeVulkan.hpp"
+
+/* vulkan timeouts */
+static const uint64_t VULKAN_TIMEOUT_1S     = 1000000000;
+static const uint64_t VULKAN_TIMEOUT_10S    = 10000000000;
+static const uint64_t VULKAN_TIMEOUT_100S   = 100000000000;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -126,12 +132,24 @@ bool copyBufferToImage(VkDevice device,
     std::vector<VkBufferImageCopy> regions);
 
 
+/**
+ * @brief 
+ * 
+ * @param device 
+ * @param commandPool 
+ * @param queue
+ * @param commandBuffer
+ * @param freeCommandBuffer
+ * @param timeout The amount of time to wait, in nanoseconds
+ * @return VkCommandBuffer 
+ */
 VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
 void endSingleTimeCommands(VkDevice device, 
     VkCommandPool commandPool, 
     VkQueue queue, 
     VkCommandBuffer commandBuffer,
-    bool freeCommandBuffer = true);
+    bool freeCommandBuffer = true,
+    uint64_t timeout = VULKAN_TIMEOUT_10S);
 
 /**
     Submit a command to transition the layout of an image from oldLayout to newLayout, creates and destroys a command buffer 

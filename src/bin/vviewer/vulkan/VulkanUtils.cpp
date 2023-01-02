@@ -1,5 +1,6 @@
 #include "VulkanUtils.hpp"
 
+#include <cstdint>
 #include <utils/Console.hpp>
 
 uint32_t findMemoryType(VkPhysicalDevice physicalDevice,
@@ -324,7 +325,8 @@ void endSingleTimeCommands(VkDevice device,
     VkCommandPool commandPool, 
     VkQueue queue, 
     VkCommandBuffer commandBuffer,
-    bool freeCommandBuffer)
+    bool freeCommandBuffer,
+    uint64_t timeout)
 {
     vkEndCommandBuffer(commandBuffer);
 
@@ -343,7 +345,7 @@ void endSingleTimeCommands(VkDevice device,
     vkQueueSubmit(queue, 1, &submitInfo, fence);
     
     // Wait for the fence to signal that command buffer has finished executing
-    vkWaitForFences(device, 1, &fence, VK_TRUE, 10000000000);
+    vkWaitForFences(device, 1, &fence, VK_TRUE, timeout);
     vkDestroyFence(device, fence, nullptr);
     if (freeCommandBuffer)
     {

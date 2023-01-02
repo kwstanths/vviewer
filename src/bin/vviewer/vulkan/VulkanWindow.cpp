@@ -303,7 +303,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
             float cameraUpDot = glm::dot(objectY, cameraTransform.getUp());
             float movement;
             if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
-                movement = ((cameraRightDot > 0) ? -1 : 1) * (float)mousePosDiff.x();
+                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
             }
             else {
                 movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());

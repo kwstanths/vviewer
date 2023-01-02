@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include "QtConcurrent/qtconcurrentrun.h"
+#include "Timer.hpp"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -117,9 +118,9 @@ void VulkanRenderer::initResources()
     defaultMaterial->emissive() = 0.0f;
 
     /* Import some models */
-    createVulkanMeshModel("assets/models/uvsphere.obj");
-    createVulkanMeshModel("assets/models/plane.obj");
-    createVulkanMeshModel("assets/models/cube.obj");
+    auto uvsphereMeshModel = createVulkanMeshModel("assets/models/uvsphere.obj");
+    auto planeMeshModel = createVulkanMeshModel("assets/models/plane.obj");
+    auto cubeMeshModel = createVulkanMeshModel("assets/models/cube.obj");
 
     /* Create a skybox material */
     {
@@ -129,6 +130,18 @@ void VulkanRenderer::initResources()
         instance.add(skybox->m_name, skybox);
         m_scene->setSkybox(skybox);
     }
+
+    // auto cube = m_scene->addSceneObject("cube", Transform());
+    // cube->assign(cubeMeshModel->getMeshes()[0]);
+    // cube->assign(defaultMaterial);
+
+    // auto sphere = m_scene->addSceneObject("sphere", Transform());
+    // sphere->assign(uvsphereMeshModel->getMeshes()[0]);
+    // sphere->assign(defaultMaterial);
+
+    // auto plane = m_scene->addSceneObject("plane", Transform({0, -1.0, 0}, {5, 5, 5}));
+    // plane->assign(planeMeshModel->getMeshes()[0]);
+    // plane->assign(defaultMaterial);
 }
 
 void VulkanRenderer::initSwapChainResources()
@@ -593,9 +606,16 @@ bool VulkanRenderer::isRTEnabled() const
 
 void VulkanRenderer::renderRT()
 {
+
     if (m_rendererRayTracing.isInitialized()) {
+        utils::Timer timer;
+        timer.Start();
+        
         m_scene->updateSceneGraph();
         m_rendererRayTracing.renderScene(m_scene);
+
+        timer.Stop();
+        utils::ConsoleInfo("Render time: " + timer.ToString() + " ms");
     }
     else {
         utils::ConsoleWarning("GPU Ray tracing is not supported");

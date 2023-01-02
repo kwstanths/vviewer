@@ -25,7 +25,7 @@ namespace utils {
         std::pair<std::string, TerminalColor> level_info = GetLevelInfo(DebugLevel::INFO);
         std::cout << GetStringTimestamp() << " [";
         CustomPrint(std::cout, level_info.first, level_info.second);
-        std::cout << "] : ";
+        std::cout << "]: ";
         CustomPrint(std::cout, text, TerminalColor::DEF_FG);
         std::cout << std::endl;
     }
@@ -35,7 +35,7 @@ namespace utils {
         std::pair<std::string, TerminalColor> level_info = GetLevelInfo(DebugLevel::WARNING);
         std::cout << GetStringTimestamp() << " [";
         CustomPrint(std::cout, level_info.first, level_info.second);
-        std::cout << "] : ";
+        std::cout << "]: ";
         CustomPrint(std::cout, text, TerminalColor::DEF_FG);
         std::cout << std::endl;
     }
@@ -45,7 +45,7 @@ namespace utils {
         std::pair<std::string, TerminalColor> level_info = GetLevelInfo(DebugLevel::FATAL);
         std::cout << GetStringTimestamp() << " [";
         CustomPrint(std::cout, level_info.first, level_info.second);
-        std::cout << "] : ";
+        std::cout << "]: ";
         CustomPrint(std::cout, text, TerminalColor::DEF_FG);
         std::cout << std::endl;
     }
@@ -55,7 +55,7 @@ namespace utils {
         std::pair<std::string, TerminalColor> level_info = GetLevelInfo(DebugLevel::CRITICAL);
         std::cout << GetStringTimestamp() << " [";
         CustomPrint(std::cout, level_info.first, level_info.second);
-        std::cout << "] : ";
+        std::cout << "]: ";
         CustomPrint(std::cout, text, TerminalColor::DEF_FG);
         std::cout << std::endl;
     }

@@ -1,4 +1,5 @@
 #include "VulkanRendererRayTracing.hpp"
+#include "vulkan/VulkanUtils.hpp"
 
 #include <iostream>
 
@@ -1032,7 +1033,7 @@ void VulkanRendererRayTracing::render()
     /* Transition render result back to layout general */
     transitionImageLayout(cmdBuf, m_renderResult.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
 
-    endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true);
+    endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true, VULKAN_TIMEOUT_100S);
     vkQueueWaitIdle(m_queue);
 
     storeToDisk("test", OutputFileType::HDR);
