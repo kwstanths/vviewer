@@ -21,6 +21,10 @@ public:
 
     std::string getRenderOutputFileName() const;
     OutputFileType getRenderOutputFileType() const;
+    
+    uint32_t getResolutionWidth() const;
+    uint32_t getResolutionHeight() const;
+
     uint32_t getSamples() const;
     uint32_t getDepth() const;
 
@@ -30,6 +34,9 @@ private:
     std::string m_renderOutputFileName = "";
 
     QComboBox * m_renderOutputFileTypeWidget = nullptr;
+
+    QSpinBox* m_resolutionWidth = nullptr;
+    QSpinBox* m_resolutionHeight = nullptr;
 
     QSpinBox* m_samples = nullptr;
     QSpinBox* m_depth = nullptr;

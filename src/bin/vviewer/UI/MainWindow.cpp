@@ -793,6 +793,7 @@ void MainWindow::onRenderSceneSlot()
     RTrenderer->setMaxDepth(dialog->getDepth());
     RTrenderer->setRenderOutputFileName(dialog->getRenderOutputFileName());
     RTrenderer->setRenderOutputFileType(dialog->getRenderOutputFileType());
+    RTrenderer->setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
     delete dialog;
 
     auto ret = m_vulkanWindow->m_renderer->renderRT();

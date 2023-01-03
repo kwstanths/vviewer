@@ -170,7 +170,7 @@ void VulkanRendererRayTracing::setRenderResolution(uint32_t width, uint32_t heig
     createStorageImage(); 
 }
 
-void VulkanRendererRayTracing::getRenderResolution(uint32_t& width, uint32_t& height)
+void VulkanRendererRayTracing::getRenderResolution(uint32_t& width, uint32_t& height) const
 {
     width = m_width;
     height = m_height;

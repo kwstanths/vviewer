@@ -42,7 +42,7 @@ public:
     uint32_t getMaxDepth() const { return m_rayTracingData.samplesDepth.g; }
 
     void setRenderResolution(uint32_t width, uint32_t height);
-    void getRenderResolution(uint32_t& width, uint32_t& height);
+    void getRenderResolution(uint32_t& width, uint32_t& height) const;
 
     void setRenderOutputFileName(std::string filename) { m_renderResultOutputFileName = filename; }
     std::string getRenderOutputFileName() const { return m_renderResultOutputFileName; }

@@ -7,11 +7,13 @@
 #include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 #include <qcombobox.h>
 #include <qlistwidget.h>
+#include <sys/types.h>
 
 DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTracing * renderer)
 {
 	setWindowTitle(QString("Render scene:"));
 
+    /* Filename widget */
 	m_renderOutputFileWidget = new QLineEdit(QString::fromStdString(renderer->getRenderOutputFileName()));
 
 	m_renderOutputFileChangeButton = new QPushButton("Change");
@@ -29,6 +31,37 @@ DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTra
 	QWidget* widgetRenderOutputFile = new QWidget();
 	widgetRenderOutputFile->setLayout(layoutRenderOutputFile);
 
+    /* Resolution widget */
+    uint32_t currentWidth;
+    uint32_t currentHeight;
+    renderer->getRenderResolution(currentWidth, currentHeight);
+	m_resolutionWidth = new QSpinBox();
+	m_resolutionWidth->setMinimum(0);
+	m_resolutionWidth->setMaximum(16384);
+	m_resolutionWidth->setValue(currentWidth);
+    QHBoxLayout* layoutResolutionWidth = new QHBoxLayout();
+	layoutResolutionWidth->addWidget(new QLabel("Width:"));
+	layoutResolutionWidth->addWidget(m_resolutionWidth);
+	QWidget* widgetResolutionWidth = new QWidget();
+	widgetResolutionWidth->setLayout(layoutResolutionWidth);
+
+	m_resolutionHeight = new QSpinBox();
+	m_resolutionHeight->setMinimum(0);
+	m_resolutionHeight->setMaximum(16384);
+	m_resolutionHeight->setValue(currentHeight);
+	QHBoxLayout* layoutResolutionHeight = new QHBoxLayout();
+	layoutResolutionHeight->addWidget(new QLabel("Height:"));
+	layoutResolutionHeight->addWidget(m_resolutionHeight);
+	QWidget* widgetResolutionHeight = new QWidget();
+	widgetResolutionHeight->setLayout(layoutResolutionHeight);
+
+	QGroupBox* resolutionGroupBox = new QGroupBox("Resolution:");
+	QHBoxLayout* layoutResolution = new QHBoxLayout();
+	layoutResolution->addWidget(widgetResolutionWidth);
+	layoutResolution->addWidget(widgetResolutionHeight);
+	resolutionGroupBox->setLayout(layoutResolution);
+
+    /* Render parameters widget */
 	m_samples = new QSpinBox();
 	m_samples->setMinimum(0);
 	m_samples->setMaximum(65536);
@@ -49,13 +82,13 @@ DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTra
 	QWidget* widgetDepth = new QWidget();
 	widgetDepth->setLayout(layoutDepth);
 
-	/* Render params group */
-	QGroupBox* renderGroupBox = new QGroupBox("Render parameters");
+	QGroupBox* renderGroupBox = new QGroupBox("Parameters");
 	QHBoxLayout* layoutRender = new QHBoxLayout();
 	layoutRender->addWidget(widgetSamples);
 	layoutRender->addWidget(widgetDepth);
 	renderGroupBox->setLayout(layoutRender);
 
+    /* Buttons widget */
 	m_buttonRender = new QPushButton(tr("Render"));
 	connect(m_buttonRender, &QPushButton::released, this, &DialogSceneRender::onButtonRender);
 	m_buttonCancel = new QPushButton(tr("Cancel"));
@@ -66,14 +99,17 @@ DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTra
 	QWidget* widgetButtons = new QWidget();
 	widgetButtons->setLayout(layoutButtons);
 
+    /* Main widget */
 	QVBoxLayout* layoutMain = new QVBoxLayout();
 	layoutMain->addWidget(widgetRenderOutputFile);
+    layoutMain->addWidget(resolutionGroupBox);
 	layoutMain->addWidget(renderGroupBox);
 	layoutMain->addWidget(widgetButtons);
+    layoutMain->setSpacing(10);
 
 	setLayout(layoutMain);
 
-	this->setMinimumWidth(400);
+	this->setMinimumWidth(300);
 }
 
 std::string DialogSceneRender::getRenderOutputFileName() const
@@ -86,6 +122,15 @@ OutputFileType DialogSceneRender::getRenderOutputFileType() const
     return static_cast<OutputFileType>(m_renderOutputFileTypeWidget->currentIndex());
 }
 
+uint32_t DialogSceneRender::getResolutionWidth() const
+{
+	return m_resolutionWidth->value();
+}
+
+uint32_t DialogSceneRender::getResolutionHeight() const
+{
+	return m_resolutionHeight->value();
+}
 
 uint32_t DialogSceneRender::getSamples() const
 {
