@@ -43,7 +43,7 @@ struct ObjDesc
 	uint64_t indexAddress;
 };
 /* Descriptor with the buffer for the object description structs */
-layout(binding = 3, set = 0, scalar) buffer ObjDesc_ 
+layout(binding = 4, set = 0, scalar) buffer ObjDesc_ 
 { 
 	ObjDesc i[]; 
 } objDesc;

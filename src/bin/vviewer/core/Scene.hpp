@@ -23,7 +23,7 @@ struct SceneData {
     glm::mat4 m_projectionInverse;
     glm::vec4 m_directionalLightDir;
     glm::vec4 m_directionalLightColor;
-    glm::vec3 m_exposure; /* R = exposure, G = Ambient IBL multiplier, B = , A = */
+    glm::vec4 m_exposure; /* R = exposure, G = Ambient IBL multiplier, B = , A = */
 };
 
 class Scene {

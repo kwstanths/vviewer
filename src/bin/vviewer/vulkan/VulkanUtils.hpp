@@ -8,10 +8,11 @@
 #include <iostream>
 
 #include <glm/glm.hpp>
+#include <vulkan/vulkan_core.h>
 #include "core/Mesh.hpp"
 #include "vulkan/IncludeVulkan.hpp"
 
-/* vulkan timeouts */
+/* vulkan timeouts in nanoseconds */
 static const uint64_t VULKAN_TIMEOUT_1S     = 1000000000;
 static const uint64_t VULKAN_TIMEOUT_10S    = 10000000000;
 static const uint64_t VULKAN_TIMEOUT_100S   = 100000000000;

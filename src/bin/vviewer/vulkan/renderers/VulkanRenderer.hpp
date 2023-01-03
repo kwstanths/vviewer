@@ -62,11 +62,13 @@ public:
     std::shared_ptr<SceneObject> getSelectedObject() const;
 
     bool isRTEnabled() const;
-    void renderRT();
+    int64_t renderRT();
 
     glm::vec3 selectObject(float x, float y);
 
     float deltaTime() const;
+
+    VulkanRendererRayTracing * getRayTracingRenderer() { return &m_rendererRayTracing; }
 
 private:
 

@@ -604,9 +604,8 @@ bool VulkanRenderer::isRTEnabled() const
     return m_rendererRayTracing.isInitialized();
 }
 
-void VulkanRenderer::renderRT()
+int64_t VulkanRenderer::renderRT()
 {
-
     if (m_rendererRayTracing.isInitialized()) {
         utils::Timer timer;
         timer.Start();
@@ -615,10 +614,10 @@ void VulkanRenderer::renderRT()
         m_rendererRayTracing.renderScene(m_scene);
 
         timer.Stop();
-        utils::ConsoleInfo("Render time: " + timer.ToString() + " ms");
+        return timer.ToInt();
     }
     else {
-        utils::ConsoleWarning("GPU Ray tracing is not supported");
+        return 0;
     }
 }
 
@@ -844,7 +843,7 @@ bool VulkanRenderer::createDebugCallback()
     }
 
     if (res != VK_SUCCESS) {
-        utils::Console(utils::DebugLevel::CRITICAL, "Failed to setup the debug callback");
+        utils::ConsoleCritical("Failed to setup the debug callback");
         return false;
     }
 

@@ -1,13 +1,14 @@
 #include "VulkanRendererRayTracing.hpp"
-#include "vulkan/VulkanUtils.hpp"
 
 #include <iostream>
+#include <iterator>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
 #include <utils/Console.hpp>
-
+#include <utils/ImageUtils.hpp>
+#include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
 
 VulkanRendererRayTracing::VulkanRendererRayTracing()
@@ -26,6 +27,9 @@ void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, Vk
 
     m_physicalDevice = physicalDevice;
     m_format = format;
+
+    /* Get properties of picked physical device */
+    vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
 
     /* Create logical device from scratch for ray tracing, since current version of qt(6.2.4) doesn't support setting custom features for the logical device 
     * thus the required ray tracing features cannot be enabled for the qt provided logical device
@@ -81,20 +85,28 @@ void VulkanRendererRayTracing::initResources(VkPhysicalDevice physicalDevice, Vk
     createRayTracingPipeline();
     createShaderBindingTable();
     createDescriptorSets();
+
+    /* Default resolution */
+    m_width = 1024;
+    m_height = 1024;
+    createStorageImage();
+
+    m_renderResultOutputFileName = "test";
+    m_renderResultOutputFileType = OutputFileType::HDR;
+
+    /* Default samples and depth */
+    m_rayTracingData.samplesDepth.r = 256;
+    m_rayTracingData.samplesDepth.g = 5;
+
     m_isInitialized = true;
 }
 
 void VulkanRendererRayTracing::initSwapChainResources(VkExtent2D swapchainExtent)
 {
-    m_width = swapchainExtent.width;
-    m_height = swapchainExtent.height;
-
-    createStorageImage();
 }
 
 void VulkanRendererRayTracing::releaseSwapChainResources()
 {
-    m_renderResult.destroy(m_device);
 }
 
 void VulkanRendererRayTracing::releaseResources()
@@ -104,6 +116,7 @@ void VulkanRendererRayTracing::releaseResources()
     /* TODO destroy shader binding table */
     /* TODO delete command pool */
     /* TODO delete device */
+    /* TODO delete buffers allocated */
 }
 
 bool VulkanRendererRayTracing::isInitialized() const
@@ -146,6 +159,21 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
     render();
 
     destroyAccellerationStructures();
+}
+
+void VulkanRendererRayTracing::setRenderResolution(uint32_t width, uint32_t height)
+{
+    m_renderResult.destroy(m_device);
+
+    m_width = width;
+    m_height = height;
+    createStorageImage(); 
+}
+
+void VulkanRendererRayTracing::getRenderResolution(uint32_t& width, uint32_t& height)
+{
+    width = m_width;
+    height = m_height;
 }
 
 std::vector<const char *> VulkanRendererRayTracing::getRequiredExtensions()
@@ -630,10 +658,11 @@ void VulkanRendererRayTracing::createStorageImage()
 
 void VulkanRendererRayTracing::createUniformBuffers()
 {
-    /* Create a buffer to hold the scene data */
+    /* Create a buffer to hold the scene data and the ray tracing data */
+    uint32_t totalSize = alignedSize(sizeof(SceneData), m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment) + sizeof(RayTracingData);
     createBuffer(m_physicalDevice,
         m_device,
-        sizeof(SceneData),
+        totalSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_uniformBufferScene, 
@@ -652,15 +681,16 @@ void VulkanRendererRayTracing::createUniformBuffers()
 
 void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData)
 {
-    /* Buffer holding scene data */
+    /* Update scene data and ray tracing data */
     {
         void* data;
-        vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, sizeof(SceneData), 0, &data);
+        vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, sizeof(SceneData) + sizeof(RayTracingData), 0, &data);
         memcpy(data, &sceneData, sizeof(sceneData));
+        memcpy(static_cast<char *>(data) + alignedSize(sizeof(sceneData), m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment), &m_rayTracingData, sizeof(RayTracingData));
         vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
     }
 
-    /* Buffer holding the description of geometry objects */
+    /* Update description of geometry objects */
     {
         void* data;
         vkMapMemory(m_device, m_uniformBufferObjectDescrptionMemory, 0, VK_WHOLE_SIZE, 0, &data);
@@ -692,9 +722,16 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
     sceneDataBufferBinding.descriptorCount = 1;
     sceneDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
 
-    /* Binding 3, the object descriptions buffer */
+    /* Binding 3, the ray tracing data */
+    VkDescriptorSetLayoutBinding rayTracingDataBufferBinding{};
+    rayTracingDataBufferBinding.binding = 3;
+    rayTracingDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    rayTracingDataBufferBinding.descriptorCount = 1;
+    rayTracingDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+
+    /* Binding 4, the object descriptions buffer */
     VkDescriptorSetLayoutBinding objectDescrptionBufferBinding{};
-    objectDescrptionBufferBinding.binding = 3;
+    objectDescrptionBufferBinding.binding = 4;
     objectDescrptionBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     objectDescrptionBufferBinding.descriptorCount = 1;
     objectDescrptionBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
@@ -703,6 +740,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         accelerationStructureLayoutBinding,
         resultImageLayoutBinding,
         sceneDataBufferBinding,
+        rayTracingDataBufferBinding,
         objectDescrptionBufferBinding
         });
 
@@ -881,6 +919,7 @@ void VulkanRendererRayTracing::createDescriptorSets()
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },
     };
     VkDescriptorPoolCreateInfo descriptorPoolInfo{};
@@ -939,13 +978,26 @@ void VulkanRendererRayTracing::updateDescriptorSets()
     sceneDataDescriptor.buffer = m_uniformBufferScene;
     sceneDataDescriptor.offset = 0;
     sceneDataDescriptor.range = sizeof(SceneData);
-    VkWriteDescriptorSet uniformBufferWrite{};
-    uniformBufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    uniformBufferWrite.dstSet = m_descriptorSet;
-    uniformBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uniformBufferWrite.dstBinding = 2;
-    uniformBufferWrite.pBufferInfo = &sceneDataDescriptor;
-    uniformBufferWrite.descriptorCount = 1;
+    VkWriteDescriptorSet sceneDataWrite{};
+    sceneDataWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    sceneDataWrite.dstSet = m_descriptorSet;
+    sceneDataWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    sceneDataWrite.dstBinding = 2;
+    sceneDataWrite.pBufferInfo = &sceneDataDescriptor;
+    sceneDataWrite.descriptorCount = 1;
+
+    /* Update ray tracing data binding, uses the same buffer with the scene data */
+    VkDescriptorBufferInfo rayTracingDataDescriptor{};
+    rayTracingDataDescriptor.buffer = m_uniformBufferScene;
+    rayTracingDataDescriptor.offset = alignedSize(sizeof(SceneData), m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
+    rayTracingDataDescriptor.range = sizeof(RayTracingData);
+    VkWriteDescriptorSet rayTracingDataWrite{};
+    rayTracingDataWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    rayTracingDataWrite.dstSet = m_descriptorSet;
+    rayTracingDataWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    rayTracingDataWrite.dstBinding = 3;
+    rayTracingDataWrite.pBufferInfo = &rayTracingDataDescriptor;
+    rayTracingDataWrite.descriptorCount = 1;
 
     /* Update object description binding */
     VkDescriptorBufferInfo objectDescriptionDataDesriptor{};
@@ -956,14 +1008,15 @@ void VulkanRendererRayTracing::updateDescriptorSets()
     objectDescriptionWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     objectDescriptionWrite.dstSet = m_descriptorSet;
     objectDescriptionWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    objectDescriptionWrite.dstBinding = 3;
+    objectDescriptionWrite.dstBinding = 4;
     objectDescriptionWrite.pBufferInfo = &objectDescriptionDataDesriptor;
     objectDescriptionWrite.descriptorCount = 1;
 
     std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
         accelerationStructureWrite,
         resultImageWrite,
-        uniformBufferWrite,
+        sceneDataWrite,
+        rayTracingDataWrite,
         objectDescriptionWrite
     };
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
@@ -1036,7 +1089,7 @@ void VulkanRendererRayTracing::render()
     endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true, VULKAN_TIMEOUT_100S);
     vkQueueWaitIdle(m_queue);
 
-    storeToDisk("test", OutputFileType::HDR);
+    storeToDisk(m_renderResultOutputFileName, m_renderResultOutputFileType);
 }
 
 void VulkanRendererRayTracing::storeToDisk(std::string filename, OutputFileType type) const
@@ -1073,20 +1126,19 @@ void VulkanRendererRayTracing::storeToDisk(std::string filename, OutputFileType 
 
     switch (type)
     {
-    case VulkanRendererRayTracing::OutputFileType::PNG:
+    case OutputFileType::PNG:
     {
         /* TODO apply exposure */
         std::vector<unsigned char> imageDataInt(m_width * m_height * 4, 255);
         for (size_t i = 0; i < m_width * m_height * 4; i++)
         {
-            imageDataInt[i] = imageDataFloat[i] * 255.0f;
+            imageDataInt[i] = linearToSRGB(imageDataFloat[i]);
         }
         stbi_write_png((filename + ".png").c_str(), m_width, m_height, 4, imageDataInt.data(), m_width * 4 * sizeof(char));
         break;
     }
-    case VulkanRendererRayTracing::OutputFileType::HDR:
+    case OutputFileType::HDR:
     {
-
         stbi_write_hdr((filename + ".hdr").c_str(), m_width, m_height, 4, imageDataFloat.data());
         break;
     }

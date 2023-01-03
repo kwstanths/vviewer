@@ -7,14 +7,21 @@
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanScene.hpp"
 #include "vulkan/VulkanDataStructs.hpp"
+#include <cstdint>
+#include <vulkan/vulkan_core.h>
+
+struct RayTracingData {
+    glm::uvec4 samplesDepth;    /* R = total samples, G = max depth per ray, B = , A = */
+};
+
+enum class OutputFileType {
+    PNG = 0,
+    HDR = 1,
+};
 
 class VulkanRendererRayTracing {
     friend class VulkanRenderer;
 public:
-    enum class OutputFileType {
-        PNG = 0,
-        HDR = 1,
-    };
 
     VulkanRendererRayTracing();
 
@@ -27,6 +34,21 @@ public:
     bool isInitialized() const;
 
     void renderScene(const VulkanScene* scene);
+
+    void setSamples(uint32_t samples) { m_rayTracingData.samplesDepth.r = samples; }
+    uint32_t getSamples() const { return m_rayTracingData.samplesDepth.r; }
+
+    void setMaxDepth(uint32_t depth) { m_rayTracingData.samplesDepth.g = depth; }
+    uint32_t getMaxDepth() const { return m_rayTracingData.samplesDepth.g; }
+
+    void setRenderResolution(uint32_t width, uint32_t height);
+    void getRenderResolution(uint32_t& width, uint32_t& height);
+
+    void setRenderOutputFileName(std::string filename) { m_renderResultOutputFileName = filename; }
+    std::string getRenderOutputFileName() const { return m_renderResultOutputFileName; }
+
+    void setRenderOutputFileType(OutputFileType type) { m_renderResultOutputFileType = type; }
+    OutputFileType getRenderOutputFileType() const { return m_renderResultOutputFileType; }
 
 private:
     struct DeviceFunctionsRayTracing {
@@ -45,6 +67,7 @@ private:
     /* Device data */
     bool m_isInitialized = false;
     VkPhysicalDevice m_physicalDevice{};
+    VkPhysicalDeviceProperties m_physicalDeviceProperties;
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR  m_rayTracingPipelineProperties{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures{};
 
@@ -74,6 +97,9 @@ private:
     VkFormat m_format;
     uint32_t m_width, m_height;
     StorageImage m_renderResult, m_tempImage;
+    RayTracingData m_rayTracingData;
+    std::string m_renderResultOutputFileName;
+    OutputFileType m_renderResultOutputFileType;
 
     /* Objects description data for meshes in the scene */
     struct ObjectDescription
@@ -86,7 +112,7 @@ private:
     std::vector<ObjectDescription> m_sceneObjects;
 
     /* Descriptor sets */
-    VkBuffer m_uniformBufferScene;  /* Holds scene data */
+    VkBuffer m_uniformBufferScene;  /* Holds scene data and ray tracing data */
     VkDeviceMemory m_uniformBufferSceneMemory;
     VkBuffer m_uniformBufferObjectDescription;  /* Holds references to scene objects */
     VkDeviceMemory m_uniformBufferObjectDescrptionMemory;

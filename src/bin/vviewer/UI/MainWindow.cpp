@@ -9,15 +9,18 @@
 
 #include <glm/glm.hpp>
 
+#include <string>
 #include <utils/Console.hpp>
 
 #include "DialogAddSceneObject.hpp"
 #include "DialogCreateMaterial.hpp"
 #include "DialogSceneExport.hpp"
+#include "DialogSceneRender.hpp"
 #include "WidgetMaterial.hpp"
 #include "UIUtils.hpp"
 
 #include "core/SceneImport.hpp"
+#include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     
@@ -778,7 +781,28 @@ void MainWindow::onAddPointLightSlot()
 
 void MainWindow::onRenderSceneSlot()
 {
-    m_vulkanWindow->m_renderer->renderRT();
+    auto RTrenderer = m_vulkanWindow->m_renderer->getRayTracingRenderer();
+    
+    DialogSceneRender* dialog = new DialogSceneRender(nullptr, RTrenderer);
+    dialog->exec();
+
+    std::string filename = dialog->getRenderOutputFileName();
+    if (filename == "") return;
+
+    RTrenderer->setSamples(dialog->getSamples());
+    RTrenderer->setMaxDepth(dialog->getDepth());
+    RTrenderer->setRenderOutputFileName(dialog->getRenderOutputFileName());
+    RTrenderer->setRenderOutputFileType(dialog->getRenderOutputFileType());
+    delete dialog;
+
+    auto ret = m_vulkanWindow->m_renderer->renderRT();
+
+    if (ret) {
+        std::string fileExtension = (RTrenderer->getRenderOutputFileType() == OutputFileType::PNG) ? "png" : "hdr";
+        std::string filename = RTrenderer->getRenderOutputFileName() + "." + fileExtension;
+
+        utils::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(ret) + "ms");
+    }
 }
 
 void MainWindow::onExportSceneSlot()

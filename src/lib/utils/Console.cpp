@@ -7,13 +7,13 @@ namespace utils {
         if (level == DebugLevel::INFO) {
             std::cout << GetStringTimestamp() << " [";
             CustomPrint(std::cout, level_info.first, level_info.second);
-            std::cout << "] : ";
+            std::cout << "]: ";
             CustomPrint(std::cout, text, color);
             std::cout << std::endl;
         } else {
             std::cerr << GetStringTimestamp() << " [";
             CustomPrint(std::cerr, level_info.first, level_info.second);
-            std::cerr << "] : ";
+            std::cerr << "]: ";
             CustomPrint(std::cout, text, color);
             std::cout << std::endl;
         }

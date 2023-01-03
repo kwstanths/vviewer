@@ -16,6 +16,10 @@ layout(binding = 2, set = 0) uniform SceneData
     vec4 directionalLightColor;
     vec4 exposure;
 } sceneData;
+layout(binding = 3, set = 0) uniform RayTracingData 
+{
+    uvec4 samplesDepth;
+} rayTracingData;
 
 layout(location = 0) rayPayloadEXT RayPayload rayPayload;
 
@@ -29,8 +33,8 @@ void main()
 	const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
 	
 	vec3 cumRadiance = vec3(0);
-	uint depth = 5;
-	uint samples = 256;
+	uint samples = rayTracingData.samplesDepth.r;
+	uint depth = rayTracingData.samplesDepth.g;
 	for(int s = 0; s < samples; s++) 
 	{
 		/* Calculate first ray target offset */
