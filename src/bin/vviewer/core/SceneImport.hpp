@@ -33,6 +33,7 @@ struct ImportedSceneMaterial {
 	std::string name;
 	ImportedSceneMaterialType type;
 
+	/* If it's a disney or lambert material, store here its properties*/
 	std::string albedoTexture = "";
 	glm::vec3 albedoValue = {1, 1, 1};
 
@@ -46,6 +47,7 @@ struct ImportedSceneMaterial {
 
 	float emissiveValue = 0;
 
+	/* If it's a stack material, store here its directory, or if it's a zip, store the filename */
 	std::string stackFile = "";
 	std::string stackDir = "";
 };

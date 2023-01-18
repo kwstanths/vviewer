@@ -392,6 +392,9 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
         parentItem->addChild(sceneItem);
     }
 
+    /* Set transform */
+    sceneObject->m_localTransform = t;
+
     /* Add mesh component */
     if (object.mesh != nullptr) {
         const MeshModel * meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.mesh->path);
@@ -428,9 +431,6 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
             sceneObject->assign(light);
         }
     }
-
-    /* Set transform */
-    sceneObject->m_localTransform = t;
 
     /* Add children */
     for(auto itr : object.children)
