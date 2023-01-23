@@ -4,6 +4,7 @@
 #include "IncludeVulkan.hpp"
 #include "VulkanUtils.hpp"
 
+#include <math/MathUtils.hpp>
 #include "utils/FreeList.hpp"
 
 /**
@@ -35,6 +36,7 @@ public:
 #ifndef _MSC_VER
         m_dataTransferSpace = (Block *) std::aligned_alloc(m_blockAlignment, m_blockAlignment * m_nBlocks);
 #else
+        m_blockAlignment = roundPow2(m_blockAlignment);
         m_dataTransferSpace = (Block*)_aligned_malloc(m_blockAlignment * m_nBlocks, m_blockAlignment);
 #endif // !_MSC_VER
 

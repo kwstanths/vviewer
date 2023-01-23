@@ -843,7 +843,7 @@ bool VulkanRenderer::createDebugCallback()
     }
 
     if (res != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to setup the debug callback");
+        utils::ConsoleWarning("Failed to setup the debug callback");
         return false;
     }
 

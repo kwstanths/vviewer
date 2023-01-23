@@ -1,6 +1,7 @@
 #include "Scene.hpp"
 
 #include <algorithm>
+#include<functional>
 
 #include "SceneExport.hpp"
 

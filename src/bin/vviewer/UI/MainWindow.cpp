@@ -5,7 +5,8 @@
 #include <qlabel.h>
 #include <qmenubar.h>
 #include <qfiledialog.h>
-#include <QVariant>
+#include <qvariant.h>
+#include <qmessagebox.h>
 
 #include <glm/glm.hpp>
 
@@ -783,6 +784,16 @@ void MainWindow::onRenderSceneSlot()
 {
     auto RTrenderer = m_vulkanWindow->m_renderer->getRayTracingRenderer();
     
+    if (!RTrenderer->isInitialized()) {
+        int ret = QMessageBox::warning(this, tr("Error"),
+            tr("GPU Ray tracing has not been initialized. Most likely, no ray tracing capable GPU has been found"),
+            QMessageBox::Ok);
+
+        return;
+    }
+
+    
+
     DialogSceneRender* dialog = new DialogSceneRender(nullptr, RTrenderer);
     dialog->exec();
 
