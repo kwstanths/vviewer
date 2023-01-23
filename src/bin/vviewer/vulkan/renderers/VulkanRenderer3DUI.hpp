@@ -1,6 +1,8 @@
 #ifndef __VulkanRenderer3DUI_hpp__
 #define __VulkanRenderer3DUI_hpp__
 
+#include "core/Camera.hpp"
+
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
@@ -30,7 +32,7 @@ public:
         VkDescriptorSet& descriptorScene,
         uint32_t imageIndex,
         const glm::mat4& modelMatrix,
-        float cameraDistance) const;
+        const std::shared_ptr<Camera>& camera) const;
 
 private:
     VkDevice m_device;

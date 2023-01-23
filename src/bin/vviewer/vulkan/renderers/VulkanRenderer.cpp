@@ -490,7 +490,7 @@ void VulkanRenderer::buildFrame()
                 m_descriptorSetsScene[imageIndex],
                 imageIndex,
                 m_selectedObject->m_modelMatrix,
-                glm::distance(transformPosition, m_scene->getCamera()->getTransform().getPosition()));
+                m_scene->getCamera());
                 
             m_devFunctions->vkCmdEndRenderPass(cmdBuf);
         }

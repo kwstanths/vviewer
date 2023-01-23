@@ -70,10 +70,20 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
     VkDescriptorSet& descriptorScene, 
     uint32_t imageIndex, 
     const glm::mat4& modelMatrix,
-    float cameraDistance) const
+    const std::shared_ptr<Camera>& camera) const
 {
-    /* Keep size the same of the transform on screen at all times, control the size with the cameraDistance multiplier */
-    float scale = cameraDistance * 0.0155f;
+    /* Get global transform position */
+    auto worldPos = getTranslation(modelMatrix);
+    auto cameraDistance = glm::distance(camera->getTransform().getPosition(), worldPos);
+
+    /* Keep the same size for the transform on screen at all times */
+    float scale = 0.0155f;
+    scale *= cameraDistance;
+    if (camera->getType() == CameraType::PERSPECTIVE)
+    {
+        float fov = reinterpret_cast<PerspectiveCamera*>(camera.get())->getFoV();
+        scale *= fov / 60.0F;
+    }
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     
@@ -92,7 +102,7 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
 
     PushBlockForward3DUI pushConstants;
     
-    /* Calculate the unscaled version of the input model matrix */
+    /* Calculate the unscaled version of the input model matrix, if scale is zero this will fail */
     glm::mat4 modelMatrixUnscaled;
     {
         glm::vec3 scaleM, translation;

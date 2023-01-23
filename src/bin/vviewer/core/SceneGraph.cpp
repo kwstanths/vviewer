@@ -1,12 +1,15 @@
 #include "SceneGraph.hpp"
 
 #include <iostream>
+
+#include <math/MathUtils.hpp>
+
 #include "SceneObject.hpp"
 
 template<>
 glm::vec3 SceneNode<SceneObject>::getWorldPosition() const
 {
-	return glm::vec3(m_modelMatrix[3][0], m_modelMatrix[3][1], m_modelMatrix[3][2]);
+	return getTranslation(m_modelMatrix);
 }
 
 template<>
