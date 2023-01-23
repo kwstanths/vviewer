@@ -48,6 +48,12 @@ layout(binding = 4, set = 0, scalar) buffer ObjDesc_
 	ObjDesc i[]; 
 } objDesc;
 
+/* Descriptor with the buffer for the light structs */
+layout(binding = 5, set = 0) uniform readonly Lights 
+{ 
+	Light i[]; 
+} lights;
+
 void main()
 {
 	/* Get the hit object geometry, its vertices and its indices buffers */
@@ -101,5 +107,5 @@ void main()
 	float cosTheta = abs(dot(worldNormal, sampleDirection));
 
 	rayPayload.direction = sampleDirection;
-	rayPayload.beta *= vec3(0.5, 0.5, 0.5) * cosTheta * INVPI / sampleDirectionPDF;
+	rayPayload.beta *= vec3(0.5, 0.5, 0.5) * INVPI * cosTheta / sampleDirectionPDF;
 }

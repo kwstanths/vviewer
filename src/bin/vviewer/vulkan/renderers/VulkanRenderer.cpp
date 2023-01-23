@@ -458,7 +458,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
                     lambertObjects.push_back(itr);
                     break;
                 default:
-                    break;
+                    throw std::runtime_error("VulkanRenderer::buildFrame(): Unexpected material");
                 }
             }
 

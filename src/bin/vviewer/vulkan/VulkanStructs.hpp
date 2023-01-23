@@ -58,4 +58,16 @@ struct StorageImage
     void destroy(VkDevice device);
 };
 
+/* Types of lights:
+    0: point light
+    1: directional light
+    2: mesh light
+    3: environment map
+*/
+struct LightRT {
+    glm::vec4 position;  /* RGB = world space position, A = light type  */
+    glm::vec4 direction; /* RGB = world space direction, A = mesh id */
+    glm::vec4 color;     /* RGB = color, A = mesh material id */
+};
+
 #endif

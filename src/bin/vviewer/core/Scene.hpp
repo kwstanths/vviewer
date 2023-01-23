@@ -24,8 +24,8 @@ struct SceneData {
     glm::mat4 m_viewInverse;
     glm::mat4 m_projection;
     glm::mat4 m_projectionInverse;
-    glm::vec4 m_directionalLightDir;
-    glm::vec4 m_directionalLightColor;
+    glm::vec4 m_directionalLightDir;    /* RGB = world space light direction, A = */
+    glm::vec4 m_directionalLightColor;  /* RGB = light color, A = */
     glm::vec4 m_exposure; /* R = exposure, G = Ambient IBL multiplier, B = , A = */
 };
 

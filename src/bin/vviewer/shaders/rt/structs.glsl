@@ -20,3 +20,16 @@ struct RayPayload {
 
     uint rngState;
 };
+
+/* Struct to represent lights */
+/* Types of lights:
+    0: point light
+    1: directional light
+    2: mesh light
+    3: environment map
+*/
+struct Light {
+    vec4 position;  /* RGB = world space position, A = light type  */
+    vec4 direction; /* RGB = world space direction, A = mesh id */
+    vec4 color;     /* RGB = color, A = mesh material id */
+};

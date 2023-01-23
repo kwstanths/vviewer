@@ -1,6 +1,7 @@
 #ifndef __VulkanRendererRayTracing_hpp__
 #define __VulkanRendererRayTracing_hpp__
 
+#include "core/Scene.hpp"
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanCore.hpp"
 #include "vulkan/VulkanTexture.hpp"
@@ -12,7 +13,7 @@
 #include <vulkan/vulkan_core.h>
 
 struct RayTracingData {
-    glm::uvec4 samplesDepth;    /* R = total samples, G = max depth per ray, B = , A = */
+    glm::uvec4 samplesDepthLights;    /* R = total samples, G = max depth per ray, B = total number of lights, A = */
 };
 
 enum class OutputFileType {
@@ -35,11 +36,11 @@ public:
 
     void renderScene(const VulkanScene* scene);
 
-    void setSamples(uint32_t samples) { m_rayTracingData.samplesDepth.r = samples; }
-    uint32_t getSamples() const { return m_rayTracingData.samplesDepth.r; }
+    void setSamples(uint32_t samples) { m_rayTracingData.samplesDepthLights.r = samples; }
+    uint32_t getSamples() const { return m_rayTracingData.samplesDepthLights.r; }
 
-    void setMaxDepth(uint32_t depth) { m_rayTracingData.samplesDepth.g = depth; }
-    uint32_t getMaxDepth() const { return m_rayTracingData.samplesDepth.g; }
+    void setMaxDepth(uint32_t depth) { m_rayTracingData.samplesDepthLights.g = depth; }
+    uint32_t getMaxDepth() const { return m_rayTracingData.samplesDepthLights.g; }
 
     void setRenderResolution(uint32_t width, uint32_t height);
     void getRenderResolution(uint32_t& width, uint32_t& height) const;
@@ -113,7 +114,7 @@ private:
     std::vector<ObjectDescription> m_sceneObjects;
 
     /* Descriptor sets */
-    VkBuffer m_uniformBufferScene;  /* Holds scene data and ray tracing data */
+    VkBuffer m_uniformBufferScene;  /* Holds scene data, ray tracing data and light data */
     VkDeviceMemory m_uniformBufferSceneMemory;
     VkBuffer m_uniformBufferObjectDescription;  /* Holds references to scene objects */
     VkDeviceMemory m_uniformBufferObjectDescrptionMemory;
@@ -146,14 +147,15 @@ private:
     /* Create render target image */
     void createStorageImage();
 
-    /* Create uniform buffers for RT */
+    /* Uniform buffers */
     void createUniformBuffers();
-    void updateUniformBuffers(const SceneData& sceneData);
+    void updateUniformBuffers(const SceneData& sceneData, const std::vector<LightRT>& lights);
+    /* Descriptor sets */
+    void createDescriptorSets();
+    void updateDescriptorSets();
 
     void createRayTracingPipeline();
     void createShaderBindingTable();
-    void createDescriptorSets();
-    void updateDescriptorSets();
 
     void render();
 
@@ -165,6 +167,7 @@ private:
     RayTracingScratchBuffer createScratchBuffer(VkDeviceSize size);
     void deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer);
 
+    std::vector<LightRT> prepareSceneLights(const VulkanScene * scene, std::vector<std::shared_ptr<SceneObject>>& sceneObjects);
 };
 
 #endif
