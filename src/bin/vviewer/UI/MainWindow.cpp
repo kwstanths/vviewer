@@ -108,6 +108,7 @@ QWidget * MainWindow::initVulkanWindowWidget()
     m_vulkanWindow = new VulkanWindow();
     m_vulkanWindow->setVulkanInstance(m_vulkanInstance);
     connect(m_vulkanWindow, &VulkanWindow::sceneObjectSelected, this, &MainWindow::onSelectedSceneObjectChangedSlot3DScene);
+    connect(m_vulkanWindow, &VulkanWindow::initializationFinished, this, &MainWindow::onStartUpInitialization);
 
     return QWidget::createWindowContainer(m_vulkanWindow);
 }
@@ -167,7 +168,7 @@ void MainWindow::createMenu()
     connect(addSceneObjectRootSlot, &QAction::triggered, this, &MainWindow::onAddSceneObjectRootSlot);
     QAction * actionCreateMaterial = new QAction(tr("&Add a material"), this);
     actionCreateMaterial->setStatusTip(tr("Add a material"));
-    connect(actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
+    connect(actionCreateMaterial, &QAction::triggered, this, &MainWindow::onAddMaterialSlot);
     QAction * actionCreatePointLight = new QAction(tr("&Add a point light"), this);
     actionCreatePointLight->setStatusTip(tr("Add point light"));
     connect(actionCreatePointLight, &QAction::triggered, this, &MainWindow::onAddPointLightRootSlot);
@@ -212,6 +213,29 @@ QTreeWidgetItem* MainWindow::createTreeWidgetItem(std::shared_ptr<SceneObject> o
 std::shared_ptr<SceneObject> MainWindow::getSceneObject(QTreeWidgetItem* item) const
 {
     return item->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+}
+
+std::pair<QTreeWidgetItem*, std::shared_ptr<SceneObject>> MainWindow::createEmptySceneObject(std::string name, const Transform& transform, QTreeWidgetItem* parent)
+{
+    /* If parent is null, add at root */
+    if (parent == nullptr)
+    {
+        std::shared_ptr<SceneObject> newObject = m_scene->addSceneObject(name, transform);
+        QTreeWidgetItem* widgetItem = createTreeWidgetItem(newObject);
+
+        m_sceneGraphWidget->addTopLevelItem(widgetItem); 
+
+        return {widgetItem, newObject};
+    } else {
+        std::shared_ptr<SceneObject> parentObject = getSceneObject(parent);
+
+        std::shared_ptr<SceneObject> newObject = m_scene->addSceneObject(name, parentObject, transform);
+        QTreeWidgetItem* widgetItem = createTreeWidgetItem(newObject);
+
+        parent->addChild(widgetItem);
+
+        return {widgetItem, newObject};
+    }
 }
 
 void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
@@ -285,7 +309,7 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem* treeItem)
     m_vulkanWindow->m_renderer->setSelectedObject(nullptr);
     m_selectedPreviousWidgetItem = nullptr;
 
-    /* Remove from widgets from m_treeWidgetItems recursively */
+    /* Remove from m_treeWidgetItems recursively */
     std::function<void(QTreeWidgetItem*)> removeChild;
     removeChild = [&](QTreeWidgetItem* child) { 
         std::shared_ptr<SceneObject> object = getSceneObject(child);
@@ -323,15 +347,12 @@ void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string 
     
     std::shared_ptr<SceneObject> parentObject = getSceneObject(parentItem);
 
-    /* For all meshes inside the mesh model, add then in the scene and the UI */
+    /* For all meshes inside the mesh model, add them in the scene and the UI */
     for (auto& m : modelMeshes) {
-        std::shared_ptr<SceneObject> child = m_scene->addSceneObject(m->m_name, parentObject, Transform());
-        child->assign(m);
-        child->assign(instanceMaterials.get(material));
+        auto child = createEmptySceneObject(m->m_name, Transform(), parentItem);
 
-        QTreeWidgetItem* childItem = createTreeWidgetItem(child);
-
-        parentItem->addChild(childItem);
+        child.second->assign(m);
+        child.second->assign(instanceMaterials.get(material));
     }
 }
 
@@ -375,37 +396,21 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
         return;
     }
 
-    /* Create scene object */
-    std::shared_ptr<SceneObject> sceneObject;
-    QTreeWidgetItem* sceneItem;
-    if (parentItem == nullptr)
-    {
-        /* Add in root */
-        sceneObject = m_scene->addSceneObject(object.name, Transform());
-        sceneItem = createTreeWidgetItem(sceneObject);
-        m_sceneGraphWidget->addTopLevelItem(sceneItem);
-    } else {
-        std::shared_ptr<SceneObject> parentObject = getSceneObject(parentItem);
-
-        sceneObject = m_scene->addSceneObject(object.name, parentObject, Transform());
-        sceneItem = createTreeWidgetItem(sceneObject);
-        parentItem->addChild(sceneItem);
-    }
-
-    /* Set transform */
-    sceneObject->m_localTransform = t;
+    /* Create new scene object */
+    auto newSceneObject = createEmptySceneObject(object.name, t, parentItem);
 
     /* Add mesh component */
     if (object.mesh != nullptr) {
         const MeshModel * meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.mesh->path);
         if (meshModel != nullptr) {
-            if (object.mesh->submesh >= meshModel->getMeshes().size()) {
+            if (object.mesh->submesh == -1 || object.mesh->submesh >= meshModel->getMeshes().size()) {
                 /* Imported mesh defines a path, but not a submesh, import everything under this scene object and return */
-                addSceneObjectMeshes(sceneItem,sceneFolder + object.mesh->path, object.material);
+                addSceneObjectMeshes(newSceneObject.first, sceneFolder + object.mesh->path, object.material);
                 return;
             } else{
+                /* Else, assign the corresponding mesh to the object */
                 Mesh * mesh = meshModel->getMeshes()[object.mesh->submesh];
-                sceneObject->assign(mesh);
+                newSceneObject.second->assign(mesh);
             }
         } else {
             utils::ConsoleWarning("Can't import: " + sceneFolder + object.mesh->path);
@@ -413,7 +418,7 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
         delete object.mesh;
     }
 
-    /* Add material */
+    /* Add material component */
     if (object.material != ""){
         AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
         if (!instanceMaterials.isPresent(object.material)) 
@@ -421,21 +426,21 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
             utils::ConsoleWarning("Material " + object.material + " is not created");
             return;
         }
-        sceneObject->assign(instanceMaterials.get(object.material));
+        newSceneObject.second->assign(instanceMaterials.get(object.material));
     }
     
-    /* Add light */
+    /* Add light component */
     if (object.light != nullptr) {
         if (object.light->type == ImportedScenePointLightType::POINT) {
             PointLight * light = new PointLight(object.light->color, object.light->intensity);
-            sceneObject->assign(light);
+            newSceneObject.second->assign(light);
         }
     }
 
     /* Add children */
     for(auto itr : object.children)
     {
-        addImportedSceneObject(itr, sceneItem, sceneFolder);
+        addImportedSceneObject(itr, newSceneObject.first, sceneFolder);
     }
 }
 
@@ -678,19 +683,15 @@ void MainWindow::onAddSceneObjectRootSlot()
 {
     DialogAddSceneObject * dialog = new DialogAddSceneObject(nullptr, "Add an object to the scene", getImportedModels(), getCreatedMaterials());
     dialog->exec();
-
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    /* Create parent oject */
-    /* TODO set a some other way name */
-    std::shared_ptr<SceneObject> object = m_scene->addSceneObject("New object (" + std::to_string(m_nObjects++) + ")", dialog->getTransform());
-    QTreeWidgetItem* parentItem = createTreeWidgetItem(object);
+    /* Create parent a oject for the mesh model */
+    /* TODO set the name in some other way */
+    auto parent = createEmptySceneObject("New object (" + std::to_string(m_nObjects++) + ")", dialog->getTransform(), nullptr);
 
-    /* Add mesh model meshes as children of this item */
-    addSceneObjectMeshes(parentItem, selectedModel, dialog->getSelectedMaterial());
-
-    m_sceneGraphWidget->addTopLevelItem(parentItem);
+    /* Add all the meshes of this mesh model as children of the parent item */
+    addSceneObjectMeshes(parent.first, selectedModel, dialog->getSelectedMaterial());
 }
 
 void MainWindow::onAddSceneObjectSlot()
@@ -710,15 +711,12 @@ void MainWindow::onAddSceneObjectSlot()
 
     std::shared_ptr<SceneObject> parentObject = getSceneObject(selectedItem);
 
-    /* Create parent oject */
-    /* TODO set a some other way name */
-    std::shared_ptr<SceneObject> object = m_scene->addSceneObject("New object (" + std::to_string(m_nObjects++) + ")", parentObject, dialog->getTransform());
-    QTreeWidgetItem* parentItem = createTreeWidgetItem(object);
+    /* Create parent a oject for the mesh model */
+    /* TODO set the name in some other way */
+    auto parent = createEmptySceneObject("New object (" + std::to_string(m_nObjects++) + ")", dialog->getTransform(), selectedItem);
 
-    /* Add mesh model meshes ad children on this item */
-    addSceneObjectMeshes(parentItem, selectedModel, dialog->getSelectedMaterial());
-
-    selectedItem->addChild(parentItem);
+    /* Add all the meshes of this mesh model as children of the parent item */
+    addSceneObjectMeshes(parent.first, selectedModel, dialog->getSelectedMaterial());
 }
 
 void MainWindow::onRemoveSceneObjectSlot()
@@ -728,7 +726,7 @@ void MainWindow::onRemoveSceneObjectSlot()
     removeObjectFromScene(selectedItem);
 }
 
-void MainWindow::onCreateMaterialSlot()
+void MainWindow::onAddMaterialSlot()
 {
     DialogCreateMaterial * dialog = new DialogCreateMaterial(nullptr, "Create a material", getImportedModels());
     dialog->exec();
@@ -751,13 +749,10 @@ void MainWindow::onCreateMaterialSlot()
 
 void MainWindow::onAddPointLightRootSlot()
 {
-    std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject("Point light", Transform());
-    PointLight * light = new PointLight({1, 1, 1}, 1.F);
-    sceneObject->assign(light);
-    
-    QTreeWidgetItem* item = createTreeWidgetItem(sceneObject);
+    auto newObject = createEmptySceneObject("Point light", Transform(), nullptr);
 
-    m_sceneGraphWidget->addTopLevelItem(item);
+    PointLight * light = new PointLight({1, 1, 1}, 1.F);
+    newObject.second->assign(light);
 }
 
 void MainWindow::onAddPointLightSlot()
@@ -771,13 +766,12 @@ void MainWindow::onAddPointLightSlot()
     }
     std::shared_ptr<SceneObject> selected = getSceneObject(selectedItem);
 
-    std::shared_ptr<SceneObject> sceneObject = m_scene->addSceneObject("Point light", selected, Transform());
+    /* Create new empty item under the selected item */
+    auto newObject = createEmptySceneObject("Point light", Transform(), selectedItem);
+
+    /* Add light component */
     PointLight * light = new PointLight({1, 1, 1}, 1.F);
-    sceneObject->assign(light);
-
-    QTreeWidgetItem* item = createTreeWidgetItem(sceneObject);
-
-    selectedItem->addChild(item);
+    newObject.second->assign(light);
 }
 
 void MainWindow::onRenderSceneSlot()
@@ -791,8 +785,6 @@ void MainWindow::onRenderSceneSlot()
 
         return;
     }
-
-    
 
     DialogSceneRender* dialog = new DialogSceneRender(nullptr, RTrenderer);
     dialog->exec();
@@ -877,4 +869,25 @@ void MainWindow::onContextMenuSceneGraph(const QPoint& pos)
     contextMenu.addAction(&action3);
 
     contextMenu.exec(m_sceneGraphWidget->mapToGlobal(pos));
+}
+
+void MainWindow::onStartUpInitialization()
+{
+    AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
+    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
+
+    Material* mat = instanceMaterials.get("defaultMaterial");
+    MeshModel* sphere = instanceModels.get("assets/models/uvsphere.obj");
+    MeshModel* plane = instanceModels.get("assets/models/plane.obj");
+
+    {
+        auto o = createEmptySceneObject("sphere", Transform(), nullptr);
+        o.second->assign(sphere->getMeshes()[0]);
+        o.second->assign(mat);
+    }
+    {
+        auto o = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
+        o.second->assign(plane->getMeshes()[0]);
+        o.second->assign(mat);
+    }
 }

@@ -1,4 +1,5 @@
 #include "VulkanRenderer.hpp"
+#include "vulkan/VulkanWindow.hpp"
 
 #include <chrono>
 
@@ -131,17 +132,7 @@ void VulkanRenderer::initResources()
         m_scene->setSkybox(skybox);
     }
 
-    // auto cube = m_scene->addSceneObject("cube", Transform());
-    // cube->assign(cubeMeshModel->getMeshes()[0]);
-    // cube->assign(defaultMaterial);
-
-    // auto sphere = m_scene->addSceneObject("sphere", Transform());
-    // sphere->assign(uvsphereMeshModel->getMeshes()[0]);
-    // sphere->assign(defaultMaterial);
-
-    // auto plane = m_scene->addSceneObject("plane", Transform({0, -1.0, 0}, {5, 5, 5}));
-    // plane->assign(planeMeshModel->getMeshes()[0]);
-    // plane->assign(defaultMaterial);
+    reinterpret_cast<VulkanWindow*>(m_window)->vulkanInitializationFinished();
 }
 
 void VulkanRenderer::initSwapChainResources()

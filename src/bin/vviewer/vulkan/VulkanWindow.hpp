@@ -16,6 +16,7 @@
 #include "VulkanScene.hpp"
 
 class VulkanWindow : public QVulkanWindow {
+    friend VulkanRenderer;
     Q_OBJECT
 public:
     VulkanWindow();
@@ -32,9 +33,11 @@ public:
     float delta() const;
 
 signals:
+    /* emitted when the vulkan initialization has finished */
+    void initializationFinished();
     /* emitted when the selected object changes from the 3D scene */
     void sceneObjectSelected(std::shared_ptr<SceneObject> object);
-    /* emitted when the position of the selected object changes from the 3D scene */
+    /* emitted when the position of the selected object changes from the UI controls */
     void selectedObjectPositionChanged();
 
 protected:
@@ -53,6 +56,8 @@ private:
     ID m_selectedPressed = 0;
 
     QTimer * m_updateCameraTimer;
+
+    void vulkanInitializationFinished();
 
 private slots:
     void onUpdateCamera();

@@ -34,6 +34,7 @@
 #include "VulkanRenderer3DUI.hpp"
 #include "VulkanRendererRayTracing.hpp"
 
+
 class VulkanRenderer : public QVulkanWindowRenderer {
 public:
     VulkanRenderer(QVulkanWindow* w, VulkanScene* scene);

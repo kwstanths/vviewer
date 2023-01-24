@@ -58,7 +58,7 @@ struct ImportedSceneEnvironment {
 
 struct ImportedSceneObjectMesh {
 	std::string path = "";
-	int submesh = -1;;
+	int submesh = -1;
 };
 
 enum class ImportedScenePointLightType {

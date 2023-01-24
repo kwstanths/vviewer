@@ -339,3 +339,8 @@ void VulkanWindow::onUpdateCamera()
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * finalSpeed);
 
 }
+
+void VulkanWindow::vulkanInitializationFinished()
+{
+    emit initializationFinished();
+}

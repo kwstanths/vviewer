@@ -61,8 +61,37 @@ private:
     QTreeWidgetItem* createTreeWidgetItem(std::shared_ptr<SceneObject> object);
     std::shared_ptr<SceneObject> getSceneObject(QTreeWidgetItem* item) const;
 
+    /**
+     * @brief Create an Empty Scene Object with name and transform under parent. If parent is null add at root
+     * 
+     * @param name 
+     * @param transform 
+     * @param parent 
+     * @return The UI tree widget item, and the actual scene object
+     */
+    std::pair<QTreeWidgetItem*, std::shared_ptr<SceneObject>> createEmptySceneObject(std::string name, const Transform& transform, QTreeWidgetItem* parent);
+
+    /**
+     * @brief Change UI selection to the selectedItem 
+     * 
+     * @param selectedItem 
+     */
     void selectObject(QTreeWidgetItem* selectedItem);
+
+    /**
+     * @brief Remove an item from the scene
+     * 
+     * @param treeItem 
+     */
     void removeObjectFromScene(QTreeWidgetItem* treeItem);
+
+    /**
+     * @brief Add all the meshes of the modelName under the parentItem as new scene objects with the requested material
+     * 
+     * @param parentItem 
+     * @param modelName 
+     * @param material 
+     */
     void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
     void clearControlsUI();
     void addImportedSceneObject(const ImportedSceneObject& object, QTreeWidgetItem * parentItem, std::string sceneFolder);
@@ -84,6 +113,7 @@ private slots:
     void onImportMaterialZipStackSlot();
     /* Import a scene */
     void onImportScene();
+
     /* Add an object in the scene at root */
     void onAddSceneObjectRootSlot();
     /* Add an object in the scene as a child to the currently selected node */
@@ -91,7 +121,7 @@ private slots:
     /* Remove the selected object from the scene */
     void onRemoveSceneObjectSlot();
     /* Create a material */
-    void onCreateMaterialSlot();
+    void onAddMaterialSlot();
     /* Add a point light at root */
     void onAddPointLightRootSlot();
     /* Add a point light as a child of the currently selected node */
@@ -110,6 +140,9 @@ private slots:
 
     /* Show context menu for scene graph */
     void onContextMenuSceneGraph(const QPoint& pos);
+
+    /* Start up scene initialization */
+    void onStartUpInitialization();
 };
 
 #endif
