@@ -43,7 +43,7 @@ private:
     QSlider* m_exposureSlider;
 
     /* Directional light widgets */
-    WidgetTransform* m_lightTransform;
+    WidgetTransform * m_lightTransform;
     WidgetColorButton * m_lightColorWidget;
     WidgetSliderValue * m_lightIntensityWidget;
 
@@ -58,6 +58,8 @@ private:
 
     /* Update timer */
     QTimer* m_updateTimer;
+
+    void showEvent(QShowEvent * event) override;
 
 private slots:
     void onEnvironmentChanged(int);

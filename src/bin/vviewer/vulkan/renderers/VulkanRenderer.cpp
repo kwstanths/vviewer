@@ -408,7 +408,7 @@ void VulkanRenderer::buildFrame()
         {
             PointLight* light = pl->get<PointLight*>(ComponentType::POINT_LIGHT);
             PushBlockForwardAddPass t;
-            t.lightColor = light->intensity * glm::vec4(light->color, 0);
+            t.lightColor = light->lightMaterial->intensity * glm::vec4(light->lightMaterial->color, 0);
             t.lightPosition = glm::vec4(pl->getWorldPosition(), 0);
             for (auto& obj : pbrStandardObjects)
             {

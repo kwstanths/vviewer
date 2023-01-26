@@ -97,10 +97,10 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     connect(m_lightTransform->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
     connect(m_lightTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
     /* Color */
-    m_lightColorWidget = new WidgetColorButton(this, m_light->color);
+    m_lightColorWidget = new WidgetColorButton(this, m_light->lightMaterial->color);
     connect(m_lightColorWidget, SIGNAL(colorChanged(glm::vec3)), this, SLOT(onLightColorChanged(glm::vec3)));
     /* Intensity slider */
-    m_lightIntensityWidget = new WidgetSliderValue(this, 0, 100, m_light->intensity, 1);
+    m_lightIntensityWidget = new WidgetSliderValue(this, 0, 100, m_light->lightMaterial->intensity, 1);
     connect(m_lightIntensityWidget, SIGNAL(valueChanged(double)), this, SLOT(onLightIntensityChanged(double)));
     QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
     lightIntensityLayout->addWidget(new QLabel("Intensity:"));
@@ -186,8 +186,8 @@ void WidgetEnvironment::setDirectionalLight(std::shared_ptr<DirectionalLight> li
     m_light = light;
 
     m_lightTransform->setTransform(m_light->transform);
-    m_lightColorWidget->setColor(m_light->color);
-    m_lightIntensityWidget->setValue(m_light->intensity);
+    m_lightColorWidget->setColor(m_light->lightMaterial->color);
+    m_lightIntensityWidget->setValue(m_light->lightMaterial->intensity);
 }
 
 void WidgetEnvironment::updateCamera()
@@ -218,13 +218,13 @@ void WidgetEnvironment::onLightDirectionChanged(double)
 
 void WidgetEnvironment::onLightColorChanged(glm::vec3 color)
 {
-    m_light->color = color;
+    m_light->lightMaterial->color = color;
 }
 
 void WidgetEnvironment::onLightIntensityChanged(double)
 {
     float intensity  = m_lightIntensityWidget->getValue();
-    m_light->intensity = intensity;
+    m_light->lightMaterial->intensity = intensity;
 }
 
 void WidgetEnvironment::onBackgroundColorChanged(glm::vec3 color)
@@ -248,6 +248,13 @@ void WidgetEnvironment::onCameraWidgetChanged(double)
     {
         m_cameraTransformWidgetChanged = true;
     }
+}
+
+void WidgetEnvironment::showEvent(QShowEvent * event)
+{
+    /* When the widget is shown, update the light information since it might have been updated from outside */
+    m_lightIntensityWidget->setValue(m_light->lightMaterial->intensity);
+    m_lightColorWidget->setColor(m_light->lightMaterial->color);
 }
 
 void WidgetEnvironment::onEnvironmentChanged(int)

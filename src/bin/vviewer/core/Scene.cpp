@@ -1,12 +1,23 @@
 #include "Scene.hpp"
 
 #include <algorithm>
-#include<functional>
+#include <functional>
 
 #include "SceneExport.hpp"
+#include "AssetManager.hpp"
 
 Scene::Scene()
 {
+    LightMaterial * directionalLightMaterial = new LightMaterial("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F);
+    LightMaterial * defaultPointLightMaterial = new LightMaterial("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1.F);
+    
+    Transform directionalLightTransform;
+    directionalLightTransform.setRotationEuler(0, glm::radians(180.0f), 0);
+    m_directionalLight = std::make_shared<DirectionalLight>(directionalLightTransform, directionalLightMaterial);
+    
+    auto& lightMaterials = AssetManager<std::string, LightMaterial *>::getInstance();
+    lightMaterials.add(directionalLightMaterial->name, directionalLightMaterial);
+    lightMaterials.add(defaultPointLightMaterial->name, defaultPointLightMaterial);
 }
 
 Scene::~Scene()
@@ -65,7 +76,7 @@ SceneData Scene::getSceneData() const
     std::shared_ptr<DirectionalLight> light = getDirectionalLight();
     if (light != nullptr) {
         sceneData.m_directionalLightDir = glm::vec4(light->transform.getForward(), 0);
-        sceneData.m_directionalLightColor = light->intensity * glm::vec4(light->color, 0);
+        sceneData.m_directionalLightColor = light->lightMaterial->intensity * glm::vec4(light-> lightMaterial->color, 0);
     }
     else {
         sceneData.m_directionalLightColor = glm::vec4(0, 0, 0, 0);

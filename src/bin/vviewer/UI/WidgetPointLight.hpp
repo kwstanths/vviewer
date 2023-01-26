@@ -8,8 +8,7 @@
 
 #include <core/Lights.hpp>
 
-#include "WidgetSliderValue.hpp"
-#include "WidgetColorButton.hpp"
+#include "WidgetLightMaterial.hpp"
 
 /* A UI widget for a point light */
 class WidgetPointLight : public QWidget
@@ -21,14 +20,7 @@ public:
 private:
     PointLight * m_light;
 
-    WidgetColorButton * m_lightColorWidget;
-    WidgetSliderValue * m_lightIntensityWidget;
-
-    float getIntensity();
-
-private slots:
-    void onLightColorChanged(glm::vec3);
-    void onLightIntensityChanged(double);
+    WidgetLightMaterial * m_widgetLightMaterial;
 };
 
 #endif

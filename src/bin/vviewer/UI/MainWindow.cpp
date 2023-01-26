@@ -119,12 +119,6 @@ QWidget * MainWindow::initControlsWidget()
     m_layoutControls->setAlignment(Qt::AlignTop);
     QWidget * widget_controls = new QWidget();
     widget_controls->setLayout(m_layoutControls);
-    widget_controls->setFixedWidth(280);
-
-    Transform lightTransform;
-    lightTransform.setRotationEuler(0, glm::radians(180.0f), 0);
-    auto light = std::make_shared<DirectionalLight>(lightTransform, glm::vec3(1, 0.9, 0.8), 0.F);
-    m_vulkanWindow->m_scene->setDirectionalLight(light);
     
     m_widgetEnvironment = new WidgetEnvironment(nullptr, m_vulkanWindow->m_scene);
 
@@ -388,13 +382,13 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
     t.setRotationEuler(glm::radians(object.rotation.x), glm::radians(object.rotation.y), glm::radians(object.rotation.z));
 
     /* Check if it's a directional light node */
-    if (object.light != nullptr && object.light->type == ImportedScenePointLightType::DISTANT) {
-        auto light = std::make_shared<DirectionalLight>(t, object.light->color, object.light->intensity);
+    // if (object.light != nullptr && object.light->type == ImportedScenePointLightType::DISTANT) {
+    //     auto light = std::make_shared<DirectionalLight>(t, object.light->color, object.light->intensity);
     
-        m_vulkanWindow->m_scene->setDirectionalLight(light);
-        m_widgetEnvironment->setDirectionalLight(light);
-        return;
-    }
+    //     m_vulkanWindow->m_scene->setDirectionalLight(light);
+    //     m_widgetEnvironment->setDirectionalLight(light);
+    //     return;
+    // }
 
     /* Create new scene object */
     auto newSceneObject = createEmptySceneObject(object.name, t, parentItem);
@@ -430,12 +424,12 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object, QTree
     }
     
     /* Add light component */
-    if (object.light != nullptr) {
-        if (object.light->type == ImportedScenePointLightType::POINT) {
-            PointLight * light = new PointLight(object.light->color, object.light->intensity);
-            newSceneObject.second->assign(light);
-        }
-    }
+    // if (object.light != nullptr) {
+    //     if (object.light->type == ImportedScenePointLightType::POINT) {
+    //         PointLight * light = new PointLight(object.light->color, object.light->intensity);
+    //         newSceneObject.second->assign(light);
+    //     }
+    // }
 
     /* Add children */
     for(auto itr : object.children)
@@ -751,7 +745,8 @@ void MainWindow::onAddPointLightRootSlot()
 {
     auto newObject = createEmptySceneObject("Point light", Transform(), nullptr);
 
-    PointLight * light = new PointLight({1, 1, 1}, 1.F);
+    auto& lightMaterials = AssetManager<std::string, LightMaterial *>::getInstance();
+    PointLight * light = new PointLight(lightMaterials.get("DefaultPointLightMaterial"));
     newObject.second->assign(light);
 }
 
@@ -770,7 +765,8 @@ void MainWindow::onAddPointLightSlot()
     auto newObject = createEmptySceneObject("Point light", Transform(), selectedItem);
 
     /* Add light component */
-    PointLight * light = new PointLight({1, 1, 1}, 1.F);
+    auto& lightMaterials = AssetManager<std::string, LightMaterial *>::getInstance();
+    PointLight * light = new PointLight(lightMaterials.get("DefaultPointLightMaterial"));
     newObject.second->assign(light);
 }
 

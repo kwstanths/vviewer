@@ -9,6 +9,7 @@
 #include <core/MeshModel.hpp>
 #include <core/Materials.hpp>
 #include <core/EnvironmentMap.hpp>
+#include <core/Lights.hpp>
 
 QStringList getImportedModels()
 {
@@ -28,6 +29,16 @@ QStringList getCreatedMaterials()
         createdMaterials.push_back(QString::fromStdString(itr->first));
     }
     return createdMaterials;
+}
+
+QStringList getCreatedLightMaterials()
+{
+    QStringList createdLightMaterials;
+    AssetManager<std::string, LightMaterial*>& instance = AssetManager<std::string, LightMaterial*>::getInstance();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        createdLightMaterials.push_back(QString::fromStdString(itr->first));
+    }
+    return createdLightMaterials;
 }
 
 QStringList getImportedTextures(TextureType type)

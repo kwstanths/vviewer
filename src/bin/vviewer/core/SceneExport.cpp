@@ -164,7 +164,7 @@ void exportJson(std::string name,
         }
 
         /* Add the directional light as a root object */
-        if (sceneLight->intensity > 0.00001F)
+        if (sceneLight->lightMaterial->intensity > 0.00001F)
         {
             Value sceneObjectDirectionalLight;
             sceneObjectDirectionalLight.SetObject();
@@ -398,12 +398,12 @@ void addSceneObjectLight(rapidjson::Document& d, rapidjson::Value& v, Light * li
     lightEntry.AddMember("type", typeEntry, d.GetAllocator());
 
     Value intensity;
-    intensity.SetFloat(light->intensity);
+    intensity.SetFloat(light->lightMaterial->intensity);
     lightEntry.AddMember("intensity", intensity, d.GetAllocator());
 
     Value color;
     color.SetObject();
-    addColor(d, color, light->color);
+    addColor(d, color, light->lightMaterial->color);
     lightEntry.AddMember("color", color, d.GetAllocator());
 
     v.AddMember("light", lightEntry, d.GetAllocator());
