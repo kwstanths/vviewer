@@ -68,6 +68,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
 
     /* Get .xtex file name */
     std::string xtexName;
+    std::string texturesFolder = "";
     int i, n = zip_entries_total(zip);
     for (i = 0; i < n; ++i) {
         zip_entry_openbyindex(zip, i);
@@ -76,6 +77,14 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
             auto pointPos = name.find(".");
             if (pointPos != std::string::npos && name.substr(pointPos) == ".xtex") {
                 xtexName = name;
+                
+                auto internalFolderIndex = name.rfind("/");
+                if (internalFolderIndex != std::string::npos)
+                {
+                    texturesFolder = name.substr(0, internalFolderIndex) + "/";
+
+                }
+                break;
             }
         }
         zip_entry_close(zip);
@@ -102,7 +111,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
 
     /* Parse albedo */
     Texture * albedoTexture = nullptr;
-    std::string albedoZipPath = "textures/albedo.png";
+    std::string albedoZipPath = texturesFolder + "textures/albedo.png";
     if (zip_entry_open(zip, albedoZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
 
@@ -121,7 +130,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
 
     /* Parse roughness */
     Texture * roughnessTexture = nullptr;
-    std::string roughnessZipPath = "textures/roughness.png";
+    std::string roughnessZipPath = texturesFolder + "textures/roughness.png";
     if (zip_entry_open(zip, roughnessZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
 
@@ -140,7 +149,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
 
     /* Parse normal */
     Texture * normalTexture = nullptr;
-    std::string normalZipPath = "textures/normal.png";
+    std::string normalZipPath = texturesFolder + "textures/normal.png";
     if (zip_entry_open(zip, normalZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
 
