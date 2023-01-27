@@ -4,6 +4,7 @@
 #include "skybox/ibl.glsl"
 #include "lighting.glsl"
 #include "tonemapping.glsl"
+#include "utils.glsl"
 
 layout(location = 0) in vec3 fragWorldPos;
 layout(location = 1) in vec3 fragWorldNormal;
@@ -37,11 +38,6 @@ layout(set = 3, binding = 2) uniform samplerCube skyboxPrefiltered;
 layout(push_constant) uniform PushConsts {
 	layout (offset = 0) vec4 selected;
 } pushConsts;
-
-vec3 getCameraPosition(mat4 invViewMatrix)
-{
-    return vec3(invViewMatrix[3][0], invViewMatrix[3][1], invViewMatrix[3][2]);
-}
 
 void main() {
 

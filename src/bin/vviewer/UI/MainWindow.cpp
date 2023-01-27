@@ -871,10 +871,12 @@ void MainWindow::onStartUpInitialization()
 {
     AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
     AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
+    AssetManager<std::string, LightMaterial*>& instanceLightMaterials = AssetManager<std::string, LightMaterial*>::getInstance();
 
     Material* mat = instanceMaterials.get("defaultMaterial");
     MeshModel* sphere = instanceModels.get("assets/models/uvsphere.obj");
     MeshModel* plane = instanceModels.get("assets/models/plane.obj");
+    LightMaterial* lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
     {
         auto o = createEmptySceneObject("sphere", Transform(), nullptr);

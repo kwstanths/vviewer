@@ -3,6 +3,7 @@
 #include "pbr.glsl"
 #include "lighting.glsl"
 #include "tonemapping.glsl"
+#include "utils.glsl"
 
 layout(location = 0) in vec3 fragWorldPos;
 layout(location = 1) in vec3 fragWorldNormal;
@@ -35,17 +36,20 @@ layout(push_constant) uniform PushConsts {
     layout (offset = 16) vec4 lightColor;
 } pushConsts;
 
-vec3 getCameraPosition(mat4 invViewMatrix)
-{
-    return vec3(invViewMatrix[3][0], invViewMatrix[3][1], invViewMatrix[3][2]);
-}
-
 void main() {
     vec3 lightWorldPos = pushConsts.lightPosition.rgb;
     vec3 lightColor = pushConsts.lightColor.rgb;
     vec2 tiledUV = materialData.uvTiling.rg * fragUV;
     
     vec3 L = normalize(lightWorldPos - fragWorldPos);
+    float attenuation = squareDistanceAttenuation(fragWorldPos, lightWorldPos);
+    /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
+    if (attenuation * max3(lightColor) < 0.05)
+    {
+        outColor = vec4(0, 0, 0, 1);
+    	outHighlight = vec4(0, 0, 0, 0);
+        return;
+    }
     
     /* Normal mapping */
     mat3 TBN = mat3(fragWorldTangent, fragWorldBiTangent, fragWorldNormal);
@@ -62,7 +66,7 @@ void main() {
     pbr.albedo = materialData.albedo.rgb * texture(materialTextures[0], tiledUV).rgb;
     pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(materialTextures[1], tiledUV).r;
     pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(materialTextures[2], tiledUV).r;    
-    vec3 Lo = lightColor * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H) * squareDistanceAttenuation(fragWorldPos, lightWorldPos);
+    vec3 Lo = lightColor * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H) * attenuation;
     
     vec3 color = Lo;
     

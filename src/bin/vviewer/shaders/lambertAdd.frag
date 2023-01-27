@@ -3,6 +3,7 @@
 #include "pbr.glsl"
 #include "lighting.glsl"
 #include "tonemapping.glsl"
+#include "utils.glsl"
 
 layout(location = 0) in vec3 fragWorldPos;
 layout(location = 1) in vec3 fragWorldNormal;
@@ -41,6 +42,14 @@ void main() {
     vec2 tiledUV = materialData.uvTiling.rg * fragUV;
     
     vec3 L = normalize(lightWorldPos - fragWorldPos);
+    float attenuation = squareDistanceAttenuation(fragWorldPos, lightWorldPos);
+    /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
+    if (attenuation * max3(lightColor) < 0.05)
+    {
+        outColor = vec4(0, 0, 0, 1);
+    	outHighlight = vec4(0, 0, 0, 0);
+        return;
+    }
     
     /* Normal mapping */
     mat3 TBN = mat3(fragWorldTangent, fragWorldBiTangent, fragWorldNormal);
@@ -50,7 +59,7 @@ void main() {
     
 	vec3 albedo = materialData.albedo.rgb * texture(materialTextures[0], tiledUV).rgb;
     
-    vec3 Lo = lightColor * albedo * max(dot(N, L), 0.0) * INV_PI * squareDistanceAttenuation(fragWorldPos, lightWorldPos);
+    vec3 Lo = lightColor * albedo * max(dot(N, L), 0.0) * INV_PI * attenuation;
     
     vec3 color = Lo;
     
