@@ -1,22 +1,27 @@
 #include "VulkanRendererRayTracing.hpp"
-#include "core/Lights.hpp"
-#include "core/Materials.hpp"
-#include "utils/ECS.hpp"
-#include "vulkan/VulkanStructs.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
+#include <unordered_set>
 #include <sys/types.h>
+#include <unistd.h>
+
 #include <vulkan/vulkan_core.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
 #include <utils/Console.hpp>
-#include <utils/ImageUtils.hpp>
+#include <utils/Timer.hpp>
+
+#include "core/Lights.hpp"
+#include "core/Materials.hpp"
+#include "utils/ECS.hpp"
+#include "utils/ImageUtils.hpp"
+#include "vulkan/VulkanStructs.hpp"
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
 
@@ -136,44 +141,74 @@ bool VulkanRendererRayTracing::isInitialized() const
 
 void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 {
-    std::vector<glm::mat4> sceneObjectMatrices;
-    std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectMatrices);
-    if (sceneObjects.size() == 0)
+    if (m_renderInProgress)
     {
-        utils::ConsoleWarning("Trying to ray trace an empty scene");
         return;
-    }
-
-    SceneData sceneData = scene->getSceneData();
-
-    /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
-    for (size_t i = 0; i < sceneObjects.size(); i++)
+    } else 
     {
-        auto so = sceneObjects[i];
-        auto transform = sceneObjectMatrices[i];
-
-        if (so->has<ComponentMesh>()) {
-            auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
-            if (mesh != nullptr)
-            {
-                AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f));
-                m_blas.push_back(std::make_pair(blas, transform));
-            }
+        if (m_renderThread.joinable()){
+            m_renderThread.join();
         }
     }
 
-    /* Create a top level accelleration structure out of all the blas */
-    m_tlas = createTopLevelAccelerationStructure();
+    m_renderThread = std::thread([this, scene]() {
+        m_renderInProgress = true; 
 
-    /* Prepare scene lights */
-    auto sceneLights = prepareSceneLights(scene, sceneObjects);
-    m_rayTracingData.samplesDepthLights.b = sceneLights.size();
-    updateUniformBuffers(sceneData, sceneLights);
-    updateDescriptorSets();
+        utils::Timer timer;
+        timer.Start();
 
-    render();
+        std::vector<glm::mat4> sceneObjectMatrices;
+        std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectMatrices);
+        if (sceneObjects.size() == 0)
+        {
+            utils::ConsoleWarning("Trying to ray trace an empty scene");
+            return;
+        }
 
-    releaseRenderResources();
+        const SceneData& sceneData = scene->getSceneData();
+
+        std::unordered_map<std::string, int> materialIndices;
+        std::vector<MaterialRT> sceneMaterials = prepareSceneMaterials(sceneObjects, materialIndices);
+
+        /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
+        for (size_t i = 0; i < sceneObjects.size(); i++)
+        {
+            auto so = sceneObjects[i];
+
+            if (!so->has<ComponentMesh>() || !so->has<ComponentMaterial>()) continue;
+
+            auto transform = sceneObjectMatrices[i];
+
+            auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
+            auto material = so->get<ComponentMaterial>().material;
+
+            AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), materialIndices[material->m_name]);
+            m_blas.push_back(std::make_pair(blas, transform));
+        }
+
+        /* Create a top level accelleration structure out of all the blas */
+        m_tlas = createTopLevelAccelerationStructure();
+
+        /* Prepare scene lights */
+        auto sceneLights = prepareSceneLights(scene, sceneObjects);
+        m_rayTracingData.samplesDepthLights.b = sceneLights.size();
+        updateUniformBuffers(sceneData, sceneLights, sceneMaterials);
+        updateDescriptorSets();
+
+        render();
+
+        releaseRenderResources();
+
+        timer.Stop();
+
+        std::string fileExtension = (getRenderOutputFileType() == OutputFileType::PNG) ? "png" : "hdr";
+        std::string filename = getRenderOutputFileName() + "." + fileExtension;
+
+
+        utils::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(timer.ToInt()) + "ms");
+
+        m_renderInProgress = false;
+    });
 }
 
 void VulkanRendererRayTracing::setRenderResolution(uint32_t width, uint32_t height)
@@ -243,7 +278,7 @@ uint64_t VulkanRendererRayTracing::getBufferDeviceAddress(VkDevice device, VkBuf
     return m_devF.vkGetBufferDeviceAddressKHR(device, &bufferDeviceAI);
 }
 
-VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& t)
+VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& t, const int materialIndex)
 {
     const std::vector<Vertex>& vertices = mesh.getVertices();
     const std::vector<uint32_t> indices = mesh.getIndices();
@@ -298,7 +333,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, indexBuffer);
     VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
     transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, transformBuffer);
-    m_sceneObjects.push_back({ vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress });
+    m_sceneObjects.push_back({ vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress, materialIndex });
 
     std::vector<uint32_t> numTriangles = { indexCount / 3 };
     uint32_t maxVertex = static_cast<uint32_t>(vertices.size());
@@ -598,14 +633,12 @@ void VulkanRendererRayTracing::createStorageImage()
 
 void VulkanRendererRayTracing::createUniformBuffers()
 {
-    uint32_t MAX_OBJECTS = 200u;
-    uint32_t MAX_LIGHTS = 20u;
-
-    /* Scene buffer holds [SceneData | RayTracingData | MAX_LIGHTS * LightRT ]*/
+    /* The scene buffer holds [SceneData | RayTracingData | MAX_LIGHTS * LightRT ] | [MAX_MATERIALS * MaterialRT] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
     uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) +
         alignedSize(sizeof(RayTracingData), alignment) +
-        alignedSize(MAX_LIGHTS * sizeof(LightRT), alignment);
+        alignedSize(MAX_LIGHTS * sizeof(LightRT), alignment) +
+        alignedSize(MAX_MATERIALS * sizeof(MaterialRT), alignment);
 
     /* Create a buffer to hold the scene data and the ray tracing data */
     createBuffer(m_vkcore.physicalDevice(),
@@ -619,22 +652,26 @@ void VulkanRendererRayTracing::createUniformBuffers()
     /* Create a buffer to hold the object descriptions data */
     createBuffer(m_vkcore.physicalDevice(),
         m_device,
-        MAX_OBJECTS * sizeof(ObjectDescription),
+        MAX_OBJECTS * sizeof(ObjectDescriptionRT),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_uniformBufferObjectDescription,
         m_uniformBufferObjectDescrptionMemory);
 }
 
-void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const std::vector<LightRT>& lights)
+void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials)
 {
-    if (m_sceneObjects.size() > 200u)
+    if (m_sceneObjects.size() > MAX_OBJECTS)
     {
-        throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): More than 200 objects in the scene");
+        throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of objects exceeded");
     }
-    if (lights.size() > 20u)
+    if (lights.size() > MAX_LIGHTS)
     {
-        throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): More than 20 lights in the scene");
+        throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of lights exceeded");
+    }
+    if (materials.size() > MAX_MATERIALS)
+    {
+        throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of materials exceeded");
     }
 
     /* Update scene data, ray tracing data and lights buffer */
@@ -646,6 +683,7 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
         memcpy(data, &sceneData, sizeof(sceneData));    /* Copy scene data struct */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &m_rayTracingData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment), lights.data(), lights.size() * sizeof(LightRT)); /* Copy lights vector */
+        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment) + alignedSize(MAX_LIGHTS * sizeof(LightRT), alignment), materials.data(), materials.size() * sizeof(MaterialRT)); /* Copy materials vector */
         vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
     }
 
@@ -653,7 +691,7 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
     {
         void* data;
         vkMapMemory(m_device, m_uniformBufferObjectDescrptionMemory, 0, VK_WHOLE_SIZE, 0, &data);
-        memcpy(data, m_sceneObjects.data(), m_sceneObjects.size() * sizeof(ObjectDescription));
+        memcpy(data, m_sceneObjects.data(), m_sceneObjects.size() * sizeof(ObjectDescriptionRT));
         vkUnmapMemory(m_device, m_uniformBufferObjectDescrptionMemory);
     }
 }
@@ -666,6 +704,7 @@ void VulkanRendererRayTracing::createDescriptorSets()
     * 1 uniform buffer for scene data
     * 1 storage buffer for references to scene object geometry
     * 1 uniform buffer for light data
+    * 1 uniform buffer for material data
     */
     std::vector<VkDescriptorPoolSize> poolSizes = {
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
@@ -673,7 +712,8 @@ void VulkanRendererRayTracing::createDescriptorSets()
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },  
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
     };
     VkDescriptorPoolCreateInfo descriptorPoolInfo{};
     descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -771,7 +811,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
     VkDescriptorBufferInfo lightsDescriptor{};
     lightsDescriptor.buffer = m_uniformBufferScene;
     lightsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment);
-    lightsDescriptor.range = VK_WHOLE_SIZE;
+    lightsDescriptor.range = alignedSize(MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
     VkWriteDescriptorSet lightsWrite{};
     lightsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     lightsWrite.dstSet = m_descriptorSet;
@@ -780,6 +820,19 @@ void VulkanRendererRayTracing::updateDescriptorSets()
     lightsWrite.pBufferInfo = &lightsDescriptor;
     lightsWrite.descriptorCount = 1;
 
+    /* Update materials buffer binding */
+    VkDescriptorBufferInfo materialsDescriptor{};
+    materialsDescriptor.buffer = m_uniformBufferScene;
+    materialsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment) + alignedSize(MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
+    materialsDescriptor.range = VK_WHOLE_SIZE;
+    VkWriteDescriptorSet materialsWrite{};
+    materialsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    materialsWrite.dstSet = m_descriptorSet;
+    materialsWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    materialsWrite.dstBinding = 6;
+    materialsWrite.pBufferInfo = &materialsDescriptor;
+    materialsWrite.descriptorCount = 1;
+
     std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
         accelerationStructureWrite,
         resultImageWrite,
@@ -787,6 +840,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
         rayTracingDataWrite,
         objectDescriptionWrite,
         lightsWrite,
+        materialsWrite,
     };
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 }
@@ -835,6 +889,13 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
     lightsBufferBinding.descriptorCount = 1;
     lightsBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 
+    /* Binding 6, the materials buffer */
+    VkDescriptorSetLayoutBinding materialsBufferBinding{};
+    materialsBufferBinding.binding = 6;
+    materialsBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    materialsBufferBinding.descriptorCount = 1;
+    materialsBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+
     std::vector<VkDescriptorSetLayoutBinding> bindings({
         accelerationStructureLayoutBinding,
         resultImageLayoutBinding,
@@ -842,6 +903,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         rayTracingDataBufferBinding,
         objectDescrptionBufferBinding,
         lightsBufferBinding,
+        materialsBufferBinding
     });
 
     /* 1 set only */
@@ -1053,7 +1115,7 @@ void VulkanRendererRayTracing::render()
         &emptySbtEntry,
         m_width,
         m_height,
-        1);
+        1);    
     
     /* Transition output render result to transfer source optimal */
     transitionImageLayout(cmdBuf, m_renderResult.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subresourceRange);
@@ -1071,7 +1133,6 @@ void VulkanRendererRayTracing::render()
     transitionImageLayout(cmdBuf, m_renderResult.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
 
     endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true, VULKAN_TIMEOUT_100S);
-    vkQueueWaitIdle(m_queue);
 
     storeToDisk(m_renderResultOutputFileName, m_renderResultOutputFileType);
 }
@@ -1189,7 +1250,7 @@ void VulkanRendererRayTracing::deleteScratchBuffer(RayTracingScratchBuffer& scra
     }
 }
 
-std::vector<LightRT> VulkanRendererRayTracing::prepareSceneLights(const VulkanScene * scene, std::vector<std::shared_ptr<SceneObject>>& sceneObjects)
+std::vector<LightRT> VulkanRendererRayTracing::prepareSceneLights(const VulkanScene * scene, const std::vector<std::shared_ptr<SceneObject>>& sceneObjects)
 {
     std::vector<LightRT> sceneLights;
 
@@ -1250,4 +1311,47 @@ std::vector<LightRT> VulkanRendererRayTracing::prepareSceneLights(const VulkanSc
     }
 
     return sceneLights;
+}
+
+std::vector<MaterialRT> VulkanRendererRayTracing::prepareSceneMaterials(const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, std::unordered_map<std::string, int>& indices)
+{
+    /* Get the names of the unique materials used in the scene */
+    std::unordered_map<std::string, std::shared_ptr<Material>> uniqueMaterials;
+    for (size_t i = 0; i < sceneObjects.size(); i++)
+    {
+        auto so = sceneObjects[i];
+        if (so->has<ComponentMaterial>())
+        {
+            auto mat = so->get<ComponentMaterial>().material;
+            uniqueMaterials[mat->m_name] = mat;
+        }
+    }
+
+    /* Prepare buffer with the unique materials data */
+    indices.clear();
+    std::vector<MaterialRT> uniqueMaterialsData;
+    for(auto mat : uniqueMaterials)
+    {
+        uniqueMaterialsData.push_back(MaterialRT());
+
+        auto material = mat.second;
+        switch (material->getType())
+        {
+        case MaterialType::MATERIAL_PBR_STANDARD:
+        {
+            uniqueMaterialsData.back().albedo = std::reinterpret_pointer_cast<MaterialPBRStandard>(material)->albedo();
+        break;
+        }
+        case MaterialType::MATERIAL_LAMBERT:
+        {
+            uniqueMaterialsData.back().albedo = std::reinterpret_pointer_cast<MaterialLambert>(material)->albedo();
+        break;
+        }
+        default:
+            break;
+        }
+        indices.insert({material->m_name, uniqueMaterialsData.size() - 1});
+    }
+
+    return uniqueMaterialsData;
 }

@@ -667,28 +667,13 @@ bool VulkanRenderer::isRTEnabled() const
     return m_rendererRayTracing.isInitialized();
 }
 
-int64_t VulkanRenderer::renderRT()
+void VulkanRenderer::renderRT()
 {
     if (m_rendererRayTracing.isInitialized()) {
 
-        renderLoopActive(false);
-        waitIdle();
-
-        utils::Timer timer;
-        timer.Start();
-        
-        m_scene->updateSceneGraph(); // TODO the render loop already updates the scene graph often enough?
-        m_rendererRayTracing.renderScene(m_scene);
-
-        timer.Stop();
-
-        renderLoopActive(true);
-
-        return timer.ToInt();
+        m_rendererRayTracing.renderScene(m_scene);        
     }
-    else {
-        return 0;
-    }
+
 }
 
 glm::vec3 VulkanRenderer::selectObject(float x, float y)

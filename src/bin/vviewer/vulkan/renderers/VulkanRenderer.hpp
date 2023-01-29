@@ -61,7 +61,7 @@ public:
     std::shared_ptr<SceneObject> getSelectedObject() const;
 
     bool isRTEnabled() const;
-    int64_t renderRT();
+    void renderRT();
 
     glm::vec3 selectObject(float x, float y);
 

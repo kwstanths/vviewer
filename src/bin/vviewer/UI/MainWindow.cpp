@@ -886,16 +886,10 @@ void MainWindow::onRenderSceneSlot()
     RTrenderer->setRenderOutputFileName(dialog->getRenderOutputFileName());
     RTrenderer->setRenderOutputFileType(dialog->getRenderOutputFileType());
     RTrenderer->setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
+
+    m_vulkanWindow->getRenderer()->renderRT();
+
     delete dialog;
-
-    auto ret = m_vulkanWindow->getRenderer()->renderRT();
-
-    if (ret) {
-        std::string fileExtension = (RTrenderer->getRenderOutputFileType() == OutputFileType::PNG) ? "png" : "hdr";
-        std::string filename = RTrenderer->getRenderOutputFileName() + "." + fileExtension;
-
-        utils::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(ret) + "ms");
-    }
 }
 
 void MainWindow::onExportSceneSlot()
@@ -1001,4 +995,5 @@ void MainWindow::onStartUpInitialization()
     } catch (std::exception& e) {
         utils::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
     }
+    
 }

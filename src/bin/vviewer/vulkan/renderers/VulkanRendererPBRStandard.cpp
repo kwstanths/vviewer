@@ -395,7 +395,7 @@ void VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
             VkFence fence;
             vkCreateFence(m_device, &fenceInfo, nullptr, &fence);
             vkQueueSubmit(m_queue, 1, &submitInfo, fence);
-            vkWaitForFences(m_device, 1, &fence, VK_TRUE, 100000000000);
+            vkWaitForFences(m_device, 1, &fence, VK_TRUE, VULKAN_TIMEOUT_100S);
 
             vkQueueWaitIdle(m_queue);
 

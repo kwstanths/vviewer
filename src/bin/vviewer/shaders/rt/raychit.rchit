@@ -35,24 +35,23 @@ layout(binding = 2, set = 0) uniform SceneData
     vec4 exposure;
 } sceneData;
 
-/* Struct for the object description geometry of a mesh in the scene */
-struct ObjDesc
-{
-    /* Pointers to GPU buffers */
-	uint64_t vertexAddress;
-	uint64_t indexAddress;
-};
 /* Descriptor with the buffer for the object description structs */
 layout(binding = 4, set = 0, scalar) buffer ObjDesc_ 
 { 
-	ObjDesc i[]; 
+	ObjDesc i[200]; 
 } objDesc;
 
 /* Descriptor with the buffer for the light structs */
 layout(binding = 5, set = 0) uniform readonly Lights 
 { 
-	Light i[]; 
+	Light i[20]; 
 } lights;
+
+/* Descriptor with materials */
+layout(binding = 6, set = 0) uniform readonly Materials
+{
+	Material i[100];
+} materials;
 
 void main()
 {
@@ -60,6 +59,8 @@ void main()
 	ObjDesc objResource = objDesc.i[gl_InstanceCustomIndexEXT];
 	Indices indices = Indices(objResource.indexAddress);
 	Vertices vertices = Vertices(objResource.vertexAddress);
+	Material material = materials.i[objResource.materialIndex];
+
 	/* Get hit triangle info */
 	ivec3  ind = indices.i[gl_PrimitiveID];
 	Vertex v0 = vertices.v[ind.x];
@@ -78,7 +79,7 @@ void main()
 	vec3 worldNormal = normalize(vec3(localNormal * gl_WorldToObjectEXT));
 	vec3 worldTangent = normalize(vec3(localTangent * gl_WorldToObjectEXT));
 	vec3 worldBitangent = normalize(vec3(localBitangent * gl_WorldToObjectEXT));
-	
+	/* Construct a local frame */
 	Frame frame = Frame(worldNormal, worldTangent, worldBitangent);
 	bool flipped = fixFrame(frame.normal, frame.tangent, frame.bitangent, gl_WorldRayDirectionEXT);
 
@@ -99,13 +100,14 @@ void main()
 	// 	}
 	// }
 
+	/* New ray direction */
 	rayPayload.origin = worldPosition;
-
+	
 	float sampleDirectionPDF;
 	vec3 sampleDirection = localToWorld(frame, cosineSampleHemisphere(rayPayload.rngState, sampleDirectionPDF));
 
 	float cosTheta = abs(dot(worldNormal, sampleDirection));
 
 	rayPayload.direction = sampleDirection;
-	rayPayload.beta *= vec3(0.5, 0.5, 0.5) * INVPI * cosTheta / sampleDirectionPDF;
+	rayPayload.beta *= material.albedo.xyz * INVPI * cosTheta / sampleDirectionPDF;
 }

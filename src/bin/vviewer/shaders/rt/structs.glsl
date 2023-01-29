@@ -1,3 +1,14 @@
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+/* Struct for the object description of a mesh in the scene */
+struct ObjDesc
+{
+    /* Pointers to GPU buffers */
+	uint64_t vertexAddress;
+	uint64_t indexAddress;
+	int materialIndex;
+};
+
 /* Struct for vertex data stored per vertex in geometry buffers */
 struct Vertex
 {
@@ -32,4 +43,10 @@ struct Light {
     vec4 position;  /* RGB = world space position, A = light type  */
     vec4 direction; /* RGB = world space direction, A = mesh id */
     vec4 color;     /* RGB = color, A = mesh material id */
+};
+
+/* Material struct */
+struct Material 
+{
+	vec4 albedo;
 };

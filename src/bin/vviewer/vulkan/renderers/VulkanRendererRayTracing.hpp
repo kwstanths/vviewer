@@ -1,6 +1,10 @@
 #ifndef __VulkanRendererRayTracing_hpp__
 #define __VulkanRendererRayTracing_hpp__
 
+#include <thread>
+#include <cstdint>
+
+
 #include "core/Scene.hpp"
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanCore.hpp"
@@ -52,6 +56,10 @@ public:
     OutputFileType getRenderOutputFileType() const { return m_renderResultOutputFileType; }
 
 private:
+    const uint32_t MAX_OBJECTS = 200u;
+    const uint32_t MAX_LIGHTS = 20u;
+    const uint32_t MAX_MATERIALS = 100u;
+
     struct DeviceFunctionsRayTracing {
         PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
         PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
@@ -66,6 +74,8 @@ private:
     } m_devF;
 
     VulkanCore& m_vkcore;
+    std::thread m_renderThread;
+    bool m_renderInProgress = false;
 
     /* Device data */
     bool m_isInitialized = false;
@@ -103,15 +113,7 @@ private:
     std::string m_renderResultOutputFileName;
     OutputFileType m_renderResultOutputFileType;
 
-    /* Objects description data for meshes in the scene */
-    struct ObjectDescription
-    {
-        /* A pointer to a buffer holding mesh vertex data */
-        uint64_t vertexAddress;
-        /* A pointer to a buffer holding mesh index data*/
-        uint64_t indexAddress;
-    };
-    std::vector<ObjectDescription> m_sceneObjects;
+    std::vector<ObjectDescriptionRT> m_sceneObjects;
 
     /* Descriptor sets */
     VkBuffer m_uniformBufferScene;  /* Holds scene data, ray tracing data and light data */
@@ -140,7 +142,7 @@ private:
     
     static VkDevice createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex);
 
-    AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& transformationMatrix);
+    AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& transformationMatrix, const int materialIndex);
     AccelerationStructure createTopLevelAccelerationStructure();
     void destroyAccellerationStructures();
 
@@ -149,7 +151,7 @@ private:
 
     /* Uniform buffers */
     void createUniformBuffers();
-    void updateUniformBuffers(const SceneData& sceneData, const std::vector<LightRT>& lights);
+    void updateUniformBuffers(const SceneData& sceneData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials);
     /* Descriptor sets */
     void createDescriptorSets();
     void updateDescriptorSets();
@@ -167,7 +169,8 @@ private:
     RayTracingScratchBuffer createScratchBuffer(VkDeviceSize size);
     void deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer);
 
-    std::vector<LightRT> prepareSceneLights(const VulkanScene * scene, std::vector<std::shared_ptr<SceneObject>>& sceneObjects);
+    std::vector<LightRT> prepareSceneLights(const VulkanScene * scene, const std::vector<std::shared_ptr<SceneObject>>& sceneObjects);
+    std::vector<MaterialRT> prepareSceneMaterials(const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, std::unordered_map<std::string, int>& indices);
 };
 
 #endif

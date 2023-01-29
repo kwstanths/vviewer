@@ -48,6 +48,19 @@ struct PushBlockForward3DUI {
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
 };
 
+/* ------------------ Ray Tracing structs ------------------------- */
+
+/* Objects description data for meshes in the scene */
+struct ObjectDescriptionRT
+{
+    /* A pointer to a buffer holding mesh vertex data */
+    uint64_t vertexAddress;
+    /* A pointer to a buffer holding mesh index data*/
+    uint64_t indexAddress;
+    /* An index to point to the materials buffer */
+    int materialIndex;
+};
+
 struct StorageImage
 {
     VkDeviceMemory memory = VK_NULL_HANDLE;
@@ -68,6 +81,10 @@ struct LightRT {
     glm::vec4 position;  /* RGB = world space position, A = light type  */
     glm::vec4 direction; /* RGB = world space direction, A = mesh id */
     glm::vec4 color;     /* RGB = color, A = mesh material id */
+};
+
+struct MaterialRT {
+    glm::vec4 albedo;
 };
 
 #endif

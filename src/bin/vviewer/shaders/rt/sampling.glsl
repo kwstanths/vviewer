@@ -14,6 +14,7 @@ vec3 cosineSampleHemisphere(inout uint rngState, inout float pdf) {
 	dir.y = sqrt(max(0.0, 1.0 - dir.x * dir.x - dir.z * dir.z));
 
     pdf = INVPI * dir.y;
+	pdf = max(pdf, 0.001);
 
 	return normalize(dir);
 }

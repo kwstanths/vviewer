@@ -419,13 +419,19 @@ void endSingleTimeCommands(VkDevice device,
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
     vkQueueSubmit(queue, 1, &submitInfo, fence);
-    
+        
     // Wait for the fence to signal that command buffer has finished executing
-    vkWaitForFences(device, 1, &fence, VK_TRUE, timeout);
-    vkDestroyFence(device, fence, nullptr);
-    if (freeCommandBuffer)
+    VkResult res = vkWaitForFences(device, 1, &fence, VK_TRUE, timeout);
+    if (res == VK_SUCCESS)
     {
-        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+        vkQueueWaitIdle(queue);
+        vkDestroyFence(device, fence, nullptr);
+        if (freeCommandBuffer)
+        {
+            vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+        }
+    } else {
+        utils::ConsoleCritical("endSingleTimeCommands(): Queue submission failed with code: " + std::to_string(res));
     }
 }
 
