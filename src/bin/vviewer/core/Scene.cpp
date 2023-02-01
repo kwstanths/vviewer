@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "SceneExport.hpp"
 #include "AssetManager.hpp"
 
 Scene::Scene()
@@ -212,7 +211,7 @@ std::shared_ptr<SceneObject> Scene::getSceneObject(ID id) const
     return itr->second;
 }
 
-void Scene::exportScene(std::string name, uint32_t width, uint32_t height, uint32_t samples) const
+void Scene::exportScene(const ExportRenderParams& renderParams) const
 {
     EnvironmentMap* temp = nullptr;
     if (m_skybox != nullptr && getEnvironmentType() == EnvironmentType::HDRI)
@@ -220,5 +219,5 @@ void Scene::exportScene(std::string name, uint32_t width, uint32_t height, uint3
         temp = m_skybox->getMap();
     }
 
-    exportJson(name, m_camera, m_directionalLight, m_sceneGraph, temp, width, height, samples);
+    exportJson(renderParams, m_camera, m_directionalLight, m_sceneGraph, temp);
 }

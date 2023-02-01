@@ -94,7 +94,11 @@ private:
      */
     void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
     void clearControlsUI();
-    void addImportedSceneObject(const ImportedSceneObject& object, QTreeWidgetItem * parentItem, std::string sceneFolder);
+
+    bool addImportedSceneObject(const ImportedSceneObject& object, 
+            const std::unordered_map<std::string, ImportedSceneMaterial>& materials,
+            const std::unordered_map<std::string, ImportedSceneLightMaterial>& lights,
+            QTreeWidgetItem * parentItem, std::string sceneFolder);
 
 private slots:
     /* Import a model */

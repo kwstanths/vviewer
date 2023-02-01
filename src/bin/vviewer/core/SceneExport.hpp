@@ -12,23 +12,68 @@
 #include "Materials.hpp"
 #include "Lights.hpp"
 
-void exportJson(std::string name, 
+struct ExportRenderParams {
+	std::string name;
+	std::vector<std::string> fileTypes;
+	
+	uint32_t width, height;
+	uint32_t samples, depth, rdepth;
+
+	bool hideBackground;
+	glm::vec3 backgroundColor;
+	float tessellation;
+	bool parallax;
+
+	float focalLength;
+	uint32_t apertureSides;
+	float aperture;
+};
+
+void exportJson(const ExportRenderParams& renderParams,
 	std::shared_ptr<Camera> sceneCamera, 
 	std::shared_ptr<DirectionalLight> sceneLight,
 	const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, 
-	EnvironmentMap * envMap,
-	uint32_t width, uint32_t height, uint32_t samples);
+	EnvironmentMap * envMap);
 
-void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials, std::string meshDirectory);
+void parseSceneObject(rapidjson::Document& d, 
+	rapidjson::Value& v, 
+	const std::shared_ptr<SceneObject>& sceneObject, 
+	std::unordered_set<Material*>& materials, 
+	std::unordered_set<LightMaterial*>& lightMaterials,
+	std::string meshDirectory);
 
-void addSceneObjectMesh(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::string meshDirectory);
+void addTransform(rapidjson::Document& d, 
+	rapidjson::Value& v, 
+	const Transform& t);
 
-void addSceneObjectTransform(rapidjson::Document& d, rapidjson::Value& v, const Transform& t);
+void addMesh(rapidjson::Document& d, 
+	rapidjson::Value& v, 
+	const std::shared_ptr<SceneObject>& sceneObject, 
+	std::string meshDirectory,
+	std::string materialName);
 
-void addSceneObjectLight(rapidjson::Document& d, rapidjson::Value& v, Light * light, std::string type);
+void addMeshLight(rapidjson::Document& d, 
+	rapidjson::Value& v,
+	const std::shared_ptr<SceneObject>& sceneObject, 
+	std::string meshDirectory,
+	std::string materialName);
+
+void addMeshComponent(rapidjson::Document& d, 
+	rapidjson::Value& v,
+	const std::shared_ptr<SceneObject>& sceneObject, 
+	std::string meshDirectory,
+	std::string materialName);
+
+void addAnalyticalLight(rapidjson::Document& d, rapidjson::Value& v, Light * light, std::string type);
 
 void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* material, std::string materialsDirectory);
 
-void addColor(rapidjson::Document& d, rapidjson::Value& v, glm::vec3 color);
+void addLightMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* material);
+
+void addLightMaterial(rapidjson::Document& d, rapidjson::Value& v, const LightMaterial* material);
+
+void addVec3(rapidjson::Document& d, rapidjson::Value& v, std::string name, glm::vec3 value);
+
+bool isMaterialEmissive(const Material * material);
 
 #endif

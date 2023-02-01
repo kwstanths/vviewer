@@ -30,29 +30,28 @@ std::string copyFileToDirectoryAndGetFileName(std::string file, std::string dire
     return filename.toStdString();
 }
 
-void exportJson(std::string name, 
+void exportJson(const ExportRenderParams& renderParams, 
     std::shared_ptr<Camera> sceneCamera, 
 	std::shared_ptr<DirectionalLight> sceneLight,
     const std::vector<std::shared_ptr<SceneObject>>& sceneGraph, 
-    EnvironmentMap* envMap,
-    uint32_t width, uint32_t height, uint32_t samples)
+    EnvironmentMap* envMap)
 {
     /* Create folder with scene */
-    std::string sceneFolderName = name + "/"; /* Make sure the final back slash exists */
-    std::string sceneMeshesFolderName = sceneFolderName + "meshes/";
-    std::string sceneMaterialsFolderName = sceneFolderName + "materials/";
+    std::string sceneFolderName = renderParams.name + "/"; /* Make sure the final back slash exists */
+    std::string meshesFolderName = sceneFolderName + "meshes/";
+    std::string materialsFolderName = sceneFolderName + "materials/";
     QDir().mkdir(QString::fromStdString(sceneFolderName));
-    QDir().mkdir(QString::fromStdString(sceneMeshesFolderName));
-    QDir().mkdir(QString::fromStdString(sceneMaterialsFolderName));
+    QDir().mkdir(QString::fromStdString(meshesFolderName));
+    QDir().mkdir(QString::fromStdString(materialsFolderName));
 
-    std::string fileName = name + "/scene.json";
+    std::string fileName = renderParams.name + "/scene.json";
 
     Document d;
     d.SetObject();
 
     {
         Value version;
-        version.SetString("0.1");
+        version.SetString("1.0");
         d.AddMember("version", version, d.GetAllocator());
     }
     {
@@ -60,27 +59,62 @@ void exportJson(std::string name,
         name.SetString("scene.json", d.GetAllocator());
         d.AddMember("name", name, d.GetAllocator());
     }
+    {
+        Value fileTypes;
+        fileTypes.SetArray();
+        for(auto fileType : renderParams.fileTypes)
+        {
+            Value temp;
+            temp.SetString(fileType.c_str(), d.GetAllocator());
+            fileTypes.PushBack(temp, d.GetAllocator());
+        }
 
-    /* Render */
+        d.AddMember("fileType", fileTypes, d.GetAllocator());
+    }
     {
         Value resolution;
         resolution.SetObject();
 
         Value x;
-        x.SetUint(width);
+        x.SetUint(renderParams.width);
         resolution.AddMember("x", x, d.GetAllocator());
         Value y;
-        y.SetUint(height);
+        y.SetUint(renderParams.height);
         resolution.AddMember("y", y, d.GetAllocator());
 
         d.AddMember("resolution", resolution, d.GetAllocator());
     }
     {
-        Value samplesV;
-        samplesV.SetUint(samples);
-        d.AddMember("samples", samplesV, d.GetAllocator());
+        Value samples;
+        samples.SetUint(renderParams.samples);
+        d.AddMember("samples", samples, d.GetAllocator());
     }
+    {
+        Value depth;
+        depth.SetUint(renderParams.depth);
+        d.AddMember("depth", depth, d.GetAllocator());
+    }
+    {
+        Value rdepth;
+        rdepth.SetUint(renderParams.rdepth);
+        d.AddMember("roulleteDepth", rdepth, d.GetAllocator());
+    }
+    {
+        Value flags;
+        flags.SetObject();
 
+        Value tessellation;
+        tessellation.SetDouble(renderParams.tessellation);
+        flags.AddMember("tessellation", tessellation, d.GetAllocator());
+
+        Value hideBackground;
+        hideBackground.SetBool(renderParams.hideBackground);
+        flags.AddMember("hideBackground", hideBackground, d.GetAllocator());
+
+        addVec3(d, flags, "backgroundColor", renderParams.backgroundColor);
+
+        d.AddMember("flags", flags, d.GetAllocator());
+    }
     /* Camera */
     {
         Value camera;
@@ -90,80 +124,56 @@ void exportJson(std::string name,
         {
 
             glm::vec3 cameraPosition = cameraTransform.getPosition();
-            Value position;
-            position.SetObject();
-            {
-                Value x;
-                x.SetFloat(cameraPosition.x);
-                position.AddMember("x", x, d.GetAllocator());
-                Value y;
-                y.SetFloat(cameraPosition.y);
-                position.AddMember("y", y, d.GetAllocator());
-                Value z;
-                z.SetFloat(cameraPosition.z);
-                position.AddMember("z", z, d.GetAllocator());
-            }
-            camera.AddMember("position", position, d.GetAllocator());
+            addVec3(d, camera, "position", cameraPosition);
 
             glm::vec3 cameraTarget = cameraPosition + cameraTransform.getForward();
-            Value target;
-            target.SetObject();
-            {
-                Value x;
-                x.SetFloat(cameraTarget.x);
-                target.AddMember("x", x, d.GetAllocator());
-                Value y;
-                y.SetFloat(cameraTarget.y);
-                target.AddMember("y", y, d.GetAllocator());
-                Value z;
-                z.SetFloat(cameraTarget.z);
-                target.AddMember("z", z, d.GetAllocator());
-            }
-            camera.AddMember("target", target, d.GetAllocator());
+            addVec3(d, camera, "target", cameraTarget);
 
             glm::vec3 cameraUp = cameraTransform.getUp();
-            Value up;
-            up.SetObject();
-            {
-                Value x;
-                x.SetFloat(cameraUp.x);
-                up.AddMember("x", x, d.GetAllocator());
-                Value y;
-                y.SetFloat(cameraUp.y);
-                up.AddMember("y", y, d.GetAllocator());
-                Value z;
-                z.SetFloat(cameraUp.z);
-                up.AddMember("z", z, d.GetAllocator());
+            addVec3(d, camera, "up", cameraUp);
+        }
+        {
+            if (sceneCamera->getType() != CameraType::PERSPECTIVE){
+                throw std::runtime_error("SceneExport: Only perspective camera supported");
             }
-
-            camera.AddMember("up", up, d.GetAllocator());
+            float cameraFoV = dynamic_cast<PerspectiveCamera*>(sceneCamera.get())->getFoV();
+            
+            Value fov;
+            fov.SetFloat(cameraFoV);
+            camera.AddMember("fov", fov, d.GetAllocator());
         }
-
-        if (sceneCamera->getType() != CameraType::PERSPECTIVE){
-            throw std::runtime_error("SceneExport: Only perspective camera supported");
+        {
+            Value focalLength;
+            focalLength.SetFloat(renderParams.focalLength);
+            camera.AddMember("focalLength", focalLength, d.GetAllocator());
         }
-        float cameraFoV = dynamic_cast<PerspectiveCamera*>(sceneCamera.get())->getFoV();
-
-        Value fov;
-        fov.SetFloat(cameraFoV);
-        camera.AddMember("fov", fov, d.GetAllocator());
+        {
+            Value apertureSides;
+            apertureSides.SetUint(renderParams.apertureSides);
+            camera.AddMember("apertureSides", apertureSides, d.GetAllocator());
+        }
+        {
+            Value aperture;
+            aperture.SetFloat(renderParams.aperture);
+            camera.AddMember("aperture", aperture, d.GetAllocator());
+        }
 
         d.AddMember("camera", camera, d.GetAllocator());
     }
 
+    /* Parse the scene and keep here the referenced materials */
     std::unordered_set<Material*> materials;
-
-    /* Scene */
+    std::unordered_set<LightMaterial*> lightMaterials;
     {
         Value scene;
         scene.SetArray();
 
         for (auto& itr : sceneGraph)
         {
-            parseSceneObject(d, scene, itr, materials, sceneMeshesFolderName);
+            parseSceneObject(d, scene, itr, materials, lightMaterials, meshesFolderName);
         }
 
-        /* Add the directional light as a root object */
+        /* Add the directional light as an object at root */
         if (sceneLight->lightMaterial->intensity > 0.00001F)
         {
             Value sceneObjectDirectionalLight;
@@ -173,8 +183,9 @@ void exportJson(std::string name,
             name.SetString("Directional light", d.GetAllocator());
             sceneObjectDirectionalLight.AddMember("name", name, d.GetAllocator());
 
-            addSceneObjectLight(d, sceneObjectDirectionalLight, sceneLight.get(), "DISTANT");
-            addSceneObjectTransform(d, sceneObjectDirectionalLight, sceneLight->transform);
+            addTransform(d, sceneObjectDirectionalLight, sceneLight->transform);
+
+            addAnalyticalLight(d, sceneObjectDirectionalLight, sceneLight.get(), "DISTANT");
 
             scene.PushBack(sceneObjectDirectionalLight, d.GetAllocator());
         }
@@ -182,17 +193,30 @@ void exportJson(std::string name,
         d.AddMember("scene", scene, d.GetAllocator());
     }
 
-    /* Materials */
+    /* add mesh materials, mesh lights materials and analytical lights materials */
     {
-        Value mats;
-        mats.SetArray();
+        Value meshMaterialsObject;
+        meshMaterialsObject.SetArray();
+
+        Value lightMaterialsObject;
+        lightMaterialsObject.SetArray();
 
         for (auto& itr : materials)
         {
-            addMaterial(d, mats, itr, sceneMaterialsFolderName);
+            if (isMaterialEmissive(itr))
+            {
+                addLightMaterial(d, lightMaterialsObject, itr);
+            } else {
+                addMaterial(d, meshMaterialsObject, itr, materialsFolderName);
+            }
+        }
+        for (auto& itr : lightMaterials)
+        {
+            addLightMaterial(d, lightMaterialsObject, itr);
         }
 
-        d.AddMember("materials", mats, d.GetAllocator());
+        d.AddMember("lights", lightMaterialsObject, d.GetAllocator());
+        d.AddMember("materials", meshMaterialsObject, d.GetAllocator());
     }
 
     /* Environment */
@@ -208,18 +232,7 @@ void exportJson(std::string name,
         path.SetString(relativePath.c_str(), d.GetAllocator());
         environment.AddMember("path", path, d.GetAllocator());
 
-        Value rotation;
-        rotation.SetObject();
-        Value x;
-        x.SetFloat(0.0);
-        rotation.AddMember("x", x, d.GetAllocator());
-        Value y;
-        y.SetFloat(0.0);
-        rotation.AddMember("y", y, d.GetAllocator());
-        Value z;
-        z.SetFloat(0.0);
-        rotation.AddMember("z", z, d.GetAllocator());
-        environment.AddMember("rotation", rotation, d.GetAllocator());
+        addVec3(d, environment, "rotation", {0 ,0, 0});
 
         Value intensity;
         intensity.SetFloat(1.0F);
@@ -234,42 +247,50 @@ void exportJson(std::string name,
     d.Accept(writer);
 }
 
-void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::unordered_set<Material*>& materials, std::string meshDirectory)
+void parseSceneObject(rapidjson::Document& d, 
+    rapidjson::Value& v, 
+    const std::shared_ptr<SceneObject>& sceneObject, 
+    std::unordered_set<Material*>& materials, 
+    std::unordered_set<LightMaterial*>& lightMaterials, 
+    std::string meshDirectory)
 {
     Value sceneObjectEntry;
     sceneObjectEntry.SetObject();
 
-    /* Add name of scene object */
+    /* name */
     Value name;
     name.SetString(sceneObject->m_name.c_str(), d.GetAllocator());
     sceneObjectEntry.AddMember("name", name, d.GetAllocator());
 
-    /* Check if it has a mesh, and add it */
-    if (sceneObject->has(ComponentType::MESH)) {
-        addSceneObjectMesh(d, sceneObjectEntry, sceneObject, meshDirectory);
-    }
+    addTransform(d, sceneObjectEntry, sceneObject->m_localTransform);
 
-    /* Check if it has a material and add it */
-    if (sceneObject->has(ComponentType::MATERIAL))
+    bool hasMeshComponent = sceneObject->has(ComponentType::MESH);
+    bool hasMaterialComponent = sceneObject->has(ComponentType::MATERIAL);
+    bool hasLightComponent = sceneObject->has(ComponentType::POINT_LIGHT);
+    bool isMatEmissive = isMaterialEmissive(sceneObject->get<Material*>(ComponentType::MATERIAL));
+
+    if (hasMeshComponent && hasMaterialComponent)
     {
         std::string materialName = sceneObject->get<Material*>(ComponentType::MATERIAL)->m_name;
-        Value material;
-        material.SetString(materialName.c_str(), d.GetAllocator());
-        sceneObjectEntry.AddMember("material", material, d.GetAllocator());
-
-        /* Also add it in the materials map to insert it later in the material list */
+        
         Material* mat = sceneObject->get<Material*>(ComponentType::MATERIAL);
         materials.insert(mat);
+        
+        if (!isMatEmissive)
+        {
+            addMesh(d, sceneObjectEntry, sceneObject, meshDirectory, materialName);
+        } else {
+            addMeshLight(d, sceneObjectEntry,sceneObject, meshDirectory, materialName);
+        }
     }
 
-    /* Check if it has a point light */
-    if (sceneObject->has(ComponentType::POINT_LIGHT))
+    if (hasLightComponent)
     {
-        addSceneObjectLight(d, sceneObjectEntry, sceneObject->get<PointLight*>(ComponentType::POINT_LIGHT), "POINT");
-    }
+        Light * light = sceneObject->get<PointLight*>(ComponentType::POINT_LIGHT);
+        lightMaterials.insert(light->lightMaterial);
 
-    /* Add transform */
-    addSceneObjectTransform(d, sceneObjectEntry, sceneObject->m_localTransform);
+        addAnalyticalLight(d, sceneObjectEntry, light, "POINT");
+    }
 
     /* Add children */
     if (sceneObject->m_children.size() != 0){
@@ -277,7 +298,7 @@ void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::sh
         children.SetArray();
 
         for(auto itr : sceneObject->m_children){
-            parseSceneObject(d, children, itr, materials, meshDirectory);
+            parseSceneObject(d, children, itr, materials, lightMaterials, meshDirectory);
         }
 
         sceneObjectEntry.AddMember("children", children, d.GetAllocator());
@@ -286,7 +307,31 @@ void parseSceneObject(rapidjson::Document& d, rapidjson::Value& v, const std::sh
     v.PushBack(sceneObjectEntry, d.GetAllocator());
 }
 
-void addSceneObjectMesh(rapidjson::Document& d, rapidjson::Value& v, const std::shared_ptr<SceneObject>& sceneObject, std::string meshDirectory)
+void addTransform(rapidjson::Document& d, rapidjson::Value& v, const Transform& t)
+{
+    glm::vec3 transformRotation = glm::degrees(glm::eulerAngles(t.getRotation()));
+    bool transformIsDefault = (
+        t.getPosition().x == 0.0F && t.getPosition().y == 0.0F && t.getPosition().z == 0.0F &&
+        t.getScale().x == 1.0F && t.getScale().y == 1.0F && t.getScale().z == 1.0F &&
+        transformRotation.x == 0.0F && transformRotation.y == 0.0F && transformRotation.z == 0.0F
+    );
+    if (transformIsDefault) return;
+
+    Value transform;
+    transform.SetObject();
+
+    addVec3(d, transform, "position", t.getPosition());
+    addVec3(d, transform, "scale", t.getScale());
+    addVec3(d, transform, "rotation", transformRotation);
+
+    v.AddMember("transform", transform, d.GetAllocator());
+}
+
+void addMeshComponent(rapidjson::Document& d, 
+	rapidjson::Value& v,
+	const std::shared_ptr<SceneObject>& sceneObject, 
+	std::string meshDirectory,
+	std::string materialName)
 {
     /* Get the mesh component */
     const Mesh * mesh = sceneObject->get<Mesh*>(ComponentType::MESH);
@@ -302,7 +347,7 @@ void addSceneObjectMesh(rapidjson::Document& d, rapidjson::Value& v, const std::
     /* Set the submesh value */
     int submeshIndex = -1;
     /* Find the submesh index of the mesh component */
-    for(int i=0; i < mesh->m_meshModel->getMeshes().size(); i++)
+    for(int i = 0; i < mesh->m_meshModel->getMeshes().size(); i++)
     {
         if (mesh->m_meshModel->getMeshes()[i]->m_name == mesh->m_name)
         {
@@ -312,83 +357,50 @@ void addSceneObjectMesh(rapidjson::Document& d, rapidjson::Value& v, const std::
     }
     if (submeshIndex == -1)
     {
-        throw std::runtime_error("submesh is not present inside parent mesh model");
+        throw std::runtime_error("submesh is not present inside the mesh model");
     }
     Value submesh;
     submesh.SetInt(submeshIndex);
     v.AddMember("submesh", submesh, d.GetAllocator());
+
+    Value material;
+    material.SetString(materialName.c_str(), d.GetAllocator());
+    v.AddMember("material", material, d.GetAllocator());
 }
 
-void addSceneObjectTransform(rapidjson::Document& d, rapidjson::Value& v, const Transform& t)
+void addMesh(rapidjson::Document& d, 
+    rapidjson::Value& v, 
+    const std::shared_ptr<SceneObject>& sceneObject, 
+    std::string meshDirectory,
+    std::string materialName)
 {
-    Value transform;
-    transform.SetObject();
+    Value meshObject;
+    meshObject.SetObject();
 
-    glm::vec3 transformRotation = glm::eulerAngles(t.getRotation());
-    bool transformIsDefault = (
-        t.getPosition().x == 0.0F && t.getPosition().y == 0.0F && t.getPosition().z == 0.0F &&
-        t.getScale().x == 1.0F && t.getScale().y == 1.0F && t.getScale().z == 1.0F &&
-        transformRotation.x == 0.0F && transformRotation.y == 0.0F && transformRotation.z == 0.0F
-    );
-    if (transformIsDefault) return;
+    addMeshComponent(d, meshObject, sceneObject, meshDirectory, materialName);
 
-    {
-        glm::vec3 pos = t.getPosition();
-        Value position;
-        position.SetObject();
-
-        Value x;
-        x.SetFloat(pos.x);
-        position.AddMember("x", x, d.GetAllocator());
-        Value y;
-        y.SetFloat(pos.y);
-        position.AddMember("y", y, d.GetAllocator());
-        Value z;
-        z.SetFloat(pos.z);
-        position.AddMember("z", z, d.GetAllocator());
-
-        transform.AddMember("position", position, d.GetAllocator());
-    }
-
-    {
-        glm::vec3 s = t.getScale();
-        Value scale;
-        scale.SetObject();
-
-        Value x;
-        x.SetFloat(s.x);
-        scale.AddMember("x", x, d.GetAllocator());
-        Value y;
-        y.SetFloat(s.y);
-        scale.AddMember("y", y, d.GetAllocator());
-        Value z;
-        z.SetFloat(s.z);
-        scale.AddMember("z", z, d.GetAllocator());
-
-        transform.AddMember("scale", scale, d.GetAllocator());
-    }
-
-    {
-        Value rotation;
-        rotation.SetObject();
-
-        Value x;
-        x.SetFloat(glm::degrees(transformRotation.x));
-        rotation.AddMember("x", x, d.GetAllocator());
-        Value y;
-        y.SetFloat(glm::degrees(transformRotation.y));
-        rotation.AddMember("y", y, d.GetAllocator());
-        Value z;
-        z.SetFloat(glm::degrees(transformRotation.z));
-        rotation.AddMember("z", z, d.GetAllocator());
-
-        transform.AddMember("rotation", rotation, d.GetAllocator());
-    }
-
-    v.AddMember("transform", transform, d.GetAllocator());
+    v.AddMember("mesh", meshObject, d.GetAllocator());
 }
 
-void addSceneObjectLight(rapidjson::Document& d, rapidjson::Value& v, Light * light, std::string type)
+void addMeshLight(rapidjson::Document& d, 
+	rapidjson::Value& v,
+	const std::shared_ptr<SceneObject>& sceneObject, 
+	std::string meshDirectory,
+	std::string materialName)
+{
+    Value lightObject;
+    lightObject.SetObject();
+
+    Value type;
+    type.SetString("MESH");
+    lightObject.AddMember("type", type, d.GetAllocator());
+
+    addMeshComponent(d, lightObject, sceneObject, meshDirectory, materialName);
+
+    v.AddMember("light", lightObject, d.GetAllocator());
+}
+
+void addAnalyticalLight(rapidjson::Document& d, rapidjson::Value& v, Light * light, std::string type)
 {
     Value lightEntry;
     lightEntry.SetObject();
@@ -397,14 +409,9 @@ void addSceneObjectLight(rapidjson::Document& d, rapidjson::Value& v, Light * li
     typeEntry.SetString(type.c_str(), d.GetAllocator());
     lightEntry.AddMember("type", typeEntry, d.GetAllocator());
 
-    Value intensity;
-    intensity.SetFloat(light->lightMaterial->intensity);
-    lightEntry.AddMember("intensity", intensity, d.GetAllocator());
-
-    Value color;
-    color.SetObject();
-    addColor(d, color, light->lightMaterial->color);
-    lightEntry.AddMember("color", color, d.GetAllocator());
+    Value matEntry;
+    matEntry.SetString(light->lightMaterial->name.c_str(), d.GetAllocator());
+    lightEntry.AddMember("material", matEntry, d.GetAllocator());
 
     v.AddMember("light", lightEntry, d.GetAllocator());
 }
@@ -437,9 +444,7 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
         /* Set albedo */
         Value albedo;
         if (m->getAlbedoTexture() == nullptr || m->getAlbedoTexture()->m_name == "whiteColor") {
-            albedo.SetObject();
-            addColor(d, albedo, glm::vec3(m->getAlbedo()));
-            mat.AddMember("albedo", albedo, d.GetAllocator());
+            addVec3(d, mat, "albedo", m->getAlbedo());
         }
         else {
             if (!directoryCreated) createMatDirectory();
@@ -461,20 +466,11 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
             mat.AddMember("normalMap", normal, d.GetAllocator());
         }
 
-        /* Set emissive */
-        Value emissive;
-        if (m->getEmissiveTexture() == nullptr || m->getEmissiveTexture()->m_name == "white") {
-            emissive.SetFloat(m->getEmissive());
-            mat.AddMember("emissive", emissive, d.GetAllocator());
-        }
-        else {
-            if (!directoryCreated) createMatDirectory();
-            
-            std::string relativePath = "materials/" + material->m_name + "/" + copyFileToDirectoryAndGetFileName(m->getEmissiveTexture()->m_name, materialDirectory);
-
-            emissive.SetString(relativePath.c_str(), d.GetAllocator());
-            mat.AddMember("emissive", emissive, d.GetAllocator());
-        }
+        Value scale;
+        scale.SetArray();
+        scale.PushBack(m->getUTiling(), d.GetAllocator());
+        scale.PushBack(m->getVTiling(), d.GetAllocator());
+        mat.AddMember("scale", scale, d.GetAllocator());
 
         break;
     }
@@ -504,9 +500,7 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
         /* Set albedo */
         Value albedo;
         if (m->getAlbedoTexture() == nullptr || m->getAlbedoTexture()->m_name == "whiteColor") {
-            albedo.SetObject();
-            addColor(d, albedo, glm::vec3(m->getAlbedo()));
-            mat.AddMember("albedo", albedo, d.GetAllocator());
+            addVec3(d, mat, "albedo", m->getAlbedo());
         }
         else {
             if (!directoryCreated) createMatDirectory();
@@ -531,7 +525,6 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
             roughness.SetString(relativePath.c_str(), d.GetAllocator());
             mat.AddMember("roughness", roughness, d.GetAllocator());
         }
-
 
         /* Set metallic */
         Value metallic;
@@ -559,20 +552,11 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
             mat.AddMember("normalMap", normal, d.GetAllocator());
         }
 
-        /* Set emissive */
-        Value emissive;
-        if (m->getEmissiveTexture() == nullptr || m->getEmissiveTexture()->m_name == "white") {
-            emissive.SetFloat(m->getEmissive());
-            mat.AddMember("emissive", emissive, d.GetAllocator());
-        }
-        else {
-            if (!directoryCreated) createMatDirectory();
-            
-            std::string relativePath = "materials/" + material->m_name + "/" + copyFileToDirectoryAndGetFileName(m->getEmissiveTexture()->m_name, materialDirectory);
-
-            emissive.SetString(relativePath.c_str(), d.GetAllocator());
-            mat.AddMember("emissive", emissive, d.GetAllocator());
-        }
+        Value scale;
+        scale.SetArray();
+        scale.PushBack(m->getUTiling(), d.GetAllocator());
+        scale.PushBack(m->getVTiling(), d.GetAllocator());
+        mat.AddMember("scale", scale, d.GetAllocator());
 
         break;
     }
@@ -583,16 +567,110 @@ void addMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* ma
     v.PushBack(mat, d.GetAllocator());
 }
 
-void addColor(rapidjson::Document& d, rapidjson::Value& v, glm::vec3 color)
+void addLightMaterial(rapidjson::Document& d, rapidjson::Value& v, const Material* material)
 {
-    Value r;
-    r.SetFloat(color.r);
-    v.AddMember("r", r, d.GetAllocator());
-    Value g;
-    g.SetFloat(color.g);
-    v.AddMember("g", g, d.GetAllocator());
-    Value b;
-    b.SetFloat(color.b);
-    v.AddMember("b", b, d.GetAllocator());
+    Value light;
+    light.SetObject();
+
+    Value name;
+    name.SetString(material->m_name.c_str(), d.GetAllocator());
+    light.AddMember("name", name, d.GetAllocator());
+
+    glm::vec3 color;
+    float intensity;
+
+    MaterialType type = material->getType();
+    switch (type)
+    {
+    case MaterialType::MATERIAL_PBR_STANDARD:
+    {
+        const MaterialPBRStandard* m = dynamic_cast<const MaterialPBRStandard*>(material);
+        color = m->getAlbedo();
+        intensity = m->getEmissive();
+        break;
+    }
+    case MaterialType::MATERIAL_LAMBERT:
+    {
+        const MaterialLambert* m = dynamic_cast<const MaterialLambert*>(material);
+        color = m->getAlbedo();
+        intensity = m->getEmissive();
+        break;
+    }    
+    default:
+        throw std::runtime_error("isMaterialEmissive(): This should never happen");
+        break;
+    }
+
+    addVec3(d, light, "color", color);
+    
+    Value intensityObject;
+    intensityObject.SetFloat(intensity);
+    light.AddMember("intensity", intensityObject, d.GetAllocator());
+
+    v.PushBack(light, d.GetAllocator()); 
 }
+
+void addLightMaterial(rapidjson::Document& d, rapidjson::Value& v, const LightMaterial* material)
+{
+    Value light;
+    light.SetObject();
+
+    Value name;
+    name.SetString(material->name.c_str(), d.GetAllocator());
+    light.AddMember("name", name, d.GetAllocator());
+
+    addVec3(d, light, "color", material->color);
+
+    Value intensity;
+    intensity.SetFloat(material->intensity);
+    light.AddMember("intensity", intensity, d.GetAllocator());
+
+    v.PushBack(light, d.GetAllocator());
+}
+
+void addVec3(rapidjson::Document& d, rapidjson::Value& v, std::string name, glm::vec3 value)
+{
+    Value array;
+    array.SetArray();
+
+    Value r;
+    r.SetFloat(value.r);
+    array.PushBack(r, d.GetAllocator());
+    Value g;
+    g.SetFloat(value.g);
+    array.PushBack(g, d.GetAllocator());
+    Value b;
+    b.SetFloat(value.b);
+    array.PushBack(b, d.GetAllocator());
+
+    Value nameObject;
+    nameObject.SetString(name.c_str(), d.GetAllocator());
+    v.AddMember(nameObject, array, d.GetAllocator());
+}
+
+bool isMaterialEmissive(const Material * material)
+{
+    if (material == nullptr) return false;
+
+    MaterialType type = material->getType();
+    switch (type)
+    {
+    case MaterialType::MATERIAL_PBR_STANDARD:
+    {
+        const MaterialPBRStandard* m = dynamic_cast<const MaterialPBRStandard*>(material);
+        return m->getEmissive() != 0;
+        break;
+    }
+    case MaterialType::MATERIAL_LAMBERT:
+    {
+        const MaterialLambert* m = dynamic_cast<const MaterialLambert*>(material);
+        return m->getEmissive() != 0;
+        break;
+    }    
+    default:
+        throw std::runtime_error("isMaterialEmissive(): This should never happen");
+        break;
+    }
+}
+
 

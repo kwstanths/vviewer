@@ -5,9 +5,12 @@
 #include <utility>
 
 #include <utils/IDGeneration.hpp>
+
 #include "Camera.hpp"
 #include "Lights.hpp"
 #include "SceneObject.hpp"
+#include "SceneExport.hpp"
+
 
 enum class EnvironmentType {
     /* Order matters for the UI */
@@ -68,7 +71,7 @@ public:
 
     std::shared_ptr<SceneObject> getSceneObject(ID id) const;
     
-    void exportScene(std::string name, uint32_t width, uint32_t height, uint32_t samples) const;
+    void exportScene(const ExportRenderParams& renderParams) const;
 
 protected:
     float m_exposure = 0.0f;

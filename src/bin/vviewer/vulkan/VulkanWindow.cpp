@@ -105,7 +105,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
         const std::string Y =
             testT.substr(0, testT.find("</height>")).substr(testT.find("<height>") + std::string("<height>").length());
 
-        uv *= glm::vec2(std::stof(X), std::stof(Y));
+        uv *= glm::vec2(100.F / std::stof(X), 100.F / std::stof(Y));
         zip_entry_close(zip);
     }
 
@@ -346,7 +346,6 @@ void VulkanWindow::onUpdateCamera()
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * finalSpeed);
     cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_Q]) * cameraTransform.getUp() * finalSpeed);
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * finalSpeed);
-
 }
 
 void VulkanWindow::vulkanInitializationFinished()
