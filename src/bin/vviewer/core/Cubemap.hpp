@@ -7,6 +7,7 @@ class Cubemap {
 public:
     Cubemap();
     Cubemap(std::string directory);
+    ~Cubemap();
 
     std::string m_name;
 

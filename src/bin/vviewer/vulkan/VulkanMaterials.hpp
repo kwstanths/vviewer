@@ -92,19 +92,19 @@ public:
     float& vTiling() override;
     float getVTiling() const override;
 
-    void setAlbedoTexture(Texture * texture) override;
-    void setMetallicTexture(Texture * texture) override;
-    void setRoughnessTexture(Texture * texture) override;
-    void setAOTexture(Texture * texture) override;
-    void setEmissiveTexture(Texture * texture) override;
-    void setNormalTexture(Texture * texture) override;
+    void setAlbedoTexture(std::shared_ptr<Texture> texture) override;
+    void setMetallicTexture(std::shared_ptr<Texture> texture) override;
+    void setRoughnessTexture(std::shared_ptr<Texture> texture) override;
+    void setAOTexture(std::shared_ptr<Texture> texture) override;
+    void setEmissiveTexture(std::shared_ptr<Texture> texture) override;
+    void setNormalTexture(std::shared_ptr<Texture> texture) override;
 
     bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;
     bool updateDescriptorSet(VkDevice device, size_t index) override;
 
 private:
-    VulkanTexture* m_BRDFLUT = nullptr;
+    std::shared_ptr<VulkanTexture> m_BRDFLUT = nullptr;
 };
 
 /* Lambert material */
@@ -133,10 +133,10 @@ public:
     float& vTiling() override;
     float getVTiling() const override;
 
-    void setAlbedoTexture(Texture* texture) override;
-    void setAOTexture(Texture* texture) override;
-    void setEmissiveTexture(Texture* texture) override;
-    void setNormalTexture(Texture* texture) override;
+    void setAlbedoTexture(std::shared_ptr<Texture> texture) override;
+    void setAOTexture(std::shared_ptr<Texture> texture) override;
+    void setEmissiveTexture(std::shared_ptr<Texture> texture) override;
+    void setNormalTexture(std::shared_ptr<Texture> texture) override;
 
     bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;
@@ -151,9 +151,9 @@ class VulkanMaterialSkybox :
     public VulkanMaterialDescriptor 
 {
 public:
-    VulkanMaterialSkybox(std::string name, EnvironmentMap * envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout);
+    VulkanMaterialSkybox(std::string name, std::shared_ptr<EnvironmentMap> envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout);
 
-    virtual void setMap(EnvironmentMap * envMap) override;
+    virtual void setMap(std::shared_ptr<EnvironmentMap> envMap) override;
 
     bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
     bool updateDescriptorSets(VkDevice device, size_t images) override;

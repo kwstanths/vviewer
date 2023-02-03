@@ -42,27 +42,27 @@ QVulkanWindowRenderer * VulkanWindow::createRenderer()
     return m_renderer;
 }
 
-Material* VulkanWindow::importMaterial(std::string name, std::string stackDirectory)
+std::shared_ptr<Material> VulkanWindow::importMaterial(std::string name, std::string stackDirectory)
 {
-    Material* material = m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
+    auto material = m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
     if (material == nullptr) return nullptr;
 
-    Texture* albedo = m_renderer->createTexture(stackDirectory + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
-    Texture* ao = m_renderer->createTexture(stackDirectory + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* metallic = m_renderer->createTexture(stackDirectory + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* normal = m_renderer->createTexture(stackDirectory + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* roughness = m_renderer->createTexture(stackDirectory + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto albedo = m_renderer->createTexture(stackDirectory + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
+    auto ao = m_renderer->createTexture(stackDirectory + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto metallic = m_renderer->createTexture(stackDirectory + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto normal = m_renderer->createTexture(stackDirectory + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto roughness = m_renderer->createTexture(stackDirectory + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
 
-    if (albedo != nullptr) static_cast<MaterialPBRStandard*>(material)->setAlbedoTexture(albedo);
-    if (ao != nullptr) static_cast<MaterialPBRStandard*>(material)->setAOTexture(ao);
-    if (metallic != nullptr)  static_cast<MaterialPBRStandard*>(material)->setMetallicTexture(metallic);
-    if (normal != nullptr)  static_cast<MaterialPBRStandard*>(material)->setNormalTexture(normal);
-    if (roughness != nullptr) static_cast<MaterialPBRStandard*>(material)->setRoughnessTexture(roughness);
+    if (albedo != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setAlbedoTexture(albedo);
+    if (ao != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setAOTexture(ao);
+    if (metallic != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setMetallicTexture(metallic);
+    if (normal != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setNormalTexture(normal);
+    if (roughness != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setRoughnessTexture(roughness);
 
     return material;
 }
 
-Material* VulkanWindow::importZipMaterial(std::string name, std::string filename)
+std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std::string filename)
 {
     struct zip_t *zip = zip_open(filename.c_str(), 0, 'r');
 
@@ -110,7 +110,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
     }
 
     /* Parse albedo */
-    Texture * albedoTexture = nullptr;
+    std::shared_ptr<Texture> albedoTexture = nullptr;
     std::string albedoZipPath = texturesFolder + "textures/albedo.png";
     if (zip_entry_open(zip, albedoZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
@@ -118,9 +118,9 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
         int32_t x, y;
         stbi_uc *rawImgBuffer = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, 4);
 
-        Image<stbi_uc> image(rawImgBuffer, x, y, 4, false);
+        auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + albedoZipPath;
-        albedoTexture = m_renderer->createTexture(id, &image, VK_FORMAT_R8G8B8A8_SRGB);
+        albedoTexture = m_renderer->createTexture(id, image, VK_FORMAT_R8G8B8A8_SRGB);
         if (albedoTexture == nullptr) {
             utils::ConsoleWarning("Unable to load albedo from zip texture stack");
         }
@@ -129,7 +129,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
     }
 
     /* Parse roughness */
-    Texture * roughnessTexture = nullptr;
+    std::shared_ptr<Texture> roughnessTexture = nullptr;
     std::string roughnessZipPath = texturesFolder + "textures/roughness.png";
     if (zip_entry_open(zip, roughnessZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
@@ -137,9 +137,9 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
         int32_t x, y;
         stbi_uc *rawImgBuffer = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, 4);
 
-        Image<stbi_uc> image(rawImgBuffer, x, y, 4, false);
+        auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + roughnessZipPath;
-        roughnessTexture = m_renderer->createTexture(id, &image, VK_FORMAT_R8G8B8A8_UNORM);
+        roughnessTexture = m_renderer->createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (roughnessTexture == nullptr) {
             utils::ConsoleWarning("Unable to load roughness from zip texture stack");
         }
@@ -148,7 +148,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
     }
 
     /* Parse normal */
-    Texture * normalTexture = nullptr;
+    std::shared_ptr<Texture> normalTexture = nullptr;
     std::string normalZipPath = texturesFolder + "textures/normal.png";
     if (zip_entry_open(zip, normalZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
@@ -156,9 +156,9 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
         int32_t x, y;
         stbi_uc *rawImgBuffer = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, 4);
 
-        Image<stbi_uc> image(rawImgBuffer, x, y, 4, false);
+        auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + normalZipPath;
-        normalTexture = m_renderer->createTexture(id, &image, VK_FORMAT_R8G8B8A8_UNORM);
+        normalTexture = m_renderer->createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (normalTexture == nullptr) {
             utils::ConsoleWarning("Unable to load normal from zip texture stack");
         }
@@ -166,7 +166,7 @@ Material* VulkanWindow::importZipMaterial(std::string name, std::string filename
         zip_entry_close(zip);
     }
 
-    MaterialPBRStandard* mat = dynamic_cast<MaterialPBRStandard*>(m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
+    auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
     mat->setAlbedoTexture(albedoTexture);
     mat->setRoughnessTexture(roughnessTexture);
     mat->roughness() = 1.0F;

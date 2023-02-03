@@ -14,7 +14,7 @@
 
 #include "UIUtils.hpp"
 
-WidgetMaterialLambert::WidgetMaterialLambert(QWidget* parent, MaterialLambert* material) : QWidget(parent)
+WidgetMaterialLambert::WidgetMaterialLambert(QWidget* parent, std::shared_ptr<MaterialLambert> material) : QWidget(parent)
 {
     m_material = material;
 
@@ -134,10 +134,8 @@ void WidgetMaterialLambert::onColorTextureChanged(int)
 {
     std::string newTexture = m_comboBoxAlbedo->currentText().toStdString();
 
-    AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    Texture* texture = instance.get(newTexture);
-
-    m_material->setAlbedoTexture(texture);
+    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
+    m_material->setAlbedoTexture(instance.get(newTexture));
 }
 
 void WidgetMaterialLambert::onAOChanged()
@@ -149,10 +147,8 @@ void WidgetMaterialLambert::onAOTextureChanged(int)
 {
     std::string newTexture = m_comboBoxAO->currentText().toStdString();
 
-    AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    Texture* texture = instance.get(newTexture);
-
-    m_material->setAOTexture(texture);
+    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
+    m_material->setAOTexture(instance.get(newTexture));
 }
 
 void WidgetMaterialLambert::onEmissiveChanged(double)
@@ -164,10 +160,9 @@ void WidgetMaterialLambert::onNormalTextureChanged(int)
 {
     std::string newTexture = m_comboBoxNormal->currentText().toStdString();
 
-    AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    Texture* texture = instance.get(newTexture);
+    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
 
-    m_material->setNormalTexture(texture);
+    m_material->setNormalTexture(instance.get(newTexture));
 }
 
 

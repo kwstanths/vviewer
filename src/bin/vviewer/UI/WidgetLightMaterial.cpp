@@ -1,5 +1,7 @@
 #include "WidgetLightMaterial.hpp"
 
+#include <memory>
+
 #include <qcolordialog.h>
 #include <qlayout.h>
 #include <qgroupbox.h>
@@ -9,7 +11,7 @@
 
 #include "UIUtils.hpp"
 
-WidgetLightMaterial::WidgetLightMaterial(QWidget * parent, Light * light) : QWidget(parent)
+WidgetLightMaterial::WidgetLightMaterial(QWidget * parent, std::shared_ptr<Light> light) : QWidget(parent)
 {
     m_light = light;
 
@@ -58,8 +60,8 @@ void WidgetLightMaterial::onLightMaterialChanged(int)
 {
     std::string newLightMaterial = m_widgetLightMaterials->currentText().toStdString();
 
-    AssetManager<std::string, LightMaterial*>& instance = AssetManager<std::string, LightMaterial*>::getInstance();
-    LightMaterial* lightMaterial = instance.get(newLightMaterial);
+    AssetManager<std::string, LightMaterial>& instance = AssetManager<std::string, LightMaterial>::getInstance();
+    auto lightMaterial = instance.get(newLightMaterial);
 
     if (lightMaterial == nullptr) {
         utils::ConsoleWarning("Material: " + newLightMaterial + " doesn't exist");
@@ -87,10 +89,8 @@ void WidgetLightMaterial::onCreateNewMaterial()
     static uint32_t newLightMaterialNameIndex = 0;
     std::string name = "LightMaterial" + std::to_string(newLightMaterialNameIndex);
 
-    LightMaterial * newLightMaterial = new LightMaterial(name, {1, 1, 1}, 1.F);
-
-    AssetManager<std::string, LightMaterial*>& instance = AssetManager<std::string, LightMaterial*>::getInstance();
-    instance.add(name, newLightMaterial);
+    AssetManager<std::string, LightMaterial>& instance = AssetManager<std::string, LightMaterial>::getInstance();
+    auto newLightMaterial = instance.add(name, std::make_shared<LightMaterial>(name, glm::vec3(1, 1, 1), 1.F));
 
     m_widgetLightMaterials->blockSignals(true);
 

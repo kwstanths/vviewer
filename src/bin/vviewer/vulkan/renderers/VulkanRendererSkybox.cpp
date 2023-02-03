@@ -5,6 +5,7 @@
 #include <utils/Console.hpp>
 
 #include <math/Constants.hpp>
+#include <core/AssetManager.hpp>
 
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
@@ -49,7 +50,7 @@ void VulkanRendererSkybox::releaseResources()
 
     /* Destroy equi transform resources */
 
-    VulkanMesh * vkmesh = static_cast<VulkanMesh *>(m_cube->getMeshes()[0]);
+    const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_cube->getMeshes()[0]);
     vkDestroyBuffer(m_device, vkmesh->m_vertexBuffer, nullptr);
     vkFreeMemory(m_device, vkmesh->m_vertexBufferMemory, nullptr);
     vkDestroyBuffer(m_device, vkmesh->m_indexBuffer, nullptr);
@@ -71,11 +72,11 @@ VkDescriptorSetLayout VulkanRendererSkybox::getDescriptorSetLayout() const
     return m_descriptorSetLayoutSkybox;
 }
 
-void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet cameraDescriptorSet, int imageIndex, VulkanMaterialSkybox * skybox) const
+void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet cameraDescriptorSet, int imageIndex, const std::shared_ptr<VulkanMaterialSkybox>& skybox) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     {
-        VulkanMesh * vkmesh = static_cast<VulkanMesh *>(m_cube->getMeshes()[0]);
+        const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_cube->getMeshes()[0]);
         VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
@@ -93,7 +94,7 @@ void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet 
     }
 }
 
-VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) const
+std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createCubemap(std::shared_ptr<VulkanTexture> inputImage) const
 {
     try {
         /* Cubemap data */
@@ -589,7 +590,7 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
             /* Cube mesh to render */
-            VulkanMesh* vkmesh = static_cast<VulkanMesh*>(m_cube->getMeshes()[0]);
+            const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_cube->getMeshes()[0]);
             /* Render each cubemap face, and copy the results from the offscreen render target to the cubemap */
             for (uint32_t f = 0; f < 6; f++) 
             {
@@ -765,17 +766,18 @@ VulkanCubemap* VulkanRendererSkybox::createCubemap(VulkanTexture* inputImage) co
         vkDestroyPipeline(m_device, pipeline, nullptr);
         vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
 
-        return new VulkanCubemap(inputImage->m_name, cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+        /* Added created cubemaps to the cubemap assets */
+        AssetManager<std::string, Cubemap>& instance = AssetManager<std::string, Cubemap>::getInstance();
+        auto cubemap = std::make_shared<VulkanCubemap>(inputImage->m_name, cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+        instance.add(inputImage->m_name, cubemap);
+        return cubemap;
     }
     catch (std::runtime_error& e) {
-        utils::ConsoleCritical("Failed to create a vulkan cubemap from an image: " + std::string(e.what()));
-        return nullptr;
+        throw std::runtime_error("Failed to create a vulkan cubemap from an image: " + std::string(e.what()));
     }
-
-    return nullptr;
 }
 
-VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap, uint32_t resolution) const
+std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createIrradianceMap(std::shared_ptr<VulkanCubemap> inputMap, uint32_t resolution) const
 {
     try {
         /* Cubemap data */
@@ -1273,7 +1275,7 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
             /* Cube mesh to render */
-            VulkanMesh* vkmesh = static_cast<VulkanMesh*>(m_cube->getMeshes()[0]);
+            const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_cube->getMeshes()[0]);
             /* Render each cubemap face, and copy the results from the offscreen render target to the cubemap */
             for (uint32_t f = 0; f < 6; f++) {
                 vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -1380,17 +1382,18 @@ VulkanCubemap* VulkanRendererSkybox::createIrradianceMap(VulkanCubemap* inputMap
         vkDestroyPipeline(m_device, pipeline, nullptr);
         vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
 
-        return new VulkanCubemap(inputMap->m_name + "_irradiance", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+        AssetManager<std::string, Cubemap>& instance = AssetManager<std::string, Cubemap>::getInstance();
+        std::string name = inputMap->m_name + "_irradiance";
+        auto cubemap = std::make_shared<VulkanCubemap>(name, cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+        instance.add(name, cubemap);
+        return cubemap;
     }
     catch (std::runtime_error& e) {
-        utils::ConsoleCritical("Failed to create an irradiance map: " + std::string(e.what()));
-        return nullptr;
+        throw std::runtime_error("Failed to create an irradiance map: " + std::string(e.what()));
     }
-
-    return nullptr;
 }
 
-VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inputMap, uint32_t resolution) const
+std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createPrefilteredCubemap(std::shared_ptr<VulkanCubemap> inputMap, uint32_t resolution) const
 {
     try {
         /* Cubemap data */
@@ -1886,7 +1889,7 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
                 6);
 
             /* Cube mesh to render */
-            VulkanMesh* vkmesh = static_cast<VulkanMesh*>(m_cube->getMeshes()[0]);
+            const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_cube->getMeshes()[0]);
 
             for (uint32_t m = 0; m < numMips; m++) {
                 pushBlock.roughness = (float)m / (float)(numMips - 1);
@@ -2002,14 +2005,15 @@ VulkanCubemap* VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap* inp
         vkDestroyPipeline(m_device, pipeline, nullptr);
         vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
 
-        return new VulkanCubemap(inputMap->m_name + "_prefiltered", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+        AssetManager<std::string, Cubemap>& instance = AssetManager<std::string, Cubemap>::getInstance();
+        std::string name = inputMap->m_name + "_prefiltered";
+        auto cubemap = std::make_shared<VulkanCubemap>(name, cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+        instance.add(name, cubemap);
+        return cubemap;
     }
     catch (std::runtime_error& e) {
-        utils::ConsoleCritical("Failed to create a prefiltered map: " + std::string(e.what()));
-        return nullptr;
+        throw std::runtime_error("Failed to create a prefiltered map: " + std::string(e.what()));
     }
-
-    return nullptr;
 }
 
 bool VulkanRendererSkybox::createDescriptorSetsLayout()

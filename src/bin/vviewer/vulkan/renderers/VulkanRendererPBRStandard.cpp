@@ -33,9 +33,7 @@ void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
 
     createDescriptorSetsLayout();
 
-    Texture * texture = createBRDFLUT();
-    AssetManager<std::string, Texture*>& instance = AssetManager<std::string, Texture*>::getInstance();
-    instance.add(texture->m_name, texture);
+    createBRDFLUT();
 }
 
 void VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples)
@@ -62,7 +60,7 @@ void VulkanRendererPBR::releaseResources()
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMaterial, nullptr);
 }
 
-VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
+void VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
 {
     try {
         VkImage image;
@@ -411,26 +409,33 @@ VulkanTexture* VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
         vkDestroyFramebuffer(m_device, framebuffer, nullptr);
         vkDestroyDescriptorSetLayout(m_device, descriptorSetlayout, nullptr);
 
-        VulkanTexture * temp = new VulkanTexture("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler, 0);
-        return temp;
+        AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();        
+        instance.add("PBR_BRDF_LUT", std::make_shared<VulkanTexture>("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler, 0));
     }
     catch (std::runtime_error& e) {
-        utils::ConsoleCritical("Failed to create the PBR BRDF LUT texture: " + std::string(e.what()));
-        return nullptr;
+        throw std::runtime_error("Failed to create the PBR BRDF LUT texture: " + std::string(e.what()));
     }
 }
 
-VulkanMaterialPBRStandard* VulkanRendererPBR::createMaterial(std::string name,
+std::shared_ptr<VulkanMaterialPBRStandard> VulkanRendererPBR::createMaterial(std::string name,
     glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
     VulkanDynamicUBO<MaterialData>& materialsUBO)
 {
-    return new VulkanMaterialPBRStandard(name, albedo, metallic, roughness, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO);
+    AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
+    if (instance.isPresent(name)) {
+        utils::ConsoleWarning("Material name already present");
+        return nullptr;
+    }
+
+    auto mat = std::make_shared<VulkanMaterialPBRStandard>(name, albedo, metallic, roughness, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO);
+    instance.add(name, mat);
+    return mat;
 }
 
 void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf, 
     VkDescriptorSet& descriptorScene,
     VkDescriptorSet& descriptorModel,
-    VulkanMaterialSkybox* skybox,
+    const std::shared_ptr<VulkanMaterialSkybox>& skybox,
     uint32_t imageIndex, 
     const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
     std::vector<std::shared_ptr<SceneObject>>& objects) const
@@ -442,10 +447,10 @@ void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
     {
         VulkanSceneObject* object = static_cast<VulkanSceneObject*>(objects[i].get());
         
-        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->get<Mesh *>(ComponentType::MESH));
+        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->get<Mesh>(ComponentType::MESH).get());
         if (vkmesh == nullptr) continue;
         
-        VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(object->get<Material*>(ComponentType::MATERIAL));
+        VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(object->get<Material>(ComponentType::MATERIAL).get());
         /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         
@@ -497,10 +502,10 @@ void VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
     
     VulkanSceneObject* vobject = static_cast<VulkanSceneObject*>(object.get());
-    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->get<Mesh *>(ComponentType::MESH));
+    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->get<Mesh>(ComponentType::MESH).get());
     if (vkmesh == nullptr) return;
         
-    VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(vobject->get<Material*>(ComponentType::MATERIAL));
+    VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(vobject->get<Material>(ComponentType::MATERIAL).get());
     /* Check if material parameters have changed for that imageIndex descriptor set */
     if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         

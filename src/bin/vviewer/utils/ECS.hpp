@@ -2,6 +2,7 @@
 #define __ECS_hpp__
 
 #include <unordered_map>
+#include <memory>
 
 #include "IDGeneration.hpp"
 
@@ -27,14 +28,14 @@ public:
     Entity();
     virtual ~Entity() = default;
 
-    void assign(Component *c);
+    void assign(std::shared_ptr<Component> c);
 
-    Component * get(ComponentType type) const;
+    std::shared_ptr<Component> get(ComponentType type) const;
 
     template<typename T>
-    T get(ComponentType type) const
+    std::shared_ptr<T> get(ComponentType type) const
     {
-        return dynamic_cast<T>(get(type));
+        return std::dynamic_pointer_cast<T>(get(type));
     }
 
     bool has(ComponentType type) const;
@@ -43,7 +44,7 @@ public:
 
 private:
     ID m_id;
-    std::unordered_map<ComponentType, Component *> m_components;
+    std::unordered_map<ComponentType, std::shared_ptr<Component>> m_components;
 };
 
 #endif

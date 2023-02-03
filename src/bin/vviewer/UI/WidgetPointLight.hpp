@@ -15,10 +15,10 @@ class WidgetPointLight : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetPointLight(QWidget * parent, PointLight * light);
+    WidgetPointLight(QWidget * parent, std::shared_ptr<PointLight> light);
 
 private:
-    PointLight * m_light;
+    std::shared_ptr<PointLight> m_light;
 
     WidgetLightMaterial * m_widgetLightMaterial;
 };

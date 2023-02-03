@@ -9,9 +9,6 @@ SceneObject::SceneObject(const Transform& t) : SceneNode(t), Entity()
 
 SceneObject::~SceneObject()
 {
-    if (has(ComponentType::POINT_LIGHT)){
-        delete get(ComponentType::POINT_LIGHT);
-    }
 }
 
 void SceneObject::setModelMatrix(const glm::mat4& modelMatrix)

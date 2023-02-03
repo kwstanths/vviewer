@@ -1,6 +1,8 @@
 #ifndef __WidgetMaterialLambert_hpp__
 #define __WidgetMaterialLambert_hpp__
 
+#include <memory>
+
 #include <qwidget.h>
 #include <qspinbox.h>
 #include <qpushbutton.h>
@@ -15,7 +17,7 @@ class WidgetMaterialLambert: public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMaterialLambert(QWidget* parent, MaterialLambert* material);
+    WidgetMaterialLambert(QWidget* parent, std::shared_ptr<MaterialLambert> material);
 
     QPushButton* m_colorButton;
     QSlider* m_ao;
@@ -26,7 +28,7 @@ public:
     QComboBox* m_comboBoxNormal;
 
 private:
-    MaterialLambert* m_material = nullptr;
+    std::shared_ptr<MaterialLambert> m_material = nullptr;
 
     void setColorButtonColor();
 

@@ -10,7 +10,7 @@
 
 #include "UIUtils.hpp"
 
-WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject) : QWidget(parent)
+WidgetMeshModel::WidgetMeshModel(QWidget * parent, std::shared_ptr<SceneObject> sceneObject) : QWidget(parent)
 {
     m_sceneObject = sceneObject;
 
@@ -18,7 +18,7 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject) : 
     {
         throw std::runtime_error("WidgetMeshModel(): Object doesn't have a mesh component");
     }
-    m_meshModel = sceneObject->get<Mesh*>(ComponentType::MESH)->m_meshModel;
+    m_meshModel = sceneObject->get<Mesh>(ComponentType::MESH)->m_meshModel;
 
     QGroupBox * boxPickModel = new QGroupBox(tr("Mesh Model"));
 
@@ -39,7 +39,7 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, SceneObject * sceneObject) : 
     m_meshes = new QComboBox();
     m_meshes->addItems(getModelMeshes(m_meshModel));
     if (sceneObject != nullptr) {
-        m_meshes->setCurrentText(QString::fromStdString(sceneObject->get<Mesh*>(ComponentType::MESH)->m_name));
+        m_meshes->setCurrentText(QString::fromStdString(sceneObject->get<Mesh>(ComponentType::MESH)->m_name));
     }
     connect(m_meshes, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshChangedSlot(int)));    
     QHBoxLayout * layoutPickMesh = new QHBoxLayout();
@@ -73,7 +73,7 @@ std::string WidgetMeshModel::getSelectedMesh() const
     return m_meshes->currentText().toStdString();
 }
 
-QStringList WidgetMeshModel::getModelMeshes(const MeshModel * model)
+QStringList WidgetMeshModel::getModelMeshes(const MeshModel* model)
 {
     QStringList list;
     for(auto itr : model->getMeshes())
@@ -87,9 +87,8 @@ void WidgetMeshModel::onMeshModelChangedSlot(int)
 {
     std::string newModel = getSelectedModel();
 
-    AssetManager<std::string, MeshModel *>& instance = AssetManager<std::string, MeshModel *>::getInstance();
-    m_meshModel = instance.get(newModel);
-
+    AssetManager<std::string, MeshModel>& instance = AssetManager<std::string, MeshModel>::getInstance();
+    m_meshModel = instance.get(newModel).get();
     /* Update mesh combo box with the relevant meshes */
     m_meshes->clear();
     m_meshes->addItems(getModelMeshes(m_meshModel));

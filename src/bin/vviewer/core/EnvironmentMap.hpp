@@ -1,23 +1,25 @@
 #ifndef __EnvironmentMap_hpp__
 #define __EnvironmentMap_hpp__
 
+#include <memory>
+
 #include "Cubemap.hpp"
 
 class EnvironmentMap {
 public:
-    EnvironmentMap(std::string name, Cubemap* skybox, Cubemap* irradiance, Cubemap* prefilteredMap)
+    EnvironmentMap(std::string name, std::shared_ptr<Cubemap> skybox, std::shared_ptr<Cubemap> irradiance, std::shared_ptr<Cubemap> prefilteredMap)
         : m_name(name), m_skyboxMap(skybox), m_irradianceMap(irradiance), m_prefilteredMap(prefilteredMap) {};
 
     std::string m_name;
 
-    Cubemap* getSkyboxMap() const;
-    Cubemap* getIrradianceMap() const;
-    Cubemap* getPrefilteredMap() const;
+    std::shared_ptr<Cubemap> getSkyboxMap() const;
+    std::shared_ptr<Cubemap> getIrradianceMap() const;
+    std::shared_ptr<Cubemap> getPrefilteredMap() const;
 
 private:
-    Cubemap* m_skyboxMap;
-    Cubemap* m_irradianceMap;
-    Cubemap* m_prefilteredMap;
+    std::shared_ptr<Cubemap> m_skyboxMap;
+    std::shared_ptr<Cubemap> m_irradianceMap;
+    std::shared_ptr<Cubemap> m_prefilteredMap;
 };
 
 #endif

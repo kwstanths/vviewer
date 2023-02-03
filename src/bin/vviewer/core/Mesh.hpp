@@ -46,7 +46,7 @@ public:
 
     void computeNormals();
 
-    const MeshModel* m_meshModel;
+    const MeshModel * m_meshModel;
     std::string m_name;
 private:
     std::vector<Vertex> m_vertices;

@@ -17,21 +17,21 @@ struct LightMaterial {
 };
 
 struct Light {
-    LightMaterial * lightMaterial;
+    std::shared_ptr<LightMaterial> lightMaterial;
 
-    Light(LightMaterial * lm) : lightMaterial(lm) {};
+    Light(std::shared_ptr<LightMaterial>& lm) : lightMaterial(lm) {};
 };
 
 struct DirectionalLight : public Light 
 {
     Transform transform;
     
-    DirectionalLight(Transform t, LightMaterial * lm) : Light(lm), transform(t) {};
+    DirectionalLight(Transform t, std::shared_ptr<LightMaterial>& lm) : Light(lm), transform(t) {};
 };
 
 struct PointLight : public Light, public Component
 {
-    PointLight(LightMaterial* lm): Light(lm), Component(ComponentType::POINT_LIGHT) {};
+    PointLight(std::shared_ptr<LightMaterial>& lm): Light(lm), Component(ComponentType::POINT_LIGHT) {};
 };
 
 static float squareFalloff(glm::vec3 a, glm::vec3 b) 

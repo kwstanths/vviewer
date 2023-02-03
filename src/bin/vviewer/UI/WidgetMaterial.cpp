@@ -11,10 +11,10 @@
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetMaterialLambert.hpp"
 
-WidgetMaterial::WidgetMaterial(QWidget* parent, SceneObject* sceneObject)
+WidgetMaterial::WidgetMaterial(QWidget* parent, std::shared_ptr<SceneObject> sceneObject)
 {
     m_sceneObject = sceneObject;
-    Material * material = sceneObject->get<Material*>(ComponentType::MATERIAL);
+    auto material = sceneObject->get<Material>(ComponentType::MATERIAL);
 
     m_comboBoxAvailableMaterials = new QComboBox();
     updateAvailableMaterials();
@@ -38,7 +38,7 @@ void WidgetMaterial::updateAvailableMaterials()
     m_comboBoxAvailableMaterials->clear();
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
     m_comboBoxAvailableMaterials->blockSignals(false);
-    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_sceneObject->get<Material*>(ComponentType::MATERIAL)->m_name));
+    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_sceneObject->get<Material>(ComponentType::MATERIAL)->m_name));
 }
 
 void WidgetMaterial::createUI(QWidget* widgetMaterial)
@@ -57,7 +57,7 @@ void WidgetMaterial::createUI(QWidget* widgetMaterial)
     m_widgetGroupBox->setLayout(m_layoutGroupBox);
 }
 
-QWidget* WidgetMaterial::createMaterialWidget(Material* material)
+QWidget* WidgetMaterial::createMaterialWidget(std::shared_ptr<Material>& material)
 {
     if (m_widgetMaterial != nullptr) {
         delete m_widgetMaterial;
@@ -66,10 +66,10 @@ QWidget* WidgetMaterial::createMaterialWidget(Material* material)
     switch (material->getType())
     {
     case MaterialType::MATERIAL_PBR_STANDARD:
-        m_widgetMaterial = new WidgetMaterialPBR(this, dynamic_cast<MaterialPBRStandard*>(material));
+        m_widgetMaterial = new WidgetMaterialPBR(this, std::dynamic_pointer_cast<MaterialPBRStandard>(material));
         break;
     case MaterialType::MATERIAL_LAMBERT:
-        m_widgetMaterial = new WidgetMaterialLambert(this, dynamic_cast<MaterialLambert*>(material));
+        m_widgetMaterial = new WidgetMaterialLambert(this, std::dynamic_pointer_cast<MaterialLambert>(material));
         break;
     default:
         break;
@@ -81,8 +81,8 @@ void WidgetMaterial::onMaterialChanged(int)
 {
     std::string newMaterial = m_comboBoxAvailableMaterials->currentText().toStdString();
 
-    AssetManager<std::string, Material*>& instance = AssetManager<std::string, Material*>::getInstance();
-    Material* material = instance.get(newMaterial);
+    AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
+    auto material = instance.get(newMaterial);
 
     if (material == nullptr) {
         utils::ConsoleWarning("Material: " + newMaterial + " doesn't exist");

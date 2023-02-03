@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 #include <glm/glm.hpp>
 
@@ -34,7 +35,7 @@ public:
     /* If it's a zip stack material */
     std::string m_path = "";
 
-    virtual MaterialType getType() const = 0;
+    virtual MaterialType getType() const { return MaterialType::MATERIAL_NOT_SET; };
 
 private:
 
@@ -64,27 +65,27 @@ public:
     virtual float& vTiling() = 0;
     virtual float getVTiling() const = 0;
 
-    virtual void setAlbedoTexture(Texture * texture);
-    virtual void setMetallicTexture(Texture * texture);
-    virtual void setRoughnessTexture(Texture * texture);
-    virtual void setAOTexture(Texture * texture);
-    virtual void setEmissiveTexture(Texture * texture);
-    virtual void setNormalTexture(Texture * texture);
+    virtual void setAlbedoTexture(std::shared_ptr<Texture> texture);
+    virtual void setMetallicTexture(std::shared_ptr<Texture> texture);
+    virtual void setRoughnessTexture(std::shared_ptr<Texture> texture);
+    virtual void setAOTexture(std::shared_ptr<Texture> texture);
+    virtual void setEmissiveTexture(std::shared_ptr<Texture> texture);
+    virtual void setNormalTexture(std::shared_ptr<Texture> texture);
 
-    Texture * getAlbedoTexture() const;
-    Texture * getMetallicTexture() const;
-    Texture * getRoughnessTexture() const;
-    Texture * getAOTexture() const;
-    Texture * getEmissiveTexture() const;
-    Texture * getNormalTexture() const;
+    std::shared_ptr<Texture> getAlbedoTexture() const;
+    std::shared_ptr<Texture> getMetallicTexture() const;
+    std::shared_ptr<Texture> getRoughnessTexture() const;
+    std::shared_ptr<Texture> getAOTexture() const;
+    std::shared_ptr<Texture> getEmissiveTexture() const;
+    std::shared_ptr<Texture> getNormalTexture() const;
 
 protected:
-    Texture * m_albedoTexture = nullptr;
-    Texture * m_metallicTexture = nullptr;
-    Texture * m_roughnessTexture = nullptr;
-    Texture * m_aoTexture = nullptr;
-    Texture * m_emissiveTexture = nullptr;
-    Texture * m_normalTexture = nullptr;
+    std::shared_ptr<Texture> m_albedoTexture;
+    std::shared_ptr<Texture> m_metallicTexture;
+    std::shared_ptr<Texture> m_roughnessTexture;
+    std::shared_ptr<Texture> m_aoTexture;
+    std::shared_ptr<Texture> m_emissiveTexture;
+    std::shared_ptr<Texture> m_normalTexture;
 };
 
 class MaterialLambert : public Material {
@@ -107,21 +108,21 @@ public:
     virtual float& vTiling() = 0;
     virtual float getVTiling() const = 0;
 
-    virtual void setAlbedoTexture(Texture* texture);
-    virtual void setAOTexture(Texture* texture);
-    virtual void setEmissiveTexture(Texture* texture);
-    virtual void setNormalTexture(Texture* texture);
+    virtual void setAlbedoTexture(std::shared_ptr<Texture> texture);
+    virtual void setAOTexture(std::shared_ptr<Texture> texture);
+    virtual void setEmissiveTexture(std::shared_ptr<Texture> texture);
+    virtual void setNormalTexture(std::shared_ptr<Texture> texture);
 
-    Texture* getAlbedoTexture() const;
-    Texture* getAOTexture() const;
-    Texture* getEmissiveTexture() const;
-    Texture* getNormalTexture() const;
+    std::shared_ptr<Texture> getAlbedoTexture() const;
+    std::shared_ptr<Texture> getAOTexture() const;
+    std::shared_ptr<Texture> getEmissiveTexture() const;
+    std::shared_ptr<Texture> getNormalTexture() const;
 
 protected:
-    Texture* m_albedoTexture = nullptr;
-    Texture* m_aoTexture = nullptr;
-    Texture* m_emissiveTexture = nullptr;
-    Texture* m_normalTexture = nullptr;
+    std::shared_ptr<Texture> m_albedoTexture;
+    std::shared_ptr<Texture> m_aoTexture;
+    std::shared_ptr<Texture> m_emissiveTexture;
+    std::shared_ptr<Texture> m_normalTexture;
 };
 
 class MaterialSkybox : public Material {
@@ -133,11 +134,11 @@ public:
         return MaterialType::MATERIAL_SKYBOX;
     }
 
-    virtual void setMap(EnvironmentMap* cubemap);
-    EnvironmentMap* getMap() const;
+    virtual void setMap(std::shared_ptr<EnvironmentMap> cubemap);
+    std::shared_ptr<EnvironmentMap> getMap() const;
 
 protected:
-    EnvironmentMap* m_envMap = nullptr;
+    std::shared_ptr<EnvironmentMap> m_envMap = nullptr;
 };
 
 #endif

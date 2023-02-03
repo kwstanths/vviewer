@@ -18,20 +18,21 @@ public:
     AssetManager(AssetManager const&) = delete;
     void operator=(AssetManager const&) = delete;
 
-    typedef typename std::unordered_map<AssetID, Asset>::iterator Iterator;
+    typedef typename std::unordered_map<AssetID, std::shared_ptr<Asset>>::iterator Iterator;
 
-    bool isPresent(AssetID id) {
+    bool isPresent(const AssetID& id) {
         if (m_assets.find(id) == m_assets.end()) {
             return false;
         }
         return true;
     }
 
-    void add(AssetID id, Asset asset) {
+    std::shared_ptr<Asset> add(const AssetID& id, const std::shared_ptr<Asset>& asset) {
         m_assets[id] = asset;
+        return m_assets[id];
     }
 
-    Asset get(AssetID id) {
+    std::shared_ptr<Asset> get(const AssetID& id) {
         auto itr = m_assets.find(id);
         if (itr != m_assets.end()) {
             return itr->second;
@@ -39,7 +40,7 @@ public:
         throw std::runtime_error("Find: Asset not found: " + id);
     }
 
-    Iterator remove(AssetID id) {
+    Iterator remove(const AssetID& id) {
         auto itr = m_assets.find(id);
         if (itr == m_assets.end()){
             throw std::runtime_error("Erase: Asset not found: " + id);
@@ -63,7 +64,7 @@ public:
 private:
     AssetManager() {}
 
-    std::unordered_map<AssetID, Asset> m_assets;
+    std::unordered_map<AssetID, std::shared_ptr<Asset>> m_assets;
 };
 
 #endif

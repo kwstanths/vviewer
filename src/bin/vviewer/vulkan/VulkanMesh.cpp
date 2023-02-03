@@ -23,7 +23,7 @@ VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice devic
         Mesh& mesh = meshes[i];
         if (!mesh.hasNormals()) mesh.computeNormals();
 
-        VulkanMesh * vkmesh = new VulkanMesh(mesh);
+        auto vkmesh = std::make_shared<VulkanMesh>(mesh);
         createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), vkmesh->m_vertexBuffer, vkmesh->m_vertexBufferMemory);
         createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), vkmesh->m_indexBuffer, vkmesh->m_indexBufferMemory);
 
@@ -36,7 +36,7 @@ VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice devic
 void VulkanMeshModel::destroy(VkDevice device)
 {
     for (size_t i = 0; i < m_meshes.size(); i++) {
-        VulkanMesh* vkmesh = static_cast<VulkanMesh*>(m_meshes[i]);
+        auto vkmesh = std::static_pointer_cast<VulkanMesh>(m_meshes[i]);
         vkmesh->destroy(device);
     }
 }
@@ -70,7 +70,7 @@ VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue
     };
 
     Mesh mesh(vertices, indices, false, false);
-    VulkanMesh * vkmesh = new VulkanMesh(mesh);
+    auto vkmesh = std::make_shared<VulkanMesh>(mesh);
     createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), vkmesh->m_vertexBuffer, vkmesh->m_vertexBufferMemory);
     createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), vkmesh->m_indexBuffer, vkmesh->m_indexBufferMemory);
      

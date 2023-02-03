@@ -270,11 +270,11 @@ void WidgetEnvironment::onCameraFovChanged(double)
 
 void WidgetEnvironment::onEnvironmentMapChanged(int)
 {
-    std::string newEnvMap = m_comboMaps->currentText().toStdString();
+    std::string newEnvMapName = m_comboMaps->currentText().toStdString();
     
-    AssetManager<std::string, EnvironmentMap*>& envMaps = AssetManager<std::string, EnvironmentMap*>::getInstance();
-    EnvironmentMap* envMap = envMaps.get(newEnvMap);
+    AssetManager<std::string, EnvironmentMap>& envMaps = AssetManager<std::string, EnvironmentMap>::getInstance();
+    auto newEnvMap = envMaps.get(newEnvMapName);
 
-    MaterialSkybox* material = m_scene->getSkybox();
-    material->setMap(envMap);
+    auto materialSkybox = m_scene->getSkybox();
+    materialSkybox->setMap(newEnvMap);
 }

@@ -14,12 +14,12 @@ Entity::Entity()
     m_id = IDGeneration::getInstance().getID();
 };
 
-void Entity::assign(Component *c)
+void Entity::assign(std::shared_ptr<Component> c)
 {
     m_components[c->getType()] = c;
 }
 
-Component * Entity::get(ComponentType type) const
+std::shared_ptr<Component> Entity::get(ComponentType type) const
 {
     auto itr = m_components.find(type);
     if (itr == m_components.end()) return nullptr;

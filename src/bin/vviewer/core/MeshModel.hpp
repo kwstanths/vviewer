@@ -2,22 +2,23 @@
 #define __MeshModel_hpp__
 
 #include <string>
+#include <memory>
 
 #include "Mesh.hpp"
 
 class MeshModel {
 public:
     MeshModel() {};
-    MeshModel(std::vector<Mesh *>& meshes);
+    MeshModel(const std::vector<std::shared_ptr<Mesh>>& meshes);
 
-    std::vector<Mesh *> getMeshes() const;
+    std::vector<std::shared_ptr<Mesh>> getMeshes() const;
 
     void setName(std::string name);
     std::string getName() const;
 
 protected:
     std::string m_name;
-    std::vector<Mesh *> m_meshes;
+    std::vector<std::shared_ptr<Mesh>> m_meshes;
 };
 
 #endif

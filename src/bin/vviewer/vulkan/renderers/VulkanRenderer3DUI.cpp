@@ -87,7 +87,7 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     
-    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(m_arrow->getMeshes()[0]);
+    const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_arrow->getMeshes()[0]);
 
     VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
     VkDeviceSize offsets[] = { 0 };

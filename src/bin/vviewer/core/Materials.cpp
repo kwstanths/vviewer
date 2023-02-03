@@ -1,111 +1,111 @@
 #include "Materials.hpp"
 
-void MaterialPBRStandard::setAlbedoTexture(Texture * texture)
+void MaterialPBRStandard::setAlbedoTexture(std::shared_ptr<Texture> texture)
 {
     m_albedoTexture = texture;
 }
 
-void MaterialPBRStandard::setMetallicTexture(Texture * texture)
+void MaterialPBRStandard::setMetallicTexture(std::shared_ptr<Texture> texture)
 {
     m_metallicTexture = texture;
 }
 
-void MaterialPBRStandard::setRoughnessTexture(Texture * texture)
+void MaterialPBRStandard::setRoughnessTexture(std::shared_ptr<Texture> texture)
 {
     m_roughnessTexture = texture;
 }
 
-void MaterialPBRStandard::setAOTexture(Texture * texture)
+void MaterialPBRStandard::setAOTexture(std::shared_ptr<Texture> texture)
 {
     m_aoTexture = texture;
 }
 
-void MaterialPBRStandard::setEmissiveTexture(Texture * texture)
+void MaterialPBRStandard::setEmissiveTexture(std::shared_ptr<Texture> texture)
 {
     m_emissiveTexture = texture;
 }
 
-void MaterialPBRStandard::setNormalTexture(Texture * texture)
+void MaterialPBRStandard::setNormalTexture(std::shared_ptr<Texture> texture)
 {
     m_normalTexture = texture;
 }
 
-Texture * MaterialPBRStandard::getAlbedoTexture() const
+std::shared_ptr<Texture> MaterialPBRStandard::getAlbedoTexture() const
 {
     return m_albedoTexture;
 }
 
-Texture * MaterialPBRStandard::getMetallicTexture() const
+std::shared_ptr<Texture> MaterialPBRStandard::getMetallicTexture() const
 {
     return m_metallicTexture;
 }
 
-Texture * MaterialPBRStandard::getRoughnessTexture() const
+std::shared_ptr<Texture> MaterialPBRStandard::getRoughnessTexture() const
 {
     return m_roughnessTexture;
 }
 
-Texture * MaterialPBRStandard::getAOTexture() const
+std::shared_ptr<Texture> MaterialPBRStandard::getAOTexture() const
 {
     return m_aoTexture;
 }
 
-Texture * MaterialPBRStandard::getEmissiveTexture() const
+std::shared_ptr<Texture> MaterialPBRStandard::getEmissiveTexture() const
 {
     return m_emissiveTexture;
 }
 
-Texture * MaterialPBRStandard::getNormalTexture() const
+std::shared_ptr<Texture> MaterialPBRStandard::getNormalTexture() const
 {
     return m_normalTexture;
 }
 
-void MaterialLambert::setAlbedoTexture(Texture* texture)
+void MaterialLambert::setAlbedoTexture(std::shared_ptr<Texture> texture)
 {
     m_albedoTexture = texture;
 }
 
-void MaterialLambert::setAOTexture(Texture* texture)
+void MaterialLambert::setAOTexture(std::shared_ptr<Texture> texture)
 {
     m_aoTexture = texture;
 }
 
-void MaterialLambert::setEmissiveTexture(Texture* texture)
+void MaterialLambert::setEmissiveTexture(std::shared_ptr<Texture> texture)
 {
     m_emissiveTexture = texture;
 }
 
-void MaterialLambert::setNormalTexture(Texture* texture)
+void MaterialLambert::setNormalTexture(std::shared_ptr<Texture> texture)
 {
     m_normalTexture = texture;
 }
 
-Texture* MaterialLambert::getAlbedoTexture() const
+std::shared_ptr<Texture> MaterialLambert::getAlbedoTexture() const
 {
     return m_albedoTexture;
 }
 
-Texture* MaterialLambert::getAOTexture() const
+std::shared_ptr<Texture> MaterialLambert::getAOTexture() const
 {
     return m_aoTexture;
 }
 
-Texture* MaterialLambert::getEmissiveTexture() const
+std::shared_ptr<Texture> MaterialLambert::getEmissiveTexture() const
 {
     return m_emissiveTexture;
 }
 
-Texture* MaterialLambert::getNormalTexture() const
+std::shared_ptr<Texture> MaterialLambert::getNormalTexture() const
 {
     return m_normalTexture;
 }
 
-void MaterialSkybox::setMap(EnvironmentMap* envMap)
+void MaterialSkybox::setMap(std::shared_ptr<EnvironmentMap> envMap)
 {
     m_envMap = envMap;
 }
 
-EnvironmentMap* MaterialSkybox::getMap() const
+std::shared_ptr<EnvironmentMap> MaterialSkybox::getMap() const
 {
     return m_envMap;
 }

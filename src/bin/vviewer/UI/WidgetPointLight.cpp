@@ -6,7 +6,7 @@
 
 #include "UIUtils.hpp"
 
-WidgetPointLight::WidgetPointLight(QWidget * parent, PointLight * light) : QWidget(parent)
+WidgetPointLight::WidgetPointLight(QWidget * parent, std::shared_ptr<PointLight> light) : QWidget(parent)
 {
     m_light = light;
 

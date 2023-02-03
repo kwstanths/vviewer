@@ -47,8 +47,8 @@ public:
     float getAmbientIBL() const;
     void setAmbientIBL(float ambientIBL);
 
-    void setSkybox(MaterialSkybox* skybox);
-    MaterialSkybox* getSkybox() const;
+    void setSkybox(std::shared_ptr<MaterialSkybox> skybox);
+    std::shared_ptr<MaterialSkybox> getSkybox() const;
 
     EnvironmentType getEnvironmentType() const;
     void setEnvironmentType(EnvironmentType type);
@@ -84,7 +84,7 @@ protected:
     std::unordered_map<ID, std::shared_ptr<SceneObject>> m_objectsMap;
 
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
-    MaterialSkybox* m_skybox = nullptr;
+    std::shared_ptr<MaterialSkybox> m_skybox;
     glm::vec3 m_backgroundColor = { 0, 0.5, 0.5 };
 
     virtual std::shared_ptr<SceneObject> createObject(std::string name) = 0;

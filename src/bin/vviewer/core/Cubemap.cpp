@@ -15,3 +15,14 @@ Cubemap::Cubemap(std::string directory)
     m_image_right = new Image<stbi_uc>(directory + "/right.png");
     m_image_left = new Image<stbi_uc>(directory + "/left.png");
 }
+
+Cubemap::~Cubemap()
+{
+    delete m_image_front;
+    delete m_image_back;
+    delete m_image_top;
+    delete m_image_bottom;
+    delete m_image_right;
+    delete m_image_left;
+}
+

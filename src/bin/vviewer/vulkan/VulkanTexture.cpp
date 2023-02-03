@@ -4,7 +4,7 @@
 #include "utils/Console.hpp"
 
 VulkanTexture::VulkanTexture(std::string name, 
-    Image<stbi_uc> * image, 
+    std::shared_ptr<Image<stbi_uc>> image, 
     TextureType type, 
     VkPhysicalDevice physicalDevice, 
     VkDevice device, 
@@ -109,7 +109,7 @@ VulkanTexture::VulkanTexture(std::string name,
 
 
 VulkanTexture::VulkanTexture(std::string name, 
-    Image<float> * image, 
+    std::shared_ptr<Image<float>> image, 
     TextureType type, 
     VkPhysicalDevice physicalDevice, 
     VkDevice device, 

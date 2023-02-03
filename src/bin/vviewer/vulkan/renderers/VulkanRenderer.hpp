@@ -48,16 +48,7 @@ public:
 
     void startNextFrame() override;
     
-    MeshModel * createVulkanMeshModel(std::string filename);
-
     VulkanScene* getActiveScene() const;
-
-    Texture* createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, bool keepImage = false);
-    Texture* createTexture(std::string id, Image<stbi_uc>* image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
-    Texture* createTextureHDR(std::string imagePath, bool keepImage = false);
-    Cubemap* createCubemap(std::string directory);
-    EnvironmentMap* createEnvironmentMap(std::string imagePath, bool keepTexture = false);
-    Material* createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
     void setSelectedObject(std::shared_ptr<SceneObject> sceneObject);
     std::shared_ptr<SceneObject> getSelectedObject() const;
@@ -70,6 +61,14 @@ public:
     float deltaTime() const;
 
     VulkanRendererRayTracing * getRayTracingRenderer() { return &m_rendererRayTracing; }
+
+    std::shared_ptr<MeshModel> createVulkanMeshModel(std::string filename);
+    std::shared_ptr<Texture> createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, bool keepImage = false);
+    std::shared_ptr<Texture> createTexture(std::string id, std::shared_ptr<Image<stbi_uc>> image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+    std::shared_ptr<Texture> createTextureHDR(std::string imagePath, bool keepImage = false);
+    std::shared_ptr<Cubemap> createCubemap(std::string directory);
+    std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
+    std::shared_ptr<Material> createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
 private:
 

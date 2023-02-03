@@ -33,7 +33,7 @@ void exportJson(const ExportRenderParams& renderParams,
 	std::shared_ptr<Camera> sceneCamera, 
 	std::shared_ptr<DirectionalLight> sceneLight,
 	const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, 
-	EnvironmentMap * envMap);
+	std::shared_ptr<EnvironmentMap> envMap);
 
 void parseSceneObject(rapidjson::Document& d, 
 	rapidjson::Value& v, 

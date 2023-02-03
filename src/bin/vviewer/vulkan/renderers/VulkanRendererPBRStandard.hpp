@@ -24,7 +24,7 @@ public:
     void releaseSwapChainResources();
     void releaseResources();
 
-    VulkanMaterialPBRStandard* createMaterial(std::string name,
+    std::shared_ptr<VulkanMaterialPBRStandard> createMaterial(std::string name,
         glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
         VulkanDynamicUBO<MaterialData>& materialsUBO);
 
@@ -42,7 +42,7 @@ public:
     void renderObjectsBasePass(VkCommandBuffer& cmdBuf, 
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
-        VulkanMaterialSkybox * skybox,
+        const std::shared_ptr<VulkanMaterialSkybox>& skybox,
         uint32_t imageIndex, 
         const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
         std::vector<std::shared_ptr<SceneObject>>& objects) const;
@@ -83,7 +83,7 @@ private:
     VkRenderPass m_renderPass;
     VkSampleCountFlagBits m_msaaSamples;
 
-    VulkanTexture* createBRDFLUT(uint32_t resolution = 128) const;
+    void createBRDFLUT(uint32_t resolution = 128) const;
 
     bool createDescriptorSetsLayout();
     bool createGraphicsPipelineBasePass();

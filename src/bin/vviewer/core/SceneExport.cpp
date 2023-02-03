@@ -34,7 +34,7 @@ void exportJson(const ExportRenderParams& renderParams,
     std::shared_ptr<Camera> sceneCamera, 
 	std::shared_ptr<DirectionalLight> sceneLight,
     const std::vector<std::shared_ptr<SceneObject>>& sceneGraph, 
-    EnvironmentMap* envMap)
+    std::shared_ptr<EnvironmentMap> envMap)
 {
     /* Create folder with scene */
     std::string sceneFolderName = renderParams.name + "/"; /* Make sure the final back slash exists */
@@ -187,6 +187,8 @@ void exportJson(const ExportRenderParams& renderParams,
 
             addAnalyticalLight(d, sceneObjectDirectionalLight, sceneLight.get(), "DISTANT");
 
+            lightMaterials.insert(sceneLight->lightMaterial.get());
+
             scene.PushBack(sceneObjectDirectionalLight, d.GetAllocator());
         }
 
@@ -267,13 +269,13 @@ void parseSceneObject(rapidjson::Document& d,
     bool hasMeshComponent = sceneObject->has(ComponentType::MESH);
     bool hasMaterialComponent = sceneObject->has(ComponentType::MATERIAL);
     bool hasLightComponent = sceneObject->has(ComponentType::POINT_LIGHT);
-    bool isMatEmissive = isMaterialEmissive(sceneObject->get<Material*>(ComponentType::MATERIAL));
+    bool isMatEmissive = isMaterialEmissive(sceneObject->get<Material>(ComponentType::MATERIAL).get());
 
     if (hasMeshComponent && hasMaterialComponent)
     {
-        std::string materialName = sceneObject->get<Material*>(ComponentType::MATERIAL)->m_name;
+        std::string materialName = sceneObject->get<Material>(ComponentType::MATERIAL)->m_name;
         
-        Material* mat = sceneObject->get<Material*>(ComponentType::MATERIAL);
+        Material* mat = sceneObject->get<Material>(ComponentType::MATERIAL).get();
         materials.insert(mat);
         
         if (!isMatEmissive)
@@ -286,8 +288,8 @@ void parseSceneObject(rapidjson::Document& d,
 
     if (hasLightComponent)
     {
-        Light * light = sceneObject->get<PointLight*>(ComponentType::POINT_LIGHT);
-        lightMaterials.insert(light->lightMaterial);
+        Light * light = sceneObject->get<PointLight>(ComponentType::POINT_LIGHT).get();
+        lightMaterials.insert(light->lightMaterial.get());
 
         addAnalyticalLight(d, sceneObjectEntry, light, "POINT");
     }
@@ -334,7 +336,7 @@ void addMeshComponent(rapidjson::Document& d,
 	std::string materialName)
 {
     /* Get the mesh component */
-    const Mesh * mesh = sceneObject->get<Mesh*>(ComponentType::MESH);
+    const Mesh * mesh = sceneObject->get<Mesh>(ComponentType::MESH).get();
 
     /* Copy the mesh model file to the mesh folder, and get a file path relative to the scene file */
     std::string relativePathName = "meshes/" + copyFileToDirectoryAndGetFileName(mesh->m_meshModel->getName(), meshDirectory);

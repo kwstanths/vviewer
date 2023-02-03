@@ -1,16 +1,16 @@
 #include "EnvironmentMap.hpp"
 
-Cubemap* EnvironmentMap::getSkyboxMap() const
+std::shared_ptr<Cubemap> EnvironmentMap::getSkyboxMap() const
 {
     return m_skyboxMap;
 }
 
-Cubemap* EnvironmentMap::getIrradianceMap() const
+std::shared_ptr<Cubemap> EnvironmentMap::getIrradianceMap() const
 {
     return m_irradianceMap;
 }
 
-Cubemap* EnvironmentMap::getPrefilteredMap() const
+std::shared_ptr<Cubemap> EnvironmentMap::getPrefilteredMap() const
 {
     return m_prefilteredMap;
 }

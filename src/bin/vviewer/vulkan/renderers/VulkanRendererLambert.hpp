@@ -24,7 +24,7 @@ public:
     void releaseSwapChainResources();
     void releaseResources();
 
-    VulkanMaterialLambert* createMaterial(std::string name,
+    std::shared_ptr<VulkanMaterialLambert> createMaterial(std::string name,
         glm::vec4 albedo, float ao, float emissive,
         VulkanDynamicUBO<MaterialData>& materialsUBO);
 
@@ -42,7 +42,7 @@ public:
     void renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
-        VulkanMaterialSkybox* skybox,
+        const std::shared_ptr<VulkanMaterialSkybox>& skybox,
         uint32_t imageIndex,
         const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
         std::vector<std::shared_ptr<SceneObject>>& objects) const;

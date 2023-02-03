@@ -7,16 +7,14 @@
 
 Scene::Scene()
 {
-    LightMaterial * directionalLightMaterial = new LightMaterial("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F);
-    LightMaterial * defaultPointLightMaterial = new LightMaterial("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1.F);
-    
+    auto& lightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
+    auto directionalLightMaterial = lightMaterials.add("DirectionalLightMaterial", std::make_shared<LightMaterial>("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F));
+    auto defaultPointLightMaterial = lightMaterials.add("DefaultPointLightMaterial", std::make_shared<LightMaterial>("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1.F));
+
     Transform directionalLightTransform;
     directionalLightTransform.setRotationEuler(0, glm::radians(180.0f), 0);
     m_directionalLight = std::make_shared<DirectionalLight>(directionalLightTransform, directionalLightMaterial);
     
-    auto& lightMaterials = AssetManager<std::string, LightMaterial *>::getInstance();
-    lightMaterials.add(directionalLightMaterial->name, directionalLightMaterial);
-    lightMaterials.add(defaultPointLightMaterial->name, defaultPointLightMaterial);
 }
 
 Scene::~Scene()
@@ -84,12 +82,12 @@ SceneData Scene::getSceneData() const
     return sceneData;
 }
 
-void Scene::setSkybox(MaterialSkybox* skybox)
+void Scene::setSkybox(std::shared_ptr<MaterialSkybox> skybox)
 {
     m_skybox = skybox;
 }
 
-MaterialSkybox* Scene::getSkybox() const
+std::shared_ptr<MaterialSkybox> Scene::getSkybox() const
 {
     return m_skybox;
 }
@@ -213,7 +211,7 @@ std::shared_ptr<SceneObject> Scene::getSceneObject(ID id) const
 
 void Scene::exportScene(const ExportRenderParams& renderParams) const
 {
-    EnvironmentMap* temp = nullptr;
+    std::shared_ptr<EnvironmentMap> temp = nullptr;
     if (m_skybox != nullptr && getEnvironmentType() == EnvironmentType::HDRI)
     {
         temp = m_skybox->getMap();

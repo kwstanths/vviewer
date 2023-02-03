@@ -1,11 +1,11 @@
 #include "MeshModel.hpp"
 
-MeshModel::MeshModel(std::vector<Mesh *>& meshes)
+MeshModel::MeshModel(const std::vector<std::shared_ptr<Mesh>>& meshes)
 {
     m_meshes = meshes;
 }
 
-std::vector<Mesh*> MeshModel::getMeshes() const
+std::vector<std::shared_ptr<Mesh>> MeshModel::getMeshes() const
 {
     return m_meshes;
 }

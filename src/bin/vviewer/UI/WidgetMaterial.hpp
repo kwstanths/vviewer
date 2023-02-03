@@ -14,17 +14,17 @@ class WidgetMaterial : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMaterial(QWidget* parent, SceneObject* sceneObject);
+    WidgetMaterial(QWidget* parent, std::shared_ptr<SceneObject> sceneObject);
 
     void updateAvailableMaterials();
 private:
-    SceneObject* m_sceneObject = nullptr;
+    std::shared_ptr<SceneObject> m_sceneObject = nullptr;
 
     QComboBox* m_comboBoxAvailableMaterials;
     QWidget* m_materialWidget = nullptr;
 
     void createUI(QWidget* widgetMaterial);
-    QWidget* createMaterialWidget(Material * material);
+    QWidget* createMaterialWidget(std::shared_ptr<Material>& material);
 
     QGroupBox* m_widgetGroupBox = nullptr;
     QVBoxLayout* m_layoutGroupBox = nullptr;

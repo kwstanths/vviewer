@@ -11,7 +11,7 @@
 class VulkanTexture : public Texture {
 public:
     VulkanTexture(std::string name, 
-        Image<stbi_uc> * image, 
+        std::shared_ptr<Image<stbi_uc>> image, 
         TextureType type, 
         VkPhysicalDevice physicalDevice, 
         VkDevice device, 
@@ -21,7 +21,7 @@ public:
         bool genMipMaps);
 
     VulkanTexture(std::string name, 
-        Image<float> * image, 
+        std::shared_ptr<Image<float>> image, 
         TextureType type, 
         VkPhysicalDevice physicalDevice, 
         VkDevice device, 

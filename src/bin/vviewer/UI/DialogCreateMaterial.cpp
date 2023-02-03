@@ -52,7 +52,7 @@ void DialogCreateMaterial::onButtonOk()
 {
     std::string chosenName = m_name->toPlainText().toStdString();
 
-    AssetManager<std::string, Material *>& instance = AssetManager<std::string, Material *>::getInstance();
+    AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
     if (instance.isPresent(chosenName)) {
         QMessageBox::warning(this, tr("Material already present"),
             tr("This material name already exists"),

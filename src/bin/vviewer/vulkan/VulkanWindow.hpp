@@ -23,8 +23,8 @@ public:
     ~VulkanWindow();
     QVulkanWindowRenderer * createRenderer() override;
 
-    Material* importMaterial(std::string name, std::string stackDirectory);
-    Material* importZipMaterial(std::string name, std::string filename);
+    std::shared_ptr<Material> importMaterial(std::string name, std::string stackDirectory);
+    std::shared_ptr<Material> importZipMaterial(std::string name, std::string filename);
 
     VulkanRenderer * m_renderer = nullptr;
 

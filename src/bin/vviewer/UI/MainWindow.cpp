@@ -188,8 +188,8 @@ void MainWindow::createMenu()
     m_menuAdd->addAction(addSceneObjectRootSlot);
     m_menuAdd->addAction(actionCreateMaterial);
     m_menuAdd->addAction(actionCreatePointLight);
-    // QMenu* m_menuRender = menuBar()->addMenu(tr("&Render"));
-    // m_menuRender->addAction(actionRender);
+    QMenu* m_menuRender = menuBar()->addMenu(tr("&Render"));
+    m_menuRender->addAction(actionRender);
     QMenu* m_menuExport = menuBar()->addMenu(tr("&Export"));
     m_menuExport->addAction(actionExport);
 }
@@ -273,19 +273,19 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
 
     if (sceneObject->has(ComponentType::MESH))
     {
-        m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneObject.get());
+        m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneObject);
         m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
     }
 
     if (sceneObject->has(ComponentType::MATERIAL)) 
     {
-        m_selectedObjectWidgetMaterial = new WidgetMaterial(nullptr, sceneObject.get());
+        m_selectedObjectWidgetMaterial = new WidgetMaterial(nullptr, sceneObject);
         m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
     }
 
     if (sceneObject->has(ComponentType::POINT_LIGHT)) 
     {
-        m_selectedObjectWidgetPointLight = new WidgetPointLight(nullptr, sceneObject->get<PointLight*>(ComponentType::POINT_LIGHT));
+        m_selectedObjectWidgetPointLight = new WidgetPointLight(nullptr, sceneObject->get<PointLight>(ComponentType::POINT_LIGHT));
         m_layoutControls->addWidget(m_selectedObjectWidgetPointLight);
     }
 
@@ -323,21 +323,21 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem* treeItem)
 
 void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material)
 {
-    AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
+    AssetManager<std::string, MeshModel>& instanceModels = AssetManager<std::string, MeshModel>::getInstance();
     if (!instanceModels.isPresent(modelName))
     {
         utils::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Mesh model " + modelName + " is not imported");
         return;
     }
-    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
+    AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
     if (!instanceMaterials.isPresent(material)) 
     {
         utils::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Material " + material + " is not created");
         return;
     }
 
-    MeshModel* meshhModel = instanceModels.get(modelName);
-    std::vector<Mesh*> modelMeshes = meshhModel->getMeshes();
+    auto meshModel = instanceModels.get(modelName);
+    std::vector<std::shared_ptr<Mesh>> modelMeshes = meshModel->getMeshes();
     
     std::shared_ptr<SceneObject> parentObject = getSceneObject(parentItem);
 
@@ -379,14 +379,14 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             const std::unordered_map<std::string, ImportedSceneLightMaterial>& lights,
             QTreeWidgetItem * parentItem, std::string sceneFolder)
 {
-    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
-    AssetManager<std::string, LightMaterial*>& instanceLightMaterials = AssetManager<std::string, LightMaterial*>::getInstance();
+    AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
+    AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
 
     /* Check if it's a directional light node */
     if (object.light.has_value() && object.light->type == ImportedSceneLightType::DISTANT) 
     {
         /* Check if the light material has already been created */
-        LightMaterial * lightMaterial;
+        std::shared_ptr<LightMaterial> lightMaterial;
         if (!instanceLightMaterials.isPresent(object.light->lightMaterial))
         {
             auto importedLightMaterialItr = lights.find(object.light->lightMaterial);
@@ -394,12 +394,8 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             {
                 throw std::runtime_error("addImportedSceneObject(): Referenced light material in the scene hasn't been imported properly");
             }
-            instanceLightMaterials.add(object.light->lightMaterial, 
-                new LightMaterial(importedLightMaterialItr->second.name, 
-                    importedLightMaterialItr->second.color, 
-                    importedLightMaterialItr->second.intensity
-                )
-            );
+            lightMaterial = std::make_shared<LightMaterial>(importedLightMaterialItr->second.name, importedLightMaterialItr->second.color, importedLightMaterialItr->second.intensity);
+            instanceLightMaterials.add(object.light->lightMaterial, lightMaterial);
         } else 
         {
             lightMaterial = instanceLightMaterials.get(object.light->lightMaterial);
@@ -441,15 +437,15 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             }
             else if (m.type == ImportedSceneMaterialType::DIFFUSE)
             {
-                MaterialLambert* mat = dynamic_cast<MaterialLambert*>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     mat->setAlbedoTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     mat->setNormalTexture(tex);
                 }
 
@@ -458,25 +454,25 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             } 
             else if (m.type == ImportedSceneMaterialType::DISNEY)
             {
-                MaterialPBRStandard* mat = dynamic_cast<MaterialPBRStandard*>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
+                auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     if (tex != nullptr) mat->setAlbedoTexture(tex);
                 }
                 mat->roughness() = m.roughness;
                 if (m.roughnessTexture != "") {
-                    Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setRoughnessTexture(tex);
                 }
                 mat->metallic() = m.metallic;
                 if (m.metallicTexture != "") {
-                    Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setMetallicTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    Texture* tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setNormalTexture(tex);
                 }
                 
@@ -485,7 +481,7 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             }
         }
 
-        const MeshModel * meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.mesh->path);
+        auto meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.mesh->path);
         if (meshModel != nullptr) {
             if (object.mesh->submesh == -1 || object.mesh->submesh >= meshModel->getMeshes().size()) {
                 /* Imported mesh defines a path, but not a submesh. Create a new node and add all the meshes as children */
@@ -494,9 +490,9 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 addSceneObjectMeshes(child.first, sceneFolder + object.mesh->path, object.mesh->material);
             } else{
                 /* Else, assign the corresponding mesh to the object */
-                Mesh * mesh = meshModel->getMeshes()[object.mesh->submesh];
+                auto mesh = meshModel->getMeshes()[object.mesh->submesh];
                 newSceneObject.second->assign(mesh);
-                Material * mat = instanceMaterials.get(object.mesh->material);
+                auto mat = instanceMaterials.get(object.mesh->material);
                 newSceneObject.second->assign(mat);
             }
         } else {
@@ -510,7 +506,7 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
         if (object.light->type == ImportedSceneLightType::POINT) 
         {
             /* Check if the light material has already been created */
-            LightMaterial * lightMaterial;
+            std::shared_ptr<LightMaterial> lightMaterial;
             if (!instanceLightMaterials.isPresent(object.light->lightMaterial))
             {
                 auto importedLightMaterialItr = lights.find(object.light->lightMaterial);
@@ -518,16 +514,14 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 {
                     throw std::runtime_error("addImportedSceneObject(): Referenced light material in the scene hasn't been imported properly");
                 }
-                lightMaterial = new LightMaterial(importedLightMaterialItr->second.name, 
-                    importedLightMaterialItr->second.color, 
-                    importedLightMaterialItr->second.intensity);
+                lightMaterial = std::make_shared<LightMaterial>(importedLightMaterialItr->second.name, importedLightMaterialItr->second.color, importedLightMaterialItr->second.intensity);
                 instanceLightMaterials.add(object.light->lightMaterial, lightMaterial);
             } else 
             {
                 lightMaterial = instanceLightMaterials.get(object.light->lightMaterial);
             }
 
-            PointLight * pl = new PointLight(lightMaterial);
+            auto pl = std::make_shared<PointLight>(lightMaterial);
             newSceneObject.second->assign(pl);
         } else if (object.light->type == ImportedSceneLightType::MESH)
         {
@@ -543,12 +537,12 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 const ImportedSceneLightMaterial& lm = importedSceneLightMaterialItr->second;
 
                 /* Create a simple emissive lambert for the the mesh light material */
-                MaterialLambert* mat = dynamic_cast<MaterialLambert*>(m_vulkanWindow->m_renderer->createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->m_renderer->createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
                 mat->albedo() = glm::vec4(lm.color, 1);
                 mat->emissive() = lm.intensity;
             }
 
-            const MeshModel * meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.light->path);
+            auto meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.light->path);
             if (meshModel != nullptr) {
                 if (object.light->submesh == -1 || object.light->submesh >= meshModel->getMeshes().size()) {
                     /* Imported mesh defines a path, but not a submesh. Create a new node and add all the meshes as children */
@@ -557,7 +551,7 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                     addSceneObjectMeshes(child.first, sceneFolder + object.light->path, object.light->lightMaterial);
                 } else{
                     /* Else, assign the corresponding mesh to the object */
-                    Mesh * mesh = meshModel->getMeshes()[object.light->submesh];
+                    auto mesh = meshModel->getMeshes()[object.light->submesh];
                     newSceneObject.second->assign(mesh);
                     newSceneObject.second->assign(instanceMaterials.get(object.light->lightMaterial));
                 }
@@ -600,7 +594,7 @@ void MainWindow::onImportTextureColorSlot()
 
     for (const auto& texture : filenames)
     {
-        Texture * tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
+        auto tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
         if (tex) {
             utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
         }
@@ -615,7 +609,7 @@ void MainWindow::onImportTextureOtherSlot()
 
     for (const auto& texture : filenames)
     {
-        Texture * tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
+        auto tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
         if (tex) {
             utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
         }
@@ -630,7 +624,7 @@ void MainWindow::onImportTextureHDRSlot()
 
     if (filename == "") return;
 
-    Texture * tex = m_vulkanWindow->m_renderer->createTextureHDR(filename.toStdString());
+    auto tex = m_vulkanWindow->m_renderer->createTextureHDR(filename.toStdString());
     if (tex) {
         utils::ConsoleInfo("Texture: " + filename.toStdString() + " imported");
         m_widgetEnvironment->updateMaps();
@@ -645,7 +639,7 @@ void MainWindow::onImportEnvironmentMap()
 
     if (filename == "") return;
 
-    EnvironmentMap* envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(filename.toStdString());
+    auto envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(filename.toStdString());
     if (envMap) {
         utils::ConsoleInfo("Environment map: " + filename.toStdString() + " imported");
         m_widgetEnvironment->updateMaps();
@@ -660,7 +654,7 @@ void MainWindow::onImportMaterial()
     std::string materialName = dir.split('/').back().toStdString();
     std::string dirStd = dir.toStdString();
 
-    Material * mat = m_vulkanWindow->importMaterial(materialName, dirStd);
+    auto mat = m_vulkanWindow->importMaterial(materialName, dirStd);
     if (mat != nullptr) {
         if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
     }
@@ -676,7 +670,7 @@ void MainWindow::onImportMaterialZipStackSlot()
 
     std::string materialName = filename.split('/').back().toStdString();
 
-    Material * mat = m_vulkanWindow->importZipMaterial(materialName, filename.toStdString());
+    auto mat = m_vulkanWindow->importZipMaterial(materialName, filename.toStdString());
     if (mat != nullptr) {
         if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
     }
@@ -720,31 +714,21 @@ void MainWindow::onImportScene()
     }
 
     /* Delete previous materials */
-    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
-    for(auto itr = instanceMaterials.begin(); itr != instanceMaterials.end(); ++itr)
-    {
-        Material *mat = itr->second;
-        delete mat;
-    }
+    AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
     instanceMaterials.reset();
 
     /* Delete previous light materials */
-    AssetManager<std::string, LightMaterial*>& instanceLightMaterials = AssetManager<std::string, LightMaterial*>::getInstance();
-    for(auto itr = instanceLightMaterials.begin(); itr != instanceLightMaterials.end(); ++itr)
-    {
-        LightMaterial *mat = itr->second;
-        delete mat;
-    }
+    AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
     instanceLightMaterials.reset();
 
     /* Create and set the environment map */
     if (env.path != "") {
-        EnvironmentMap* envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
+        auto envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
         if (envMap) {
             utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
 
-            AssetManager<std::string, MaterialSkybox*>& materials = AssetManager<std::string, MaterialSkybox*>::getInstance();
-            MaterialSkybox* material = materials.get("skybox");
+            AssetManager<std::string, MaterialSkybox>& materials = AssetManager<std::string, MaterialSkybox>::getInstance();
+            auto material = materials.get("skybox");
 
             material->setMap(envMap);
 
@@ -775,7 +759,7 @@ void MainWindow::onImportScene()
     /* Fix directional light if none was detected in the scene */
     if (!directionalLightDetected)
     {
-        LightMaterial * directionalLightMaterial = new LightMaterial("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F);
+        auto directionalLightMaterial = std::make_shared<LightMaterial>("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F);
         instanceLightMaterials.add(directionalLightMaterial->name, directionalLightMaterial);
         m_scene->getDirectionalLight()->lightMaterial = directionalLightMaterial;
     }
@@ -843,7 +827,7 @@ void MainWindow::onAddMaterialSlot()
         return;
     }
 
-    Material* material = m_vulkanWindow->m_renderer->createMaterial(materialName, dialog->m_selectedMaterialType);
+    auto material = m_vulkanWindow->m_renderer->createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     } else {
@@ -855,13 +839,14 @@ void MainWindow::onAddPointLightRootSlot()
 {
     auto newObject = createEmptySceneObject("Point light", Transform(), nullptr);
 
-    auto& lightMaterials = AssetManager<std::string, LightMaterial *>::getInstance();
+    auto& lightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
     if (!lightMaterials.isPresent("DefaultPointLightMaterial"))
     {
-        lightMaterials.add("DefaultPointLightMaterial", new LightMaterial("DefaultPointLightMaterial", {1, 1, 1}, 1));
+        lightMaterials.add("DefaultPointLightMaterial", std::make_shared<LightMaterial>("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1));
     }
 
-    PointLight * light = new PointLight(lightMaterials.get("DefaultPointLightMaterial"));
+    auto lightMat = lightMaterials.get("DefaultPointLightMaterial");
+    auto light = std::make_shared<PointLight>(lightMat);
     newObject.second->assign(light);
 }
 
@@ -880,13 +865,14 @@ void MainWindow::onAddPointLightSlot()
     auto newObject = createEmptySceneObject("Point light", Transform(), selectedItem);
 
     /* Add light component */
-    auto& lightMaterials = AssetManager<std::string, LightMaterial *>::getInstance();
+    auto& lightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
     if (!lightMaterials.isPresent("DefaultPointLightMaterial"))
     {
-        lightMaterials.add("DefaultPointLightMaterial", new LightMaterial("DefaultPointLightMaterial", {1, 1, 1}, 1));
+        lightMaterials.add("DefaultPointLightMaterial", std::make_shared<LightMaterial>("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1));
     }
 
-    PointLight * light = new PointLight(lightMaterials.get("DefaultPointLightMaterial"));
+    auto lightMat = lightMaterials.get("DefaultPointLightMaterial");
+    auto light = std::make_shared<PointLight>(lightMat);
     newObject.second->assign(light);
 }
 
@@ -1006,14 +992,14 @@ void MainWindow::onContextMenuSceneGraph(const QPoint& pos)
 
 void MainWindow::onStartUpInitialization()
 {
-    AssetManager<std::string, MeshModel*>& instanceModels = AssetManager<std::string, MeshModel*>::getInstance();
-    AssetManager<std::string, Material*>& instanceMaterials = AssetManager<std::string, Material*>::getInstance();
-    AssetManager<std::string, LightMaterial*>& instanceLightMaterials = AssetManager<std::string, LightMaterial*>::getInstance();
+    AssetManager<std::string, MeshModel>& instanceModels = AssetManager<std::string, MeshModel>::getInstance();
+    AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
+    AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
 
-    Material* mat = instanceMaterials.get("defaultMaterial");
-    MeshModel* sphere = instanceModels.get("assets/models/uvsphere.obj");
-    MeshModel* plane = instanceModels.get("assets/models/plane.obj");
-    LightMaterial* lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
+    auto mat = instanceMaterials.get("defaultMaterial");
+    auto sphere = instanceModels.get("assets/models/uvsphere.obj");
+    auto plane = instanceModels.get("assets/models/plane.obj");
+    auto lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
     {
         auto o = createEmptySceneObject("sphere", Transform(), nullptr);
