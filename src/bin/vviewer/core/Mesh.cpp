@@ -4,11 +4,11 @@
 
 #include <glm/glm.hpp>
 
-Mesh::Mesh() : Component(ComponentType::MESH)
+Mesh::Mesh()
 {
 }
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool hasNormals, bool hasUVs) : Component(ComponentType::MESH)
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool hasNormals, bool hasUVs)
 {
     m_vertices = vertices;
     m_indices = indices;

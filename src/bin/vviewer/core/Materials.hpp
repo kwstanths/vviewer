@@ -25,10 +25,10 @@ static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
     { MaterialType::MATERIAL_LAMBERT, "Lambert" },
 };
 
-class Material : public Component {
+class Material {
 public:
-    Material() : Component(ComponentType::MATERIAL) {};
-    Material(std::string name) : Component(ComponentType::MATERIAL), m_name(name) {};
+    Material() {};
+    Material(std::string name): m_name(name) {};
 
     std::string m_name;
 

@@ -52,7 +52,7 @@ void VulkanRendererLambert::releaseResources()
 }
 
 std::shared_ptr<VulkanMaterialLambert> VulkanRendererLambert::createMaterial(std::string name, glm::vec4 albedo, float ao, float emissive,
-    VulkanDynamicUBO<MaterialData>& materialsUBO)
+    std::shared_ptr<VulkanDynamicUBO<MaterialData>>& materialsUBO)
 {
     AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
     if (instance.isPresent(name)) {
@@ -80,10 +80,10 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
     {
         VulkanSceneObject* object = static_cast<VulkanSceneObject*>(objects[i].get());
 
-        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->get<Mesh>(ComponentType::MESH).get());
+        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->get<ComponentMesh>().mesh.get());
         if (vkmesh == nullptr) continue;
 
-        VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(object->get<Material>(ComponentType::MATERIAL).get());
+        VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(object->get<ComponentMaterial>().material.get());
         /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
 
@@ -131,10 +131,10 @@ void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
 
     VulkanSceneObject* vobject = static_cast<VulkanSceneObject*>(object.get());
-    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->get<Mesh>(ComponentType::MESH).get());
+    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->get<ComponentMesh>().mesh.get());
     if (vkmesh == nullptr) return;
 
-    VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(vobject->get<Material>(ComponentType::MATERIAL).get());
+    VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(vobject->get<ComponentMaterial>().material.get());
     /* Check if material parameters have changed for that imageIndex descriptor set */
     if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
 

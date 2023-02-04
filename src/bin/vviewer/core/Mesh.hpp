@@ -32,7 +32,7 @@ struct Vertex {
 
 class MeshModel;
 
-class Mesh : public Component {
+class Mesh {
 public:
     Mesh();
     Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool hasNormals = false, bool hasUVs = false);

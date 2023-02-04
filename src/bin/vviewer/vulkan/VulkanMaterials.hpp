@@ -11,19 +11,19 @@
 template<typename T> 
 class VulkanMaterialStorage {
 public:
-    VulkanMaterialStorage(VulkanDynamicUBO<T>& materialsDynamicUBO)
+    VulkanMaterialStorage(std::shared_ptr<VulkanDynamicUBO<T>> materialsDynamicUBO)
         : m_materialsDataStorage(materialsDynamicUBO)
     {
         /* Get an index for a free block in the material storage buffers */
-        m_materialsUBOBlockIndex = static_cast<uint32_t>(m_materialsDataStorage.getFree());
+        m_materialsUBOBlockIndex = static_cast<uint32_t>(m_materialsDataStorage->getFree());
         /* Get pointer to free block */
-        m_data = m_materialsDataStorage.getBlock(m_materialsUBOBlockIndex);
+        m_data = m_materialsDataStorage->getBlock(m_materialsUBOBlockIndex);
     }
 
     ~VulkanMaterialStorage() 
     {
         /* Remove block index from the buffers */
-        m_materialsDataStorage.remove(m_materialsUBOBlockIndex);
+        m_materialsDataStorage->remove(m_materialsUBOBlockIndex);
     }
 
     uint32_t getUBOBlockIndex() const {
@@ -31,11 +31,11 @@ public:
     }
 
     uint32_t getBlockSizeAligned() const {
-        return m_materialsDataStorage.getBlockSizeAligned();
+        return m_materialsDataStorage->getBlockSizeAligned();
     }
 
 protected:
-    VulkanDynamicUBO<T>& m_materialsDataStorage;
+    std::shared_ptr<VulkanDynamicUBO<T>> m_materialsDataStorage;
     uint32_t m_materialsUBOBlockIndex = -1;
     T * m_data = nullptr;
 };
@@ -75,7 +75,7 @@ public:
         float emissive, 
         VkDevice device,
         VkDescriptorSetLayout descriptorLayout,
-        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO);
+        std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO);
 
     glm::vec4& albedo() override;
     glm::vec4 getAlbedo() const override;
@@ -120,7 +120,7 @@ public:
         float emissive,
         VkDevice device,
         VkDescriptorSetLayout descriptorLayout,
-        VulkanDynamicUBO<MaterialData>& materialsDynamicUBO);
+        std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO);
 
     glm::vec4& albedo() override;
     glm::vec4 getAlbedo() const override;

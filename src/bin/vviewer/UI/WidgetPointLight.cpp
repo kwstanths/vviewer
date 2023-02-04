@@ -6,11 +6,9 @@
 
 #include "UIUtils.hpp"
 
-WidgetPointLight::WidgetPointLight(QWidget * parent, std::shared_ptr<PointLight> light) : QWidget(parent)
+WidgetPointLight::WidgetPointLight(QWidget * parent, ComponentPointLight& lightComponent) : QWidget(parent), m_lightComponent(lightComponent)
 {
-    m_light = light;
-
-    m_widgetLightMaterial = new WidgetLightMaterial(this, light);
+    m_widgetLightMaterial = new WidgetLightMaterial(this, m_lightComponent.light);
 
     QGroupBox* lightGroupBox = new QGroupBox("Point Light");
     QVBoxLayout* layoutLight = new QVBoxLayout();

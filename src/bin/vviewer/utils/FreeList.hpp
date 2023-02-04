@@ -1,7 +1,8 @@
 #ifndef __FreeList__
 #define __FreeList__
 
-#include<list>
+#include <unordered_set>
+#include <vector>
 
 class FreeList {
 public:
@@ -13,10 +14,37 @@ public:
 
 	bool isFull() const;
 
+	void clear();
+
 private:
 	size_t m_end;
 	size_t m_nElements;
-	std::list<size_t> m_freeElements;
+	std::unordered_set<size_t> m_freeElements;
+};
+
+template<typename T>
+class FreeBlockList : public FreeList
+{
+public:
+	FreeBlockList(size_t nElements): FreeList(nElements)
+	{
+		m_blocks.resize(nElements);
+	}
+
+	T* add(const T& t)
+	{
+		size_t index = getFree();
+		m_blocks[index] = t;
+		return &m_blocks[index];
+	}
+
+	size_t getIndex(T * t)
+	{
+		return (t - &m_blocks[0]);
+	}
+
+private:
+	std::vector<T> m_blocks;
 };
 
 #endif

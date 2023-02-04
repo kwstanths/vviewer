@@ -20,7 +20,7 @@ std::string copyFileToDirectoryAndGetFileName(std::string file, std::string dire
     QFile sourceFile(QString::fromStdString(file));
     QString destination = QString::fromStdString(directory) + QFileInfo(sourceFile.fileName()).fileName();
     bool ret = sourceFile.copy(destination);
-    if (!ret)
+    if (!ret && sourceFile.errorString() != "Destination file exists")
     {
         utils::ConsoleWarning("Can't export file: " + file + " with error: " + sourceFile.errorString().toStdString());
     }
@@ -266,18 +266,18 @@ void parseSceneObject(rapidjson::Document& d,
 
     addTransform(d, sceneObjectEntry, sceneObject->m_localTransform);
 
-    bool hasMeshComponent = sceneObject->has(ComponentType::MESH);
-    bool hasMaterialComponent = sceneObject->has(ComponentType::MATERIAL);
-    bool hasLightComponent = sceneObject->has(ComponentType::POINT_LIGHT);
-    bool isMatEmissive = isMaterialEmissive(sceneObject->get<Material>(ComponentType::MATERIAL).get());
+    bool hasMeshComponent = sceneObject->has<ComponentMesh>();
+    bool hasMaterialComponent = sceneObject->has<ComponentMaterial>();
+    bool hasLightComponent = sceneObject->has<ComponentPointLight>();
 
     if (hasMeshComponent && hasMaterialComponent)
     {
-        std::string materialName = sceneObject->get<Material>(ComponentType::MATERIAL)->m_name;
+        std::string materialName = sceneObject->get<ComponentMaterial>().material->m_name;
         
-        Material* mat = sceneObject->get<Material>(ComponentType::MATERIAL).get();
+        Material* mat = sceneObject->get<ComponentMaterial>().material.get();
         materials.insert(mat);
         
+        bool isMatEmissive = isMaterialEmissive(sceneObject->get<ComponentMaterial>().material.get());
         if (!isMatEmissive)
         {
             addMesh(d, sceneObjectEntry, sceneObject, meshDirectory, materialName);
@@ -288,7 +288,7 @@ void parseSceneObject(rapidjson::Document& d,
 
     if (hasLightComponent)
     {
-        Light * light = sceneObject->get<PointLight>(ComponentType::POINT_LIGHT).get();
+        Light * light = sceneObject->get<ComponentPointLight>().light.get();
         lightMaterials.insert(light->lightMaterial.get());
 
         addAnalyticalLight(d, sceneObjectEntry, light, "POINT");
@@ -336,7 +336,7 @@ void addMeshComponent(rapidjson::Document& d,
 	std::string materialName)
 {
     /* Get the mesh component */
-    const Mesh * mesh = sceneObject->get<Mesh>(ComponentType::MESH).get();
+    const Mesh * mesh = sceneObject->get<ComponentMesh>().mesh.get();
 
     /* Copy the mesh model file to the mesh folder, and get a file path relative to the scene file */
     std::string relativePathName = "meshes/" + copyFileToDirectoryAndGetFileName(mesh->m_meshModel->getName(), meshDirectory);

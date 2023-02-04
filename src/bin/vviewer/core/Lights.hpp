@@ -29,9 +29,9 @@ struct DirectionalLight : public Light
     DirectionalLight(Transform t, std::shared_ptr<LightMaterial>& lm) : Light(lm), transform(t) {};
 };
 
-struct PointLight : public Light, public Component
+struct PointLight : public Light
 {
-    PointLight(std::shared_ptr<LightMaterial>& lm): Light(lm), Component(ComponentType::POINT_LIGHT) {};
+    PointLight(std::shared_ptr<LightMaterial>& lm): Light(lm) {};
 };
 
 static float squareFalloff(glm::vec3 a, glm::vec3 b) 

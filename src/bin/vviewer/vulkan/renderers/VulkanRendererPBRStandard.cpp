@@ -419,7 +419,7 @@ void VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
 
 std::shared_ptr<VulkanMaterialPBRStandard> VulkanRendererPBR::createMaterial(std::string name,
     glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
-    VulkanDynamicUBO<MaterialData>& materialsUBO)
+    std::shared_ptr<VulkanDynamicUBO<MaterialData>>& materialsUBO)
 {
     AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
     if (instance.isPresent(name)) {
@@ -447,10 +447,10 @@ void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
     {
         VulkanSceneObject* object = static_cast<VulkanSceneObject*>(objects[i].get());
         
-        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->get<Mesh>(ComponentType::MESH).get());
+        const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(object->get<ComponentMesh>().mesh.get());
         if (vkmesh == nullptr) continue;
         
-        VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(object->get<Material>(ComponentType::MATERIAL).get());
+        VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(object->get<ComponentMaterial>().material.get());
         /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         
@@ -502,10 +502,10 @@ void VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
     
     VulkanSceneObject* vobject = static_cast<VulkanSceneObject*>(object.get());
-    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->get<Mesh>(ComponentType::MESH).get());
+    const VulkanMesh* vkmesh = static_cast<const VulkanMesh*>(vobject->get<ComponentMesh>().mesh.get());
     if (vkmesh == nullptr) return;
         
-    VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(vobject->get<Material>(ComponentType::MATERIAL).get());
+    VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(vobject->get<ComponentMaterial>().material.get());
     /* Check if material parameters have changed for that imageIndex descriptor set */
     if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         

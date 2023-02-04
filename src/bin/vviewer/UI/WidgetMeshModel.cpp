@@ -10,23 +10,15 @@
 
 #include "UIUtils.hpp"
 
-WidgetMeshModel::WidgetMeshModel(QWidget * parent, std::shared_ptr<SceneObject> sceneObject) : QWidget(parent)
+WidgetMeshModel::WidgetMeshModel(QWidget * parent, ComponentMesh& meshComponent) : QWidget(parent), m_meshComponent(meshComponent)
 {
-    m_sceneObject = sceneObject;
-
-    if (!sceneObject->has(ComponentType::MESH))
-    {
-        throw std::runtime_error("WidgetMeshModel(): Object doesn't have a mesh component");
-    }
-    m_meshModel = sceneObject->get<Mesh>(ComponentType::MESH)->m_meshModel;
+    m_meshModel = meshComponent.mesh->m_meshModel;
 
     QGroupBox * boxPickModel = new QGroupBox(tr("Mesh Model"));
 
     m_models = new QComboBox();
     m_models->addItems(getImportedModels());
-    if (sceneObject != nullptr) {
-        m_models->setCurrentText(QString::fromStdString(m_meshModel->getName()));
-    }
+    m_models->setCurrentText(QString::fromStdString(m_meshModel->getName()));
     connect(m_models, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshModelChangedSlot(int)));    
     QHBoxLayout * layoutPickModel = new QHBoxLayout();
     layoutPickModel->addWidget(new QLabel("Model: "));
@@ -38,9 +30,7 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, std::shared_ptr<SceneObject> 
 
     m_meshes = new QComboBox();
     m_meshes->addItems(getModelMeshes(m_meshModel));
-    if (sceneObject != nullptr) {
-        m_meshes->setCurrentText(QString::fromStdString(sceneObject->get<Mesh>(ComponentType::MESH)->m_name));
-    }
+    m_meshes->setCurrentText(QString::fromStdString(meshComponent.mesh->m_name));
     connect(m_meshes, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshChangedSlot(int)));    
     QHBoxLayout * layoutPickMesh = new QHBoxLayout();
     layoutPickMesh->addWidget(new QLabel("Mesh: "));
@@ -102,7 +92,7 @@ void WidgetMeshModel::onMeshChangedSlot(int)
     {
         if (itr->m_name == selectedMesh)
         {
-            m_sceneObject->assign(itr);
+            m_meshComponent.mesh = itr;
         }
     }
 }

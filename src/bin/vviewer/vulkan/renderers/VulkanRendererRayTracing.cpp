@@ -142,7 +142,7 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
         auto so = sceneObjects[i];
         auto transform = sceneObjectMatrices[i];
 
-        const VulkanMesh* mesh = reinterpret_cast<const VulkanMesh*>(so->get<Mesh>(ComponentType::MESH).get());
+        const VulkanMesh* mesh = reinterpret_cast<const VulkanMesh*>(so->get<ComponentMesh>().mesh.get());
         if (mesh != nullptr)
         {
             AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f));

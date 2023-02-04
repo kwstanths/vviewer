@@ -26,7 +26,7 @@ public:
 
     std::shared_ptr<VulkanMaterialLambert> createMaterial(std::string name,
         glm::vec4 albedo, float ao, float emissive,
-        VulkanDynamicUBO<MaterialData>& materialsUBO);
+        std::shared_ptr<VulkanDynamicUBO<MaterialData>>& materialsUBO);
 
     /**
      * @brief Render objects with the base pass, IBL + directional light + selection info

@@ -271,21 +271,21 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     m_layoutControls->addWidget(m_selectedObjectWidgetName);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
 
-    if (sceneObject->has(ComponentType::MESH))
+    if (sceneObject->has<ComponentMesh>())
     {
-        m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneObject);
+        m_selectedObjectWidgetMeshModel = new WidgetMeshModel(nullptr, sceneObject->get<ComponentMesh>());
         m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
     }
 
-    if (sceneObject->has(ComponentType::MATERIAL)) 
+    if (sceneObject->has<ComponentMaterial>()) 
     {
-        m_selectedObjectWidgetMaterial = new WidgetMaterial(nullptr, sceneObject);
+        m_selectedObjectWidgetMaterial = new WidgetMaterial(nullptr, sceneObject->get<ComponentMaterial>());
         m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
     }
 
-    if (sceneObject->has(ComponentType::POINT_LIGHT)) 
+    if (sceneObject->has<ComponentPointLight>()) 
     {
-        m_selectedObjectWidgetPointLight = new WidgetPointLight(nullptr, sceneObject->get<PointLight>(ComponentType::POINT_LIGHT));
+        m_selectedObjectWidgetPointLight = new WidgetPointLight(nullptr, sceneObject->get<ComponentPointLight>());
         m_layoutControls->addWidget(m_selectedObjectWidgetPointLight);
     }
 
@@ -345,8 +345,9 @@ void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string 
     for (auto& m : modelMeshes) {
         auto child = createEmptySceneObject(m->m_name, Transform(), parentItem);
 
-        child.second->assign(m);
-        child.second->assign(instanceMaterials.get(material));
+        auto& cm = ComponentManager::getInstance();
+        child.second->assign(cm.create<ComponentMesh>(m));
+        child.second->assign(cm.create<ComponentMaterial>(instanceMaterials.get(material)));
     }
 }
 
@@ -490,10 +491,12 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 addSceneObjectMeshes(child.first, sceneFolder + object.mesh->path, object.mesh->material);
             } else{
                 /* Else, assign the corresponding mesh to the object */
+                auto& cm = ComponentManager::getInstance();
+
                 auto mesh = meshModel->getMeshes()[object.mesh->submesh];
-                newSceneObject.second->assign(mesh);
+                newSceneObject.second->assign(cm.create<ComponentMesh>(mesh));
                 auto mat = instanceMaterials.get(object.mesh->material);
-                newSceneObject.second->assign(mat);
+                newSceneObject.second->assign(cm.create<ComponentMaterial>(mat));
             }
         } else {
             utils::ConsoleWarning("addImportedSceneObject(): Failed to import: " + sceneFolder + object.mesh->path);
@@ -521,8 +524,8 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 lightMaterial = instanceLightMaterials.get(object.light->lightMaterial);
             }
 
-            auto pl = std::make_shared<PointLight>(lightMaterial);
-            newSceneObject.second->assign(pl);
+            auto& cm = ComponentManager::getInstance();
+            newSceneObject.second->assign(cm.create<ComponentPointLight>(std::make_shared<PointLight>(lightMaterial)));
         } else if (object.light->type == ImportedSceneLightType::MESH)
         {
             /* Import the light material as emissive material if needed */
@@ -552,8 +555,10 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 } else{
                     /* Else, assign the corresponding mesh to the object */
                     auto mesh = meshModel->getMeshes()[object.light->submesh];
-                    newSceneObject.second->assign(mesh);
-                    newSceneObject.second->assign(instanceMaterials.get(object.light->lightMaterial));
+
+                    auto& cm = ComponentManager::getInstance();
+                    newSceneObject.second->assign(cm.create<ComponentMesh>(mesh));
+                    newSceneObject.second->assign(cm.create<ComponentMaterial>(instanceMaterials.get(object.light->lightMaterial)));
                 }
             } else {
                 utils::ConsoleWarning("addImportedSceneObject(): Failed to import: " + sceneFolder + object.mesh->path);
@@ -716,28 +721,9 @@ void MainWindow::onImportScene()
     /* Delete previous materials */
     AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
     instanceMaterials.reset();
-
     /* Delete previous light materials */
     AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
     instanceLightMaterials.reset();
-
-    /* Create and set the environment map */
-    if (env.path != "") {
-        auto envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
-        if (envMap) {
-            utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
-
-            AssetManager<std::string, MaterialSkybox>& materials = AssetManager<std::string, MaterialSkybox>::getInstance();
-            auto material = materials.get("skybox");
-
-            material->setMap(envMap);
-
-            m_widgetEnvironment->updateMaps();
-            m_widgetEnvironment->setEnvironmentType(EnvironmentType::HDRI);
-        } 
-    } else {
-        m_widgetEnvironment->setEnvironmentType(EnvironmentType::SOLID_COLOR, true);
-    }
 
     /* Remove old scene */
     m_sceneGraphWidget->blockSignals(true);
@@ -762,6 +748,24 @@ void MainWindow::onImportScene()
         auto directionalLightMaterial = std::make_shared<LightMaterial>("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F);
         instanceLightMaterials.add(directionalLightMaterial->name, directionalLightMaterial);
         m_scene->getDirectionalLight()->lightMaterial = directionalLightMaterial;
+    }
+
+    /* Create and set the environment map */
+    if (env.path != "") {
+        auto envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
+        if (envMap) {
+            utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
+
+            AssetManager<std::string, MaterialSkybox>& materials = AssetManager<std::string, MaterialSkybox>::getInstance();
+            auto material = materials.get("skybox");
+
+            material->setMap(envMap);
+
+            m_widgetEnvironment->updateMaps();
+            m_widgetEnvironment->setEnvironmentType(EnvironmentType::HDRI);
+        } 
+    } else {
+        m_widgetEnvironment->setEnvironmentType(EnvironmentType::SOLID_COLOR, true);
     }
 
     utils::ConsoleInfo(sceneFile.toStdString() + " imported");
@@ -846,8 +850,9 @@ void MainWindow::onAddPointLightRootSlot()
     }
 
     auto lightMat = lightMaterials.get("DefaultPointLightMaterial");
-    auto light = std::make_shared<PointLight>(lightMat);
-    newObject.second->assign(light);
+
+    auto& cm = ComponentManager::getInstance();
+    newObject.second->assign(cm.create<ComponentPointLight>(std::make_shared<PointLight>(lightMat)));
 }
 
 void MainWindow::onAddPointLightSlot()
@@ -873,7 +878,9 @@ void MainWindow::onAddPointLightSlot()
 
     auto lightMat = lightMaterials.get("DefaultPointLightMaterial");
     auto light = std::make_shared<PointLight>(lightMat);
-    newObject.second->assign(light);
+
+    auto& cm = ComponentManager::getInstance();
+    newObject.second->assign(cm.create<ComponentPointLight>(std::make_shared<PointLight>(lightMat)));
 }
 
 void MainWindow::onRenderSceneSlot()
@@ -1001,14 +1008,13 @@ void MainWindow::onStartUpInitialization()
     auto plane = instanceModels.get("assets/models/plane.obj");
     auto lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
-    {
-        auto o = createEmptySceneObject("sphere", Transform(), nullptr);
-        o.second->assign(sphere->getMeshes()[0]);
-        o.second->assign(mat);
-    }
-    {
-        auto o = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
-        o.second->assign(plane->getMeshes()[0]);
-        o.second->assign(mat);
-    }
+    auto& cm = ComponentManager::getInstance();
+    
+    auto o1 = createEmptySceneObject("sphere", Transform(), nullptr);
+    o1.second->assign(cm.create<ComponentMesh>(sphere->getMeshes()[0]));
+    o1.second->assign(cm.create<ComponentMaterial>(mat));
+    
+    auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
+    o2.second->assign(cm.create<ComponentMesh>(plane->getMeshes()[0]));
+    o2.second->assign(cm.create<ComponentMaterial>(mat));
 }

@@ -30,7 +30,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     float e,
     VkDevice device,
     VkDescriptorSetLayout descriptorLayout,
-    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO)
+    std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO)
     : VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), VulkanMaterialDescriptor(descriptorLayout), MaterialPBRStandard(name)
 {
     albedo() = a;
@@ -205,9 +205,9 @@ bool VulkanMaterialPBRStandard::updateDescriptorSets(VkDevice device, size_t ima
 bool VulkanMaterialPBRStandard::updateDescriptorSet(VkDevice device, size_t index)
 {
     VkDescriptorBufferInfo bufferInfoMaterial{};
-    bufferInfoMaterial.buffer = m_materialsDataStorage.getBuffer(index);
+    bufferInfoMaterial.buffer = m_materialsDataStorage->getBuffer(index);
     bufferInfoMaterial.offset = 0;
-    bufferInfoMaterial.range = m_materialsDataStorage.getBlockSizeAligned();
+    bufferInfoMaterial.range = m_materialsDataStorage->getBlockSizeAligned();
     VkWriteDescriptorSet descriptorWriteMaterial{};
     descriptorWriteMaterial.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWriteMaterial.dstSet = m_descriptorSets[index];
@@ -265,7 +265,7 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     float e, 
     VkDevice device, 
     VkDescriptorSetLayout descriptorLayout,
-    VulkanDynamicUBO<MaterialData>& materialsDynamicUBO)
+    std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO)
     :VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), VulkanMaterialDescriptor(descriptorLayout), MaterialLambert(name)
 {
     albedo() = a;
@@ -399,9 +399,9 @@ bool VulkanMaterialLambert::updateDescriptorSets(VkDevice device, size_t images)
 bool VulkanMaterialLambert::updateDescriptorSet(VkDevice device, size_t index)
 {
     VkDescriptorBufferInfo bufferInfoMaterial{};
-    bufferInfoMaterial.buffer = m_materialsDataStorage.getBuffer(index);
+    bufferInfoMaterial.buffer = m_materialsDataStorage->getBuffer(index);
     bufferInfoMaterial.offset = 0;
-    bufferInfoMaterial.range = m_materialsDataStorage.getBlockSizeAligned();
+    bufferInfoMaterial.range = m_materialsDataStorage->getBlockSizeAligned();
     VkWriteDescriptorSet descriptorWriteMaterial{};
     descriptorWriteMaterial.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWriteMaterial.dstSet = m_descriptorSets[index];

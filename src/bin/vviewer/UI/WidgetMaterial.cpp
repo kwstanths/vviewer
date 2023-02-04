@@ -11,10 +11,9 @@
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetMaterialLambert.hpp"
 
-WidgetMaterial::WidgetMaterial(QWidget* parent, std::shared_ptr<SceneObject> sceneObject)
+WidgetMaterial::WidgetMaterial(QWidget* parent, ComponentMaterial& materialComponent) : m_materialComponent(materialComponent)
 {
-    m_sceneObject = sceneObject;
-    auto material = sceneObject->get<Material>(ComponentType::MATERIAL);
+    auto material = materialComponent.material;
 
     m_comboBoxAvailableMaterials = new QComboBox();
     updateAvailableMaterials();
@@ -38,7 +37,7 @@ void WidgetMaterial::updateAvailableMaterials()
     m_comboBoxAvailableMaterials->clear();
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
     m_comboBoxAvailableMaterials->blockSignals(false);
-    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_sceneObject->get<Material>(ComponentType::MATERIAL)->m_name));
+    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_materialComponent.material->m_name));
 }
 
 void WidgetMaterial::createUI(QWidget* widgetMaterial)
@@ -90,5 +89,5 @@ void WidgetMaterial::onMaterialChanged(int)
     }
 
     createUI(createMaterialWidget(material));
-    m_sceneObject->assign(material);
+    m_materialComponent.material = material;
 }

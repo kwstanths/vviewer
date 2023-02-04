@@ -21,9 +21,10 @@
 #include "vulkan/VulkanUtils.hpp"
 
 VulkanRenderer::VulkanRenderer(QVulkanWindow * window, VulkanScene* scene) : 
-    m_window(window), m_materialsUBO(100)
+    m_window(window)
 {
     m_scene = scene;
+    m_materialsUBO = std::make_shared<VulkanDynamicUBO<MaterialData>>(100);
 }
 
 void VulkanRenderer::preInitResources()
@@ -61,7 +62,7 @@ void VulkanRenderer::initResources()
     /* Initialize dynamic uniform buffers for model matrix data */
     m_scene->m_modelDataDynamicUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
     /* Initialize dynamic uniform buffers for material data */
-    m_materialsUBO.init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
+    m_materialsUBO->init(m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
 
     /* Create descriptor set layouts for scene and model data */
     createDescriptorSetsLayouts();
@@ -210,8 +211,8 @@ void VulkanRenderer::releaseSwapChainResources()
         m_devFunctions->vkDestroyBuffer(m_device, m_scene->m_modelDataDynamicUBO.getBuffer(i), nullptr);
         m_devFunctions->vkFreeMemory(m_device, m_scene->m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
 
-        m_devFunctions->vkDestroyBuffer(m_device, m_materialsUBO.getBuffer(i), nullptr);
-        m_devFunctions->vkFreeMemory(m_device, m_materialsUBO.getBufferMemory(i), nullptr);
+        m_devFunctions->vkDestroyBuffer(m_device, m_materialsUBO->getBuffer(i), nullptr);
+        m_devFunctions->vkFreeMemory(m_device, m_materialsUBO->getBufferMemory(i), nullptr);
 
         m_attachmentColorForwardOutput[i].destroy(m_device);
         m_attachmentHighlightForwardOutput[i].destroy(m_device);
@@ -247,7 +248,7 @@ void VulkanRenderer::releaseSwapChainResources()
 void VulkanRenderer::releaseResources()
 {
     m_scene->m_modelDataDynamicUBO.destroyCPUMemory();
-    m_materialsUBO.destroyCPUMemory();
+    m_materialsUBO->destroyCPUMemory();
 
     /* Destroy texture data */
     {
@@ -367,9 +368,9 @@ void VulkanRenderer::buildFrame()
         std::vector<std::shared_ptr<SceneObject>> pointLights;
         for (auto& itr : sceneObjects)
         {
-            if (itr->has(ComponentType::MATERIAL)) 
+            if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) 
             {
-                switch (itr->get<Material>(ComponentType::MATERIAL)->getType())
+                switch (itr->get<ComponentMaterial>().material->getType())
                 {
                 case MaterialType::MATERIAL_PBR_STANDARD:
                     pbrStandardObjects.push_back(itr);
@@ -382,7 +383,7 @@ void VulkanRenderer::buildFrame()
                 }
             }
 
-            if (itr->has(ComponentType::POINT_LIGHT)){
+            if (itr->has<ComponentPointLight>()){
                 pointLights.push_back(itr);
             }
 
@@ -407,7 +408,7 @@ void VulkanRenderer::buildFrame()
         /* Draw additive pass for all point lights in the scene */
         for (auto& pl : pointLights)
         {
-            auto light = pl->get<PointLight>(ComponentType::POINT_LIGHT);
+            auto light = pl->get<ComponentPointLight>().light;
             PushBlockForwardAddPass t;
             t.lightColor = light->lightMaterial->intensity * glm::vec4(light->lightMaterial->color, 0);
             t.lightPosition = glm::vec4(pl->getWorldPosition(), 0);
@@ -1327,7 +1328,7 @@ bool VulkanRenderer::createUniformBuffers()
     }
 
     m_scene->m_modelDataDynamicUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
-    m_materialsUBO.createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
+    m_materialsUBO->createBuffers(m_physicalDevice, m_device, m_window->swapChainImageCount());
 
     return true;
 }
@@ -1339,9 +1340,9 @@ bool VulkanRenderer::updateUniformBuffers(size_t index)
     /* Flush material data changes to GPU */
     {
         void* data;
-        m_devFunctions->vkMapMemory(m_device, m_materialsUBO.getBufferMemory(index), 0, m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks(), 0, &data);
-        memcpy(data, m_materialsUBO.getBlock(0), m_materialsUBO.getBlockSizeAligned() * m_materialsUBO.getNBlocks());
-        m_devFunctions->vkUnmapMemory(m_device, m_materialsUBO.getBufferMemory(index));
+        m_devFunctions->vkMapMemory(m_device, m_materialsUBO->getBufferMemory(index), 0, m_materialsUBO->getBlockSizeAligned() * m_materialsUBO->getNBlocks(), 0, &data);
+        memcpy(data, m_materialsUBO->getBlock(0), m_materialsUBO->getBlockSizeAligned() * m_materialsUBO->getNBlocks());
+        m_devFunctions->vkUnmapMemory(m_device, m_materialsUBO->getBufferMemory(index));
     }
 
     return true;
