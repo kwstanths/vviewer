@@ -2,11 +2,12 @@
 #define __VulkanRendererRayTracing_hpp__
 
 #include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanCore.hpp"
 #include "vulkan/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanScene.hpp"
-#include "vulkan/VulkanDataStructs.hpp"
+#include "vulkan/VulkanStructs.hpp"
 #include <cstdint>
 #include <vulkan/vulkan_core.h>
 
@@ -23,12 +24,11 @@ class VulkanRendererRayTracing {
     friend class VulkanRenderer;
 public:
 
-    VulkanRendererRayTracing();
+    VulkanRendererRayTracing(VulkanCore& vkcore);
 
-    void initResources(VkPhysicalDevice physicalDevice, VkFormat colorFormat);
-    void initSwapChainResources(VkExtent2D swapchainExtent);
+    void initResources(VkFormat colorFormat);
 
-    void releaseSwapChainResources();
+    void releaseRenderResources();
     void releaseResources();
 
     bool isInitialized() const;
@@ -64,18 +64,18 @@ private:
         PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
     } m_devF;
 
+    VulkanCore& m_vkcore;
+
     /* Device data */
     bool m_isInitialized = false;
-    VkPhysicalDevice m_physicalDevice{};
     VkPhysicalDeviceProperties m_physicalDeviceProperties;
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR  m_rayTracingPipelineProperties{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures{};
 
     /* Logical device data */
     VkDevice m_device{};
-    uint32_t m_queueFamilyIndex{};
-    VkQueue m_queue{};
-    VkCommandPool m_commandPool{};
+    VkCommandPool m_commandPool;
+    VkQueue m_queue;
 
     /* Accelerations structure data */
     struct AccelerationStructure {
@@ -84,6 +84,7 @@ private:
         VkDeviceMemory memory;
         VkBuffer buffer;
     };
+    std::vector<std::pair<VkBuffer, VkDeviceMemory>> m_meshBuffers;
     std::vector<std::pair<AccelerationStructure, glm::mat4>> m_blas;
     AccelerationStructure m_tlas;
 
@@ -132,7 +133,7 @@ private:
     VkDeviceMemory m_shaderRayMissBufferMemory;
 
     static std::vector<const char *> getRequiredExtensions();
-    static bool checkRayTracingSupport(VkPhysicalDevice device, std::vector<VkExtensionProperties>& availableExtensions);
+    static bool checkRayTracingSupport(VkPhysicalDevice device);
 
     uint64_t getBufferDeviceAddress(VkDevice device, VkBuffer buffer);
     

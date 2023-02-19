@@ -4,7 +4,7 @@
 #include <core/Materials.hpp>
 
 #include "VulkanDynamicUBO.hpp"
-#include "VulkanDataStructs.hpp"
+#include "VulkanStructs.hpp"
 #include "VulkanTexture.hpp"
 
 /* A class to handle the dynamic UBO storage for a material */

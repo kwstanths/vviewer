@@ -3,7 +3,7 @@
 
 #include <core/SceneObject.hpp>
 #include <vulkan/VulkanDynamicUBO.hpp>
-#include <vulkan/VulkanDataStructs.hpp>
+#include <vulkan/VulkanStructs.hpp>
 #include <vulkan/VulkanMesh.hpp>
 
 class VulkanSceneObject : public SceneObject

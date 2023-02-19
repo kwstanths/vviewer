@@ -9,7 +9,7 @@
 
 #include "VulkanMaterials.hpp"
 #include "VulkanSceneObject.hpp"
-#include "VulkanDataStructs.hpp"
+#include "VulkanStructs.hpp"
 #include "VulkanDynamicUBO.hpp"
 
 class VulkanScene : public Scene {

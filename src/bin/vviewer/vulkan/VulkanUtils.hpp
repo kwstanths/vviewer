@@ -11,29 +11,36 @@
 #include <vulkan/vulkan_core.h>
 #include "core/Mesh.hpp"
 #include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanStructs.hpp"
 
 /* vulkan timeouts in nanoseconds */
+static const uint64_t VULKAN_TIMEOUT_100MS  = 100000000;
 static const uint64_t VULKAN_TIMEOUT_1S     = 1000000000;
 static const uint64_t VULKAN_TIMEOUT_10S    = 10000000000;
 static const uint64_t VULKAN_TIMEOUT_100S   = 100000000000;
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData)
-{
-    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) 
-    {
-        //std::cerr << "Debug callback: " << pCallbackData->pMessage << std::endl;
-    }
-    return VK_FALSE;
-}
 
 inline uint32_t alignedSize(uint32_t value, uint32_t alignment)
 {
     return (value + alignment - 1) & ~(alignment - 1);
 }
+
+VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+/**
+ * @brief Find the queue family indices for a physical device
+ * 
+ * @param device 
+ * @return * Find 
+ */
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+
+/**
+ * @brief Get supported swapchain information
+ * 
+ * @param device 
+ * @return SwapChainDetails 
+ */
+SwapChainDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 /**
     Find a memory type to be used with VkMemoryAllocateInfo

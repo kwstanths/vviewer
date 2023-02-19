@@ -1,5 +1,5 @@
-#ifndef __SceneImport_hpp__
-#define __SceneImport_hpp__
+#ifndef __Import_hpp__
+#define __Import_hpp__
 
 #include <string>
 #include <vector>
@@ -126,5 +126,12 @@ glm::vec3 parseVec3(const rapidjson::Value& o, std::string name, glm::vec3 defau
 glm::vec4 parseVec4(const rapidjson::Value& o, std::string name, glm::vec4 defaultValue);
 glm::quat parseRotation(const rapidjson::Value& o, std::string name, glm::quat defaultValue);
 
+
+struct ImportedZipMaterial 
+{
+	std::string name;
+	std::string albedoTexture = "", roughnessTexture = "", metallicTexture = "", normalTexture = "";
+};
+ImportedZipMaterial importZipMaterial(std::string filename);
 
 #endif

@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <vector>
 
+/* A class that manages free indices between 0 and nElements */
 class FreeList {
 public:
 	FreeList(size_t nElements);
@@ -22,6 +23,7 @@ private:
 	std::unordered_set<size_t> m_freeElements;
 };
 
+/* A class that manages nElements blocks */
 template<typename T>
 class FreeBlockList : public FreeList
 {

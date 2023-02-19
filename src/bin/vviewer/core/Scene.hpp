@@ -9,7 +9,7 @@
 #include "Camera.hpp"
 #include "Lights.hpp"
 #include "SceneObject.hpp"
-#include "SceneExport.hpp"
+#include "Export.hpp"
 
 
 enum class EnvironmentType {

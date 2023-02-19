@@ -1,9 +1,27 @@
 #ifndef __VulkanDataStructs_hpp__
 #define __VulkanDataStructs_hpp__
 
+#include <optional>
+#include <vector>
+
 #include <glm/glm.hpp>
 
 #include "IncludeVulkan.hpp"
+
+/* Stores supported queue family indices */
+struct QueueFamilyIndices {
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+
+    bool isComplete();
+};
+
+/* Stores supported swapchain details */
+struct SwapChainDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
 
 struct ModelData {
     glm::mat4 m_modelMatrix;
@@ -32,9 +50,9 @@ struct PushBlockForward3DUI {
 
 struct StorageImage
 {
-    VkDeviceMemory memory;
-    VkImage image;
-    VkImageView view;
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    VkImage image = VK_NULL_HANDLE;
+    VkImageView view = VK_NULL_HANDLE;
     VkFormat format;
 
     void destroy(VkDevice device);

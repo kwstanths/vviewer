@@ -34,7 +34,7 @@ public:
 protected:
     int m_width;
     int m_height;
-    float m_aspectRatio;
+    float m_aspectRatio = 1.F;
 
 private:
     Transform m_transform;
@@ -67,8 +67,8 @@ protected:
     virtual void setWindowSize(int width, int height) override;
 
 private:
-    float m_orthoWidth;
-    float m_orthoHeight;
+    float m_orthoWidth = 10.F;
+    float m_orthoHeight = 10.F;
 
 };
 

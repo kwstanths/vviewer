@@ -17,7 +17,7 @@
 #include "WidgetMeshModel.hpp"
 
 #include "core/Scene.hpp"
-#include "core/SceneImport.hpp"
+#include "core/Import.hpp"
 #include "vulkan/VulkanWindow.hpp"
 
 Q_DECLARE_METATYPE(std::shared_ptr<SceneObject>)
@@ -99,6 +99,9 @@ private:
             const std::unordered_map<std::string, ImportedSceneMaterial>& materials,
             const std::unordered_map<std::string, ImportedSceneLightMaterial>& lights,
             QTreeWidgetItem * parentItem, std::string sceneFolder);
+
+
+    bool event(QEvent* event) override;
 
 private slots:
     /* Import a model */

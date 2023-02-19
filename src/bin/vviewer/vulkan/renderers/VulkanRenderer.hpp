@@ -4,9 +4,8 @@
 #include <optional>
 #include <vector>
 #include <chrono>
+#include <thread>
 
-#include <qvulkanwindow.h>
-#include <qvulkanfunctions.h>
 #include <qfuturewatcher.h>
 
 #include <utils/Console.hpp>
@@ -19,7 +18,9 @@
 #include "core/Lights.hpp"
 
 #include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanDataStructs.hpp"
+#include "vulkan/VulkanCore.hpp"
+#include "vulkan/VulkanSwapchain.hpp"
+#include "vulkan/VulkanStructs.hpp"
 #include "vulkan/VulkanScene.hpp"
 #include "vulkan/VulkanMesh.hpp"
 #include "vulkan/VulkanUtils.hpp"
@@ -35,18 +36,24 @@
 #include "VulkanRendererRayTracing.hpp"
 
 
-class VulkanRenderer : public QVulkanWindowRenderer {
+/* Main renderer */
+class VulkanRenderer {
 public:
-    VulkanRenderer(QVulkanWindow* w, VulkanScene* scene);
+    enum class STATUS {
+        RUNNING,
+        IDLE,
+        STOPPED,
+    };
 
-    void preInitResources() override;
-    void initResources() override;
-    void initSwapChainResources() override;
+    VulkanRenderer(VulkanCore& vkcore, VulkanScene* scene);
 
-    void releaseSwapChainResources() override;
-    void releaseResources() override;
+    void initResources();
+    void initSwapChainResources(VulkanSwapchain * swapchain);
 
-    void startNextFrame() override;
+    void releaseSwapChainResources();
+    void releaseResources();
+
+    void renderFrame();
     
     VulkanScene* getActiveScene() const;
 
@@ -70,48 +77,34 @@ public:
     std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
     std::shared_ptr<Material> createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
+    void waitIdle();
+    void startRenderLoop();
+    void renderLoopActive(bool active);
+    void exitRenderLoop();
+
 private:
-
-    bool createDebugCallback();
-    void destroyDebugCallback();
-
-    bool pickPhysicalDevice();
-    bool isPhysicalDeviceSuitable(const VkPhysicalDeviceProperties& deviceProperties);
-    VkSampleCountFlagBits getMaxUsableSampleCount(const VkPhysicalDeviceProperties& deviceProperties);
-
     /* Graphics pipeline */
     bool createRenderPasses();
     bool createFrameBuffers();
+    bool createCommandBuffers();
+    bool createSyncObjects();
 
     /* Descriptor resources */
     bool createDescriptorSetsLayouts();
     bool createUniformBuffers();
-    bool updateUniformBuffers(size_t index);
+    bool updateUniformBuffers(size_t imageIndex);
     bool createDescriptorPool(size_t nMaterials);
     bool createDescriptorSets();
     bool createColorSelectionTempImage();
     
     /* Render */
-    void buildFrame();
+    void buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
 private:
-    /* Qt vulkan data */
-    QVulkanWindow * m_window;
-    QVulkanFunctions * m_functions;
-    QVulkanDeviceFunctions * m_devFunctions;
-    
-    /* Swpachain data */
-    VkExtent2D m_swapchainExtent;
-    VkFormat m_swapchainFormat;
+    VulkanCore& m_vkcore;
+    VulkanSwapchain * m_swapchain = VK_NULL_HANDLE;
 
-    /* Device data */
-    VkDebugUtilsMessengerEXT m_debugCallback;
-    VkPhysicalDevice m_physicalDevice;
-    VkDevice m_device;
-    VkPhysicalDeviceProperties m_physicalDeviceProperties;
-    VkSampleCountFlagBits m_msaaSamples;
-
-    /* Render pipeline data  */
+    /* Render pass and framebuffers */
     VkRenderPass m_renderPassForward;
     VkRenderPass m_renderPassPost;
     VkRenderPass m_renderPassUI;
@@ -131,6 +124,14 @@ private:
     VulkanRenderer3DUI m_renderer3DUI;
     VulkanRendererRayTracing m_rendererRayTracing;
 
+    /* Render commands and synchronization data */
+    std::vector<VkCommandBuffer> m_commandBuffer;
+    std::vector<VkSemaphore> m_semaphoreImageAvailable;
+    std::vector<VkSemaphore> m_semaphoreRenderFinished;
+    std::vector<VkFence> m_fenceInFlight;
+    const uint32_t MAX_FRAMES_IN_FLIGHT = 3;
+    uint32_t m_currentFrame = 0;
+
     /* Active scene */
     VulkanScene * m_scene = nullptr;
     std::chrono::steady_clock::time_point m_frameTimePrev;
@@ -147,6 +148,12 @@ private:
     std::shared_ptr<VulkanDynamicUBO<MaterialData>> m_materialsUBO;
 
     std::shared_ptr<SceneObject> m_selectedObject = nullptr;
+
+    /* Render loop data */
+    std::thread m_renderThread;
+    bool m_renderLoopActive = false;
+    bool m_renderLoopExit = false;
+    STATUS m_status = STATUS::IDLE;
 };
 
 #endif

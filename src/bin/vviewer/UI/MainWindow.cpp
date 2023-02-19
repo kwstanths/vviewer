@@ -20,7 +20,8 @@
 #include "WidgetMaterial.hpp"
 #include "UIUtils.hpp"
 
-#include "core/SceneImport.hpp"
+#include "core/AssetManager.hpp"
+#include "core/Import.hpp"
 #include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
@@ -35,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     QWidget * widget_main = new QWidget();
     widget_main->setLayout(layout_main);
 
-    m_scene = m_vulkanWindow->m_scene;
+    m_scene = m_vulkanWindow->getScene();
 
     createMenu();
 
@@ -44,7 +45,7 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
 }
 
 MainWindow::~MainWindow() {
-
+    
 }
 
 QWidget * MainWindow::initLeftPanel()
@@ -64,49 +65,7 @@ QWidget * MainWindow::initLeftPanel()
 
 QWidget * MainWindow::initVulkanWindowWidget()
 {
-    const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-    };
-
-    QByteArrayList layers;
-    QByteArrayList extensions;
-
-    /* Debug layers and extensions */
-#ifdef NDEBUG
-
-#else
-    layers.append("VK_LAYER_KHRONOS_validation");
-    extensions.append("VK_EXT_debug_utils");
-#endif
-
-    extensions.append("VK_KHR_get_physical_device_properties2");
-
-    m_vulkanInstance = new QVulkanInstance();
-    m_vulkanInstance->setLayers(layers);
-    m_vulkanInstance->setExtensions(extensions);
-    m_vulkanInstance->setApiVersion(QVersionNumber(1, 2));
-
-    if (!m_vulkanInstance->create()) {
-        utils::Console(utils::DebugLevel::FATAL, "Failed to create Vulkan instance: " +
-            std::to_string(m_vulkanInstance->errorCode()));
-    }
-
-    QVulkanInfoVector<QVulkanLayer> supportedLayers = m_vulkanInstance->supportedLayers();
-    for (auto layer : layers) {
-        if (!supportedLayers.contains(layer)) {
-            utils::Console(utils::DebugLevel::WARNING, "Layer not found: " + std::string(layer));
-        }
-    }
-
-    QVulkanInfoVector<QVulkanExtension> supportedExtensions = m_vulkanInstance->supportedExtensions();
-    for (auto extension : extensions) {
-        if (!supportedExtensions.contains(extension)) {
-            utils::Console(utils::DebugLevel::WARNING, "Extension not found: " + std::string(extension));
-        }
-    }
-
     m_vulkanWindow = new VulkanWindow();
-    m_vulkanWindow->setVulkanInstance(m_vulkanInstance);
     connect(m_vulkanWindow, &VulkanWindow::sceneObjectSelected, this, &MainWindow::onSelectedSceneObjectChangedSlot3DScene);
     connect(m_vulkanWindow, &VulkanWindow::initializationFinished, this, &MainWindow::onStartUpInitialization);
 
@@ -120,7 +79,7 @@ QWidget * MainWindow::initControlsWidget()
     QWidget * widget_controls = new QWidget();
     widget_controls->setLayout(m_layoutControls);
     
-    m_widgetEnvironment = new WidgetEnvironment(nullptr, m_vulkanWindow->m_scene);
+    m_widgetEnvironment = new WidgetEnvironment(nullptr, m_vulkanWindow->getScene());
 
     QTabWidget* widget_tab = new QTabWidget();
     widget_tab->insertTab(0, widget_controls, "Scene object");
@@ -259,7 +218,7 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     /* Set selection to new item */
     m_selectedPreviousWidgetItem = selectedItem;
     sceneObject->m_isSelected = true;
-    m_vulkanWindow->m_renderer->setSelectedObject(sceneObject);
+    m_vulkanWindow->getRenderer()->setSelectedObject(sceneObject);
 
     /* Create UI elements for its components, connect them to slots, and add them to the controls widget */
     m_selectedObjectWidgetName = new WidgetName(nullptr, QString(sceneObject->m_name.c_str()));
@@ -300,7 +259,7 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem* treeItem)
     m_scene->removeSceneObject(selectedObject);
 
     /* Set selected to null */
-    m_vulkanWindow->m_renderer->setSelectedObject(nullptr);
+    m_vulkanWindow->getRenderer()->setSelectedObject(nullptr);
     m_selectedPreviousWidgetItem = nullptr;
 
     /* Remove from m_treeWidgetItems recursively */
@@ -404,7 +363,7 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
 
         auto light = std::make_shared<DirectionalLight>(object.transform, lightMaterial);
     
-        m_vulkanWindow->m_scene->setDirectionalLight(light);
+        m_scene->setDirectionalLight(light);
         m_widgetEnvironment->setDirectionalLight(light);
         return true;
     }
@@ -438,15 +397,15 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             }
             else if (m.type == ImportedSceneMaterialType::DIFFUSE)
             {
-                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     mat->setAlbedoTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     mat->setNormalTexture(tex);
                 }
 
@@ -455,25 +414,25 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             } 
             else if (m.type == ImportedSceneMaterialType::DISNEY)
             {
-                auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_vulkanWindow->m_renderer->createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
+                auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_vulkanWindow->getRenderer()->createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     if (tex != nullptr) mat->setAlbedoTexture(tex);
                 }
                 mat->roughness() = m.roughness;
                 if (m.roughnessTexture != "") {
-                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setRoughnessTexture(tex);
                 }
                 mat->metallic() = m.metallic;
                 if (m.metallicTexture != "") {
-                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setMetallicTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    auto tex = m_vulkanWindow->m_renderer->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setNormalTexture(tex);
                 }
                 
@@ -482,7 +441,7 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             }
         }
 
-        auto meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.mesh->path);
+        auto meshModel = m_vulkanWindow->getRenderer()->createVulkanMeshModel(sceneFolder + object.mesh->path);
         if (meshModel != nullptr) {
             if (object.mesh->submesh == -1 || object.mesh->submesh >= meshModel->getMeshes().size()) {
                 /* Imported mesh defines a path, but not a submesh. Create a new node and add all the meshes as children */
@@ -540,12 +499,12 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 const ImportedSceneLightMaterial& lm = importedSceneLightMaterialItr->second;
 
                 /* Create a simple emissive lambert for the the mesh light material */
-                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->m_renderer->createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
                 mat->albedo() = glm::vec4(lm.color, 1);
                 mat->emissive() = lm.intensity;
             }
 
-            auto meshModel = m_vulkanWindow->m_renderer->createVulkanMeshModel(sceneFolder + object.light->path);
+            auto meshModel = m_vulkanWindow->getRenderer()->createVulkanMeshModel(sceneFolder + object.light->path);
             if (meshModel != nullptr) {
                 if (object.light->submesh == -1 || object.light->submesh >= meshModel->getMeshes().size()) {
                     /* Imported mesh defines a path, but not a submesh. Create a new node and add all the meshes as children */
@@ -576,6 +535,21 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
     return directionalLightDetected;
 }
 
+bool MainWindow::event(QEvent* event) 
+{
+
+    if (event->type() == QEvent::WindowActivate) 
+    {
+        m_vulkanWindow->windowActicated(true);      
+    } 
+    if (event->type() == QEvent::WindowDeactivate)
+    {
+        m_vulkanWindow->windowActicated(false);      
+    }
+
+    return QMainWindow::event(event);
+}
+
 void MainWindow::onImportModelSlot()
 {   
     QString filename = QFileDialog::getOpenFileName(this,
@@ -584,7 +558,7 @@ void MainWindow::onImportModelSlot()
 
     if (filename == "") return;
 
-    bool ret = m_vulkanWindow->m_renderer->createVulkanMeshModel(filename.toStdString()) != nullptr;
+    bool ret = m_vulkanWindow->getRenderer()->createVulkanMeshModel(filename.toStdString()) != nullptr;
  
     if (ret) {
         utils::ConsoleInfo("Model imported");
@@ -599,7 +573,7 @@ void MainWindow::onImportTextureColorSlot()
 
     for (const auto& texture : filenames)
     {
-        auto tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
+        auto tex = m_vulkanWindow->getRenderer()->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
         if (tex) {
             utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
         }
@@ -614,7 +588,7 @@ void MainWindow::onImportTextureOtherSlot()
 
     for (const auto& texture : filenames)
     {
-        auto tex = m_vulkanWindow->m_renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
+        auto tex = m_vulkanWindow->getRenderer()->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
         if (tex) {
             utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
         }
@@ -629,7 +603,7 @@ void MainWindow::onImportTextureHDRSlot()
 
     if (filename == "") return;
 
-    auto tex = m_vulkanWindow->m_renderer->createTextureHDR(filename.toStdString());
+    auto tex = m_vulkanWindow->getRenderer()->createTextureHDR(filename.toStdString());
     if (tex) {
         utils::ConsoleInfo("Texture: " + filename.toStdString() + " imported");
         m_widgetEnvironment->updateMaps();
@@ -644,7 +618,7 @@ void MainWindow::onImportEnvironmentMap()
 
     if (filename == "") return;
 
-    auto envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(filename.toStdString());
+    auto envMap = m_vulkanWindow->getRenderer()->createEnvironmentMap(filename.toStdString());
     if (envMap) {
         utils::ConsoleInfo("Environment map: " + filename.toStdString() + " imported");
         m_widgetEnvironment->updateMaps();
@@ -659,8 +633,9 @@ void MainWindow::onImportMaterial()
     std::string materialName = dir.split('/').back().toStdString();
     std::string dirStd = dir.toStdString();
 
-    auto mat = m_vulkanWindow->importMaterial(materialName, dirStd);
-    if (mat != nullptr) {
+    auto material = m_vulkanWindow->importMaterial(materialName, dirStd);
+
+    if (material != nullptr) {
         if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
     }
 }
@@ -683,6 +658,7 @@ void MainWindow::onImportMaterialZipStackSlot()
 
 void MainWindow::onImportScene()
 {    
+
     /* Select json file */
     QString sceneFile = QFileDialog::getOpenFileName(this,
         tr("Import scene"), "./assets/scenes/",
@@ -703,6 +679,9 @@ void MainWindow::onImportScene()
         utils::ConsoleWarning("Unable to open scene file: " + std::string(e.what()));
         return;
     }
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->getRenderer()->waitIdle();
 
     /* Set camera */
     {
@@ -752,7 +731,7 @@ void MainWindow::onImportScene()
 
     /* Create and set the environment map */
     if (env.path != "") {
-        auto envMap = m_vulkanWindow->m_renderer->createEnvironmentMap(sceneFolder + env.path);
+        auto envMap = m_vulkanWindow->getRenderer()->createEnvironmentMap(sceneFolder + env.path);
         if (envMap) {
             utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
 
@@ -768,6 +747,7 @@ void MainWindow::onImportScene()
         m_widgetEnvironment->setEnvironmentType(EnvironmentType::SOLID_COLOR, true);
     }
 
+    m_vulkanWindow->getRenderer()->renderLoopActive(true);
     utils::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
 
@@ -831,7 +811,7 @@ void MainWindow::onAddMaterialSlot()
         return;
     }
 
-    auto material = m_vulkanWindow->m_renderer->createMaterial(materialName, dialog->m_selectedMaterialType);
+    auto material = m_vulkanWindow->getRenderer()->createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     } else {
@@ -885,7 +865,7 @@ void MainWindow::onAddPointLightSlot()
 
 void MainWindow::onRenderSceneSlot()
 {
-    auto RTrenderer = m_vulkanWindow->m_renderer->getRayTracingRenderer();
+    auto RTrenderer = m_vulkanWindow->getRenderer()->getRayTracingRenderer();
     
     if (!RTrenderer->isInitialized()) {
         int ret = QMessageBox::warning(this, tr("Error"),
@@ -908,7 +888,7 @@ void MainWindow::onRenderSceneSlot()
     RTrenderer->setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
     delete dialog;
 
-    auto ret = m_vulkanWindow->m_renderer->renderRT();
+    auto ret = m_vulkanWindow->getRenderer()->renderRT();
 
     if (ret) {
         std::string fileExtension = (RTrenderer->getRenderOutputFileType() == OutputFileType::PNG) ? "png" : "hdr";
@@ -1003,18 +983,22 @@ void MainWindow::onStartUpInitialization()
     AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
     AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
 
-    auto mat = instanceMaterials.get("defaultMaterial");
-    auto sphere = instanceModels.get("assets/models/uvsphere.obj");
-    auto plane = instanceModels.get("assets/models/plane.obj");
-    auto lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
+    try {
+        auto mat = instanceMaterials.get("defaultMaterial");
+        auto sphere = instanceModels.get("assets/models/uvsphere.obj");
+        auto plane = instanceModels.get("assets/models/plane.obj");
+        auto lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
-    auto& cm = ComponentManager::getInstance();
-    
-    auto o1 = createEmptySceneObject("sphere", Transform(), nullptr);
-    o1.second->assign(cm.create<ComponentMesh>(sphere->getMeshes()[0]));
-    o1.second->assign(cm.create<ComponentMaterial>(mat));
-    
-    auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
-    o2.second->assign(cm.create<ComponentMesh>(plane->getMeshes()[0]));
-    o2.second->assign(cm.create<ComponentMaterial>(mat));
+        auto& cm = ComponentManager::getInstance();
+        
+        auto o1 = createEmptySceneObject("sphere", Transform(), nullptr);
+        o1.second->assign(cm.create<ComponentMesh>(sphere->getMeshes()[0]));
+        o1.second->assign(cm.create<ComponentMaterial>(mat));
+        
+        auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
+        o2.second->assign(cm.create<ComponentMesh>(plane->getMeshes()[0]));
+        o2.second->assign(cm.create<ComponentMaterial>(mat));
+    } catch (std::exception& e) {
+        utils::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
+    }
 }

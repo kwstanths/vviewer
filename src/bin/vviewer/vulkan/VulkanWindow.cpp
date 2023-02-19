@@ -1,16 +1,20 @@
 #include "VulkanWindow.hpp"
 
-#include <qevent.h>
-#include <qapplication.h>
+#include <QPlatformSurfaceEvent>
 
 #include <zip.h>
 
-VulkanWindow::VulkanWindow()
+VulkanWindow::VulkanWindow() : QWindow()
 {
-    m_scene = new VulkanScene(150);
+    setSurfaceType(QSurface::SurfaceType::VulkanSurface);
 
-    /*OrthographicCamera * camera = new OrthographicCamera();
-    camera->setOrthoWidth(10.f);*/
+    setVulkanInstance(m_vkcore.instance());
+
+    m_scene = new VulkanScene(200);
+    m_swapchain = new VulkanSwapchain(m_vkcore);
+    m_renderer = new VulkanRenderer(m_vkcore, m_scene);
+
+    /* Create camera */
     auto camera = std::make_shared<PerspectiveCamera>();
     camera->setFoV(60.0f);
     
@@ -25,9 +29,6 @@ VulkanWindow::VulkanWindow()
     m_updateCameraTimer->setInterval(16);
     connect(m_updateCameraTimer, SIGNAL(timeout()), this, SLOT(onUpdateCamera()));
     m_updateCameraTimer->start();
-
-    /* Make sure graphics resources are not released and then reinitialized when the window becomes unexposed */
-    setFlags(QVulkanWindow::PersistentResources);
 }
 
 VulkanWindow::~VulkanWindow()
@@ -35,11 +36,256 @@ VulkanWindow::~VulkanWindow()
 
 }
 
-QVulkanWindowRenderer * VulkanWindow::createRenderer()
+VulkanScene* VulkanWindow::getScene() const
 {
-    m_renderer = new VulkanRenderer(this, m_scene);
+    return m_scene;
+}
 
+float VulkanWindow::delta() const
+{
+    if (m_renderer != nullptr)
+    {
+        return m_renderer->deltaTime();
+    }
+    return 0.016f;
+}
+
+void VulkanWindow::windowActicated(bool activated)
+{
+    m_renderer->renderLoopActive(activated);
+}
+
+VulkanRenderer * VulkanWindow::getRenderer() const
+{
     return m_renderer;
+}
+
+void VulkanWindow::releaseResources()
+{
+    m_renderer->releaseSwapChainResources();
+    m_renderer->releaseResources();
+    m_swapchain->destroy();
+}
+
+void VulkanWindow::exposeEvent(QExposeEvent* event)
+{
+    if(isExposed() && !m_initialized)
+    {
+        /* Perform first time initialization the first time the surface window becomes available */
+        VkSurfaceKHR surface = m_vkcore.instance()->surfaceForWindow(this);
+        
+        m_vkcore.init(surface);
+        m_swapchain->init(static_cast<uint32_t>(size().width()), static_cast<uint32_t>(size().height()));
+
+        m_renderer->initResources();
+        m_renderer->initSwapChainResources(m_swapchain);
+
+        m_initialized =  true;
+
+        emit initializationFinished();
+
+        m_renderer->renderLoopActive(true);
+    }
+}
+
+bool VulkanWindow::event(QEvent* event) 
+{
+    switch(event->type())
+    {
+    case QEvent::PlatformSurface:
+    {
+        if (static_cast<QPlatformSurfaceEvent *>(event)->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed)
+        {
+            m_renderer->exitRenderLoop();
+            m_renderer->waitIdle();
+
+            releaseResources();
+        }
+    }
+    default:
+        break;
+    }
+
+    return QWindow::event(event);
+}
+
+void VulkanWindow::resizeEvent(QResizeEvent *ev) 
+{
+    m_scene->getCamera()->setWindowSize(ev->size().width(), ev->size().height());
+
+    /* If the swapchain has been initialized, then we have to recreate it for the new size */
+    if (m_swapchain->isInitialized())
+    {
+        /* Stop the render loop and wait for idle */
+        m_renderer->renderLoopActive(false);
+        m_renderer->waitIdle();
+
+        /* Destroy old and create new swapchain */
+        m_swapchain->destroy();
+        m_swapchain->init(static_cast<uint32_t>(ev->size().width()), static_cast<uint32_t>(ev->size().height()));
+        
+        /* reinitialize swapchain based resources */
+        m_renderer->releaseSwapChainResources();
+        m_renderer->initSwapChainResources(m_swapchain);
+
+        /* continue the render loop */
+        m_renderer->renderLoopActive(true);
+    }
+}
+
+void VulkanWindow::keyPressEvent(QKeyEvent *ev) 
+{
+    m_keysPressed[ev->key()] = true;
+}
+
+void VulkanWindow::keyReleaseEvent(QKeyEvent *ev) 
+{
+    m_keysPressed[ev->key()] = false;
+}
+
+void VulkanWindow::mousePressEvent(QMouseEvent *ev) 
+{
+    if (ev->button() == Qt::LeftButton) {
+        /* Select object from scene */
+        QPointF pos = ev->position();
+        QSize size = this->size();
+        ID objectID = IDGeneration::fromRGB(m_renderer->selectObject(pos.x() / size.width(), pos.y() / size.height()));
+
+        m_selectedPressed = objectID;
+    }
+}
+
+void VulkanWindow::mouseReleaseEvent(QMouseEvent *ev) 
+{
+    std::shared_ptr<SceneObject> object = m_scene->getSceneObject(m_selectedPressed);
+    m_selectedPressed = 0;
+
+    if (object.get() == nullptr) return;
+
+    emit sceneObjectSelected(object);
+}
+
+void VulkanWindow::mouseMoveEvent(QMouseEvent *ev) 
+{
+    /* Ignore first movement */
+    if (m_mousePosFirst) {
+        m_mousePos = ev->position();
+        m_mousePosFirst = false;
+        return;
+    }
+ 
+    /* Calculate diff with the previous position */
+    QPointF newMousePos = ev->position();
+    QPointF mousePosDiff = newMousePos - m_mousePos;
+    m_mousePos = newMousePos;
+
+    /* Perform camera movement if right button is pressed */
+    Qt::MouseButtons buttons = ev->buttons();
+    Transform& cameraTransform = m_scene->getCamera()->getTransform();
+    if (buttons & Qt::RightButton) {
+        float mouseSensitivity = 0.125f * delta();
+        
+        /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
+        glm::quat rotation = cameraTransform.getRotation();
+        glm::quat qPitch = glm::angleAxis(-(float)mousePosDiff.y() * mouseSensitivity, glm::vec3(1, 0, 0));
+        glm::quat qYaw = glm::angleAxis(-(float)mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
+
+        cameraTransform.setRotation(glm::normalize(qYaw * rotation * qPitch));
+    }
+
+    /* Perform movement of selected object if left button is pressed */
+    float movementSensitivity = 1.25f * delta();
+    if (buttons & Qt::LeftButton) {
+        std::shared_ptr<SceneObject> selectedObject = m_renderer->getSelectedObject();
+        if (selectedObject.get() == nullptr) return;
+
+        Transform& selectedObjectTransform = selectedObject->m_localTransform;
+        glm::vec3 position = selectedObjectTransform.getPosition();
+
+        /* Get the basis vectors of the selected object */
+        glm::vec3 objectX = selectedObject->m_modelMatrix * glm::vec4(Transform::X, 0);
+        glm::vec3 objectY = selectedObject->m_modelMatrix * glm::vec4(Transform::Y, 0);
+        glm::vec3 objectZ = selectedObject->m_modelMatrix * glm::vec4(Transform::Z, 0);
+        
+        switch (m_selectedPressed)
+        {
+        case static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW):
+        {
+            /* Find if right vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
+            float cameraRightDot = glm::dot(objectX, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(objectX, cameraTransform.getUp());
+            float movement;
+            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
+                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+            }
+            else {
+                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
+            }
+            position += selectedObjectTransform.getX() * movementSensitivity * movement;
+            
+            selectedObjectTransform.setPosition(position);
+            emit selectedObjectPositionChanged();
+            break;
+        }
+        case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW):
+        {
+            /* Find if forward vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
+            float cameraRightDot = glm::dot(objectZ, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(objectZ, cameraTransform.getUp());
+            float movement;
+            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
+                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+            }
+            else {
+                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
+            }
+            position += selectedObjectTransform.getZ() * movementSensitivity * movement;
+
+            selectedObjectTransform.setPosition(position);
+            emit selectedObjectPositionChanged();
+            break;
+        }
+        case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW):
+        {
+            /* Find if up vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
+            float cameraRightDot = glm::dot(objectY, cameraTransform.getRight());
+            float cameraUpDot = glm::dot(objectY, cameraTransform.getUp());
+            float movement;
+            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
+                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
+            }
+            else {
+                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
+            }
+            position += selectedObjectTransform.getY() * movementSensitivity * movement;
+
+            selectedObjectTransform.setPosition(position);
+            emit selectedObjectPositionChanged();
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+
+void VulkanWindow::onUpdateCamera()
+{
+    /* FPS style camera movement */
+    float cameraDefaultSpeed = 3.f;
+    float cameraFastSpeed = 12.f;
+
+    float speed = cameraDefaultSpeed;
+    if (m_keysPressed[Qt::Key_Shift]) speed = cameraFastSpeed;
+
+    float finalSpeed = speed * delta();
+    Transform& cameraTransform = m_scene->getCamera()->getTransform();
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.getForward() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_Q]) * cameraTransform.getUp() * finalSpeed);
+    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * finalSpeed);
 }
 
 std::shared_ptr<Material> VulkanWindow::importMaterial(std::string name, std::string stackDirectory)
@@ -177,178 +423,4 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
     mat->m_path = filename;
 
     return mat;
-}
-
-float VulkanWindow::delta() const
-{
-    if (m_renderer != nullptr)
-    {
-        return m_renderer->deltaTime();
-    }
-    return 0.016f;
-}
-
-void VulkanWindow::resizeEvent(QResizeEvent * ev)
-{
-    m_scene->getCamera()->setWindowSize(ev->size().width(), ev->size().height());
-}
-
-void VulkanWindow::keyPressEvent(QKeyEvent * ev)
-{
-    m_keysPressed[ev->key()] = true;
-}
-
-void VulkanWindow::keyReleaseEvent(QKeyEvent * ev)
-{
-    m_keysPressed[ev->key()] = false;
-}
-
-void VulkanWindow::mousePressEvent(QMouseEvent * ev)
-{
-    if (ev->button() == Qt::LeftButton) {
-        /* Select object from scene */
-        QPointF pos = ev->position();
-        QSize size = this->size();
-        ID objectID = IDGeneration::fromRGB(m_renderer->selectObject(pos.x() / size.width(), pos.y() / size.height()));
-
-        m_selectedPressed = objectID;
-    }
-}
-
-void VulkanWindow::mouseReleaseEvent(QMouseEvent * ev)
-{
-    std::shared_ptr<SceneObject> object = m_scene->getSceneObject(m_selectedPressed);
-    m_selectedPressed = 0;
-
-    if (object.get() == nullptr) return;
-
-    emit sceneObjectSelected(object);
-}
-
-void VulkanWindow::mouseMoveEvent(QMouseEvent * ev)
-{
-    /* Ignore first movement */
-    if (m_mousePosFirst) {
-        m_mousePos = ev->position();
-        m_mousePosFirst = false;
-        return;
-    }
- 
-    /* Calculate diff with the previous position */
-    QPointF newMousePos = ev->position();
-    QPointF mousePosDiff = newMousePos - m_mousePos;
-    m_mousePos = newMousePos;
-
-    /* Perform camera movement if right button is pressed */
-    Qt::MouseButtons buttons = ev->buttons();
-    Transform& cameraTransform = m_scene->getCamera()->getTransform();
-    if (buttons & Qt::RightButton) {
-        float mouseSensitivity = 0.125f * delta();
-        
-        /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
-        glm::quat rotation = cameraTransform.getRotation();
-        glm::quat qPitch = glm::angleAxis(-(float)mousePosDiff.y() * mouseSensitivity, glm::vec3(1, 0, 0));
-        glm::quat qYaw = glm::angleAxis(-(float)mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
-
-        cameraTransform.setRotation(glm::normalize(qYaw * rotation * qPitch));
-    }
-
-    /* Perform movement of selected object if left button is pressed */
-    float movementSensitivity = 1.25f * delta();
-    if (buttons & Qt::LeftButton) {
-        std::shared_ptr<SceneObject> selectedObject = m_renderer->getSelectedObject();
-        if (selectedObject.get() == nullptr) return;
-
-        Transform& selectedObjectTransform = selectedObject->m_localTransform;
-        glm::vec3 position = selectedObjectTransform.getPosition();
-
-        /* Get the basis vectors of the selected object */
-        glm::vec3 objectX = selectedObject->m_modelMatrix * glm::vec4(Transform::X, 0);
-        glm::vec3 objectY = selectedObject->m_modelMatrix * glm::vec4(Transform::Y, 0);
-        glm::vec3 objectZ = selectedObject->m_modelMatrix * glm::vec4(Transform::Z, 0);
-        
-        switch (m_selectedPressed)
-        {
-        case static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW):
-        {
-            /* Find if right vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
-            float cameraRightDot = glm::dot(objectX, cameraTransform.getRight());
-            float cameraUpDot = glm::dot(objectX, cameraTransform.getUp());
-            float movement;
-            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
-                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
-            }
-            else {
-                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
-            }
-            position += selectedObjectTransform.getX() * movementSensitivity * movement;
-            
-            selectedObjectTransform.setPosition(position);
-            emit selectedObjectPositionChanged();
-            break;
-        }
-        case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW):
-        {
-            /* Find if forward vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
-            float cameraRightDot = glm::dot(objectZ, cameraTransform.getRight());
-            float cameraUpDot = glm::dot(objectZ, cameraTransform.getUp());
-            float movement;
-            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
-                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
-            }
-            else {
-                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
-            }
-            position += selectedObjectTransform.getZ() * movementSensitivity * movement;
-
-            selectedObjectTransform.setPosition(position);
-            emit selectedObjectPositionChanged();
-            break;
-        }
-        case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW):
-        {
-            /* Find if up vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
-            float cameraRightDot = glm::dot(objectY, cameraTransform.getRight());
-            float cameraUpDot = glm::dot(objectY, cameraTransform.getUp());
-            float movement;
-            if (std::abs(cameraRightDot) > std::abs(cameraUpDot)) {
-                movement = ((cameraRightDot > 0) ? 1 : -1) * (float)mousePosDiff.x();
-            }
-            else {
-                movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
-            }
-            position += selectedObjectTransform.getY() * movementSensitivity * movement;
-
-            selectedObjectTransform.setPosition(position);
-            emit selectedObjectPositionChanged();
-            break;
-        }
-        default:
-            break;
-        }
-    }
-}
-
-void VulkanWindow::onUpdateCamera()
-{
-    /* FPS style camera movement */
-    float cameraDefaultSpeed = 3.f;
-    float cameraFastSpeed = 12.f;
-
-    float speed = cameraDefaultSpeed;
-    if (m_keysPressed[Qt::Key_Shift]) speed = cameraFastSpeed;
-
-    float finalSpeed = speed * delta();
-    Transform& cameraTransform = m_scene->getCamera()->getTransform();
-    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.getForward() * finalSpeed);
-    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * finalSpeed);
-    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * finalSpeed);
-    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_A]) * cameraTransform.getRight() * finalSpeed);
-    cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_Q]) * cameraTransform.getUp() * finalSpeed);
-    cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_E]) * cameraTransform.getUp() * finalSpeed);
-}
-
-void VulkanWindow::vulkanInitializationFinished()
-{
-    emit initializationFinished();
 }

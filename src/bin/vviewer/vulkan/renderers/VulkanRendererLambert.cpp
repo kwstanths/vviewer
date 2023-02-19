@@ -8,7 +8,7 @@
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
 #include "vulkan/VulkanMesh.hpp"
-#include "vulkan/VulkanDataStructs.hpp"
+#include "vulkan/VulkanStructs.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 
 VulkanRendererLambert::VulkanRendererLambert()
