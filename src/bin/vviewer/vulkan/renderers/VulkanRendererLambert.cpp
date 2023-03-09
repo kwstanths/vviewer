@@ -207,8 +207,8 @@ bool VulkanRendererLambert::createGraphicsPipelineBasePass()
 {
     /* ----------------- SHADERS STAGE ------------------- */
     /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standardVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/lambertFragBase.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standard.vert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/lambertBase.frag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */
@@ -370,8 +370,8 @@ bool VulkanRendererLambert::createGraphicsPipelineAddPass()
 {
     /* ----------------- SHADERS STAGE ------------------- */
     /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standardVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/lambertFragAdd.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standard.vert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/lambertAdd.frag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */

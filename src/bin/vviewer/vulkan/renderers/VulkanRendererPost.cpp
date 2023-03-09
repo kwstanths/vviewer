@@ -86,8 +86,8 @@ bool VulkanRendererPost::createGraphicsPipeline()
 {
     /* ----------------- SHADERS STAGE ------------------- */
        /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/quadVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/highlightFrag.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/quad.vert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/highlight.frag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */

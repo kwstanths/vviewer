@@ -397,7 +397,7 @@ VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPo
     return commandBuffer;
 }
 
-void endSingleTimeCommands(VkDevice device, 
+VkResult endSingleTimeCommands(VkDevice device, 
     VkCommandPool commandPool, 
     VkQueue queue, 
     VkCommandBuffer commandBuffer,
@@ -424,15 +424,14 @@ void endSingleTimeCommands(VkDevice device,
     VkResult res = vkWaitForFences(device, 1, &fence, VK_TRUE, timeout);
     if (res == VK_SUCCESS)
     {
-        vkQueueWaitIdle(queue);
         vkDestroyFence(device, fence, nullptr);
         if (freeCommandBuffer)
         {
             vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
         }
-    } else {
-        utils::ConsoleCritical("endSingleTimeCommands(): Queue submission failed with code: " + std::to_string(res));
     }
+    
+    return res;
 }
 
 void transitionImageLayout(VkDevice device, 

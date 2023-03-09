@@ -195,7 +195,7 @@ bool VulkanCore::createLogicalDevice()
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<std::pair<uint32_t, uint32_t>> uniqueQueueFamilies = { {m_queueFamilyIndices.graphicsFamily.value(), 2}, {m_queueFamilyIndices.presentFamily.value(), 1}};
-    std::vector<float> priorities(2, 1.0F); // All priority 1
+    std::vector<float> priorities = {1.0F, 0.F};    // First queue will be the render queue and it will have the highest priority
     for (auto queueFamily : uniqueQueueFamilies) {
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -259,8 +259,8 @@ bool VulkanCore::createLogicalDevice()
     }
 
     m_vkDeviceFunctions = m_vulkanInstance->deviceFunctions(m_device);
-    m_vkDeviceFunctions->vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
-    m_vkDeviceFunctions->vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 1, &m_renderQueue);
+    m_vkDeviceFunctions->vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_renderQueue);
+    m_vkDeviceFunctions->vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 1, &m_graphicsQueue);
     m_vkDeviceFunctions->vkGetDeviceQueue(m_device, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
 
     return true;

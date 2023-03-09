@@ -1,27 +1,27 @@
-glslcLocation=${VULKAN_SDK}/bin/glslc
+compiler=${VULKAN_SDK}/bin/glslangValidator
 
-$glslcLocation standard.vert -o SPIRV/standardVert.spv
-$glslcLocation pbrBase.frag -o SPIRV/pbrFragBase.spv
-$glslcLocation pbrAdd.frag -o SPIRV/pbrFragAdd.spv
-$glslcLocation lambertBase.frag -o SPIRV/lambertFragBase.spv
-$glslcLocation lambertAdd.frag -o SPIRV/lambertFragAdd.spv
-$glslcLocation 3dui.vert -o SPIRV/3duiVert.spv
-$glslcLocation 3dui.frag -o SPIRV/3duiFrag.spv
+$compiler -V standard.vert.glsl -o SPIRV/standard.vert.spv
+$compiler -V pbrBase.frag.glsl -o SPIRV/pbrBase.frag.spv
+$compiler -V pbrAdd.frag.glsl -o SPIRV/pbrAdd.frag.spv
+$compiler -V lambertBase.frag.glsl -o SPIRV/lambertBase.frag.spv
+$compiler -V lambertAdd.frag.glsl -o SPIRV/lambertAdd.frag.spv
+$compiler -V 3dui.vert.glsl -o SPIRV/3dui.vert.spv
+$compiler -V 3dui.frag.glsl -o SPIRV/3dui.frag.spv
 
-$glslcLocation skybox/skybox.vert -o SPIRV/skyboxVert.spv
-$glslcLocation skybox/skybox.frag -o SPIRV/skyboxFrag.spv
-$glslcLocation skybox/skyboxFilterCube.vert -o SPIRV/skyboxFilterCubeVert.spv
-$glslcLocation skybox/skyboxCubemapWrite.frag -o SPIRV/skyboxCubemapWriteFrag.spv
-$glslcLocation skybox/skyboxCubemapIrradiance.frag -o SPIRV/skyboxCubemapIrradianceFrag.spv
-$glslcLocation skybox/skyboxCubemapPrefilteredMap.frag -o SPIRV/skyboxCubemapPrefilteredMapFrag.spv
+$compiler -V skybox/skybox.vert.glsl -o SPIRV/skybox.vert.spv
+$compiler -V skybox/skybox.frag.glsl -o SPIRV/skybox.frag.spv
+$compiler -V skybox/skyboxFilterCube.vert.glsl -o SPIRV/skyboxFilterCube.vert.spv
+$compiler -V skybox/skyboxCubemapWrite.frag.glsl -o SPIRV/skyboxCubemapWrite.frag.spv
+$compiler -V skybox/skyboxCubemapIrradiance.frag.glsl -o SPIRV/skyboxCubemapIrradiance.frag.spv
+$compiler -V skybox/skyboxCubemapPrefilteredMap.frag.glsl -o SPIRV/skyboxCubemapPrefilteredMap.frag.spv
 
-$glslcLocation quad.vert -o SPIRV/quadVert.spv
-$glslcLocation genBRDFLUT.frag -o SPIRV/genBRDFLUTFrag.spv
+$compiler -V quad.vert.glsl -o SPIRV/quad.vert.spv
+$compiler -V genBRDFLUT.frag.glsl -o SPIRV/genBRDFLUT.frag.spv
 
-$glslcLocation post/highlight.frag -o SPIRV/highlightFrag.spv
+$compiler -V post/highlight.frag.glsl -o SPIRV/highlight.frag.spv
 
-$glslcLocation --target-spv=spv1.4 rt/raygen.rgen -o SPIRV/rt/raygen.rgen.spv
-$glslcLocation --target-spv=spv1.4 rt/raychit.rchit -o SPIRV/rt/raychit.rchit.spv
-$glslcLocation --target-spv=spv1.4 rt/raymiss.rmiss -o SPIRV/rt/raymiss.rmiss.spv
-$glslcLocation --target-spv=spv1.4 rt/shadow.rmiss -o SPIRV/rt/shadow.rmiss.spv
+$compiler -V --target-env spirv1.4 rt/raygen.rgen.glsl -o SPIRV/rt/raygen.rgen.spv
+$compiler -V --target-env spirv1.4 rt/raychit.rchit.glsl -o SPIRV/rt/raychit.rchit.spv
+$compiler -V --target-env spirv1.4 rt/raymiss.rmiss.glsl -o SPIRV/rt/raymiss.rmiss.spv
+$compiler -V --target-env spirv1.4 rt/shadow.rmiss.glsl -o SPIRV/rt/shadow.rmiss.spv
 

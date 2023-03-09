@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive : enable
+
 #include "environmentMap.glsl"
 
 layout (location = 0) out vec4 outColor;

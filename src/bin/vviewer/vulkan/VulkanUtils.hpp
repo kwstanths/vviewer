@@ -152,7 +152,7 @@ bool copyBufferToImage(VkDevice device,
  * @return VkCommandBuffer 
  */
 VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
-void endSingleTimeCommands(VkDevice device, 
+VkResult endSingleTimeCommands(VkDevice device, 
     VkCommandPool commandPool, 
     VkQueue queue, 
     VkCommandBuffer commandBuffer,

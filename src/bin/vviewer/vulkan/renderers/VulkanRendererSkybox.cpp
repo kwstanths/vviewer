@@ -440,8 +440,8 @@ std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createCubemap(std::shared_p
             dynamicStates.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
             dynamicStates.flags = 0;
             /* Shaders */
-            auto vertexShaderCode = readSPIRV("shaders/SPIRV/skyboxFilterCubeVert.spv");
-            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skyboxCubemapWriteFrag.spv");
+            auto vertexShaderCode = readSPIRV("shaders/SPIRV/skyboxFilterCube.vert.spv");
+            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skyboxCubemapWrite.frag.spv");
             VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
             vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1125,8 +1125,8 @@ std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createIrradianceMap(std::sh
             dynamicStates.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
             dynamicStates.flags = 0;
             /* Shaders */
-            auto vertexShaderCode = readSPIRV("shaders/SPIRV/skyboxFilterCubeVert.spv");
-            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skyboxCubemapIrradianceFrag.spv");
+            auto vertexShaderCode = readSPIRV("shaders/SPIRV/skyboxFilterCube.vert.spv");
+            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skyboxCubemapIrradiance.frag.spv");
             VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
             vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1731,8 +1731,8 @@ std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createPrefilteredCubemap(st
             dynamicStates.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
             dynamicStates.flags = 0;
             /* Shaders */
-            auto vertexShaderCode = readSPIRV("shaders/SPIRV/skyboxFilterCubeVert.spv");
-            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skyboxCubemapPrefilteredMapFrag.spv");
+            auto vertexShaderCode = readSPIRV("shaders/SPIRV/skyboxFilterCube.vert.spv");
+            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skyboxCubemapPrefilteredMap.frag.spv");
             VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
             vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -2057,8 +2057,8 @@ bool VulkanRendererSkybox::createGraphicsPipeline()
 {
     /* ----------------- SHADERS STAGE ------------------- */
         /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/skyboxVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skyboxFrag.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/skybox.vert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/skybox.frag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */

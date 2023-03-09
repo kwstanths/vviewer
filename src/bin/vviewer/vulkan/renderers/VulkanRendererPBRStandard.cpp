@@ -276,8 +276,8 @@ void VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
             dynamicStates.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
             dynamicStates.flags = 0;
             /* Shaders */
-            auto vertexShaderCode = readSPIRV("shaders/SPIRV/quadVert.spv");
-            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/genBRDFLUTFrag.spv");
+            auto vertexShaderCode = readSPIRV("shaders/SPIRV/quad.vert.spv");
+            auto fragmentShaderCode = readSPIRV("shaders/SPIRV/genBRDFLUT.frag.spv");
             VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
             vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -579,8 +579,8 @@ bool VulkanRendererPBR::createGraphicsPipelineBasePass()
 {
     /* ----------------- SHADERS STAGE ------------------- */
     /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standardVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/pbrFragBase.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standard.vert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/pbrBase.frag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */
@@ -742,8 +742,8 @@ bool VulkanRendererPBR::createGraphicsPipelineAddPass()
 {
     /* ----------------- SHADERS STAGE ------------------- */
     /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standardVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/pbrFragAdd.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/standard.vert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/pbrAdd.frag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */

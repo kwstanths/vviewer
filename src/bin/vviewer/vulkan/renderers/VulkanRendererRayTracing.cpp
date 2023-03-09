@@ -1132,9 +1132,15 @@ void VulkanRendererRayTracing::render()
     /* Transition render result back to layout general */
     transitionImageLayout(cmdBuf, m_renderResult.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
 
-    endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true, VULKAN_TIMEOUT_100S);
+    VkResult res = endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true, VULKAN_TIMEOUT_100S);
+    if (res != VK_SUCCESS)
+    {
+        utils::ConsoleCritical("VulkanRendererRayTracing::render(): Job failed: " + std::to_string(res));
+    } else {
+        storeToDisk(m_renderResultOutputFileName, m_renderResultOutputFileType);
+    }
 
-    storeToDisk(m_renderResultOutputFileName, m_renderResultOutputFileType);
+    vkQueueWaitIdle(m_queue);
 }
 
 void VulkanRendererRayTracing::storeToDisk(std::string filename, OutputFileType type) const
@@ -1274,9 +1280,9 @@ std::vector<LightRT> VulkanRendererRayTracing::prepareSceneLights(const VulkanSc
 
     for(auto so : sceneObjects)
     {
-        auto pointLight = so->get<ComponentPointLight>().light;
-        if (pointLight != nullptr)
+        if (so->has<ComponentPointLight>())
         {
+            auto pointLight = so->get<ComponentPointLight>().light;
             sceneLights.push_back(LightRT());
             sceneLights.back().position = glm::vec4(so->getWorldPosition(), 0.F);
             sceneLights.back().color = glm::vec4(pointLight->lightMaterial->color * pointLight->lightMaterial->intensity, 0.F);

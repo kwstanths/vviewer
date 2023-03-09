@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive : enable
+
 #include "pbr.glsl"
 #include "lighting.glsl"
 #include "tonemapping.glsl"
@@ -31,19 +33,25 @@ layout(set = 2, binding = 0) uniform MaterialData {
 } materialData;
 layout(set = 2, binding = 1) uniform sampler2D materialTextures[4];
 
-layout(set = 3, binding = 1) uniform samplerCube skyboxIrradiance;
-
 layout(push_constant) uniform PushConsts {
-	layout (offset = 0) vec4 selected;
+	layout (offset = 0) vec4 lightPosition;
+    layout (offset = 16) vec4 lightColor;
 } pushConsts;
 
 void main() {
-
-	vec3 cameraPosition = getCameraPosition(sceneData.viewInverse);
-    vec3 V = normalize(cameraPosition - fragWorldPos);
+    vec3 lightWorldPos = pushConsts.lightPosition.rgb;
+    vec3 lightColor = pushConsts.lightColor.rgb;
     vec2 tiledUV = materialData.uvTiling.rg * fragUV;
-
-    vec3 L = -sceneData.directionalLightDir.xyz;
+    
+    vec3 L = normalize(lightWorldPos - fragWorldPos);
+    float attenuation = squareDistanceAttenuation(fragWorldPos, lightWorldPos);
+    /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
+    if (attenuation * max3(lightColor) < 0.05)
+    {
+        outColor = vec4(0, 0, 0, 1);
+    	outHighlight = vec4(0, 0, 0, 0);
+        return;
+    }
     
     /* Normal mapping */
     mat3 TBN = mat3(fragWorldTangent, fragWorldBiTangent, fragWorldNormal);
@@ -52,22 +60,13 @@ void main() {
     N = normalize(TBN * N);
     
 	vec3 albedo = materialData.albedo.rgb * texture(materialTextures[0], tiledUV).rgb;
-    float ao = materialData.metallicRoughnessAOEmissive.b * texture(materialTextures[1], tiledUV).r;
-    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(materialTextures[2], tiledUV).r;
-	
-	vec3 irradiance = texture(skyboxIrradiance, N).rgb;
-    vec3 diffuse    = irradiance * albedo;
-	vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), vec3(0.04));
-	vec3 kD = 1.0 - kS;
-    vec3 ambient = ao * kD * diffuse;
-
-    vec3 Lo = sceneData.directionalLightColor.xyz * albedo * max(dot(N, L), 0.0) * INV_PI;
-    vec3 emission = albedo * emissive;
     
-    vec3 color = sceneData.exposure.g * ambient + Lo + emission;
+    vec3 Lo = lightColor * albedo * max(dot(N, L), 0.0) * INV_PI * attenuation;
+    
+    vec3 color = Lo;
     
     color = tonemapDefault2(color, sceneData.exposure.r);
 	
     outColor = vec4(color, 1);
-	outHighlight = pushConsts.selected;
+	outHighlight = vec4(0, 0, 0, 0);
 }

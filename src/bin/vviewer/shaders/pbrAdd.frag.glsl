@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive : enable
+
 #include "pbr.glsl"
 #include "lighting.glsl"
 #include "tonemapping.glsl"

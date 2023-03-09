@@ -152,8 +152,8 @@ bool VulkanRenderer3DUI::createGraphicsPipeline()
 {
     /* ----------------- SHADERS STAGE ------------------- */
        /* Load shaders */
-    auto vertexShaderCode = readSPIRV("shaders/SPIRV/3duiVert.spv");
-    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/3duiFrag.spv");
+    auto vertexShaderCode = readSPIRV("shaders/SPIRV/3dui.vert.spv");
+    auto fragmentShaderCode = readSPIRV("shaders/SPIRV/3dui.frag.spv");
     VkShaderModule vertShaderModule = Shader::load(m_device, vertexShaderCode);
     VkShaderModule fragShaderModule = Shader::load(m_device, fragmentShaderCode);
     /* Prepare pipeline stage */
