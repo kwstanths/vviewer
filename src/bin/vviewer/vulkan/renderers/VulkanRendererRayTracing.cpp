@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <unordered_set>
 #include <sys/types.h>
-#include <unistd.h>
 
 #include <vulkan/vulkan_core.h>
 
