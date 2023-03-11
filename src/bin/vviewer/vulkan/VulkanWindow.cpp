@@ -102,8 +102,6 @@ bool VulkanWindow::event(QEvent* event)
             releaseResources();
         }
     }
-    default:
-        break;
     }
 
     return QWindow::event(event);

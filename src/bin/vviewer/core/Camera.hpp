@@ -32,8 +32,8 @@ public:
     Transform& getTransform();
 
 protected:
-    int m_width;
-    int m_height;
+    int m_width{};
+    int m_height{};
     float m_aspectRatio = 1.F;
 
 private:

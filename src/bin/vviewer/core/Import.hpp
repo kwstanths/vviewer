@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 #include <unordered_map>
 
 #include <rapidjson/document.h>
@@ -125,13 +126,5 @@ glm::vec2 parseVec2(const rapidjson::Value& o, std::string name, glm::vec2 defau
 glm::vec3 parseVec3(const rapidjson::Value& o, std::string name, glm::vec3 defaultValue);
 glm::vec4 parseVec4(const rapidjson::Value& o, std::string name, glm::vec4 defaultValue);
 glm::quat parseRotation(const rapidjson::Value& o, std::string name, glm::quat defaultValue);
-
-
-struct ImportedZipMaterial 
-{
-	std::string name;
-	std::string albedoTexture = "", roughnessTexture = "", metallicTexture = "", normalTexture = "";
-};
-ImportedZipMaterial importZipMaterial(std::string filename);
 
 #endif

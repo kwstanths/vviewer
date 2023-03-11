@@ -16,7 +16,7 @@ public:
 
     VkSwapchainKHR swapchain() { return m_swapchain; }
 
-    uint32_t imageCount() { return m_swapchainImageViews.size(); }
+    uint32_t imageCount() { return static_cast<uint32_t>(m_swapchainImageViews.size()); }
     VkExtent2D& extent() { return m_extent; }
     VkFormat& format() { return m_format; }
     VkFormat& depthFormat() { return m_depthFormat; }

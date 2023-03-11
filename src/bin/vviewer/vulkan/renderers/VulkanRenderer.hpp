@@ -135,7 +135,7 @@ private:
     /* Active scene */
     VulkanScene * m_scene = nullptr;
     std::chrono::steady_clock::time_point m_frameTimePrev;
-    float m_deltaTime = 0.016;
+    float m_deltaTime = 0.016F;
 
     /* Descriptor data */
     VkDescriptorSetLayout m_descriptorSetLayoutScene;

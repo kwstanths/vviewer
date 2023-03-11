@@ -296,6 +296,11 @@ void VulkanRenderer::startRenderLoop()
 
 void VulkanRenderer::renderLoopActive(bool active)
 {
+    if (m_swapchain == nullptr)
+    {
+        return;
+    }
+
     m_renderLoopActive = active;
 }
 
