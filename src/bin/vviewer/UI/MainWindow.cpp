@@ -1017,17 +1017,15 @@ void MainWindow::onStartUpInitialization()
         auto plane = instanceModels.get("assets/models/plane.obj");
         auto lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
-        m_vulkanWindow->getRenderer()->createVulkanMeshModel("assets/models/rtscene.obj");
-        auto rtscene = instanceModels.get("assets/models/rtscene.obj");
-
         auto& cm = ComponentManager::getInstance();
         
-        auto o1 = createEmptySceneObject("sphere", Transform(), nullptr);
-        addSceneObjectMeshes(o1.first, "assets/models/rtscene.obj", "defaultMaterial");
-        
-        // auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
-        // o2.second->assign(cm.create<ComponentMesh>(plane->getMeshes()[0]));
-        // o2.second->assign(cm.create<ComponentMaterial>(mat));
+        auto o1 = createEmptySceneObject("sphere", Transform({0, 0, 0}, {1, 1, 1}), nullptr);
+        o1.second->assign(cm.create<ComponentMesh>(sphere->getMeshes()[0]));
+        o1.second->assign(cm.create<ComponentMaterial>(mat));
+
+        auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
+        o2.second->assign(cm.create<ComponentMesh>(plane->getMeshes()[0]));
+        o2.second->assign(cm.create<ComponentMaterial>(mat));
     } catch (std::exception& e) {
         utils::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
     }
