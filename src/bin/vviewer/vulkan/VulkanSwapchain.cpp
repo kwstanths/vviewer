@@ -2,7 +2,7 @@
 
 #include "VulkanUtils.hpp"
 
-VulkanSwapchain::VulkanSwapchain(VulkanCore& vkcore) : m_vkcore(vkcore)
+VulkanSwapchain::VulkanSwapchain(VulkanContext& vkctx) : m_vkctx(vkctx)
 {
 
 }
@@ -13,7 +13,7 @@ VulkanSwapchain::~VulkanSwapchain()
 
 bool VulkanSwapchain::init(uint32_t width, uint32_t height)
 {
-    SwapChainDetails details = querySwapChainSupport(m_vkcore.physicalDevice(), m_vkcore.surface());
+    SwapChainDetails details = querySwapChainSupport(m_vkctx.physicalDevice(), m_vkctx.surface());
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(details.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(details.presentModes);
@@ -26,7 +26,7 @@ bool VulkanSwapchain::init(uint32_t width, uint32_t height)
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = m_vkcore.surface();
+    createInfo.surface = m_vkctx.surface();
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -34,7 +34,7 @@ bool VulkanSwapchain::init(uint32_t width, uint32_t height)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices& indices = m_vkcore.queueFamilyIndices();
+    QueueFamilyIndices& indices = m_vkctx.queueFamilyIndices();
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
     if (indices.graphicsFamily != indices.presentFamily) {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -52,15 +52,15 @@ bool VulkanSwapchain::init(uint32_t width, uint32_t height)
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = (m_initialized? m_swapchain : VK_NULL_HANDLE);
 
-    VkResult ret = vkCreateSwapchainKHR(m_vkcore.device(), &createInfo, nullptr, &m_swapchain);
+    VkResult ret = vkCreateSwapchainKHR(m_vkctx.device(), &createInfo, nullptr, &m_swapchain);
     if (ret != VK_SUCCESS) {
        throw std::runtime_error("VulkanSwapchain::init(): Failed to create a swap chain: " + std::to_string(ret));
     }
 
     /* Get images */
-    vkGetSwapchainImagesKHR(m_vkcore.device(), m_swapchain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(m_vkctx.device(), m_swapchain, &imageCount, nullptr);
     m_swapchainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(m_vkcore.device(), m_swapchain, &imageCount, m_swapchainImages.data());
+    vkGetSwapchainImagesKHR(m_vkctx.device(), m_swapchain, &imageCount, m_swapchainImages.data());
 
     m_format = surfaceFormat.format;
     m_extent = extent;
@@ -74,19 +74,19 @@ bool VulkanSwapchain::init(uint32_t width, uint32_t height)
 
 void VulkanSwapchain::destroy()
 {
-    vkDestroyImageView(m_vkcore.device(), m_msaaImageView, nullptr);
-    vkDestroyImage(m_vkcore.device(), m_msaaImage, nullptr);
-    vkFreeMemory(m_vkcore.device(), m_msaaImageMemory, nullptr);
+    vkDestroyImageView(m_vkctx.device(), m_msaaImageView, nullptr);
+    vkDestroyImage(m_vkctx.device(), m_msaaImage, nullptr);
+    vkFreeMemory(m_vkctx.device(), m_msaaImageMemory, nullptr);
 
-    vkDestroyImageView(m_vkcore.device(), m_depthImageView, nullptr);
-    vkDestroyImage(m_vkcore.device(), m_depthImage, nullptr);
-    vkFreeMemory(m_vkcore.device(), m_depthImageMemory, nullptr);
+    vkDestroyImageView(m_vkctx.device(), m_depthImageView, nullptr);
+    vkDestroyImage(m_vkctx.device(), m_depthImage, nullptr);
+    vkFreeMemory(m_vkctx.device(), m_depthImageMemory, nullptr);
 
     for (auto imageView : m_swapchainImageViews) {
-        vkDestroyImageView(m_vkcore.device(), imageView, nullptr);
+        vkDestroyImageView(m_vkctx.device(), imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(m_vkcore.device(), m_swapchain, nullptr);
+    vkDestroySwapchainKHR(m_vkctx.device(), m_swapchain, nullptr);
 
     m_initialized = false;
 }
@@ -97,33 +97,33 @@ void VulkanSwapchain::createImageViews()
     m_swapchainImageViews.resize(m_swapchainImages.size());
     for(uint32_t i=0; i < m_swapchainImageViews.size(); i++)
     {
-        m_swapchainImageViews[i] = createImageView(m_vkcore.device(), m_swapchainImages[i], m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        m_swapchainImageViews[i] = createImageView(m_vkctx.device(), m_swapchainImages[i], m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 
     /* Create images and image views for the MSAA targets */
-    createImage(m_vkcore.physicalDevice(), 
-        m_vkcore.device(), 
+    createImage(m_vkctx.physicalDevice(), 
+        m_vkctx.device(), 
         m_extent.width, 
         m_extent.height, 
         1, 
-        m_vkcore.msaaSamples(), 
+        m_vkctx.msaaSamples(), 
         m_format, 
         VK_IMAGE_TILING_OPTIMAL, 
         VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_msaaImage, m_msaaImageMemory);
 
-    m_msaaImageView = createImageView(m_vkcore.device(), m_msaaImage, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    m_msaaImageView = createImageView(m_vkctx.device(), m_msaaImage, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
 void VulkanSwapchain::createDepthBuffer()
 {
     m_depthFormat = findDepthFormat();
 
-    createImage(m_vkcore.physicalDevice(), 
-        m_vkcore.device(), 
+    createImage(m_vkctx.physicalDevice(), 
+        m_vkctx.device(), 
         m_extent.width, 
         m_extent.height, 
         1, 
-        m_vkcore.msaaSamples(), 
+        m_vkctx.msaaSamples(), 
         m_depthFormat, 
         VK_IMAGE_TILING_OPTIMAL, 
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
@@ -132,7 +132,7 @@ void VulkanSwapchain::createDepthBuffer()
         m_depthImageMemory
     );
         
-    m_depthImageView = createImageView(m_vkcore.device(), m_depthImage, m_depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+    m_depthImageView = createImageView(m_vkctx.device(), m_depthImage, m_depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
 
 VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
@@ -173,7 +173,7 @@ VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 
 VkFormat VulkanSwapchain::findDepthFormat()
 {
-    return findSupportedFormat(m_vkcore.physicalDevice(),  
+    return findSupportedFormat(m_vkctx.physicalDevice(),  
         {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT

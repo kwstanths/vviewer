@@ -26,7 +26,7 @@ void VulkanRenderer3DUI::initResources(VkPhysicalDevice physicalDevice,
     m_descriptorSetLayoutCamera = cameraDescriptorLayout;
     
     std::vector<Mesh> meshes = assimpLoadModel("assets/models/arrow.obj");
-    m_arrow = new VulkanMeshModel(m_physicalDevice, m_device, queue, commandPool, meshes);
+    m_arrow = new VulkanMeshModel(m_physicalDevice, m_device, queue, commandPool, meshes, {});
 
     ID rightID = static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW);
     m_rightID = IDGeneration::toRGB(rightID);

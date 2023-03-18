@@ -1,23 +1,20 @@
 #ifndef __VulkanRendererRayTracing_hpp__
 #define __VulkanRendererRayTracing_hpp__
 
-#include <thread>
 #include <cstdint>
-
 
 #include "core/Scene.hpp"
 #include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanCore.hpp"
+#include "vulkan/VulkanContext.hpp"
 #include "vulkan/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanScene.hpp"
 #include "vulkan/VulkanStructs.hpp"
-#include <cstdint>
-#include <vulkan/vulkan_core.h>
 
 struct RayTracingData {
-    glm::uvec4 samplesDepthLights;    /* R = total samples, G = max depth per ray, B = total number of lights, A = */
+    glm::uvec4 samplesBatchesDepthIndex = glm::vec4(256, 16, 5, 0);    /* R = total samples, G = Total number of batches, B = max depth per ray, A = batch index */
+    glm::uvec4 lights; /* R = total number of lights */
 };
 
 enum class OutputFileType {
@@ -29,7 +26,7 @@ class VulkanRendererRayTracing {
     friend class VulkanRenderer;
 public:
 
-    VulkanRendererRayTracing(VulkanCore& vkcore);
+    VulkanRendererRayTracing(VulkanContext& vkctx);
 
     void initResources(VkFormat colorFormat);
 
@@ -40,11 +37,11 @@ public:
 
     void renderScene(const VulkanScene* scene);
 
-    void setSamples(uint32_t samples) { m_rayTracingData.samplesDepthLights.r = samples; }
-    uint32_t getSamples() const { return m_rayTracingData.samplesDepthLights.r; }
+    void setSamples(uint32_t samples) { m_rayTracingData.samplesBatchesDepthIndex.r = samples; }
+    uint32_t getSamples() const { return m_rayTracingData.samplesBatchesDepthIndex.r; }
 
-    void setMaxDepth(uint32_t depth) { m_rayTracingData.samplesDepthLights.g = depth; }
-    uint32_t getMaxDepth() const { return m_rayTracingData.samplesDepthLights.g; }
+    void setMaxDepth(uint32_t depth) { m_rayTracingData.samplesBatchesDepthIndex.b = depth; }
+    uint32_t getMaxDepth() const { return m_rayTracingData.samplesBatchesDepthIndex.b; }
 
     void setRenderResolution(uint32_t width, uint32_t height);
     void getRenderResolution(uint32_t& width, uint32_t& height) const;
@@ -54,6 +51,10 @@ public:
 
     void setRenderOutputFileType(OutputFileType type) { m_renderResultOutputFileType = type; }
     OutputFileType getRenderOutputFileType() const { return m_renderResultOutputFileType; }
+
+    VkBufferUsageFlags getBufferUsageFlags() { return VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT; }
+
+    float getRenderProgress() const { return m_renderProgress; }
 
 private:
     const uint32_t MAX_OBJECTS = 200u;
@@ -73,9 +74,9 @@ private:
         PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
     } m_devF;
 
-    VulkanCore& m_vkcore;
-    std::thread m_renderThread;
+    VulkanContext& m_vkctx;
     bool m_renderInProgress = false;
+    float m_renderProgress = 0.0F;
 
     /* Device data */
     bool m_isInitialized = false;
@@ -151,7 +152,9 @@ private:
 
     /* Uniform buffers */
     void createUniformBuffers();
-    void updateUniformBuffers(const SceneData& sceneData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials);
+    void updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials);
+    void updateUniformBuffersRayTracingData(const RayTracingData& rtData);
+
     /* Descriptor sets */
     void createDescriptorSets();
     void updateDescriptorSets();

@@ -2,12 +2,12 @@
 #define __VulkanSwapchain_hpp__
 
 #include "IncludeVulkan.hpp"
-#include "VulkanCore.hpp"
+#include "VulkanContext.hpp"
 
 /* Initializes a swapchain and a depth buffer */
 class VulkanSwapchain {
 public:
-    VulkanSwapchain(VulkanCore& vkcore);
+    VulkanSwapchain(VulkanContext& vkctx);
     ~VulkanSwapchain();
 
     bool init(uint32_t width, uint32_t height);
@@ -26,7 +26,7 @@ public:
     VkImageView& depthStencilImageView() { return m_depthImageView; }
 
 private:
-    VulkanCore& m_vkcore;
+    VulkanContext& m_vkctx;
 
     /* Swapchain data */
     bool m_initialized = false;

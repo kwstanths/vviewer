@@ -5,7 +5,7 @@
 #include <qvulkaninstance.h>
 #include <qtimer.h>
 
-#include "VulkanCore.hpp"
+#include "VulkanContext.hpp"
 #include "VulkanScene.hpp"
 #include "VulkanSwapchain.hpp"
 #include "renderers/VulkanRenderer.hpp"
@@ -43,7 +43,7 @@ signals:
 
 private:
     bool m_initialized = false;
-    VulkanCore m_vkcore;
+    VulkanContext m_vkctx;
 
     VulkanSwapchain * m_swapchain = nullptr;
     VulkanRenderer * m_renderer = nullptr;

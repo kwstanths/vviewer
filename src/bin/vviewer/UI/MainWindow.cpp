@@ -17,11 +17,13 @@
 #include "DialogCreateMaterial.hpp"
 #include "DialogSceneExport.hpp"
 #include "DialogSceneRender.hpp"
+#include "DialogWaiting.hpp"
 #include "WidgetMaterial.hpp"
 #include "UIUtils.hpp"
 
 #include "core/AssetManager.hpp"
 #include "core/Import.hpp"
+#include "utils/Tasks.hpp"
 #include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
@@ -544,7 +546,7 @@ bool MainWindow::event(QEvent* event)
     } 
     if (event->type() == QEvent::WindowDeactivate)
     {
-        m_vulkanWindow->windowActicated(false);      
+        m_vulkanWindow->windowActicated(false);
     }
 
     return QMainWindow::event(event);
@@ -558,11 +560,24 @@ void MainWindow::onImportModelSlot()
 
     if (filename == "") return;
 
-    bool ret = m_vulkanWindow->getRenderer()->createVulkanMeshModel(filename.toStdString()) != nullptr;
- 
-    if (ret) {
-        utils::ConsoleInfo("Model imported");
-    }
+    struct ImportFunct {
+        ImportFunct(VulkanRenderer * r, std::string f) : renderer(r), filename(f) {} ;
+        VulkanRenderer * renderer;
+        std::string filename;
+    
+        bool operator () () {
+            bool ret = renderer->createVulkanMeshModel(filename) != nullptr;
+            if (ret) {
+                utils::ConsoleInfo("Model imported");
+            }
+            return ret;
+        }
+    };
+    TaskWaitableUI task;
+    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filename.toStdString());
+
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
+    waiting->exec();
 }
 
 void MainWindow::onImportTextureColorSlot()
@@ -886,10 +901,29 @@ void MainWindow::onRenderSceneSlot()
     RTrenderer->setRenderOutputFileName(dialog->getRenderOutputFileName());
     RTrenderer->setRenderOutputFileType(dialog->getRenderOutputFileType());
     RTrenderer->setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
-
-    m_vulkanWindow->getRenderer()->renderRT();
-
     delete dialog;
+
+    struct RenederFunct {
+        RenederFunct(VulkanRenderer * r) : renderer(r) {} ;
+        VulkanRenderer * renderer;
+    
+        bool operator () () {
+            renderer->renderRT();
+            return true;
+        }
+
+    };
+    struct RTRenderTaskWaitableUI : public TaskWaitableUI {
+        VulkanRendererRayTracing * rtrenderer;
+        float getProgress() const override { return rtrenderer->getRenderProgress(); }
+    } task;
+    task.rtrenderer = m_vulkanWindow->getRenderer()->getRayTracingRenderer();
+    task.f = RenederFunct(m_vulkanWindow->getRenderer());
+
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Rendering...", &task);
+    waiting->exec();
+    delete waiting;
+    
 }
 
 void MainWindow::onExportSceneSlot()

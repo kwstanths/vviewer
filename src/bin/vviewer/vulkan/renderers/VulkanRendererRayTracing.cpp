@@ -8,8 +8,6 @@
 #include <unordered_set>
 #include <sys/types.h>
 
-#include <vulkan/vulkan_core.h>
-
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
@@ -20,18 +18,19 @@
 #include "core/Materials.hpp"
 #include "utils/ECS.hpp"
 #include "utils/ImageUtils.hpp"
+#include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanStructs.hpp"
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
 
-VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanCore& vkcore) : m_vkcore(vkcore)
+VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext& vkctx) : m_vkctx(vkctx)
 {
 }
 
 void VulkanRendererRayTracing::initResources(VkFormat format)
 {
     /* Check if physical device supports ray tracing */
-    bool supportsRayTracing = VulkanRendererRayTracing::checkRayTracingSupport(m_vkcore.physicalDevice());
+    bool supportsRayTracing = VulkanRendererRayTracing::checkRayTracingSupport(m_vkctx.physicalDevice());
     if (!supportsRayTracing)
     {
         throw std::runtime_error("Ray tracing is not supported");
@@ -39,11 +38,11 @@ void VulkanRendererRayTracing::initResources(VkFormat format)
 
     m_format = format;
 
-    m_physicalDeviceProperties = m_vkcore.physicalDeviceProperties();
+    m_physicalDeviceProperties = m_vkctx.physicalDeviceProperties();
 
-    m_device = m_vkcore.device();
-    m_commandPool = m_vkcore.graphicsCommandPool();
-    m_queue = m_vkcore.graphicsQueue();
+    m_device = m_vkctx.device();
+    m_commandPool = m_vkctx.graphicsCommandPool();
+    m_queue = m_vkctx.graphicsQueue();
 
     /* Get ray tracing specific device functions pointers */
     {
@@ -65,14 +64,14 @@ void VulkanRendererRayTracing::initResources(VkFormat format)
         VkPhysicalDeviceProperties2 deviceProperties2{};
         deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         deviceProperties2.pNext = &m_rayTracingPipelineProperties;
-        vkGetPhysicalDeviceProperties2(m_vkcore.physicalDevice(), &deviceProperties2);
+        vkGetPhysicalDeviceProperties2(m_vkctx.physicalDevice(), &deviceProperties2);
 
         /* Get acceleration structure properties */
         m_accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
         VkPhysicalDeviceFeatures2 deviceFeatures2{};
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
         deviceFeatures2.pNext = &m_accelerationStructureFeatures;
-        vkGetPhysicalDeviceFeatures2(m_vkcore.physicalDevice(), &deviceFeatures2);
+        vkGetPhysicalDeviceFeatures2(m_vkctx.physicalDevice(), &deviceFeatures2);
     }
 
     createUniformBuffers();
@@ -87,11 +86,6 @@ void VulkanRendererRayTracing::initResources(VkFormat format)
 
     m_renderResultOutputFileName = "test";
     m_renderResultOutputFileType = OutputFileType::HDR;
-
-    /* Default samples and depth */
-    m_rayTracingData.samplesDepthLights.r = 256;
-    m_rayTracingData.samplesDepthLights.g = 5;
-    m_rayTracingData.samplesDepthLights.b = 0;
 
     m_isInitialized = true;
 }
@@ -140,74 +134,61 @@ bool VulkanRendererRayTracing::isInitialized() const
 
 void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 {
-    if (m_renderInProgress)
+    if (m_renderInProgress) return;
+
+    m_renderProgress = 0.0F;
+
+    utils::Timer timer;
+    timer.Start();
+
+    std::vector<glm::mat4> sceneObjectMatrices;
+    std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectMatrices);
+    if (sceneObjects.size() == 0)
     {
+        utils::ConsoleWarning("Trying to ray trace an empty scene");
         return;
-    } else 
-    {
-        if (m_renderThread.joinable()){
-            m_renderThread.join();
-        }
     }
 
-    m_renderThread = std::thread([this, scene]() {
-        m_renderInProgress = true; 
+    m_renderInProgress = true;
 
-        utils::Timer timer;
-        timer.Start();
+    const SceneData& sceneData = scene->getSceneData();
+    
+    std::unordered_map<std::string, int> materialIndices;
+    std::vector<MaterialRT> sceneMaterials = prepareSceneMaterials(sceneObjects, materialIndices);
+    
+    /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
+    for (size_t i = 0; i < sceneObjects.size(); i++)
+    {
+        auto so = sceneObjects[i];
+        if (!so->has<ComponentMesh>() || !so->has<ComponentMaterial>()) continue;
+        
+        auto transform = sceneObjectMatrices[i];
+        auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
+        auto material = so->get<ComponentMaterial>().material;
+        
+        AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), materialIndices[material->m_name]);
+        m_blas.push_back(std::make_pair(blas, transform));
+    }
+    
+    /* Create a top level accelleration structure out of all the blas */
+    m_tlas = createTopLevelAccelerationStructure();
+    
+    /* Prepare scene lights */
+    auto sceneLights = prepareSceneLights(scene, sceneObjects);
+    m_rayTracingData.lights.r = sceneLights.size();
+    updateUniformBuffers(sceneData, m_rayTracingData, sceneLights, sceneMaterials);
+    
+    render();
+    
+    releaseRenderResources();
 
-        std::vector<glm::mat4> sceneObjectMatrices;
-        std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectMatrices);
-        if (sceneObjects.size() == 0)
-        {
-            utils::ConsoleWarning("Trying to ray trace an empty scene");
-            return;
-        }
+    timer.Stop();
 
-        const SceneData& sceneData = scene->getSceneData();
+    std::string fileExtension = (getRenderOutputFileType() == OutputFileType::PNG) ? "png" : "hdr";
+    std::string filename = getRenderOutputFileName() + "." + fileExtension;
+    utils::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(timer.ToInt()) + "ms");
 
-        std::unordered_map<std::string, int> materialIndices;
-        std::vector<MaterialRT> sceneMaterials = prepareSceneMaterials(sceneObjects, materialIndices);
-
-        /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
-        for (size_t i = 0; i < sceneObjects.size(); i++)
-        {
-            auto so = sceneObjects[i];
-
-            if (!so->has<ComponentMesh>() || !so->has<ComponentMaterial>()) continue;
-
-            auto transform = sceneObjectMatrices[i];
-
-            auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
-            auto material = so->get<ComponentMaterial>().material;
-
-            AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), materialIndices[material->m_name]);
-            m_blas.push_back(std::make_pair(blas, transform));
-        }
-
-        /* Create a top level accelleration structure out of all the blas */
-        m_tlas = createTopLevelAccelerationStructure();
-
-        /* Prepare scene lights */
-        auto sceneLights = prepareSceneLights(scene, sceneObjects);
-        m_rayTracingData.samplesDepthLights.b = sceneLights.size();
-        updateUniformBuffers(sceneData, sceneLights, sceneMaterials);
-        updateDescriptorSets();
-
-        render();
-
-        releaseRenderResources();
-
-        timer.Stop();
-
-        std::string fileExtension = (getRenderOutputFileType() == OutputFileType::PNG) ? "png" : "hdr";
-        std::string filename = getRenderOutputFileName() + "." + fileExtension;
-
-
-        utils::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(timer.ToInt()) + "ms");
-
-        m_renderInProgress = false;
-    });
+    m_renderInProgress = false;
 }
 
 void VulkanRendererRayTracing::setRenderResolution(uint32_t width, uint32_t height)
@@ -292,31 +273,16 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     /* Create buffers for RT for mesh data and the transformation matrix */
     VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    createBuffer(m_vkcore.physicalDevice(),
-        m_device,
-        vertices.size() * sizeof(Vertex),
-        usageFlags,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        vertices.data(),
-        vertexBuffer,
-        vertexBufferMemory);
+    VkBuffer vertexBuffer = mesh.m_vertexBuffer;
+    VkDeviceMemory vertexBufferMemory = mesh.m_vertexBufferMemory;
 
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-    createBuffer(m_vkcore.physicalDevice(),
-        m_device,
-        indices.size() * sizeof(indices[0]),
-        usageFlags,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        indices.data(),
-        indexBuffer,
-        indexBufferMemory);
+    VkBuffer indexBuffer = mesh.m_indexBuffer;
+    VkDeviceMemory indexBufferMemory = mesh.m_indexBufferMemory;
 
+    // TODO usage transform buffer from the dybamic UBO that stores the mvp matrices?
     VkBuffer transformBuffer;
     VkDeviceMemory transformBufferMemory;
-    createBuffer(m_vkcore.physicalDevice(),
+    createBuffer(m_vkctx.physicalDevice(),
         m_device,
         sizeof(transformMatrix),
         usageFlags,
@@ -371,7 +337,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
         &accelerationStructureBuildSizesInfo);
     /* Create bottom level acceleration structure buffer with the specified size */
     AccelerationStructure blas;
-    createAccelerationStructureBuffer(m_vkcore.physicalDevice(),
+    createAccelerationStructureBuffer(m_vkctx.physicalDevice(),
         m_device,
         accelerationStructureBuildSizesInfo,
         blas.handle,
@@ -424,8 +390,6 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     accelerationDeviceAddressInfo.accelerationStructure = blas.handle;
     blas.deviceAddress = m_devF.vkGetAccelerationStructureDeviceAddressKHR(m_device, &accelerationDeviceAddressInfo);
 
-    m_meshBuffers.push_back({vertexBuffer, vertexBufferMemory});
-    m_meshBuffers.push_back({indexBuffer, indexBufferMemory});
     m_meshBuffers.push_back({transformBuffer, transformBufferMemory});
     deleteScratchBuffer(scratchBuffer);
 
@@ -462,7 +426,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     /* Create buffer to copy the instances */
     VkBuffer instancesBuffer;
     VkDeviceMemory instancesBufferMemory;
-    createBuffer(m_vkcore.physicalDevice(),
+    createBuffer(m_vkctx.physicalDevice(),
         m_device,
         instances.size() * sizeof(VkAccelerationStructureInstanceKHR),
         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
@@ -501,7 +465,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
 
     /* Create acceleration structure buffer */
     AccelerationStructure tlas;
-    createAccelerationStructureBuffer(m_vkcore.physicalDevice(),
+    createAccelerationStructureBuffer(m_vkctx.physicalDevice(),
         m_device,
         accelerationStructureBuildSizesInfo,
         tlas.handle,
@@ -579,7 +543,7 @@ void VulkanRendererRayTracing::destroyAccellerationStructures()
 void VulkanRendererRayTracing::createStorageImage()
 {
     /* Create render target used during ray tracing */
-    bool ret = createImage(m_vkcore.physicalDevice(),
+    bool ret = createImage(m_vkctx.physicalDevice(),
         m_device,
         m_width,
         m_height,
@@ -599,7 +563,7 @@ void VulkanRendererRayTracing::createStorageImage()
         1);
 
     /* Create temp image used to copy render result from gpu memory to cpu memory */
-    ret = createImage(m_vkcore.physicalDevice(),
+    ret = createImage(m_vkctx.physicalDevice(),
         m_device,
         m_width,
         m_height,
@@ -640,7 +604,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
         alignedSize(MAX_MATERIALS * sizeof(MaterialRT), alignment);
 
     /* Create a buffer to hold the scene data and the ray tracing data */
-    createBuffer(m_vkcore.physicalDevice(),
+    createBuffer(m_vkctx.physicalDevice(),
         m_device,
         totalSceneBufferSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -649,7 +613,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
         m_uniformBufferSceneMemory);
 
     /* Create a buffer to hold the object descriptions data */
-    createBuffer(m_vkcore.physicalDevice(),
+    createBuffer(m_vkctx.physicalDevice(),
         m_device,
         MAX_OBJECTS * sizeof(ObjectDescriptionRT),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
@@ -658,7 +622,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
         m_uniformBufferObjectDescrptionMemory);
 }
 
-void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials)
+void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials)
 {
     if (m_sceneObjects.size() > MAX_OBJECTS)
     {
@@ -680,7 +644,9 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
         void* data;
         vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, VK_WHOLE_SIZE, 0, &data);
         memcpy(data, &sceneData, sizeof(sceneData));    /* Copy scene data struct */
-        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &m_rayTracingData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
+        
+        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &rtData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
+
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment), lights.data(), lights.size() * sizeof(LightRT)); /* Copy lights vector */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment) + alignedSize(MAX_LIGHTS * sizeof(LightRT), alignment), materials.data(), materials.size() * sizeof(MaterialRT)); /* Copy materials vector */
         vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
@@ -693,6 +659,17 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
         memcpy(data, m_sceneObjects.data(), m_sceneObjects.size() * sizeof(ObjectDescriptionRT));
         vkUnmapMemory(m_device, m_uniformBufferObjectDescrptionMemory);
     }
+}
+
+void VulkanRendererRayTracing::updateUniformBuffersRayTracingData(const RayTracingData& rtData)
+{
+    VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+
+    void* data;
+    vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, VK_WHOLE_SIZE, 0, &data);
+    memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &rtData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
+    
+    vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
 }
 
 void VulkanRendererRayTracing::createDescriptorSets()
@@ -1040,9 +1017,9 @@ void VulkanRendererRayTracing::createShaderBindingTable()
     const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    createBuffer(m_vkcore.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayGenBuffer, m_shaderRayGenBufferMemory);
-    createBuffer(m_vkcore.physicalDevice(), m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayMissBuffer, m_shaderRayMissBufferMemory);
-    createBuffer(m_vkcore.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer, m_shaderRayCHitBufferMemory);
+    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayGenBuffer, m_shaderRayGenBufferMemory);
+    createBuffer(m_vkctx.physicalDevice(), m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayMissBuffer, m_shaderRayMissBufferMemory);
+    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer, m_shaderRayCHitBufferMemory);
 
     /* 1 ray gen group */
     {
@@ -1069,10 +1046,6 @@ void VulkanRendererRayTracing::createShaderBindingTable()
 
 void VulkanRendererRayTracing::render()
 {
-    VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-    VkCommandBuffer cmdBuf = beginSingleTimeCommands(m_device, m_commandPool);
-
     /* Get strided device addresses for the shader binding tables where the shader group handles are stored. TODO get this out of the render function */
     const uint32_t handleSizeAligned = alignedSize(m_rayTracingPipelineProperties.shaderGroupHandleSize, m_rayTracingPipelineProperties.shaderGroupHandleAlignment);
     VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
@@ -1089,33 +1062,87 @@ void VulkanRendererRayTracing::render()
     hitShaderSbtEntry.size = handleSizeAligned;
     /* No callable shader binding tables */
     VkStridedDeviceAddressRegionKHR emptySbtEntry{};
+
+    VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
     
-    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
-    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, 0);
+    uint32_t batchSize = 16U;
+    uint32_t batches = getSamples() / batchSize;
+
+    VkCommandBuffer commandBuffer;
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = m_commandPool;
+        allocInfo.commandBufferCount = 1;
+        
+        vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
+    }
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+    utils::ConsoleInfo("Launching render with: " + std::to_string(batches * batchSize) + " samples");
+    for(uint32_t batch = 0; batch < batches; batch++)
+    {
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        RayTracingData batchData = m_rayTracingData;
+        batchData.samplesBatchesDepthIndex.r = batchSize;
+        batchData.samplesBatchesDepthIndex.g = batches;
+        batchData.samplesBatchesDepthIndex.a = batch;
+        updateUniformBuffersRayTracingData(batchData);
+        updateDescriptorSets();
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, 0);
+        
+        /*
+            Dispatch the ray tracing commands
+        */
+        m_devF.vkCmdTraceRaysKHR(
+            commandBuffer,
+            &raygenShaderSbtEntry,
+            &missShaderSbtEntry,
+            &hitShaderSbtEntry,
+            &emptySbtEntry,
+            m_width,
+            m_height,
+            1);
+
+        vkEndCommandBuffer(commandBuffer);
+
+        /* Create fence to wait for the command to finish */
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = 0;
+        VkFence fence;
+        vkCreateFence(m_device, &fenceCreateInfo, nullptr, &fence);
+
+        /* Submit command buffer */
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+        vkQueueSubmit(m_queue, 1, &submitInfo, fence);
+
+        /* Wait for the fence to signal that command buffer has finished executing */
+        VkResult res = vkWaitForFences(m_device, 1, &fence, VK_TRUE, VULKAN_TIMEOUT_1S);
+        if (res == VK_SUCCESS)
+        {
+            vkDestroyFence(m_device, fence, nullptr);
+        } else {
+            utils::ConsoleCritical("VulkanRendererRayTracing::render(): Render failed: " + std::to_string(res));
+        }
     
-    /* Clear render result */
-    VkClearColorValue clearColorValue = { { 0, 0, 0, 0} };
-    vkCmdClearColorImage(
-        cmdBuf,
-        m_renderResult.image,
-        VK_IMAGE_LAYOUT_GENERAL,
-        &clearColorValue,
-        1,
-        &subresourceRange);
-    
-    /*
-        Dispatch the ray tracing commands
-    */
-    m_devF.vkCmdTraceRaysKHR(
-        cmdBuf,
-        &raygenShaderSbtEntry,
-        &missShaderSbtEntry,
-        &hitShaderSbtEntry,
-        &emptySbtEntry,
-        m_width,
-        m_height,
-        1);    
-    
+        m_renderProgress = static_cast<float>(batch) / static_cast<float>(batches);
+    }
+
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+
+    VkCommandBuffer cmdBuf = beginSingleTimeCommands(m_device, m_commandPool);
+
     /* Transition output render result to transfer source optimal */
     transitionImageLayout(cmdBuf, m_renderResult.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subresourceRange);
     
@@ -1134,7 +1161,7 @@ void VulkanRendererRayTracing::render()
     VkResult res = endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true, VULKAN_TIMEOUT_100S);
     if (res != VK_SUCCESS)
     {
-        utils::ConsoleCritical("VulkanRendererRayTracing::render(): Job failed: " + std::to_string(res));
+        utils::ConsoleCritical("VulkanRendererRayTracing::render(): Storing failed: " + std::to_string(res));
     } else {
         storeToDisk(m_renderResultOutputFileName, m_renderResultOutputFileType);
     }
@@ -1224,7 +1251,7 @@ VulkanRendererRayTracing::RayTracingScratchBuffer VulkanRendererRayTracing::crea
     memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex = findMemoryType(m_vkcore.physicalDevice(), memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    memoryAllocateInfo.memoryTypeIndex = findMemoryType(m_vkctx.physicalDevice(), memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     res = vkAllocateMemory(m_device, &memoryAllocateInfo, nullptr, &scratchBuffer.memory);
     if (res != VK_SUCCESS)
     {

@@ -48,10 +48,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 
 /* Encapsulates the vulkan instance, physical device and logical device creation */
-class VulkanCore {
+class VulkanContext {
 public:
-    VulkanCore();
-    ~VulkanCore();
+    VulkanContext();
+    ~VulkanContext();
 
     bool init(VkSurfaceKHR surface);
     void destroy();

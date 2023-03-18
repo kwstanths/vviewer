@@ -76,7 +76,7 @@ public:
 
 class VulkanMeshModel : public MeshModel {
 public:
-    VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes);
+    VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes, VkBufferUsageFlags extraUsageFlags);
     
     void destroy(VkDevice device);
 

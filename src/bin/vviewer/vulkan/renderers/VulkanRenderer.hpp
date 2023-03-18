@@ -18,7 +18,7 @@
 #include "core/Lights.hpp"
 
 #include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanCore.hpp"
+#include "vulkan/VulkanContext.hpp"
 #include "vulkan/VulkanSwapchain.hpp"
 #include "vulkan/VulkanStructs.hpp"
 #include "vulkan/VulkanScene.hpp"
@@ -45,7 +45,7 @@ public:
         STOPPED,
     };
 
-    VulkanRenderer(VulkanCore& vkcore, VulkanScene* scene);
+    VulkanRenderer(VulkanContext& vkctx, VulkanScene* scene);
 
     void initResources();
     void initSwapChainResources(VulkanSwapchain * swapchain);
@@ -101,7 +101,7 @@ private:
     void buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
 private:
-    VulkanCore& m_vkcore;
+    VulkanContext& m_vkctx;
     VulkanSwapchain * m_swapchain = VK_NULL_HANDLE;
 
     /* Render pass and framebuffers */

@@ -19,23 +19,28 @@ layout(binding = 2, set = 0) uniform SceneData
 } sceneData;
 layout(binding = 3, set = 0) uniform RayTracingData 
 {
-    uvec4 samplesDepth;
+    uvec4 samplesBatchesDepthIndex;
+    uvec4 lights;
 } rayTracingData;
 
 layout(location = 0) rayPayloadEXT RayPayload rayPayload;
 
 void main() 
 {
+	uint samples = rayTracingData.samplesBatchesDepthIndex.r;
+	uint batches = rayTracingData.samplesBatchesDepthIndex.g;
+	uint depth = rayTracingData.samplesBatchesDepthIndex.b;
+	uint index = rayTracingData.samplesBatchesDepthIndex.a;
+	uint totalSamples = samples * batches;
+
 	/* Initialize a RNG */
-	uint rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, 0);
+	uint rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, index);
 	rayPayload.rngState = rngState;
 
 	/* Calculate pixel uvs */
 	const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
 	
 	vec3 cumRadiance = vec3(0);
-	uint samples = rayTracingData.samplesDepth.r;
-	uint depth = rayTracingData.samplesDepth.g;
 	for(int s = 0; s < samples; s++) 
 	{
 		/* Calculate first ray target offset */
@@ -71,9 +76,13 @@ void main()
 			direction.xyz = rayPayload.direction;
 		}
 
-		cumRadiance += radiance;
+		cumRadiance += radiance / totalSamples;
 	}
 	
-	/* Average results */
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(cumRadiance / samples, 1.F));
+	/* Store results */
+	ivec2 uv = ivec2(gl_LaunchIDEXT.xy);
+	vec4 storedRadiance = imageLoad(image, uv);
+
+	vec4 newRadiance = storedRadiance + vec4(cumRadiance, 1.F);
+	imageStore(image, uv, newRadiance);
 }

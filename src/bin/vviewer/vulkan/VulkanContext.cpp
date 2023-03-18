@@ -1,4 +1,4 @@
-#include "VulkanCore.hpp"
+#include "VulkanContext.hpp"
 
 #include <set>
 
@@ -6,17 +6,17 @@
 
 #include "VulkanUtils.hpp"
 
-VulkanCore::VulkanCore()
+VulkanContext::VulkanContext()
 {
     createVulkanInstance();
 }
 
-VulkanCore::~VulkanCore() 
+VulkanContext::~VulkanContext() 
 {
     destroy();
 }
 
-bool VulkanCore::init(VkSurfaceKHR surface)
+bool VulkanContext::init(VkSurfaceKHR surface)
 {
     m_surface = surface;
 
@@ -26,7 +26,7 @@ bool VulkanCore::init(VkSurfaceKHR surface)
 
     bool res = pickPhysicalDevice();
     if (!res) {
-        utils::ConsoleFatal("VulkanCore::init(): Failed to find suitable Vulkan device");
+        utils::ConsoleFatal("VulkanContext::init(): Failed to find suitable Vulkan device");
         return false;
     }
 
@@ -37,14 +37,14 @@ bool VulkanCore::init(VkSurfaceKHR surface)
     return true;
 }
 
-void VulkanCore::destroy()
+void VulkanContext::destroy()
 {
     m_vkDeviceFunctions->vkDestroyCommandPool(m_device, m_renderCommandPool, nullptr);
     m_vkDeviceFunctions->vkDestroyCommandPool(m_device, m_graphicsCommandPool, nullptr);
     m_vkDeviceFunctions->vkDestroyDevice(m_device, nullptr);
 }
 
-void VulkanCore::createVulkanInstance()
+void VulkanContext::createVulkanInstance()
 {
     QByteArrayList layers;
     for(auto l : VULKAN_CORE_VALIDATION_LAYERS) 
@@ -64,25 +64,25 @@ void VulkanCore::createVulkanInstance()
     m_vulkanInstance->setApiVersion(QVersionNumber(1, 2));
 
     if (!m_vulkanInstance->create()) {
-        utils::ConsoleFatal("VulkanCore::createVulkanInstance(): Failed to create Vulkan instance: " + std::to_string(m_vulkanInstance->errorCode()));
+        utils::ConsoleFatal("VulkanContext::createVulkanInstance(): Failed to create Vulkan instance: " + std::to_string(m_vulkanInstance->errorCode()));
     }
 
     QVulkanInfoVector<QVulkanLayer> supportedLayers = m_vulkanInstance->supportedLayers();
     for (auto layer : layers) {
         if (!supportedLayers.contains(layer)) {
-            utils::ConsoleWarning("VulkanCore::createVulkanInstance(): Layer not found: " + std::string(layer));
+            utils::ConsoleWarning("VulkanContext::createVulkanInstance(): Layer not found: " + std::string(layer));
         }
     }
 
     QVulkanInfoVector<QVulkanExtension> supportedExtensions = m_vulkanInstance->supportedExtensions();
     for (auto extension : extensions) {
         if (!supportedExtensions.contains(extension)) {
-            utils::ConsoleWarning("VulkanCore::createVulkanInstance(): Extension not found: " + std::string(extension));
+            utils::ConsoleWarning("VulkanContext::createVulkanInstance(): Extension not found: " + std::string(extension));
         }
     }
 }
 
-void VulkanCore::createDebugCallback()
+void VulkanContext::createDebugCallback()
 {
     VkDebugUtilsMessengerCreateInfoEXT createInfo {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -100,11 +100,11 @@ void VulkanCore::createDebugCallback()
     }
 
     if (res != VK_SUCCESS) {
-        utils::ConsoleWarning("VulkanCore::createDebugCallback(): Failed to setup the debug callback");
+        utils::ConsoleWarning("VulkanContext::createDebugCallback(): Failed to setup the debug callback");
     }
 }
 
-void VulkanCore::destroyDebugCallback()
+void VulkanContext::destroyDebugCallback()
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) m_vulkanInstance->getInstanceProcAddr("vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {
@@ -112,13 +112,13 @@ void VulkanCore::destroyDebugCallback()
     }
 }
 
-bool VulkanCore::pickPhysicalDevice()
+bool VulkanContext::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
     m_vkFunctions->vkEnumeratePhysicalDevices(m_vulkanInstance->vkInstance(), &deviceCount, nullptr);
 
     if (deviceCount == 0) {
-        throw std::runtime_error("VulkanCore::pickPhysicalDevice(): Failed to find GPUs with Vulkan support");
+        throw std::runtime_error("VulkanContext::pickPhysicalDevice(): Failed to find GPUs with Vulkan support");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -141,7 +141,7 @@ bool VulkanCore::pickPhysicalDevice()
     return false;
 }
 
-bool VulkanCore::isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties physicalDeviceProperties)
+bool VulkanContext::isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties physicalDeviceProperties)
 {
     bool suitable = true;
     suitable = suitable && getMaxUsableSampleCount(physicalDeviceProperties) != VK_SAMPLE_COUNT_1_BIT;
@@ -156,7 +156,7 @@ bool VulkanCore::isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, VkPhy
     return suitable;
 }
 
-VkSampleCountFlagBits VulkanCore::getMaxUsableSampleCount(const VkPhysicalDeviceProperties& deviceProperties)
+VkSampleCountFlagBits VulkanContext::getMaxUsableSampleCount(const VkPhysicalDeviceProperties& deviceProperties)
 {
     VkSampleCountFlags counts = deviceProperties.limits.framebufferColorSampleCounts & deviceProperties.limits.framebufferDepthSampleCounts;
     if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
@@ -169,7 +169,7 @@ VkSampleCountFlagBits VulkanCore::getMaxUsableSampleCount(const VkPhysicalDevice
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-bool VulkanCore::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
     uint32_t extensionCount;
     m_vkFunctions->vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -189,7 +189,7 @@ bool VulkanCore::checkDeviceExtensionSupport(VkPhysicalDevice device)
     return mandatoryExtensions.empty();
 }
 
-bool VulkanCore::createLogicalDevice()
+bool VulkanContext::createLogicalDevice()
 {
     m_queueFamilyIndices = findQueueFamilies(m_physicalDevice, m_surface);
 
@@ -255,7 +255,7 @@ bool VulkanCore::createLogicalDevice()
     VkResult ret = m_vkFunctions->vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device);
     
     if (ret != VK_SUCCESS) {
-        throw std::runtime_error("VulkanCore::createLogicalDevice(): Failed to create logical device");
+        throw std::runtime_error("VulkanContext::createLogicalDevice(): Failed to create logical device");
     }
 
     m_vkDeviceFunctions = m_vulkanInstance->deviceFunctions(m_device);
@@ -266,7 +266,7 @@ bool VulkanCore::createLogicalDevice()
     return true;
 }
 
-void VulkanCore::createCommandPool()
+void VulkanContext::createCommandPool()
 {
     {    
         VkCommandPoolCreateInfo poolInfo{};
@@ -275,7 +275,7 @@ void VulkanCore::createCommandPool()
         poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value();
         VkResult ret = m_vkDeviceFunctions->vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_graphicsCommandPool);
         if (ret != VK_SUCCESS) {
-            throw std::runtime_error("VulkanCore::createCommandPool(): Failed to create a command pool");
+            throw std::runtime_error("VulkanContext::createCommandPool(): Failed to create a command pool");
         }
     }
 
@@ -287,7 +287,7 @@ void VulkanCore::createCommandPool()
 
         VkResult ret = m_vkDeviceFunctions->vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_renderCommandPool);
         if (ret != VK_SUCCESS) {
-            throw std::runtime_error("VulkanCore::createCommandPool(): Failed to create a command pool");
+            throw std::runtime_error("VulkanContext::createCommandPool(): Failed to create a command pool");
         }
     }
 }

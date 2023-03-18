@@ -80,6 +80,7 @@ bool createVertexBuffer(VkPhysicalDevice physicalDevice,
     VkQueue transferQueue, 
     VkCommandPool transferCommandPool, 
     const std::vector<Vertex>& vertices, 
+    VkBufferUsageFlags extraUsageFlags,
     VkBuffer& buffer, 
     VkDeviceMemory& bufferMemory);
 
@@ -91,6 +92,7 @@ bool createIndexBuffer(VkPhysicalDevice physicalDevice,
     VkQueue transferQueue, 
     VkCommandPool transferCommandPool, 
     const std::vector<uint32_t>& indices, 
+    VkBufferUsageFlags extraUsageFlags,
     VkBuffer& buffer, 
     VkDeviceMemory& bufferMemory);
 

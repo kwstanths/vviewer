@@ -8,11 +8,11 @@ VulkanWindow::VulkanWindow() : QWindow()
 {
     setSurfaceType(QSurface::SurfaceType::VulkanSurface);
 
-    setVulkanInstance(m_vkcore.instance());
+    setVulkanInstance(m_vkctx.instance());
 
     m_scene = new VulkanScene(200);
-    m_swapchain = new VulkanSwapchain(m_vkcore);
-    m_renderer = new VulkanRenderer(m_vkcore, m_scene);
+    m_swapchain = new VulkanSwapchain(m_vkctx);
+    m_renderer = new VulkanRenderer(m_vkctx, m_scene);
 
     /* Create camera */
     auto camera = std::make_shared<PerspectiveCamera>();
@@ -72,9 +72,9 @@ void VulkanWindow::exposeEvent(QExposeEvent* event)
     if(isExposed() && !m_initialized)
     {
         /* Perform first time initialization the first time the surface window becomes available */
-        VkSurfaceKHR surface = m_vkcore.instance()->surfaceForWindow(this);
+        VkSurfaceKHR surface = m_vkctx.instance()->surfaceForWindow(this);
         
-        m_vkcore.init(surface);
+        m_vkctx.init(surface);
         m_swapchain->init(static_cast<uint32_t>(size().width()), static_cast<uint32_t>(size().height()));
 
         m_renderer->initResources();

@@ -104,10 +104,11 @@ void main()
 	rayPayload.origin = worldPosition;
 	
 	float sampleDirectionPDF;
-	vec3 sampleDirection = localToWorld(frame, cosineSampleHemisphere(rayPayload.rngState, sampleDirectionPDF));
+	vec3 sampleDirectionLocal = cosineSampleHemisphere(rayPayload.rngState, sampleDirectionPDF);
+	vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
+	rayPayload.direction = sampleDirectionWorld;
 
-	float cosTheta = abs(dot(worldNormal, sampleDirection));
+	float cosTheta = sampleDirectionLocal.y;
 
-	rayPayload.direction = sampleDirection;
-	rayPayload.beta *= material.albedo.xyz * INVPI * cosTheta / sampleDirectionPDF;
+	rayPayload.beta *= material.albedo.xyz * INVPI /*   * cosTheta / sampleDirectionPDF   */;
 }

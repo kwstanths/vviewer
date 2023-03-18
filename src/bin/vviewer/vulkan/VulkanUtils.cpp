@@ -186,6 +186,7 @@ bool createVertexBuffer(VkPhysicalDevice physicalDevice,
     VkQueue transferQueue,
     VkCommandPool transferCommandPool,
     const std::vector<Vertex>& vertices,
+    VkBufferUsageFlags extraUsageFlags,
     VkBuffer& buffer,
     VkDeviceMemory& bufferMemory)
 {
@@ -205,7 +206,7 @@ bool createVertexBuffer(VkPhysicalDevice physicalDevice,
     vkUnmapMemory(device, stagingBufferMemory);
 
     createBuffer(physicalDevice, device, bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraUsageFlags,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         buffer,
         bufferMemory
@@ -224,6 +225,7 @@ bool createIndexBuffer(VkPhysicalDevice physicalDevice,
     VkQueue transferQueue,
     VkCommandPool transferCommandPool,
     const std::vector<uint32_t>& indices,
+    VkBufferUsageFlags extraUsageFlags,
     VkBuffer& buffer,
     VkDeviceMemory& bufferMemory)
 {
@@ -243,7 +245,7 @@ bool createIndexBuffer(VkPhysicalDevice physicalDevice,
     vkUnmapMemory(device, stagingBufferMemory);
 
     createBuffer(physicalDevice, device, bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraUsageFlags,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         buffer,
         bufferMemory);
