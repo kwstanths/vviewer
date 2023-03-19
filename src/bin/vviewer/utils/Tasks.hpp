@@ -3,18 +3,23 @@
 
 #include <functional>
 
-struct TaskWaitableUI {
-    std::function<bool()> f;
+struct Task {
+    std::function<bool(float&)> f;
+
+    bool started = false;
     bool finished = false;
+    bool success = false;
+    
+    float progress = 0.0F;
 
     bool operator () () {
-        bool ret = f();
+        started = true;
+        success = f(progress);
         finished = true;
-        return ret;
+        return success;
     }
 
-    bool hasfinished() const { return finished; }
-    virtual float getProgress() const { return 0.0F; }
+    virtual float getProgress() const { return progress; }
 };
 
 

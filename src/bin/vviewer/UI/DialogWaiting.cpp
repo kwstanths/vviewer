@@ -4,7 +4,7 @@
 #include "qlabel.h"
 #include "QCloseEvent"
 
-DialogWaiting::DialogWaiting(QWidget *parent, QString text, TaskWaitableUI * task) : m_task(task)
+DialogWaiting::DialogWaiting(QWidget *parent, QString text, Task * task) : m_task(task)
 {
     m_progressBar = new QProgressBar();
     m_progressBar->setMinimum(0);
@@ -15,7 +15,7 @@ DialogWaiting::DialogWaiting(QWidget *parent, QString text, TaskWaitableUI * tas
     layoutMain->addWidget(m_progressBar);
 
     setLayout(layoutMain);
-    setFixedSize(350, 120);
+    setFixedSize(150, 70);
 
     m_thread = std::thread([this]() {
         (*m_task)(); 
@@ -28,7 +28,7 @@ DialogWaiting::DialogWaiting(QWidget *parent, QString text, TaskWaitableUI * tas
 
 void DialogWaiting::closeEvent(QCloseEvent *event)
 {
-    if (!m_task->hasfinished())
+    if (!m_task->finished)
     {
         event->ignore();
     } else 
@@ -42,7 +42,7 @@ void DialogWaiting::closeEvent(QCloseEvent *event)
 void DialogWaiting::update()
 {
     m_progressBar->setValue(m_task->getProgress() * 100);
-    if (!m_task->hasfinished()) return;
+    if (!m_task->finished) return;
 
     close();
 }

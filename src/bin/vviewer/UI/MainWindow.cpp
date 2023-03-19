@@ -564,8 +564,7 @@ void MainWindow::onImportModelSlot()
         ImportFunct(VulkanRenderer * r, std::string f) : renderer(r), filename(f) {} ;
         VulkanRenderer * renderer;
         std::string filename;
-    
-        bool operator () () {
+        bool operator () (float&) {
             bool ret = renderer->createVulkanMeshModel(filename) != nullptr;
             if (ret) {
                 utils::ConsoleInfo("Model imported");
@@ -573,11 +572,13 @@ void MainWindow::onImportModelSlot()
             return ret;
         }
     };
-    TaskWaitableUI task;
+    Task task;
     task.f = ImportFunct(m_vulkanWindow->getRenderer(), filename.toStdString());
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
+
+    delete waiting;
 }
 
 void MainWindow::onImportTextureColorSlot()
@@ -586,13 +587,36 @@ void MainWindow::onImportTextureColorSlot()
         tr("Import textures"), "./assets",
         tr("Textures (*.tga, *.png);;All Files (*)"));
 
-    for (const auto& texture : filenames)
-    {
-        auto tex = m_vulkanWindow->getRenderer()->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
-        if (tex) {
-            utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
+    if (filenames.length() == 0) return;
+
+    struct ImportFunct {
+        ImportFunct(VulkanRenderer * r, QStringList& fs) : renderer(r), filenames(fs) {} ;
+        VulkanRenderer * renderer;
+        QStringList filenames;
+    
+        bool operator () (float& progress) {
+            bool success = true;
+            for (uint32_t t = 0; t < filenames.length(); t++)
+            {
+                const auto& texture = filenames[t];
+                auto tex = renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
+                if (tex) {
+                    utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
+                } else {
+                    success = false;
+                }
+                progress = static_cast<float>(t) / static_cast<float>(filenames.length());
+            }
+            return success;
         }
-    }
+    };
+    Task task;
+    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filenames);
+
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
+    waiting->exec();
+
+    delete waiting;
 }
 
 void MainWindow::onImportTextureOtherSlot()
@@ -601,13 +625,36 @@ void MainWindow::onImportTextureOtherSlot()
         tr("Import textures"), "./assets",
         tr("Textures (*.tga, *.png);;All Files (*)"));
 
-    for (const auto& texture : filenames)
-    {
-        auto tex = m_vulkanWindow->getRenderer()->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
-        if (tex) {
-            utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
+    if (filenames.length() == 0) return;
+
+    struct ImportFunct {
+        ImportFunct(VulkanRenderer * r, QStringList& fs) : renderer(r), filenames(fs) {} ;
+        VulkanRenderer * renderer;
+        QStringList filenames;
+    
+        bool operator () (float& progress) {
+            bool success = true;
+            for (uint32_t t = 0; t < filenames.length(); t++)
+            {
+                const auto& texture = filenames[t];
+                auto tex = renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
+                if (tex) {
+                    utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
+                } else {
+                    success = false;
+                }
+                progress = static_cast<float>(t) / static_cast<float>(filenames.length());
+            }
+            return success;
         }
-    }
+    };
+    Task task;
+    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filenames);
+
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
+    waiting->exec();
+
+    delete waiting;
 }
 
 void MainWindow::onImportTextureHDRSlot()
@@ -618,11 +665,26 @@ void MainWindow::onImportTextureHDRSlot()
 
     if (filename == "") return;
 
-    auto tex = m_vulkanWindow->getRenderer()->createTextureHDR(filename.toStdString());
-    if (tex) {
-        utils::ConsoleInfo("Texture: " + filename.toStdString() + " imported");
-        m_widgetEnvironment->updateMaps();
-    }
+    struct ImportFunct {
+        ImportFunct(VulkanRenderer * r, std::string f) : renderer(r), filename(f) {} ;
+        VulkanRenderer * renderer;
+        std::string filename;
+        bool operator () (float&) {
+            auto tex = renderer->createTextureHDR(filename);
+            if (tex) {
+                utils::ConsoleInfo("Texture: " + filename + " imported");
+                return true;
+            }
+            return false;
+        }
+    };
+    Task task;
+    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filename.toStdString());
+
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
+    waiting->exec();
+
+    delete waiting;
 }
 
 void MainWindow::onImportEnvironmentMap()
@@ -633,11 +695,28 @@ void MainWindow::onImportEnvironmentMap()
 
     if (filename == "") return;
 
-    auto envMap = m_vulkanWindow->getRenderer()->createEnvironmentMap(filename.toStdString());
-    if (envMap) {
-        utils::ConsoleInfo("Environment map: " + filename.toStdString() + " imported");
-        m_widgetEnvironment->updateMaps();
-    }
+    struct ImportFunct {
+        ImportFunct(VulkanRenderer * r, std::string f) : renderer(r), filename(f) {} ;
+        VulkanRenderer * renderer;
+        std::string filename;
+        bool operator () (float&) {
+            auto envMap = renderer->createEnvironmentMap(filename);
+            if (envMap) {
+                utils::ConsoleInfo("Environment map: " + filename + " imported");
+                return true;
+            }
+            return false;
+        }
+    };
+    Task task;
+    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filename.toStdString());
+
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
+    waiting->exec();
+
+    m_widgetEnvironment->updateMaps();
+
+    delete waiting;
 }
 
 void MainWindow::onImportMaterial()
@@ -648,11 +727,32 @@ void MainWindow::onImportMaterial()
     std::string materialName = dir.split('/').back().toStdString();
     std::string dirStd = dir.toStdString();
 
-    auto material = m_vulkanWindow->importMaterial(materialName, dirStd);
+    struct ImportFunct {
+        ImportFunct(VulkanWindow * vkw, std::string d, std::string n) : vkwindow(vkw), dir(d), materialName(n) {} ;
+        VulkanWindow * vkwindow;
+        std::string dir;
+        std::string materialName;
+        bool operator () (float&) {
+            auto material = vkwindow->importMaterial(materialName, dir);
+            if (material) {
+                utils::ConsoleInfo("Material: " + materialName + " has been created");
+                return true;
+            } else {
+                return false;
+            }
+        }
+    };
+    Task task;
+    task.f = ImportFunct(m_vulkanWindow, dirStd, materialName);
 
-    if (material != nullptr) {
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
+    waiting->exec();
+
+    if (task.success) {
         if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
     }
+
+    delete waiting;
 }
 
 void MainWindow::onImportMaterialZipStackSlot()
@@ -665,15 +765,36 @@ void MainWindow::onImportMaterialZipStackSlot()
 
     std::string materialName = filename.split('/').back().toStdString();
 
-    auto mat = m_vulkanWindow->importZipMaterial(materialName, filename.toStdString());
-    if (mat != nullptr) {
+    struct ImportFunct {
+        ImportFunct(VulkanWindow * vkw, std::string f, std::string n) : vkwindow(vkw), filename(f), materialName(n) {} ;
+        VulkanWindow * vkwindow;
+        std::string filename;
+        std::string materialName;
+        bool operator () (float&) {
+            auto material = vkwindow->importZipMaterial(materialName, filename);
+            if (material) {
+                utils::ConsoleInfo("Material: " + materialName + " has been created");
+                return true;
+            } else {
+                return false;
+            }
+        }
+    };
+    Task task;
+    task.f = ImportFunct(m_vulkanWindow, filename.toStdString(), materialName);
+
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
+    waiting->exec();
+
+    if (task.success) {
         if (m_selectedObjectWidgetMaterial != nullptr) m_selectedObjectWidgetMaterial->updateAvailableMaterials();
     }
+
+    delete waiting;
 }
 
 void MainWindow::onImportScene()
 {    
-
     /* Select json file */
     QString sceneFile = QFileDialog::getOpenFileName(this,
         tr("Import scene"), "./assets/scenes/",
@@ -906,18 +1027,17 @@ void MainWindow::onRenderSceneSlot()
     struct RenederFunct {
         RenederFunct(VulkanRenderer * r) : renderer(r) {} ;
         VulkanRenderer * renderer;
-    
-        bool operator () () {
+        bool operator () (float&) {
             renderer->renderRT();
             return true;
         }
-
     };
-    struct RTRenderTaskWaitableUI : public TaskWaitableUI {
-        VulkanRendererRayTracing * rtrenderer;
-        float getProgress() const override { return rtrenderer->getRenderProgress(); }
-    } task;
-    task.rtrenderer = m_vulkanWindow->getRenderer()->getRayTracingRenderer();
+    struct RTRenderTask : public Task {
+        VulkanRenderer * renderer;
+        RTRenderTask(VulkanRenderer * r) : renderer(r) { };
+        float getProgress() const override { return renderer->getRayTracingRenderer()->getRenderProgress(); }
+    };
+    auto task = RTRenderTask(m_vulkanWindow->getRenderer());
     task.f = RenederFunct(m_vulkanWindow->getRenderer());
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Rendering...", &task);
