@@ -4,13 +4,15 @@
 
 #include <zip.h>
 
+#include "VulkanLimits.hpp"
+
 VulkanWindow::VulkanWindow() : QWindow()
 {
     setSurfaceType(QSurface::SurfaceType::VulkanSurface);
 
     setVulkanInstance(m_vkctx.instance());
 
-    m_scene = new VulkanScene(200);
+    m_scene = new VulkanScene(VULKAN_LIMITS_MAX_OBJECTS);
     m_swapchain = new VulkanSwapchain(m_vkctx);
     m_renderer = new VulkanRenderer(m_vkctx, m_scene);
 

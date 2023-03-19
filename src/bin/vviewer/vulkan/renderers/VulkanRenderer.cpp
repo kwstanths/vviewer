@@ -17,10 +17,11 @@
 #include "models/AssimpLoadModel.hpp"
 #include "vulkan/Shader.hpp"
 #include "vulkan/VulkanUtils.hpp"
+#include "vulkan/VulkanLimits.hpp"
 
 VulkanRenderer::VulkanRenderer(VulkanContext& vkctx, VulkanScene* scene) : m_vkctx(vkctx), m_scene(scene), m_rendererRayTracing(m_vkctx)
 {
-    m_materialsUBO = std::make_shared<VulkanDynamicUBO<MaterialData>>(100);
+    m_materialsUBO = std::make_shared<VulkanDynamicUBO<MaterialData>>(VULKAN_LIMITS_MAX_MATERIALS);
 }
 
 void VulkanRenderer::initResources()

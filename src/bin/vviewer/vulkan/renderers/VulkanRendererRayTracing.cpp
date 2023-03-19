@@ -22,6 +22,7 @@
 #include "vulkan/VulkanStructs.hpp"
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
+#include "vulkan/VulkanLimits.hpp"
 
 VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext& vkctx) : m_vkctx(vkctx)
 {
@@ -596,14 +597,14 @@ void VulkanRendererRayTracing::createStorageImage()
 
 void VulkanRendererRayTracing::createUniformBuffers()
 {
-    /* The scene buffer holds [SceneData | RayTracingData | MAX_LIGHTS * LightRT ] | [MAX_MATERIALS * MaterialRT] */
+    /* The scene buffer holds [SceneData | RayTracingData | VULKAN_LIMITS_MAX_LIGHTS * LightRT | VULKAN_LIMITS_MAX_MATERIALS * MaterialRT] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
     uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) +
         alignedSize(sizeof(RayTracingData), alignment) +
-        alignedSize(MAX_LIGHTS * sizeof(LightRT), alignment) +
-        alignedSize(MAX_MATERIALS * sizeof(MaterialRT), alignment);
+        alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), alignment) +
+        alignedSize(VULKAN_LIMITS_MAX_MATERIALS * sizeof(MaterialRT), alignment);
 
-    /* Create a buffer to hold the scene data and the ray tracing data */
+    /* Create a buffer to hold the scene buffer */
     createBuffer(m_vkctx.physicalDevice(),
         m_device,
         totalSceneBufferSize,
@@ -615,7 +616,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
     /* Create a buffer to hold the object descriptions data */
     createBuffer(m_vkctx.physicalDevice(),
         m_device,
-        MAX_OBJECTS * sizeof(ObjectDescriptionRT),
+        VULKAN_LIMITS_MAX_OBJECTS * sizeof(ObjectDescriptionRT),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_uniformBufferObjectDescription,
@@ -624,31 +625,29 @@ void VulkanRendererRayTracing::createUniformBuffers()
 
 void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials)
 {
-    if (m_sceneObjects.size() > MAX_OBJECTS)
+    if (m_sceneObjects.size() > VULKAN_LIMITS_MAX_OBJECTS)
     {
         throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of objects exceeded");
     }
-    if (lights.size() > MAX_LIGHTS)
+    if (lights.size() > VULKAN_LIMITS_MAX_LIGHTS)
     {
         throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of lights exceeded");
     }
-    if (materials.size() > MAX_MATERIALS)
+    if (materials.size() > VULKAN_LIMITS_MAX_MATERIALS)
     {
         throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of materials exceeded");
     }
 
-    /* Update scene data, ray tracing data and lights buffer */
+    /* Update scene buffer */
     {
         VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
         
         void* data;
         vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, VK_WHOLE_SIZE, 0, &data);
         memcpy(data, &sceneData, sizeof(sceneData));    /* Copy scene data struct */
-        
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &rtData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
-
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment), lights.data(), lights.size() * sizeof(LightRT)); /* Copy lights vector */
-        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment) + alignedSize(MAX_LIGHTS * sizeof(LightRT), alignment), materials.data(), materials.size() * sizeof(MaterialRT)); /* Copy materials vector */
+        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment) + alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), alignment), materials.data(), materials.size() * sizeof(MaterialRT)); /* Copy materials vector */
         vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
     }
 
@@ -787,7 +786,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
     VkDescriptorBufferInfo lightsDescriptor{};
     lightsDescriptor.buffer = m_uniformBufferScene;
     lightsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment);
-    lightsDescriptor.range = alignedSize(MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
+    lightsDescriptor.range = alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
     VkWriteDescriptorSet lightsWrite{};
     lightsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     lightsWrite.dstSet = m_descriptorSet;
@@ -799,7 +798,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
     /* Update materials buffer binding */
     VkDescriptorBufferInfo materialsDescriptor{};
     materialsDescriptor.buffer = m_uniformBufferScene;
-    materialsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment) + alignedSize(MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
+    materialsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment) + alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
     materialsDescriptor.range = VK_WHOLE_SIZE;
     VkWriteDescriptorSet materialsWrite{};
     materialsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

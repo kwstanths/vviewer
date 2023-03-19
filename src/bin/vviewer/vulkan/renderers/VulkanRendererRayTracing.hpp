@@ -57,10 +57,6 @@ public:
     float getRenderProgress() const { return m_renderProgress; }
 
 private:
-    const uint32_t MAX_OBJECTS = 200u;
-    const uint32_t MAX_LIGHTS = 20u;
-    const uint32_t MAX_MATERIALS = 100u;
-
     struct DeviceFunctionsRayTracing {
         PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
         PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;

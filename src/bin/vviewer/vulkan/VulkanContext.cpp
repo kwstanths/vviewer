@@ -134,6 +134,7 @@ bool VulkanContext::pickPhysicalDevice()
 
             m_msaaSamples = getMaxUsableSampleCount(deviceProperties);
             utils::ConsoleInfo("Using device: " + std::string(deviceProperties.deviceName));
+            utils::ConsoleInfo("MSAA samples: " + std::to_string(m_msaaSamples));
             return true;
         }
     }
