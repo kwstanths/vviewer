@@ -8,13 +8,15 @@
 #include <assimp/postprocess.h>
 #include <assimp/pbrmaterial.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include "utils/Console.hpp"
 
 #include "math/Transform.hpp"
 
 #define SANITIZATION_CHECK
 
-std::vector<Mesh> assimpLoadModel(std::string filename)
+std::vector<Mesh> assimpLoadModel(std::string filename, bool applyTransformation)
 {
     Assimp::Importer importer;
 
@@ -24,24 +26,31 @@ std::vector<Mesh> assimpLoadModel(std::string filename)
         throw std::runtime_error("Failed to load model: " + filename);
     }
 
-    std::vector<Mesh> temp = assimpLoadNode(scene->mRootNode, scene);
+    std::vector<Mesh> temp = assimpLoadNode(scene->mRootNode, scene, applyTransformation, glm::mat4(1.0F));
     importer.FreeScene();
     return temp;
 }
 
-std::vector<Mesh> assimpLoadNode(aiNode * node, const aiScene * scene)
+glm::mat4 getTransformation(aiNode * node)
+{
+    return glm::transpose(glm::make_mat4(&node->mTransformation.a1));
+}
+
+std::vector<Mesh> assimpLoadNode(aiNode * node, const aiScene * scene, bool applyTransformation, glm::mat4 parentTransformation)
 {
     std::vector<Mesh> meshList;
+
+    auto nodeTransformation = parentTransformation * getTransformation(node);
 
     /* Loop through all meshes in this node */
     for (size_t i = 0; i < node->mNumMeshes; i++) {
         aiMesh * mesh = scene->mMeshes[node->mMeshes[i]];
-        meshList.push_back(assimpLoadMesh(mesh, scene));
+        meshList.push_back(assimpLoadMesh(mesh, scene, applyTransformation, nodeTransformation));
     }
 
     /* Loop through all nodes attached to this node, and append their meshes */
     for (size_t i = 0; i < node->mNumChildren; i++) {
-        std::vector<Mesh> childrenMeshes = assimpLoadNode(node->mChildren[i], scene);
+        std::vector<Mesh> childrenMeshes = assimpLoadNode(node->mChildren[i], scene, applyTransformation, nodeTransformation);
         meshList.insert(meshList.end(), childrenMeshes.begin(), childrenMeshes.end());
     }
 
@@ -56,7 +65,7 @@ bool checkValid(glm::vec2 in) {
     return !std::isnan(in.x) && !std::isinf(in.x) && !std::isnan(in.y) && !std::isinf(in.y);
 }
 
-Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
+Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene, bool applyTransformation, glm::mat4 transfomation)
 {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
@@ -72,16 +81,16 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
         vertices[i].position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 
         #ifdef SANITIZATION_CHECK
-            if (!checkValid(vertices[i].position)) utils::ConsoleCritical("assimpLoadMesh(): Input vertex for mesh " + meshName + " is corrupted");
+            if (!checkValid(vertices[i].position)) utils::ConsoleCritical("assimpLoadMesh(): Input vertex for mesh [" + meshName + "] is corrupted");
         #endif
 
         if (hasNormals) {
             vertices[i].normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
 
             #ifdef SANITIZATION_CHECK
-                if (!checkValid(vertices[i].normal)) utils::ConsoleCritical("assimpLoadMesh(): Input normal for mesh " + meshName + " is corrupted");
+                if (!checkValid(vertices[i].normal)) utils::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is corrupted");
                 if (glm::length(vertices[i].normal) < 0.99) {
-                    utils::ConsoleCritical("assimpLoadMesh(): Input normal for mesh " + meshName + " is not normalized");
+                    utils::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is not normalized");
                     vertices[i].normal = glm::normalize(vertices[i].normal);
                 }
             #endif
@@ -92,7 +101,7 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
             vertices[i].uv = { mesh->mTextureCoords[0][i].x, 1.f - mesh->mTextureCoords[0][i].y };
 
             #ifdef SANITIZATION_CHECK
-                if (!checkValid(vertices[i].uv)) utils::ConsoleCritical("assimpLoadMesh(): Input uv for mesh " + meshName + " is corrupted");
+                if (!checkValid(vertices[i].uv)) utils::ConsoleCritical("assimpLoadMesh(): Input uv for mesh [" + meshName + "] is corrupted");
             #endif
 
         } else {
@@ -109,7 +118,7 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
                 if (!checkValid(vertices[i].tangent) || !checkValid(vertices[i].bitangent))
                 {
                     if (printErrorMessage) {
-                        utils::ConsoleWarning("assimpLoadMesh(): Input tangent or bitangent for mesh " + meshName + " is corrupted. Attempting reconstruction from normal...");
+                        utils::ConsoleWarning("assimpLoadMesh(): Input tangent or bitangent for mesh [" + meshName + "] is corrupted. Attempting reconstruction from normal...");
                         printErrorMessage = false;
                     }
 
@@ -126,19 +135,26 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene)
                 }
                 if (glm::length(vertices[i].tangent) < 0.99) {
                     if (printErrorMessage) {
-                        utils::ConsoleWarning("assimpLoadMesh(): Input tangent for mesh " + meshName + " is not normalized");
+                        utils::ConsoleWarning("assimpLoadMesh(): Input tangent for mesh [" + meshName + "] is not normalized");
                         printErrorMessage = false;
                     }
                     vertices[i].tangent = glm::normalize(vertices[i].tangent);
                 }
                 if (glm::length(vertices[i].bitangent) < 0.99) {
                     if (printErrorMessage) {
-                        utils::ConsoleWarning("assimpLoadMesh(): Input bitangent for mesh " + meshName + " is not normalized");
+                        utils::ConsoleWarning("assimpLoadMesh(): Input bitangent for mesh [" + meshName + "] is not normalized");
                         printErrorMessage = false;
                     }
                     vertices[i].bitangent = glm::normalize(vertices[i].bitangent);
                 }
             #endif
+        }
+
+        if (applyTransformation && transfomation != glm::mat4(1.0F)) {
+            vertices[i].position = transfomation * glm::vec4(vertices[i].position, 1.0F);
+            vertices[i].normal = transfomation * glm::vec4(vertices[i].normal, 0.0F);
+            vertices[i].tangent = transfomation * glm::vec4(vertices[i].tangent, 0.0F);
+            vertices[i].bitangent = transfomation * glm::vec4(vertices[i].bitangent, 0.0F);
         }
     }
 

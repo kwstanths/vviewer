@@ -52,8 +52,6 @@ public:
 
     void releaseSwapChainResources();
     void releaseResources();
-
-    void renderFrame();
     
     VulkanScene* getActiveScene() const;
 
@@ -77,10 +75,11 @@ public:
     std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
     std::shared_ptr<Material> createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
+    /* Blocks and waits for the renderer to idle, stop the renderer before waiting here */
     void waitIdle();
     void startRenderLoop();
     void renderLoopActive(bool active);
-    void exitRenderLoop();
+    void stopRenderLoop();
 
 private:
     /* Graphics pipeline */
@@ -97,7 +96,8 @@ private:
     bool createDescriptorSets();
     bool createColorSelectionTempImage();
     
-    /* Render */
+    /* Render loop */
+    void renderLoop();
     void buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
 private:

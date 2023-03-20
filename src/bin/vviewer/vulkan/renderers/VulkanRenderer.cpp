@@ -127,7 +127,7 @@ void VulkanRenderer::initSwapChainResources(VulkanSwapchain * swapchain)
     createFrameBuffers();
     createColorSelectionTempImage();
     createUniformBuffers();
-    createDescriptorPool(100);
+    createDescriptorPool(VULKAN_LIMITS_MAX_MATERIALS);
     createDescriptorSets();
     m_rendererSkybox.initSwapChainResources(swapchainExtent, 
         m_renderPassForward, 
@@ -274,8 +274,6 @@ void VulkanRenderer::releaseResources()
         }
         instance.reset();
     }
-
-    startRenderLoop();
 }
 
 void VulkanRenderer::waitIdle()
@@ -291,7 +289,7 @@ void VulkanRenderer::waitIdle()
 
 void VulkanRenderer::startRenderLoop()
 {
-    m_renderThread = std::thread(&VulkanRenderer::renderFrame, this);
+    m_renderThread = std::thread(&VulkanRenderer::renderLoop, this);
 }
 
 void VulkanRenderer::renderLoopActive(bool active)
@@ -304,13 +302,13 @@ void VulkanRenderer::renderLoopActive(bool active)
     m_renderLoopActive = active;
 }
 
-void VulkanRenderer::exitRenderLoop()
+void VulkanRenderer::stopRenderLoop()
 {
     m_renderLoopExit = true;
     m_renderThread.join();
 }
 
-void VulkanRenderer::renderFrame()
+void VulkanRenderer::renderLoop()
 {
     for(;;)
     {
@@ -383,7 +381,7 @@ void VulkanRenderer::renderFrame()
 
 void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {   
-    /* calculate delta time */
+    /* Calculate delta time */
     auto currentTime = std::chrono::steady_clock::now();
     m_deltaTime = (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_frameTimePrev).count()) / 1000.0f;
     m_frameTimePrev = currentTime;
@@ -611,10 +609,12 @@ std::shared_ptr<MeshModel> VulkanRenderer::createVulkanMeshModel(std::string fil
     try {
         std::vector<Mesh> meshes = assimpLoadModel(filename);
 
+        /* Check if ray tracing is enabled, and add extra buffer usage flags */
         VkBufferUsageFlags extraUsageFlags = {};
         if (isRTEnabled()) {
             extraUsageFlags = m_rendererRayTracing.getBufferUsageFlags();
         }
+
         auto vkmesh = std::make_shared<VulkanMeshModel>(m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), meshes, extraUsageFlags);
         
         vkmesh->setName(filename);
@@ -644,7 +644,7 @@ std::shared_ptr<Material> VulkanRenderer::createMaterial(std::string name, Mater
     }
     default:
     {
-        throw std::runtime_error("Material type not present");
+        throw std::runtime_error("VulkanRenderer::createMaterial(): Unexpected material");
         break;
     }
     }
@@ -688,7 +688,7 @@ glm::vec3 VulkanRenderer::selectObject(float x, float y)
     uint32_t row = y * m_swapchain->extent().height;
     uint32_t column = x * m_swapchain->extent().width;
 
-    /* Since the image is stored in linear tiling, get the subresource layout to calcualte the padding */
+    /* Since the image is stored in linear tiling, get the subresource layout to calculate the padding */
     VkImageSubresource subResource{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
     VkSubresourceLayout subResourceLayout;
     m_vkctx.deviceFunctions()->vkGetImageSubresourceLayout(m_vkctx.device(), m_imageTempColorSelection.image, &subResource, &subResourceLayout);
@@ -810,7 +810,7 @@ std::shared_ptr<Texture> VulkanRenderer::createTextureHDR(std::string imagePath,
             m_vkctx.graphicsCommandPool(),
             false);
 
-        /* If you are not to keep the image in memory, remove from the assets, and delete it */
+        /* If you are not to keep the image in memory, remove from the assets */
         if (!keepImage) {
             images.remove(imagePath);
         }

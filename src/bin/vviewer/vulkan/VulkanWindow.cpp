@@ -98,7 +98,7 @@ bool VulkanWindow::event(QEvent* event)
     {
         if (static_cast<QPlatformSurfaceEvent *>(event)->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed)
         {
-            m_renderer->exitRenderLoop();
+            m_renderer->stopRenderLoop();
             m_renderer->waitIdle();
 
             releaseResources();
