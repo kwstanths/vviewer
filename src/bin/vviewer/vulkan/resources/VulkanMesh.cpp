@@ -1,6 +1,6 @@
 #include "VulkanMesh.hpp"
 
-#include "VulkanUtils.hpp"
+#include "vulkan/VulkanUtils.hpp"
 #include "math/Constants.hpp"
 
 VulkanMesh::VulkanMesh(const Mesh & mesh) : Mesh(mesh)
@@ -9,10 +9,8 @@ VulkanMesh::VulkanMesh(const Mesh & mesh) : Mesh(mesh)
 
 void VulkanMesh::destroy(VkDevice device)
 {
-    vkDestroyBuffer(device, m_vertexBuffer, nullptr);
-    vkFreeMemory(device, m_vertexBufferMemory, nullptr);
-    vkDestroyBuffer(device, m_indexBuffer, nullptr);
-    vkFreeMemory(device, m_indexBufferMemory, nullptr);
+    m_vertexBuffer.destroy(device);
+    m_indexBuffer.destroy(device);
 }
 
 VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes, VkBufferUsageFlags extraUsageFlags)
@@ -24,8 +22,8 @@ VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice devic
         if (!mesh.hasNormals()) mesh.computeNormals();
 
         auto vkmesh = std::make_shared<VulkanMesh>(mesh);
-        createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), extraUsageFlags, vkmesh->m_vertexBuffer, vkmesh->m_vertexBufferMemory);
-        createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), extraUsageFlags, vkmesh->m_indexBuffer, vkmesh->m_indexBufferMemory);
+        createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), extraUsageFlags, vkmesh->vertexBuffer());
+        createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), extraUsageFlags, vkmesh->indexBuffer());
 
         vkmesh->m_meshModel = this;
         m_meshes.push_back(vkmesh);
@@ -71,8 +69,8 @@ VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue
 
     Mesh mesh(vertices, indices, false, false);
     auto vkmesh = std::make_shared<VulkanMesh>(mesh);
-    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), {}, vkmesh->m_vertexBuffer, vkmesh->m_vertexBufferMemory);
-    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), {}, vkmesh->m_indexBuffer, vkmesh->m_indexBufferMemory);
+    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), {}, vkmesh->vertexBuffer());
+    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), {}, vkmesh->indexBuffer());
      
     m_meshes.push_back(vkmesh);
 }

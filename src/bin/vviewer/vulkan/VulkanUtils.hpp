@@ -8,10 +8,11 @@
 #include <iostream>
 
 #include <glm/glm.hpp>
-#include <vulkan/vulkan_core.h>
+
 #include "core/Mesh.hpp"
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanStructs.hpp"
+#include "vulkan/resources/VulkanBuffer.hpp"
 
 /* vulkan timeouts in nanoseconds */
 static const uint64_t VULKAN_TIMEOUT_100MS  = 100000000;
@@ -57,8 +58,7 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
     VkDeviceSize bufferSize, 
     VkBufferUsageFlags bufferUsage, 
     VkMemoryPropertyFlags bufferProperties, 
-    VkBuffer & buffer, 
-    VkDeviceMemory & bufferMemory);
+    VulkanBuffer& outBuffer);
 
 /**
     Create a buffer and copy data
@@ -69,8 +69,7 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
     VkBufferUsageFlags bufferUsage,
     VkMemoryPropertyFlags bufferProperties,
     const void* data,
-    VkBuffer& buffer,
-    VkDeviceMemory& bufferMemory);
+    VulkanBuffer& outBuffer);
 
 /**
     Create a vertex buffer
@@ -81,8 +80,7 @@ bool createVertexBuffer(VkPhysicalDevice physicalDevice,
     VkCommandPool transferCommandPool, 
     const std::vector<Vertex>& vertices, 
     VkBufferUsageFlags extraUsageFlags,
-    VkBuffer& buffer, 
-    VkDeviceMemory& bufferMemory);
+    VulkanBuffer& outBuffer);
 
 /**
     Create an indices buffer
@@ -93,8 +91,7 @@ bool createIndexBuffer(VkPhysicalDevice physicalDevice,
     VkCommandPool transferCommandPool, 
     const std::vector<uint32_t>& indices, 
     VkBufferUsageFlags extraUsageFlags,
-    VkBuffer& buffer, 
-    VkDeviceMemory& bufferMemory);
+    VulkanBuffer& outBuffer);
 
 /**
     Create an Image

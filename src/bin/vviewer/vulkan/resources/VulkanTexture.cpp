@@ -1,6 +1,6 @@
 #include "VulkanTexture.hpp"
 
-#include "VulkanUtils.hpp"
+#include "vulkan/VulkanUtils.hpp"
 #include "utils/Console.hpp"
 
 VulkanTexture::VulkanTexture(std::string name, 
@@ -27,19 +27,17 @@ VulkanTexture::VulkanTexture(std::string name,
     VkDeviceSize imageSize = imageWidth * imageHeight * image->getChannels();
 
     /* Create staging buffer */
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VulkanBuffer stagingBuffer;
     createBuffer(physicalDevice, device, imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory);
+        stagingBuffer);
 
     /* Copy image data to staging buffer */
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(device, stagingBuffer.vkmemory(), 0, imageSize, 0, &data);
     memcpy(data, image->getData(), static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(device, stagingBuffer.vkmemory());
 
     /* Create vulkan image and memory */
     VkImageUsageFlags imageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -81,7 +79,7 @@ VulkanTexture::VulkanTexture(std::string name,
         static_cast<uint32_t>(imageHeight),
         1
     };
-    copyBufferToImage(device, queue, commandPool, stagingBuffer, m_image, { region });
+    copyBufferToImage(device, queue, commandPool, stagingBuffer.vkbuffer(), m_image, { region });
 
     if (genMipMaps) {
         /* If mip maps are to be generated, transition to shader read only while creating the mip maps */
@@ -97,8 +95,7 @@ VulkanTexture::VulkanTexture(std::string name,
     }
 
     /* Cleanup staging buffer */
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    stagingBuffer.destroy(device);
 
     /* Create view */
     m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
@@ -131,19 +128,17 @@ VulkanTexture::VulkanTexture(std::string name,
     VkDeviceSize imageSize = imageWidth * imageHeight * image->getChannels() * 4;
 
     /* Create staging buffer */
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VulkanBuffer stagingBuffer;
     createBuffer(physicalDevice, device, imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory);
+        stagingBuffer);
 
     /* Copy image data to staging buffer */
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(device, stagingBuffer.vkmemory(), 0, imageSize, 0, &data);
     memcpy(data, image->getData(), static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(device, stagingBuffer.vkmemory());
 
     /* Create vulkan image and memory */
     VkImageUsageFlags imageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -185,7 +180,7 @@ VulkanTexture::VulkanTexture(std::string name,
         static_cast<uint32_t>(imageHeight),
         1
     };
-    copyBufferToImage(device, queue, commandPool, stagingBuffer, m_image, { region });
+    copyBufferToImage(device, queue, commandPool, stagingBuffer.vkbuffer(), m_image, { region });
 
     if (genMipMaps) {
         /* If mip maps are to be generated, transition to shader read only while creating the mip maps */
@@ -201,8 +196,7 @@ VulkanTexture::VulkanTexture(std::string name,
     }
 
     /* Cleanup staging buffer */
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    stagingBuffer.destroy(device);
 
     /* Create view */
     m_imageView = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);

@@ -1,8 +1,9 @@
 #ifndef __VulkanDynamicUBO_hpp__
 #define __VulkanDynamicUBO_hpp__
 
-#include "IncludeVulkan.hpp"
-#include "VulkanUtils.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/VulkanUtils.hpp"
+#include "vulkan/resources/VulkanBuffer.hpp"
 
 #include <math/MathUtils.hpp>
 #include "utils/FreeList.hpp"
@@ -56,16 +57,14 @@ public:
 
         /* Create GPU buffers */
         VkDeviceSize bufferSize = m_blockAlignment * m_nBlocks;
-        m_buffer.resize(nBuffers);
-        m_bufferMemory.resize(nBuffers);
+        m_gpuBuffers.resize(nBuffers);
 
         for (size_t i = 0; i < nBuffers; i++)
         {
             createBuffer(physicalDevice, device, bufferSize,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_buffer[i],
-                m_bufferMemory[i]);
+                m_gpuBuffers[i]);
         }
 
         return true;
@@ -75,20 +74,20 @@ public:
         Get an allocated buffer
         @param index Buffer to get 
     */
-    VkBuffer getBuffer(size_t index) const
+    VkBuffer getBuffer(size_t index) const 
     {
-        assert(index < m_buffer.size());
-        return m_buffer[index];
+        assert(index < m_gpuBuffers.size());
+        return m_gpuBuffers[index].getvkbuffer();
     }
 
     /**
         Get an allocated buffer's memory
         @param Buffer memory to get 
     */
-    VkDeviceMemory getBufferMemory(size_t index) const
+    VkDeviceMemory getBufferMemory(size_t index) const 
     {
-        assert(index < m_bufferMemory.size());
-        return m_bufferMemory[index];
+        assert(index < m_gpuBuffers.size());
+        return m_gpuBuffers[index].getvkmemory();
     }
 
     /**
@@ -161,8 +160,7 @@ private:
     uint32_t m_nBlocks;
     uint32_t m_buffers = 0;
 
-    std::vector<VkBuffer> m_buffer;
-    std::vector<VkDeviceMemory> m_bufferMemory;
+    std::vector<VulkanBuffer> m_gpuBuffers;
 };
 
 #endif

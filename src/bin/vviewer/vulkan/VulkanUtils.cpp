@@ -102,8 +102,7 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
     VkDeviceSize bufferSize,
     VkBufferUsageFlags bufferUsage,
     VkMemoryPropertyFlags bufferProperties,
-    VkBuffer& buffer,
-    VkDeviceMemory& bufferMemory)
+    VulkanBuffer& outBuffer)
 {
     if (bufferSize <= 0)
     {
@@ -111,13 +110,13 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
         return false;
     }
 
-    /* Create vertex buffer */
+    /* Create buffer */
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = bufferSize;
     bufferInfo.usage = bufferUsage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    VkResult res = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+    VkResult res = vkCreateBuffer(device, &bufferInfo, nullptr, &outBuffer.vkbuffer());
     if (res != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to create a vertex buffer");
         return false;
@@ -125,7 +124,7 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
 
     /* Get buffer memory requirements */
     VkMemoryRequirements memoryRequirements;
-    vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
+    vkGetBufferMemoryRequirements(device, outBuffer.vkbuffer(), &memoryRequirements);
 
     /* Alocate memory for buffer */
     VkMemoryAllocateInfo allocateInfo = {};
@@ -141,24 +140,30 @@ bool createBuffer(VkPhysicalDevice physicalDevice,
         allocateInfo.pNext = &allocFlagsInfo;
     }
 
-    res = vkAllocateMemory(device, &allocateInfo, nullptr, &bufferMemory);
+    res = vkAllocateMemory(device, &allocateInfo, nullptr, &outBuffer.vkmemory());
     if (res != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to allocate device memory: " + std::to_string(res));
         return false;
     }
     /* Bind memory to buffer */
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    vkBindBufferMemory(device, outBuffer.vkbuffer(), outBuffer.vkmemory(), 0);
     return true;
 }
 
-bool createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferProperties, const void* data, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+bool createBuffer(VkPhysicalDevice physicalDevice, 
+    VkDevice device, 
+    VkDeviceSize bufferSize, 
+    VkBufferUsageFlags bufferUsage, 
+    VkMemoryPropertyFlags bufferProperties, 
+    const void* data, 
+    VulkanBuffer& outBuffer)
 {
-    bool ret = createBuffer(physicalDevice, device, bufferSize, bufferUsage, bufferProperties, buffer, bufferMemory);
-
+    bool ret = createBuffer(physicalDevice, device, bufferSize, bufferUsage, bufferProperties, outBuffer);
     if (!ret) return ret;
 
+    /* copy data */
     void* mapped;
-    VkResult res = vkMapMemory(device, bufferMemory, 0, bufferSize, 0, &mapped);
+    VkResult res = vkMapMemory(device, outBuffer.vkmemory(), 0, bufferSize, 0, &mapped);
     if (res != VK_SUCCESS) {
         utils::ConsoleCritical("Failed to map device memory: " + std::to_string(res));
         return false;
@@ -171,12 +176,12 @@ bool createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize
     {
         VkMappedMemoryRange mappedMemoryRange{};
         mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-        mappedMemoryRange.memory = bufferMemory;
+        mappedMemoryRange.memory = outBuffer.vkmemory();
         mappedMemoryRange.offset = 0;
         mappedMemoryRange.size = bufferSize;
         vkFlushMappedMemoryRanges(device, 1, &mappedMemoryRange);
     }
-    vkUnmapMemory(device, bufferMemory);
+    vkUnmapMemory(device, outBuffer.vkmemory());
 
     return VK_SUCCESS;
 }
@@ -187,35 +192,31 @@ bool createVertexBuffer(VkPhysicalDevice physicalDevice,
     VkCommandPool transferCommandPool,
     const std::vector<Vertex>& vertices,
     VkBufferUsageFlags extraUsageFlags,
-    VkBuffer& buffer,
-    VkDeviceMemory& bufferMemory)
+    VulkanBuffer& outBuffer)
 {
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VulkanBuffer stagingBuffer;
     createBuffer(physicalDevice, device, bufferSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory);
+        stagingBuffer
+    );
 
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(device, stagingBuffer.vkmemory(), 0, bufferSize, 0, &data);
     memcpy(data, vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(device, stagingBuffer.vkmemory());
 
     createBuffer(physicalDevice, device, bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraUsageFlags,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        buffer,
-        bufferMemory
+        outBuffer
     );
 
-    copyBufferToBuffer(device, transferQueue, transferCommandPool, stagingBuffer, buffer, bufferSize);
+    copyBufferToBuffer(device, transferQueue, transferCommandPool, stagingBuffer.vkbuffer(), outBuffer.vkbuffer(), bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    stagingBuffer.destroy(device);
 
     return true;
 }
@@ -226,34 +227,31 @@ bool createIndexBuffer(VkPhysicalDevice physicalDevice,
     VkCommandPool transferCommandPool,
     const std::vector<uint32_t>& indices,
     VkBufferUsageFlags extraUsageFlags,
-    VkBuffer& buffer,
-    VkDeviceMemory& bufferMemory)
+    VulkanBuffer& outBuffer)
 {
     VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VulkanBuffer stagingBuffer;
     createBuffer(physicalDevice, device, bufferSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory);
+        stagingBuffer
+    );
 
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(device, stagingBuffer.vkmemory(), 0, bufferSize, 0, &data);
     memcpy(data, indices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(device, stagingBuffer.vkmemory());
 
     createBuffer(physicalDevice, device, bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraUsageFlags,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        buffer,
-        bufferMemory);
+        outBuffer
+    );
 
-    copyBufferToBuffer(device, transferQueue, transferCommandPool, stagingBuffer, buffer, bufferSize);
+    copyBufferToBuffer(device, transferQueue, transferCommandPool, stagingBuffer.vkbuffer(), outBuffer.vkbuffer(), bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    stagingBuffer.destroy(device);
 
     return true;
 }

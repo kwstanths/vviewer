@@ -6,7 +6,8 @@
 #include "core/MeshModel.hpp"
 #include "core/Mesh.hpp"
 
-#include "IncludeVulkan.hpp"
+#include "vulkan/IncludeVulkan.hpp"
+#include "VulkanBuffer.hpp"
 
 class VulkanVertex {
 public:
@@ -68,10 +69,17 @@ public:
 
     void destroy(VkDevice device);
 
-    VkBuffer m_vertexBuffer;
-    VkDeviceMemory m_vertexBufferMemory;
-    VkBuffer m_indexBuffer;
-    VkDeviceMemory m_indexBufferMemory;
+    inline VulkanBuffer& vertexBuffer() { return m_vertexBuffer; }
+    inline VulkanBuffer getVertexBuffer() const { return m_vertexBuffer; }
+
+    inline VulkanBuffer& indexBuffer() { return m_indexBuffer; }
+    inline VulkanBuffer getIndexBuffer() const { return m_indexBuffer; }
+
+    inline VkIndexType indexType() const { return VK_INDEX_TYPE_UINT32; }
+
+private:
+    VulkanBuffer m_vertexBuffer;
+    VulkanBuffer m_indexBuffer;
 };
 
 class VulkanMeshModel : public MeshModel {

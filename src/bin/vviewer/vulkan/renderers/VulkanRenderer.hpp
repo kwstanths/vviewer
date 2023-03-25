@@ -22,11 +22,9 @@
 #include "vulkan/VulkanSwapchain.hpp"
 #include "vulkan/VulkanStructs.hpp"
 #include "vulkan/VulkanScene.hpp"
-#include "vulkan/VulkanMesh.hpp"
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
-#include "vulkan/VulkanTexture.hpp"
 #include "vulkan/VulkanFramebuffer.hpp"
 #include "VulkanRendererPBRStandard.hpp"
 #include "VulkanRendererLambert.hpp"
@@ -34,6 +32,8 @@
 #include "VulkanRendererPost.hpp"
 #include "VulkanRenderer3DUI.hpp"
 #include "VulkanRendererRayTracing.hpp"
+#include "vulkan/resources/VulkanMesh.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
 
 
 /* Main renderer */

@@ -6,10 +6,10 @@
 #include <core/Image.hpp>
 
 #include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanCubemap.hpp"
-#include "vulkan/VulkanMesh.hpp"
 #include "vulkan/VulkanMaterials.hpp"
-#include "vulkan/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanCubemap.hpp"
+#include "vulkan/resources/VulkanMesh.hpp"
 
 class VulkanRendererSkybox {
 public:

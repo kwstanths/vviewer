@@ -2,7 +2,7 @@
 #define __VulkanRendererPBR_hpp__
 
 #include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 

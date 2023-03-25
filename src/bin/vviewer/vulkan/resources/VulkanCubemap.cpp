@@ -2,7 +2,7 @@
 
 #include <utils/Console.hpp>
 
-#include "VulkanUtils.hpp"
+#include "vulkan/VulkanUtils.hpp"
 
 VulkanCubemap::VulkanCubemap(std::string directory, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool) : Cubemap(directory)
 {
@@ -54,24 +54,22 @@ bool VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice devi
     const VkDeviceSize layerSize = imageSize / 6;
 
     /* Create staging buffer */
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VulkanBuffer stagingBuffer;
     createBuffer(physicalDevice, device, imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory);
+        stagingBuffer);
 
     /* Copy data to staging buffer */
     void *data;
-    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(device, stagingBuffer.vkmemory(), 0, imageSize, 0, &data);
     memcpy(static_cast<stbi_uc *>(data) + (layerSize * 0), m_image_front->getData(), static_cast<size_t>(layerSize));
     memcpy(static_cast<stbi_uc *>(data) + (layerSize * 1), m_image_back->getData(), static_cast<size_t>(layerSize));
     memcpy(static_cast<stbi_uc *>(data) + (layerSize * 2), m_image_top->getData(), static_cast<size_t>(layerSize));
     memcpy(static_cast<stbi_uc *>(data) + (layerSize * 3), m_image_bottom->getData(), static_cast<size_t>(layerSize));
     memcpy(static_cast<stbi_uc *>(data) + (layerSize * 4), m_image_right->getData(), static_cast<size_t>(layerSize));
     memcpy(static_cast<stbi_uc *>(data) + (layerSize * 5), m_image_left->getData(), static_cast<size_t>(layerSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(device, stagingBuffer.vkmemory());
 
     // Create optimal tiled target image
     VkImageCreateInfo imageCreateInfo = {};
@@ -133,7 +131,7 @@ bool VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice devi
             1
         };
     }
-    copyBufferToImage(device, queue, commandPool, stagingBuffer, m_cubemapImage, copyRegions);
+    copyBufferToImage(device, queue, commandPool, stagingBuffer.vkbuffer(), m_cubemapImage, copyRegions);
 
     /* Transition to SHADER_READ_ONLY layout */
     transitionImageLayout(device, queue, commandPool,
@@ -143,8 +141,7 @@ bool VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice devi
         6);
 
     /* Cleanup staging buffer */
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    stagingBuffer.destroy(device);
 
     /* Create image view */
     VkImageViewCreateInfo viewInfo{};

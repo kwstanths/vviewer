@@ -3,7 +3,7 @@
 
 #include <core/Cubemap.hpp>
 
-#include "IncludeVulkan.hpp"
+#include "vulkan/IncludeVulkan.hpp"
 
 class VulkanCubemap : public Cubemap {
 public:

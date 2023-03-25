@@ -89,10 +89,10 @@ void VulkanRenderer3DUI::renderTransform(VkCommandBuffer& cmdBuf,
     
     const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_arrow->getMeshes()[0]);
 
-    VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+    VkBuffer vertexBuffers[] = { vkmesh->getVertexBuffer().vkbuffer() };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
 
     VkDescriptorSet descriptorSets[1] = {
         descriptorScene,

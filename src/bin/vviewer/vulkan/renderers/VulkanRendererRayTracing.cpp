@@ -93,10 +93,9 @@ void VulkanRendererRayTracing::initResources(VkFormat format)
 
 void VulkanRendererRayTracing::releaseRenderResources()
 {
-    for(const auto& mb : m_meshBuffers)
+    for(auto& mb : m_meshBuffers)
     {
-        vkDestroyBuffer(m_device, mb.first, nullptr);
-        vkFreeMemory(m_device, mb.second, nullptr);
+        mb.destroy(m_device);
     }
     m_meshBuffers.clear();
 
@@ -109,20 +108,15 @@ void VulkanRendererRayTracing::releaseResources()
 
     vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
 
-    vkDestroyBuffer(m_device, m_shaderRayGenBuffer, nullptr);
-    vkDestroyBuffer(m_device, m_shaderRayMissBuffer, nullptr);
-    vkDestroyBuffer(m_device, m_shaderRayCHitBuffer, nullptr);
-    vkFreeMemory(m_device, m_shaderRayGenBufferMemory, nullptr);
-    vkFreeMemory(m_device, m_shaderRayMissBufferMemory, nullptr);
-    vkFreeMemory(m_device, m_shaderRayCHitBufferMemory, nullptr);
+    m_shaderRayGenBuffer.destroy(m_device);
+    m_shaderRayMissBuffer.destroy(m_device);
+    m_shaderRayCHitBuffer.destroy(m_device);
 
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
 
-    vkDestroyBuffer(m_device, m_uniformBufferScene, nullptr);
-    vkDestroyBuffer(m_device, m_uniformBufferObjectDescription, nullptr);
-    vkFreeMemory(m_device, m_uniformBufferObjectDescrptionMemory, nullptr);
-    vkFreeMemory(m_device, m_uniformBufferSceneMemory, nullptr);
+    m_uniformBufferScene.destroy(m_device);
+    m_uniformBufferObjectDescription.destroy(m_device);
 
     m_tempImage.destroy(m_device);
     m_renderResult.destroy(m_device);
@@ -274,23 +268,21 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     /* Create buffers for RT for mesh data and the transformation matrix */
     VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-    VkBuffer vertexBuffer = mesh.m_vertexBuffer;
-    VkDeviceMemory vertexBufferMemory = mesh.m_vertexBufferMemory;
+    VkBuffer vertexBuffer = mesh.getVertexBuffer().vkbuffer();
+    VkDeviceMemory vertexBufferMemory = mesh.getVertexBuffer().vkmemory();
 
-    VkBuffer indexBuffer = mesh.m_indexBuffer;
-    VkDeviceMemory indexBufferMemory = mesh.m_indexBufferMemory;
+    VkBuffer indexBuffer = mesh.getIndexBuffer().vkbuffer();
+    VkDeviceMemory indexBufferMemory = mesh.getIndexBuffer().vkmemory();
 
     // TODO usage transform buffer from the dybamic UBO that stores the mvp matrices?
-    VkBuffer transformBuffer;
-    VkDeviceMemory transformBufferMemory;
+    VulkanBuffer transformBuffer;
     createBuffer(m_vkctx.physicalDevice(),
         m_device,
         sizeof(transformMatrix),
         usageFlags,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &transformMatrix,
-        transformBuffer,
-        transformBufferMemory);
+        transformBuffer);
 
     /* Get the device address of the geometry  buffers and push them to the scene objects vector */
     VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
@@ -298,7 +290,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
     indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, indexBuffer);
     VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
-    transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, transformBuffer);
+    transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, transformBuffer.vkbuffer());
     m_sceneObjects.push_back({ vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress, materialIndex });
 
     std::vector<uint32_t> numTriangles = { indexCount / 3 };
@@ -391,7 +383,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     accelerationDeviceAddressInfo.accelerationStructure = blas.handle;
     blas.deviceAddress = m_devF.vkGetAccelerationStructureDeviceAddressKHR(m_device, &accelerationDeviceAddressInfo);
 
-    m_meshBuffers.push_back({transformBuffer, transformBufferMemory});
+    m_meshBuffers.push_back(transformBuffer);
     deleteScratchBuffer(scratchBuffer);
 
     return blas;
@@ -425,19 +417,17 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     uint32_t instancesCount = static_cast<uint32_t>(instances.size());
 
     /* Create buffer to copy the instances */
-    VkBuffer instancesBuffer;
-    VkDeviceMemory instancesBufferMemory;
+    VulkanBuffer instancesBuffer;
     createBuffer(m_vkctx.physicalDevice(),
         m_device,
         instances.size() * sizeof(VkAccelerationStructureInstanceKHR),
         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         instances.data(),
-        instancesBuffer,
-        instancesBufferMemory);
+        instancesBuffer);
     /* Get address of the instances buffer */
     VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
-    instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, instancesBuffer);
+    instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, instancesBuffer.vkbuffer());
 
     /* Create an acceleration structure geometry to reference the instances buffer */
     VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
@@ -520,7 +510,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     tlas.deviceAddress = m_devF.vkGetAccelerationStructureDeviceAddressKHR(m_device, &accelerationDeviceAddressInfo);
 
     deleteScratchBuffer(scratchBuffer);
-    m_meshBuffers.push_back({instancesBuffer, instancesBufferMemory});
+    m_meshBuffers.push_back(instancesBuffer);
 
     return tlas;
 }
@@ -610,8 +600,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
         totalSceneBufferSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_uniformBufferScene, 
-        m_uniformBufferSceneMemory);
+        m_uniformBufferScene);
 
     /* Create a buffer to hold the object descriptions data */
     createBuffer(m_vkctx.physicalDevice(),
@@ -619,8 +608,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
         VULKAN_LIMITS_MAX_OBJECTS * sizeof(ObjectDescriptionRT),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_uniformBufferObjectDescription,
-        m_uniformBufferObjectDescrptionMemory);
+        m_uniformBufferObjectDescription);
 }
 
 void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials)
@@ -643,20 +631,20 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
         VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
         
         void* data;
-        vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, VK_WHOLE_SIZE, 0, &data);
+        vkMapMemory(m_device, m_uniformBufferScene.vkmemory(), 0, VK_WHOLE_SIZE, 0, &data);
         memcpy(data, &sceneData, sizeof(sceneData));    /* Copy scene data struct */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &rtData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment), lights.data(), lights.size() * sizeof(LightRT)); /* Copy lights vector */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment) + alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), alignment), materials.data(), materials.size() * sizeof(MaterialRT)); /* Copy materials vector */
-        vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
+        vkUnmapMemory(m_device, m_uniformBufferScene.vkmemory());
     }
 
     /* Update description of geometry objects */
     {
         void* data;
-        vkMapMemory(m_device, m_uniformBufferObjectDescrptionMemory, 0, VK_WHOLE_SIZE, 0, &data);
+        vkMapMemory(m_device, m_uniformBufferObjectDescription.vkmemory(), 0, VK_WHOLE_SIZE, 0, &data);
         memcpy(data, m_sceneObjects.data(), m_sceneObjects.size() * sizeof(ObjectDescriptionRT));
-        vkUnmapMemory(m_device, m_uniformBufferObjectDescrptionMemory);
+        vkUnmapMemory(m_device, m_uniformBufferObjectDescription.vkmemory());
     }
 }
 
@@ -665,10 +653,10 @@ void VulkanRendererRayTracing::updateUniformBuffersRayTracingData(const RayTraci
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
 
     void* data;
-    vkMapMemory(m_device, m_uniformBufferSceneMemory, 0, VK_WHOLE_SIZE, 0, &data);
+    vkMapMemory(m_device, m_uniformBufferScene.vkmemory(), 0, VK_WHOLE_SIZE, 0, &data);
     memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &rtData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
     
-    vkUnmapMemory(m_device, m_uniformBufferSceneMemory);
+    vkUnmapMemory(m_device, m_uniformBufferScene.vkmemory());
 }
 
 void VulkanRendererRayTracing::createDescriptorSets()
@@ -745,7 +733,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
 
     /* Update scene data binding */
     VkDescriptorBufferInfo sceneDataDescriptor{};
-    sceneDataDescriptor.buffer = m_uniformBufferScene;
+    sceneDataDescriptor.buffer = m_uniformBufferScene.vkbuffer();
     sceneDataDescriptor.offset = 0;
     sceneDataDescriptor.range = sizeof(SceneData);
     VkWriteDescriptorSet sceneDataWrite{};
@@ -758,7 +746,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
 
     /* Update ray tracing data binding, uses the same buffer with the scene data */
     VkDescriptorBufferInfo rayTracingDataDescriptor{};
-    rayTracingDataDescriptor.buffer = m_uniformBufferScene;
+    rayTracingDataDescriptor.buffer = m_uniformBufferScene.vkbuffer();
     rayTracingDataDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment);
     rayTracingDataDescriptor.range = sizeof(RayTracingData);
     VkWriteDescriptorSet rayTracingDataWrite{};
@@ -771,7 +759,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
 
     /* Update object description binding */
     VkDescriptorBufferInfo objectDescriptionDataDesriptor{};
-    objectDescriptionDataDesriptor.buffer = m_uniformBufferObjectDescription;
+    objectDescriptionDataDesriptor.buffer = m_uniformBufferObjectDescription.vkbuffer();
     objectDescriptionDataDesriptor.offset = 0;
     objectDescriptionDataDesriptor.range = VK_WHOLE_SIZE;
     VkWriteDescriptorSet objectDescriptionWrite{};
@@ -784,7 +772,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
 
     /* Update lights buffer binding */
     VkDescriptorBufferInfo lightsDescriptor{};
-    lightsDescriptor.buffer = m_uniformBufferScene;
+    lightsDescriptor.buffer = m_uniformBufferScene.vkbuffer();
     lightsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment);
     lightsDescriptor.range = alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
     VkWriteDescriptorSet lightsWrite{};
@@ -797,7 +785,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
 
     /* Update materials buffer binding */
     VkDescriptorBufferInfo materialsDescriptor{};
-    materialsDescriptor.buffer = m_uniformBufferScene;
+    materialsDescriptor.buffer = m_uniformBufferScene.vkbuffer();
     materialsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment) + alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
     materialsDescriptor.range = VK_WHOLE_SIZE;
     VkWriteDescriptorSet materialsWrite{};
@@ -1016,30 +1004,30 @@ void VulkanRendererRayTracing::createShaderBindingTable()
     const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayGenBuffer, m_shaderRayGenBufferMemory);
-    createBuffer(m_vkctx.physicalDevice(), m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayMissBuffer, m_shaderRayMissBufferMemory);
-    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer, m_shaderRayCHitBufferMemory);
+    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayGenBuffer);
+    createBuffer(m_vkctx.physicalDevice(), m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayMissBuffer);
+    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer);
 
     /* 1 ray gen group */
     {
         void* data;
-        vkMapMemory(m_device, m_shaderRayGenBufferMemory, 0, handleSize, 0, &data);
+        vkMapMemory(m_device, m_shaderRayGenBuffer.vkmemory(), 0, handleSize, 0, &data);
         memcpy(data, shaderHandleStorage.data(), handleSize);
-        vkUnmapMemory(m_device, m_shaderRayGenBufferMemory);
+        vkUnmapMemory(m_device, m_shaderRayGenBuffer.vkmemory());
     }
     /* 2 ray miss groups */
     {
         void* data;
-        vkMapMemory(m_device, m_shaderRayMissBufferMemory, 0, handleSize, 0, &data);
+        vkMapMemory(m_device, m_shaderRayMissBuffer.vkmemory(), 0, handleSize, 0, &data);
         memcpy(data, shaderHandleStorage.data() + handleSizeAligned, handleSize * 2);
-        vkUnmapMemory(m_device, m_shaderRayMissBufferMemory);
+        vkUnmapMemory(m_device, m_shaderRayMissBuffer.vkmemory());
     }
     /* 1 ray chit group */
     {
         void* data;
-        vkMapMemory(m_device, m_shaderRayCHitBufferMemory, 0, handleSize, 0, &data);
+        vkMapMemory(m_device, m_shaderRayCHitBuffer.vkmemory(), 0, handleSize, 0, &data);
         memcpy(data, shaderHandleStorage.data() + handleSizeAligned * 3, handleSize);
-        vkUnmapMemory(m_device, m_shaderRayCHitBufferMemory);
+        vkUnmapMemory(m_device, m_shaderRayCHitBuffer.vkmemory());
     }
 }
 
@@ -1048,15 +1036,15 @@ void VulkanRendererRayTracing::render()
     /* Get strided device addresses for the shader binding tables where the shader group handles are stored. TODO get this out of the render function */
     const uint32_t handleSizeAligned = alignedSize(m_rayTracingPipelineProperties.shaderGroupHandleSize, m_rayTracingPipelineProperties.shaderGroupHandleAlignment);
     VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
-    raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayGenBuffer);
+    raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayGenBuffer.vkbuffer());
     raygenShaderSbtEntry.stride = handleSizeAligned;
     raygenShaderSbtEntry.size = handleSizeAligned;
     VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
-    missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayMissBuffer);
+    missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayMissBuffer.vkbuffer());
     missShaderSbtEntry.stride = handleSizeAligned;
     missShaderSbtEntry.size = 2 * handleSizeAligned;
     VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
-    hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayCHitBuffer);
+    hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayCHitBuffer.vkbuffer());
     hitShaderSbtEntry.stride = handleSizeAligned;
     hitShaderSbtEntry.size = handleSizeAligned;
     /* No callable shader binding tables */

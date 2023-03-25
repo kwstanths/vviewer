@@ -6,7 +6,7 @@
 #include <core/Image.hpp>
 #include <core/Texture.hpp>
 
-#include "IncludeVulkan.hpp"
+#include "vulkan/IncludeVulkan.hpp"
 
 class VulkanTexture : public Texture {
 public:

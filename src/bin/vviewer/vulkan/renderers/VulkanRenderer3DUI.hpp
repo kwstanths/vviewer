@@ -4,7 +4,7 @@
 #include "core/Camera.hpp"
 
 #include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanFramebuffer.hpp"

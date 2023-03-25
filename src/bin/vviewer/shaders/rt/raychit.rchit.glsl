@@ -110,5 +110,5 @@ void main()
 
 	float cosTheta = sampleDirectionLocal.y;
 
-	rayPayload.beta *= material.albedo.xyz * INVPI /*   * cosTheta / sampleDirectionPDF   */;
+	rayPayload.beta *= material.albedo.xyz /* * INVPI * cosTheta / sampleDirectionPDF */;
 }

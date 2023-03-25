@@ -4,7 +4,7 @@
 
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
-#include "vulkan/VulkanMesh.hpp"
+#include "vulkan/resources/VulkanMesh.hpp"
 
 VulkanRendererPost::VulkanRendererPost()
 {

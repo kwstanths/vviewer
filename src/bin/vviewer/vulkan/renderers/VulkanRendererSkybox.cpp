@@ -9,7 +9,7 @@
 
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
-#include "vulkan/VulkanMesh.hpp"
+#include "vulkan/resources/VulkanMesh.hpp"
 
 VulkanRendererSkybox::VulkanRendererSkybox()
 {
@@ -51,10 +51,7 @@ void VulkanRendererSkybox::releaseResources()
     /* Destroy equi transform resources */
 
     const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_cube->getMeshes()[0]);
-    vkDestroyBuffer(m_device, vkmesh->m_vertexBuffer, nullptr);
-    vkFreeMemory(m_device, vkmesh->m_vertexBufferMemory, nullptr);
-    vkDestroyBuffer(m_device, vkmesh->m_indexBuffer, nullptr);
-    vkFreeMemory(m_device, vkmesh->m_indexBufferMemory, nullptr);
+    vkmesh->destroy(m_device);
 }
 
 VkPipeline VulkanRendererSkybox::getPipeline() const
@@ -77,10 +74,10 @@ void VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf, VkDescriptorSet 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     {
         const auto& vkmesh = std::static_pointer_cast<VulkanMesh>(m_cube->getMeshes()[0]);
-        VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+        VkBuffer vertexBuffers[] = { vkmesh->vertexBuffer().vkbuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(cmdBuf, vkmesh->indexBuffer().vkbuffer(), 0, vkmesh->indexType());
 
         VkDescriptorSet descriptorSets[2] = {
             cameraDescriptorSet,
@@ -605,10 +602,10 @@ std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createCubemap(std::shared_p
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelinelayout, 0, 1, &descriptorSet, 0, NULL);
 
                 /* Render cube */
-                VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+                VkBuffer vertexBuffers[] = { vkmesh->vertexBuffer().vkbuffer() };
                 VkDeviceSize offsets[] = { 0 };
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(commandBuffer, vkmesh->indexBuffer().vkbuffer(), 0, vkmesh->indexType());
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
 
                 vkCmdEndRenderPass(commandBuffer);
@@ -1289,10 +1286,10 @@ std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createIrradianceMap(std::sh
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelinelayout, 0, 1, &descriptorSet, 0, NULL);
 
                 /* Render cube */
-                VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+                VkBuffer vertexBuffers[] = { vkmesh->vertexBuffer().vkbuffer() };
                 VkDeviceSize offsets[] = { 0 };
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(commandBuffer, vkmesh->indexBuffer().vkbuffer(), 0, vkmesh->indexType());
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
 
                 vkCmdEndRenderPass(commandBuffer);
@@ -1911,10 +1908,10 @@ std::shared_ptr<VulkanCubemap> VulkanRendererSkybox::createPrefilteredCubemap(st
                     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelinelayout, 0, 1, &descriptorSet, 0, NULL);
 
                     /* Render cube */
-                    VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+                    VkBuffer vertexBuffers[] = { vkmesh->vertexBuffer().vkbuffer() };
                     VkDeviceSize offsets[] = { 0 };
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                    vkCmdBindIndexBuffer(commandBuffer, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindIndexBuffer(commandBuffer, vkmesh->indexBuffer().vkbuffer(), 0, vkmesh->indexType());
                     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
 
                     vkCmdEndRenderPass(commandBuffer);

@@ -2,9 +2,9 @@
 #define __VulkanSceneObject_hpp__
 
 #include <core/SceneObject.hpp>
-#include <vulkan/VulkanDynamicUBO.hpp>
 #include <vulkan/VulkanStructs.hpp>
-#include <vulkan/VulkanMesh.hpp>
+#include <vulkan/resources/VulkanDynamicUBO.hpp>
+#include <vulkan/resources/VulkanMesh.hpp>
 
 class VulkanSceneObject : public SceneObject
 {

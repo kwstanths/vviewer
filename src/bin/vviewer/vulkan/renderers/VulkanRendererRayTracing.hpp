@@ -6,11 +6,12 @@
 #include "core/Scene.hpp"
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanContext.hpp"
-#include "vulkan/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanScene.hpp"
 #include "vulkan/VulkanStructs.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanBuffer.hpp"
 
 struct RayTracingData {
     glm::uvec4 samplesBatchesDepthIndex = glm::vec4(256, 16, 5, 0);    /* R = total samples, G = Total number of batches, B = max depth per ray, A = batch index */
@@ -92,7 +93,7 @@ private:
         VkDeviceMemory memory;
         VkBuffer buffer;
     };
-    std::vector<std::pair<VkBuffer, VkDeviceMemory>> m_meshBuffers;
+    std::vector<VulkanBuffer> m_meshBuffers;
     std::vector<std::pair<AccelerationStructure, glm::mat4>> m_blas;
     AccelerationStructure m_tlas;
 
@@ -113,10 +114,8 @@ private:
     std::vector<ObjectDescriptionRT> m_sceneObjects;
 
     /* Descriptor sets */
-    VkBuffer m_uniformBufferScene;  /* Holds scene data, ray tracing data and light data */
-    VkDeviceMemory m_uniformBufferSceneMemory;
-    VkBuffer m_uniformBufferObjectDescription;  /* Holds references to scene objects */
-    VkDeviceMemory m_uniformBufferObjectDescrptionMemory;
+    VulkanBuffer m_uniformBufferScene;  /* Holds scene data, ray tracing data and light data */
+    VulkanBuffer m_uniformBufferObjectDescription;  /* Holds references to scene objects */
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSet m_descriptorSet;
 
@@ -125,12 +124,9 @@ private:
     VkPipelineLayout m_pipelineLayout;
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_shaderGroups;
     VkPipeline m_pipeline;
-    VkBuffer m_shaderRayGenBuffer;
-    VkDeviceMemory m_shaderRayGenBufferMemory;
-    VkBuffer m_shaderRayCHitBuffer;
-    VkDeviceMemory m_shaderRayCHitBufferMemory;
-    VkBuffer m_shaderRayMissBuffer;
-    VkDeviceMemory m_shaderRayMissBufferMemory;
+    VulkanBuffer m_shaderRayGenBuffer;
+    VulkanBuffer m_shaderRayCHitBuffer;
+    VulkanBuffer m_shaderRayMissBuffer;
 
     static std::vector<const char *> getRequiredExtensions();
     static bool checkRayTracingSupport(VkPhysicalDevice device);

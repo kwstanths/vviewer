@@ -7,7 +7,7 @@
 
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
-#include "vulkan/VulkanMesh.hpp"
+#include "vulkan/resources/VulkanMesh.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 
 VulkanRendererPBR::VulkanRendererPBR()
@@ -454,10 +454,10 @@ void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         /* Check if material parameters have changed for that imageIndex descriptor set */
         if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         
-        VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+        VkBuffer vertexBuffers[] = { vkmesh->getVertexBuffer().vkbuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
         
         /* Calculate model data offsets */
         std::array<uint32_t, 2> dynamicOffsets = {
@@ -509,10 +509,10 @@ void VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     /* Check if material parameters have changed for that imageIndex descriptor set */
     if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         
-    VkBuffer vertexBuffers[] = { vkmesh->m_vertexBuffer };
+    VkBuffer vertexBuffers[] = { vkmesh->getVertexBuffer().vkbuffer() };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmdBuf, vkmesh->m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
         
     /* Calculate model data offsets */
     std::array<uint32_t, 2> dynamicOffsets = {

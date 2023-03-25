@@ -3,9 +3,9 @@
 
 #include <core/Materials.hpp>
 
-#include "VulkanDynamicUBO.hpp"
 #include "VulkanStructs.hpp"
-#include "VulkanTexture.hpp"
+#include "vulkan/resources/VulkanDynamicUBO.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
 
 /* A class to handle the dynamic UBO storage for a material */
 template<typename T> 

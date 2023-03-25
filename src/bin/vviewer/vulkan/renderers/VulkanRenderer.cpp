@@ -179,8 +179,7 @@ void VulkanRenderer::releaseSwapChainResources()
 {
     /* Destroy uniform buffers */
     for (int i = 0; i < m_swapchain->imageCount(); i++) {
-        m_vkctx.deviceFunctions()->vkDestroyBuffer(m_vkctx.device(), m_scene->m_uniformBuffersScene[i], nullptr);
-        m_vkctx.deviceFunctions()->vkFreeMemory(m_vkctx.device(), m_scene->m_uniformBuffersSceneMemory[i], nullptr);
+        m_scene->m_uniformBuffersScene[i].destroy(m_vkctx.device());
 
         m_vkctx.deviceFunctions()->vkDestroyBuffer(m_vkctx.device(), m_scene->m_modelDataDynamicUBO.getBuffer(i), nullptr);
         m_vkctx.deviceFunctions()->vkFreeMemory(m_vkctx.device(), m_scene->m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
@@ -1351,7 +1350,6 @@ bool VulkanRenderer::createUniformBuffers()
         VkDeviceSize bufferSize = sizeof(SceneData);
 
         m_scene->m_uniformBuffersScene.resize(m_swapchain->imageCount());
-        m_scene->m_uniformBuffersSceneMemory.resize(m_swapchain->imageCount());
 
         for (int i = 0; i < m_swapchain->imageCount(); i++) {
             createBuffer(m_vkctx.physicalDevice(), 
@@ -1359,8 +1357,7 @@ bool VulkanRenderer::createUniformBuffers()
                 bufferSize,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                m_scene->m_uniformBuffersScene[i],
-                m_scene->m_uniformBuffersSceneMemory[i]);
+                m_scene->m_uniformBuffersScene[i]);
         }
     }
 
@@ -1459,7 +1456,7 @@ bool VulkanRenderer::createDescriptorSets()
     for (size_t i = 0; i < nImages; i++) {
 
         VkDescriptorBufferInfo bufferInfoScene{};
-        bufferInfoScene.buffer = m_scene->m_uniformBuffersScene[i];
+        bufferInfoScene.buffer = m_scene->m_uniformBuffersScene[i].vkbuffer();
         bufferInfoScene.offset = 0;
         bufferInfoScene.range = sizeof(SceneData);
         VkWriteDescriptorSet descriptorWriteScene{};

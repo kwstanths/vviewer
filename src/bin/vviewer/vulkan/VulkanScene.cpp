@@ -29,12 +29,12 @@ void VulkanScene::updateBuffers(VkDevice device, uint32_t imageIndex) const
         SceneData sceneData = VulkanScene::getSceneData();
 
         void* data;
-        vkMapMemory(device, m_uniformBuffersSceneMemory[imageIndex], 0, sizeof(SceneData), 0, &data);
+        vkMapMemory(device, m_uniformBuffersScene[imageIndex].getvkmemory(), 0, sizeof(SceneData), 0, &data);
         memcpy(data, &sceneData, sizeof(sceneData));
-        vkUnmapMemory(device, m_uniformBuffersSceneMemory[imageIndex]);
+        vkUnmapMemory(device, m_uniformBuffersScene[imageIndex].getvkmemory());
     }
 
-    /* Update transform data changes to buffer */
+    /* Update transform data to buffer */
     {
         void* data;
         vkMapMemory(device, m_modelDataDynamicUBO.getBufferMemory(imageIndex), 0, m_modelDataDynamicUBO.getBlockSizeAligned() * m_modelDataDynamicUBO.getNBlocks(), 0, &data);

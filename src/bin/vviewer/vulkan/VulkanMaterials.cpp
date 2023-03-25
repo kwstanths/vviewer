@@ -2,8 +2,8 @@
 
 #include <core/AssetManager.hpp>
 
-#include "VulkanTexture.hpp"
-#include "VulkanCubemap.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanCubemap.hpp"
 
 #include <utils/Console.hpp>
 

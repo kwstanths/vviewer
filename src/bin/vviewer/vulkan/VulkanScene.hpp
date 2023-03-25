@@ -10,7 +10,7 @@
 #include "VulkanMaterials.hpp"
 #include "VulkanSceneObject.hpp"
 #include "VulkanStructs.hpp"
-#include "VulkanDynamicUBO.hpp"
+#include "vulkan/resources/VulkanDynamicUBO.hpp"
 
 class VulkanScene : public Scene {
     friend class VulkanRenderer;
@@ -27,8 +27,7 @@ private:
     /* Dynamic uniform buffer to hold model positions */
     VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
     /* Buffers to hold the scene data */
-    std::vector<VkBuffer> m_uniformBuffersScene;
-    std::vector<VkDeviceMemory> m_uniformBuffersSceneMemory;
+    std::vector<VulkanBuffer> m_uniformBuffersScene;
 
     std::shared_ptr<SceneObject> createObject(std::string name) override;
 };
