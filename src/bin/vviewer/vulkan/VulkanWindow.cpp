@@ -12,7 +12,7 @@ VulkanWindow::VulkanWindow() : QWindow()
 
     setVulkanInstance(m_vkctx.instance());
 
-    m_scene = new VulkanScene(VULKAN_LIMITS_MAX_OBJECTS);
+    m_scene = new VulkanScene(m_vkctx, VULKAN_LIMITS_MAX_OBJECTS);
     m_swapchain = new VulkanSwapchain(m_vkctx);
     m_renderer = new VulkanRenderer(m_vkctx, m_scene);
 
@@ -290,14 +290,14 @@ void VulkanWindow::onUpdateCamera()
 
 std::shared_ptr<Material> VulkanWindow::importMaterial(std::string name, std::string stackDirectory)
 {
-    auto material = m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
+    auto material = m_renderer->materialSystem().createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
     if (material == nullptr) return nullptr;
 
-    auto albedo = m_renderer->createTexture(stackDirectory + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
-    auto ao = m_renderer->createTexture(stackDirectory + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
-    auto metallic = m_renderer->createTexture(stackDirectory + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
-    auto normal = m_renderer->createTexture(stackDirectory + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
-    auto roughness = m_renderer->createTexture(stackDirectory + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto albedo = m_renderer->textures().createTexture(stackDirectory + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
+    auto ao = m_renderer->textures().createTexture(stackDirectory + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto metallic = m_renderer->textures().createTexture(stackDirectory + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto normal = m_renderer->textures().createTexture(stackDirectory + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto roughness = m_renderer->textures().createTexture(stackDirectory + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
 
     if (albedo != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setAlbedoTexture(albedo);
     if (ao != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setAOTexture(ao);
@@ -366,7 +366,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
 
         auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + albedoZipPath;
-        albedoTexture = m_renderer->createTexture(id, image, VK_FORMAT_R8G8B8A8_SRGB);
+        albedoTexture = m_renderer->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_SRGB);
         if (albedoTexture == nullptr) {
             utils::ConsoleWarning("Unable to load albedo from zip texture stack");
         }
@@ -385,7 +385,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
 
         auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + roughnessZipPath;
-        roughnessTexture = m_renderer->createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
+        roughnessTexture = m_renderer->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (roughnessTexture == nullptr) {
             utils::ConsoleWarning("Unable to load roughness from zip texture stack");
         }
@@ -404,7 +404,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
 
         auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + normalZipPath;
-        normalTexture = m_renderer->createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
+        normalTexture = m_renderer->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (normalTexture == nullptr) {
             utils::ConsoleWarning("Unable to load normal from zip texture stack");
         }
@@ -412,7 +412,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
         zip_entry_close(zip);
     }
 
-    auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_renderer->createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
+    auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_renderer->materialSystem().createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
     mat->setAlbedoTexture(albedoTexture);
     mat->setRoughnessTexture(roughnessTexture);
     mat->roughness() = 1.0F;

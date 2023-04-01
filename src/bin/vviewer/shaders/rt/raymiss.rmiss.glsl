@@ -2,7 +2,7 @@
 #extension GL_EXT_ray_tracing : require
 #extension GL_GOOGLE_include_directive : enable
 
-#include "structs.glsl"
+#include "rtstructs.glsl"
 #include "rng.glsl"
 
 layout(location = 0) rayPayloadInEXT RayPayload rayPayload;

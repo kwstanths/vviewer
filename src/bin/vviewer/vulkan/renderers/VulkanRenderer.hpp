@@ -34,7 +34,8 @@
 #include "VulkanRendererRayTracing.hpp"
 #include "vulkan/resources/VulkanMesh.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
-
+#include "vulkan/resources/VulkanMaterialSystem.hpp"
+#include "vulkan/resources/VulkanTextures.hpp"
 
 /* Main renderer */
 class VulkanRenderer {
@@ -65,15 +66,13 @@ public:
 
     float deltaTime() const;
 
-    VulkanRendererRayTracing * getRayTracingRenderer() { return &m_rendererRayTracing; }
+    VulkanRendererRayTracing& getRayTracingRenderer() { return m_rendererRayTracing; }
+    VulkanMaterialSystem& materialSystem() { return m_materialSystem; }
+    VulkanTextures& textures() { return m_textures; }
 
     std::shared_ptr<MeshModel> createVulkanMeshModel(std::string filename);
-    std::shared_ptr<Texture> createTexture(std::string imagePath, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, bool keepImage = false);
-    std::shared_ptr<Texture> createTexture(std::string id, std::shared_ptr<Image<stbi_uc>> image, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
-    std::shared_ptr<Texture> createTextureHDR(std::string imagePath, bool keepImage = false);
     std::shared_ptr<Cubemap> createCubemap(std::string directory);
     std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
-    std::shared_ptr<Material> createMaterial(std::string name, MaterialType type, bool createDescriptors = true);
 
     /* Blocks and waits for the renderer to idle, stop the renderer before waiting here */
     void waitIdle();
@@ -89,11 +88,6 @@ private:
     bool createSyncObjects();
 
     /* Descriptor resources */
-    bool createDescriptorSetsLayouts();
-    bool createUniformBuffers();
-    bool updateUniformBuffers(size_t imageIndex);
-    bool createDescriptorPool(size_t nMaterials);
-    bool createDescriptorSets();
     bool createColorSelectionTempImage();
     
     /* Render loop */
@@ -137,15 +131,10 @@ private:
     std::chrono::steady_clock::time_point m_frameTimePrev;
     float m_deltaTime = 0.016F;
 
-    /* Descriptor data */
-    VkDescriptorSetLayout m_descriptorSetLayoutScene;
-    VkDescriptorSetLayout m_descriptorSetLayoutModel;
-    VkDescriptorPool m_descriptorPool;
-    std::vector<VkDescriptorSet> m_descriptorSetsScene;
-    std::vector<VkDescriptorSet> m_descriptorSetsModel;
-
-    /* Dynamic uniform buffer object to hold material data */
-    std::shared_ptr<VulkanDynamicUBO<MaterialData>> m_materialsUBO;
+    /* Material resources */
+    VulkanMaterialSystem m_materialSystem;
+    /* Texture resources */
+    VulkanTextures m_textures;
 
     std::shared_ptr<SceneObject> m_selectedObject = nullptr;
 

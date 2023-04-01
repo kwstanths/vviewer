@@ -4,26 +4,26 @@
 #include <core/Materials.hpp>
 
 #include "VulkanStructs.hpp"
-#include "vulkan/resources/VulkanDynamicUBO.hpp"
+#include "vulkan/resources/VulkanUBO.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 
-/* A class to handle the dynamic UBO storage for a material */
+/* A class to handle the UBO storage for a material */
 template<typename T> 
 class VulkanMaterialStorage {
 public:
-    VulkanMaterialStorage(std::shared_ptr<VulkanDynamicUBO<T>> materialsDynamicUBO)
-        : m_materialsDataStorage(materialsDynamicUBO)
+    VulkanMaterialStorage(VulkanUBO<T>& materialsUBO)
+        : m_materialsDataStorage(materialsUBO)
     {
         /* Get an index for a free block in the material storage buffers */
-        m_materialsUBOBlockIndex = static_cast<uint32_t>(m_materialsDataStorage->getFree());
+        m_materialsUBOBlockIndex = static_cast<uint32_t>(m_materialsDataStorage.getFree());
         /* Get pointer to free block */
-        m_data = m_materialsDataStorage->getBlock(m_materialsUBOBlockIndex);
+        m_data = m_materialsDataStorage.getBlock(m_materialsUBOBlockIndex);
     }
 
     ~VulkanMaterialStorage() 
     {
         /* Remove block index from the buffers */
-        m_materialsDataStorage->remove(m_materialsUBOBlockIndex);
+        m_materialsDataStorage.remove(m_materialsUBOBlockIndex);
     }
 
     uint32_t getUBOBlockIndex() const {
@@ -31,11 +31,11 @@ public:
     }
 
     uint32_t getBlockSizeAligned() const {
-        return m_materialsDataStorage->getBlockSizeAligned();
+        return m_materialsDataStorage.getBlockSizeAligned();
     }
 
 protected:
-    std::shared_ptr<VulkanDynamicUBO<T>> m_materialsDataStorage;
+    VulkanUBO<T>& m_materialsDataStorage;
     uint32_t m_materialsUBOBlockIndex = -1;
     T * m_data = nullptr;
 };
@@ -63,8 +63,7 @@ protected:
 /* Default PBR material */
 class VulkanMaterialPBRStandard : 
     public MaterialPBRStandard,
-    public VulkanMaterialStorage<MaterialData>,
-    public VulkanMaterialDescriptor
+    public VulkanMaterialStorage<MaterialData>
 {
 public:
     VulkanMaterialPBRStandard(std::string name,
@@ -75,7 +74,9 @@ public:
         float emissive, 
         VkDevice device,
         VkDescriptorSetLayout descriptorLayout,
-        std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO);
+        VulkanUBO<MaterialData>& materialsUBO);
+
+    MaterialIndex getMaterialIndex() const override;
 
     glm::vec4& albedo() override;
     glm::vec4 getAlbedo() const override;
@@ -99,19 +100,14 @@ public:
     void setEmissiveTexture(std::shared_ptr<Texture> texture) override;
     void setNormalTexture(std::shared_ptr<Texture> texture) override;
 
-    bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
-    bool updateDescriptorSets(VkDevice device, size_t images) override;
-    bool updateDescriptorSet(VkDevice device, size_t index) override;
-
 private:
-    std::shared_ptr<VulkanTexture> m_BRDFLUT = nullptr;
+
 };
 
 /* Lambert material */
 class VulkanMaterialLambert :
     public MaterialLambert,
-    public VulkanMaterialStorage<MaterialData>,
-    public VulkanMaterialDescriptor
+    public VulkanMaterialStorage<MaterialData>
 {
 public:
     VulkanMaterialLambert(std::string name,
@@ -120,7 +116,9 @@ public:
         float emissive,
         VkDevice device,
         VkDescriptorSetLayout descriptorLayout,
-        std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO);
+        VulkanUBO<MaterialData>& materialsUBO);
+
+    MaterialIndex getMaterialIndex() const override;
 
     glm::vec4& albedo() override;
     glm::vec4 getAlbedo() const override;
@@ -137,10 +135,6 @@ public:
     void setAOTexture(std::shared_ptr<Texture> texture) override;
     void setEmissiveTexture(std::shared_ptr<Texture> texture) override;
     void setNormalTexture(std::shared_ptr<Texture> texture) override;
-
-    bool createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
-    bool updateDescriptorSets(VkDevice device, size_t images) override;
-    bool updateDescriptorSet(VkDevice device, size_t index) override;
 
 private:
 };

@@ -19,6 +19,8 @@ enum class MaterialType {
     MATERIAL_LAMBERT = 2,
 };
 
+typedef uint32_t MaterialIndex;
+
 static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
     { MaterialType::MATERIAL_PBR_STANDARD, "PBR standard" },
     { MaterialType::MATERIAL_SKYBOX, "Skybox" },
@@ -37,6 +39,8 @@ public:
 
     virtual MaterialType getType() const { return MaterialType::MATERIAL_NOT_SET; };
 
+    virtual MaterialIndex getMaterialIndex() const { return 0; }
+
 private:
 
 };
@@ -49,6 +53,8 @@ public:
     MaterialType getType() const override {
         return MaterialType::MATERIAL_PBR_STANDARD;
     }
+
+    virtual MaterialIndex getMaterialIndex() const = 0;
 
     virtual glm::vec4& albedo() = 0;
     virtual glm::vec4 getAlbedo() const = 0;
@@ -96,6 +102,8 @@ public:
     MaterialType getType() const override {
         return MaterialType::MATERIAL_LAMBERT;
     }
+
+    virtual MaterialIndex getMaterialIndex() const = 0;
 
     virtual glm::vec4& albedo() = 0;
     virtual glm::vec4 getAlbedo() const = 0;

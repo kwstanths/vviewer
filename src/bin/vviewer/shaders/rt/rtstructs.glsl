@@ -6,7 +6,7 @@ struct ObjDesc
     /* Pointers to GPU buffers */
 	uint64_t vertexAddress;
 	uint64_t indexAddress;
-	int materialIndex;
+	uint materialIndex;
 };
 
 /* Struct for vertex data stored per vertex in geometry buffers */
@@ -45,8 +45,3 @@ struct Light {
     vec4 color;     /* RGB = color, A = mesh material id */
 };
 
-/* Material struct */
-struct Material 
-{
-	vec4 albedo;
-};

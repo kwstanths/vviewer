@@ -3,21 +3,15 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "rng.glsl"
-#include "structs.glsl"
+#include "../structs.glsl"
+#include "rtstructs.glsl"
 
-layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 1, set = 0, rgba8) uniform image2D image;
-layout(binding = 2, set = 0) uniform SceneData 
-{
-    mat4 view;
-	mat4 viewInverse;
-    mat4 projection;
-	mat4 projectionInverse;
-    vec4 directionalLightDir;
-    vec4 directionalLightColor;
-    vec4 exposure;
-} sceneData;
-layout(binding = 3, set = 0) uniform RayTracingData 
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 1, rgba8) uniform image2D image;
+layout(set = 0, binding = 2) uniform readonly SceneData {
+    Scene data;
+} scene;
+layout(set = 0, binding = 3) uniform RayTracingData 
 {
     uvec4 samplesBatchesDepthIndex;
     uvec4 lights;
@@ -49,9 +43,9 @@ void main()
 		vec2 d = inUV * 2.0 - 1.0;
 
 		/* Calculate first ray direction */
-		vec4 origin = sceneData.viewInverse * vec4(0, 0, 0, 1);
-		vec4 target = sceneData.projectionInverse * vec4(d.x, d.y, 1, 1) ;
-		vec4 direction = sceneData.viewInverse * vec4(normalize(target.xyz), 0) ;
+		vec4 origin = scene.data.viewInverse * vec4(0, 0, 0, 1);
+		vec4 target = scene.data.projectionInverse * vec4(d.x, d.y, 1, 1) ;
+		vec4 direction = scene.data.viewInverse * vec4(normalize(target.xyz), 0) ;
 
 		vec3 beta = vec3(1);
 		vec3 radiance = vec3(0);

@@ -3,13 +3,13 @@
 
 #include <core/SceneObject.hpp>
 #include <vulkan/VulkanStructs.hpp>
-#include <vulkan/resources/VulkanDynamicUBO.hpp>
+#include <vulkan/resources/VulkanUBO.hpp>
 #include <vulkan/resources/VulkanMesh.hpp>
 
 class VulkanSceneObject : public SceneObject
 {
 public:
-    VulkanSceneObject(VulkanDynamicUBO<ModelData>& transformDynamicUBO);
+    VulkanSceneObject(VulkanUBO<ModelData>& transformDynamicUBO);
 
     ~VulkanSceneObject();
 
@@ -22,7 +22,7 @@ public:
 private:
     ModelData* m_modelData = nullptr;
     uint32_t m_transformUBOBlock = -1;
-    VulkanDynamicUBO<ModelData>& m_transformDynamicUBO;
+    VulkanUBO<ModelData>& m_transformDynamicUBO;
 };
 
 #endif

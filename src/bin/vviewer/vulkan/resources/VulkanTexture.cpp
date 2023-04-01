@@ -260,6 +260,16 @@ VkSampler VulkanTexture::getSampler() const
     return m_sampler;
 }
 
+void VulkanTexture::setBindlessResourceIndex(int32_t index)
+{
+    m_bindlessResourceIndex = index;
+}
+
+int32_t VulkanTexture::getBindlessResourceIndex() const
+{
+    return m_bindlessResourceIndex;
+}
+
 VkSampler VulkanTexture::createSampler(VkDevice device) const
 {
     VkSamplerCreateInfo samplerInfo{};

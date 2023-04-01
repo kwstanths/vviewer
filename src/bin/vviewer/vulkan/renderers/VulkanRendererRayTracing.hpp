@@ -12,6 +12,8 @@
 #include "vulkan/VulkanStructs.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/resources/VulkanBuffer.hpp"
+#include "vulkan/resources/VulkanMaterialSystem.hpp"
+#include "vulkan/resources/VulkanTextures.hpp"
 
 struct RayTracingData {
     glm::uvec4 samplesBatchesDepthIndex = glm::vec4(256, 16, 5, 0);    /* R = total samples, G = Total number of batches, B = max depth per ray, A = batch index */
@@ -27,7 +29,7 @@ class VulkanRendererRayTracing {
     friend class VulkanRenderer;
 public:
 
-    VulkanRendererRayTracing(VulkanContext& vkctx);
+    VulkanRendererRayTracing(VulkanContext& vkctx, VulkanMaterialSystem& materialSystem, VulkanTextures& textures);
 
     void initResources(VkFormat colorFormat);
 
@@ -74,6 +76,9 @@ private:
     VulkanContext& m_vkctx;
     bool m_renderInProgress = false;
     float m_renderProgress = 0.0F;
+
+    VulkanMaterialSystem& m_materialSystem;
+    VulkanTextures& m_textures;
 
     /* Device data */
     bool m_isInitialized = false;
@@ -135,7 +140,7 @@ private:
     
     static VkDevice createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex);
 
-    AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& transformationMatrix, const int materialIndex);
+    AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& transformationMatrix, const uint32_t materialIndex);
     AccelerationStructure createTopLevelAccelerationStructure();
     void destroyAccellerationStructures();
 
@@ -144,7 +149,7 @@ private:
 
     /* Uniform buffers */
     void createUniformBuffers();
-    void updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials);
+    void updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights);
     void updateUniformBuffersRayTracingData(const RayTracingData& rtData);
 
     /* Descriptor sets */
@@ -165,7 +170,6 @@ private:
     void deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer);
 
     std::vector<LightRT> prepareSceneLights(const VulkanScene * scene, const std::vector<std::shared_ptr<SceneObject>>& sceneObjects);
-    std::vector<MaterialRT> prepareSceneMaterials(const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, std::unordered_map<std::string, int>& indices);
 };
 
 #endif

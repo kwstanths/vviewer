@@ -9,12 +9,12 @@
 #include <qlistwidget.h>
 #include <sys/types.h>
 
-DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTracing * renderer)
+DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTracing& renderer)
 {
 	setWindowTitle(QString("Render scene:"));
 
     /* Filename widget */
-	m_renderOutputFileWidget = new QLineEdit(QString::fromStdString(renderer->getRenderOutputFileName()));
+	m_renderOutputFileWidget = new QLineEdit(QString::fromStdString(renderer.getRenderOutputFileName()));
 
 	m_renderOutputFileChangeButton = new QPushButton("Change");
 	connect(m_renderOutputFileChangeButton, &QPushButton::clicked, this, &DialogSceneRender::onButtonSetRenderOutputFile);
@@ -34,7 +34,7 @@ DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTra
     /* Resolution widget */
     uint32_t currentWidth;
     uint32_t currentHeight;
-    renderer->getRenderResolution(currentWidth, currentHeight);
+    renderer.getRenderResolution(currentWidth, currentHeight);
 	m_resolutionWidth = new QSpinBox();
 	m_resolutionWidth->setMinimum(0);
 	m_resolutionWidth->setMaximum(16384);
@@ -65,7 +65,7 @@ DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTra
 	m_samples = new QSpinBox();
 	m_samples->setMinimum(0);
 	m_samples->setMaximum(65536);
-	m_samples->setValue(renderer->getSamples());
+	m_samples->setValue(renderer.getSamples());
 	QHBoxLayout* layoutSamples = new QHBoxLayout();
 	layoutSamples->addWidget(new QLabel("Samples:"));
 	layoutSamples->addWidget(m_samples);
@@ -75,7 +75,7 @@ DialogSceneRender::DialogSceneRender(QWidget* parent, const VulkanRendererRayTra
     m_depth = new QSpinBox();
 	m_depth->setMinimum(0);
 	m_depth->setMaximum(65536);
-	m_depth->setValue(renderer->getMaxDepth());
+	m_depth->setValue(renderer.getMaxDepth());
     QHBoxLayout* layoutDepth = new QHBoxLayout();
 	layoutDepth->addWidget(new QLabel("Max depth:"));
 	layoutDepth->addWidget(m_depth);

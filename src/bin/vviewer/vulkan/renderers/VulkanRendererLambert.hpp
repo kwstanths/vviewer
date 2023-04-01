@@ -18,15 +18,13 @@ public:
         VkPhysicalDeviceProperties physicalDeviceProperties,
         VkDescriptorSetLayout cameraDescriptorLayout,
         VkDescriptorSetLayout modelDescriptorLayout,
-        VkDescriptorSetLayout skyboxDescriptorLayout);
+        VkDescriptorSetLayout skyboxDescriptorLayout,
+        VkDescriptorSetLayout materialDescriptorLayout,
+        VkDescriptorSetLayout texturesDescriptorLayout);
     void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples);
 
     void releaseSwapChainResources();
     void releaseResources();
-
-    std::shared_ptr<VulkanMaterialLambert> createMaterial(std::string name,
-        glm::vec4 albedo, float ao, float emissive,
-        std::shared_ptr<VulkanDynamicUBO<MaterialData>>& materialsUBO);
 
     /**
      * @brief Render objects with the base pass, IBL + directional light + selection info
@@ -42,9 +40,11 @@ public:
     void renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
-        const std::shared_ptr<VulkanMaterialSkybox>& skybox,
+        VkDescriptorSet descriptorSkybox,
+        VkDescriptorSet& descriptorMaterial,
+        VkDescriptorSet& descriptorTextures,
         uint32_t imageIndex,
-        const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        const VulkanUBO<ModelData>& dynamicUBOModels,
         std::vector<std::shared_ptr<SceneObject>>& objects) const;
 
     /**
@@ -61,10 +61,11 @@ public:
     void renderObjectsAddPass(VkCommandBuffer& cmdBuf, 
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
+        VkDescriptorSet& descriptorMaterial,
         uint32_t imageIndex, 
-        const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        const VulkanUBO<ModelData>& dynamicUBOModels,
         std::shared_ptr<SceneObject> object,
-        const PushBlockForwardAddPass& lightInfo) const;
+        PushBlockForwardAddPass& lightInfo) const;
 
 private:
     VkDevice m_device;
@@ -77,13 +78,13 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
     VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
     VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
+    VkDescriptorSetLayout m_descriptorSetLayoutTextures;
 
     VkPipelineLayout m_pipelineLayoutBasePass, m_pipelineLayoutAddPass;
     VkPipeline m_graphicsPipelineBasePass, m_graphicsPipelineAddPass;
     VkRenderPass m_renderPass;
     VkSampleCountFlagBits m_msaaSamples;
 
-    bool createDescriptorSetsLayout();
     bool createGraphicsPipelineBasePass();
     bool createGraphicsPipelineAddPass();
 };

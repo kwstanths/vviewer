@@ -48,6 +48,9 @@ public:
     VkFormat getFormat() const;    
     VkSampler getSampler() const;
 
+    void setBindlessResourceIndex(int32_t index);
+    int32_t getBindlessResourceIndex() const;
+
 private:
     VkImage m_image;
     VkDeviceMemory m_imageMemory;
@@ -56,6 +59,8 @@ private:
 
     VkFormat m_format;
     uint32_t m_numMips = 1;
+
+    int32_t m_bindlessResourceIndex = -1;
 
     VkSampler createSampler(VkDevice device) const;
     void generateMipMaps(VkDevice device, VkCommandPool commandPool, VkQueue queue);

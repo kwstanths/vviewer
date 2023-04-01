@@ -15,17 +15,27 @@ VulkanRendererLambert::VulkanRendererLambert()
 {
 }
 
-void VulkanRendererLambert::initResources(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool, VkPhysicalDeviceProperties physicalDeviceProperties, VkDescriptorSetLayout cameraDescriptorLayout, VkDescriptorSetLayout modelDescriptorLayout, VkDescriptorSetLayout skyboxDescriptorLayout)
+void VulkanRendererLambert::initResources(VkPhysicalDevice physicalDevice, 
+    VkDevice device, 
+    VkQueue queue, 
+    VkCommandPool commandPool, 
+    VkPhysicalDeviceProperties physicalDeviceProperties,
+    VkDescriptorSetLayout cameraDescriptorLayout, 
+    VkDescriptorSetLayout modelDescriptorLayout, 
+    VkDescriptorSetLayout skyboxDescriptorLayout,
+    VkDescriptorSetLayout materialDescriptorLayout,
+    VkDescriptorSetLayout texturesDescriptorLayout)
 {
     m_physicalDevice = physicalDevice;
     m_device = device;
     m_commandPool = commandPool;
     m_queue = queue;
+
     m_descriptorSetLayoutCamera = cameraDescriptorLayout;
     m_descriptorSetLayoutModel = modelDescriptorLayout;
     m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
-
-    createDescriptorSetsLayout();
+    m_descriptorSetLayoutMaterial = materialDescriptorLayout;
+    m_descriptorSetLayoutTextures = texturesDescriptorLayout;
 }
 
 void VulkanRendererLambert::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples)
@@ -48,33 +58,19 @@ void VulkanRendererLambert::releaseSwapChainResources()
 
 void VulkanRendererLambert::releaseResources()
 {
-    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMaterial, nullptr);
-}
 
-std::shared_ptr<VulkanMaterialLambert> VulkanRendererLambert::createMaterial(std::string name, glm::vec4 albedo, float ao, float emissive,
-    std::shared_ptr<VulkanDynamicUBO<MaterialData>>& materialsUBO)
-{
-    AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
-    if (instance.isPresent(name)) {
-        utils::ConsoleWarning("Material name already present");
-        return nullptr;
-    }
-
-    auto mat = std::make_shared<VulkanMaterialLambert>(name, albedo, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO);
-    instance.add(name, mat);
-    return mat;
 }
 
 void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf, 
     VkDescriptorSet& descriptorScene, 
     VkDescriptorSet& descriptorModel, 
-    const std::shared_ptr<VulkanMaterialSkybox>& skybox, 
+    VkDescriptorSet descriptorSkybox,
+    VkDescriptorSet& descriptorMaterial,
+    VkDescriptorSet& descriptorTextures,
     uint32_t imageIndex, 
-    const VulkanDynamicUBO<ModelData>& dynamicUBOModels, 
+    const VulkanUBO<ModelData>& dynamicUBOModels, 
     std::vector<std::shared_ptr<SceneObject>>& objects) const
 {
-    assert(skybox != nullptr);
-
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineBasePass);
     for (size_t i = 0; i < objects.size(); i++)
     {
@@ -84,8 +80,6 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         if (vkmesh == nullptr) continue;
 
         VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(object->get<ComponentMaterial>().material.get());
-        /* Check if material parameters have changed for that imageIndex descriptor set */
-        if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
 
         VkBuffer vertexBuffers[] = { vkmesh->getVertexBuffer().vkbuffer() };
         VkDeviceSize offsets[] = { 0 };
@@ -93,19 +87,20 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
 
         /* Calculate model data offsets */
-        uint32_t dynamicOffsets[2] = {
-            dynamicUBOModels.getBlockSizeAligned() * object->getTransformUBOBlock(),
-            material->getBlockSizeAligned() * material->getUBOBlockIndex()
+        uint32_t dynamicOffsets[1] = {
+            dynamicUBOModels.getBlockSizeAligned() * object->getTransformUBOBlock()
         };
-        VkDescriptorSet descriptorSets[4] = {
+        VkDescriptorSet descriptorSets[5] = {
             descriptorScene,
             descriptorModel,
-            material->getDescriptor(imageIndex),
-            skybox->getDescriptor(imageIndex)
+            descriptorMaterial,
+            descriptorTextures,
+            descriptorSkybox
         };
 
         PushBlockForwardBasePass pushConstants;
         pushConstants.selected = glm::vec4(object->getIDRGB(), object->m_isSelected);
+        pushConstants.material.r = material->getMaterialIndex();
         vkCmdPushConstants(cmdBuf,
             m_pipelineLayoutBasePass,
             VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -114,7 +109,7 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
             &pushConstants);
 
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayoutBasePass,
-            0, 4, &descriptorSets[0], 2, &dynamicOffsets[0]);
+            0, 4, &descriptorSets[0], 1, &dynamicOffsets[0]);
 
         vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
     }
@@ -123,10 +118,11 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
 void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf, 
     VkDescriptorSet& descriptorScene,
     VkDescriptorSet& descriptorModel,
+    VkDescriptorSet& descriptorMaterial,
     uint32_t imageIndex, 
-    const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+    const VulkanUBO<ModelData>& dynamicUBOModels,
     std::shared_ptr<SceneObject> object,
-    const PushBlockForwardAddPass& lightInfo) const
+    PushBlockForwardAddPass& lightInfo) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
 
@@ -135,8 +131,6 @@ void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     if (vkmesh == nullptr) return;
 
     VulkanMaterialLambert* material = static_cast<VulkanMaterialLambert*>(vobject->get<ComponentMaterial>().material.get());
-    /* Check if material parameters have changed for that imageIndex descriptor set */
-    if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
 
     VkBuffer vertexBuffers[] = { vkmesh->getVertexBuffer().vkbuffer() };
     VkDeviceSize offsets[] = { 0 };
@@ -144,16 +138,17 @@ void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
     
     /* Calculate model data offsets */
-    std::array<uint32_t, 2> dynamicOffsets = {
+    std::array<uint32_t, 1> dynamicOffsets = {
         dynamicUBOModels.getBlockSizeAligned() * vobject->getTransformUBOBlock(),
-        material->getBlockSizeAligned() * material->getUBOBlockIndex()
     };
     /* Create descriptor sets array */
     std::array<VkDescriptorSet, 3> descriptorSets = {
         descriptorScene,
         descriptorModel,
-        material->getDescriptor(imageIndex)
+        descriptorMaterial
     };
+
+    lightInfo.material.r = material->getMaterialIndex();
 
     vkCmdPushConstants(cmdBuf,
         m_pipelineLayoutAddPass,
@@ -168,39 +163,6 @@ void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
         static_cast<uint32_t>(dynamicOffsets.size()), &dynamicOffsets[0]
     );
     vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
-}
-
-bool VulkanRendererLambert::createDescriptorSetsLayout()
-{
-    {
-        /* Create binding for material data */
-        VkDescriptorSetLayoutBinding materiaDatalLayoutBinding{};
-        materiaDatalLayoutBinding.binding = 0;
-        materiaDatalLayoutBinding.descriptorCount = 1;   /* If we have an array of uniform buffers */
-        materiaDatalLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        materiaDatalLayoutBinding.pImmutableSamplers = nullptr;
-        materiaDatalLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        VkDescriptorSetLayoutBinding materialTexturesLayoutBinding{};
-        materialTexturesLayoutBinding.binding = 1;
-        materialTexturesLayoutBinding.descriptorCount = 4;  /* An array of 4 textures */
-        materialTexturesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        materialTexturesLayoutBinding.pImmutableSamplers = nullptr;
-        materialTexturesLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array<VkDescriptorSetLayoutBinding, 2> setBindings = { materiaDatalLayoutBinding, materialTexturesLayoutBinding };
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
-        layoutInfo.pBindings = setBindings.data();
-
-        if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayoutMaterial) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to create a descriptor set layout for the PBR material");
-            return false;
-        }
-    }
-
-    return true;
 }
 
 bool VulkanRendererLambert::createGraphicsPipelineBasePass()
@@ -318,7 +280,7 @@ bool VulkanRendererLambert::createGraphicsPipelineBasePass()
     colorBlending.blendConstants[3] = 0.0f; // Optional
 
     /* ------------------- PIPELINE LAYOUT ----------------- */
-    std::array<VkDescriptorSetLayout, 4> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutSkybox };
+    std::array<VkDescriptorSetLayout, 5> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutTextures, m_descriptorSetLayoutSkybox };
     
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -481,7 +443,7 @@ bool VulkanRendererLambert::createGraphicsPipelineAddPass()
     colorBlending.blendConstants[3] = 0.0f; // Optional
 
     /* ------------------- PIPELINE LAYOUT ----------------- */
-    std::array<VkDescriptorSetLayout, 3> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial };
+    std::array<VkDescriptorSetLayout, 4> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutTextures };
     
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;

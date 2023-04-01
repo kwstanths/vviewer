@@ -30,8 +30,8 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     float e,
     VkDevice device,
     VkDescriptorSetLayout descriptorLayout,
-    std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO)
-    : VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), VulkanMaterialDescriptor(descriptorLayout), MaterialPBRStandard(name)
+    VulkanUBO<MaterialData>& materialsUBO)
+    : VulkanMaterialStorage<MaterialData>(materialsUBO), MaterialPBRStandard(name)
 {
     albedo() = a;
     metallic() = m;
@@ -66,7 +66,13 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     if (!instance.isPresent("PBR_BRDF_LUT")) {
         throw std::runtime_error("PBR_BRDF_LUT texture not present");
     }
-    m_BRDFLUT = std::static_pointer_cast<VulkanTexture>(instance.get("PBR_BRDF_LUT"));
+    auto BRDFLUT = std::static_pointer_cast<VulkanTexture>(instance.get("PBR_BRDF_LUT"));
+    m_data->gTexturesIndices2.b = static_cast<uint32_t>(BRDFLUT->getBindlessResourceIndex());
+}
+
+MaterialIndex VulkanMaterialPBRStandard::getMaterialIndex() const
+{
+    return getUBOBlockIndex();
 }
 
 glm::vec4 & VulkanMaterialPBRStandard::albedo()
@@ -142,122 +148,58 @@ float VulkanMaterialPBRStandard::getVTiling() const
 void VulkanMaterialPBRStandard::setAlbedoTexture(std::shared_ptr<Texture> texture)
 {
     MaterialPBRStandard::setAlbedoTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+    
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices1.r = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialPBRStandard::setMetallicTexture(std::shared_ptr<Texture> texture)
 {
     MaterialPBRStandard::setMetallicTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices1.g = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialPBRStandard::setRoughnessTexture(std::shared_ptr<Texture> texture)
 {
     MaterialPBRStandard::setRoughnessTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices1.b = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialPBRStandard::setAOTexture(std::shared_ptr<Texture> texture)
 {
     MaterialPBRStandard::setAOTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices1.a = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialPBRStandard::setEmissiveTexture(std::shared_ptr<Texture> texture)
 {
     MaterialPBRStandard::setEmissiveTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices2.r = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialPBRStandard::setNormalTexture(std::shared_ptr<Texture> texture)
 {
     MaterialPBRStandard::setNormalTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
-}
 
-bool VulkanMaterialPBRStandard::createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images)
-{
-    m_descriptorSets.resize(images);
-    m_descirptorsNeedUpdate.resize(images, false);
-
-    std::vector<VkDescriptorSetLayout> layouts(images, m_descriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = pool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(images);
-    allocInfo.pSetLayouts = layouts.data();
-    if (vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to allocate PBR material descriptor sets");
-        return false;
-    }
-    return true;
-}
-
-bool VulkanMaterialPBRStandard::updateDescriptorSets(VkDevice device, size_t images)
-{
-    /* Write descriptor sets */
-    for (size_t i = 0; i < images; i++) {
-        updateDescriptorSet(device, i);
-    }
-    return true;
-}
-
-bool VulkanMaterialPBRStandard::updateDescriptorSet(VkDevice device, size_t index)
-{
-    VkDescriptorBufferInfo bufferInfoMaterial{};
-    bufferInfoMaterial.buffer = m_materialsDataStorage->getBuffer(index);
-    bufferInfoMaterial.offset = 0;
-    bufferInfoMaterial.range = m_materialsDataStorage->getBlockSizeAligned();
-    VkWriteDescriptorSet descriptorWriteMaterial{};
-    descriptorWriteMaterial.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWriteMaterial.dstSet = m_descriptorSets[index];
-    descriptorWriteMaterial.dstBinding = 0;
-    descriptorWriteMaterial.dstArrayElement = 0;
-    descriptorWriteMaterial.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    descriptorWriteMaterial.descriptorCount = 1;
-    descriptorWriteMaterial.pBufferInfo = &bufferInfoMaterial;
-    descriptorWriteMaterial.pImageInfo = nullptr; // Optional
-    descriptorWriteMaterial.pTexelBufferView = nullptr; // Optional
-
-    VkDescriptorImageInfo  texInfo[7];
-    for (size_t t = 0; t < 7; t++) {
-        texInfo[t] = VkDescriptorImageInfo();
-        texInfo[t].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    }
-    texInfo[0].imageView = std::static_pointer_cast<VulkanTexture>(m_albedoTexture)->getImageView();
-    texInfo[0].sampler = std::static_pointer_cast<VulkanTexture>(m_albedoTexture)->getSampler();
-    texInfo[1].imageView = std::static_pointer_cast<VulkanTexture>(m_metallicTexture)->getImageView();
-    texInfo[1].sampler = std::static_pointer_cast<VulkanTexture>(m_metallicTexture)->getSampler();
-    texInfo[2].imageView = std::static_pointer_cast<VulkanTexture>(m_roughnessTexture)->getImageView();
-    texInfo[2].sampler = std::static_pointer_cast<VulkanTexture>(m_roughnessTexture)->getSampler();
-    texInfo[3].imageView = std::static_pointer_cast<VulkanTexture>(m_aoTexture)->getImageView();
-    texInfo[3].sampler = std::static_pointer_cast<VulkanTexture>(m_aoTexture)->getSampler();
-    texInfo[4].imageView = std::static_pointer_cast<VulkanTexture>(m_emissiveTexture)->getImageView();
-    texInfo[4].sampler = std::static_pointer_cast<VulkanTexture>(m_emissiveTexture)->getSampler();
-    texInfo[5].imageView = std::static_pointer_cast<VulkanTexture>(m_normalTexture)->getImageView();
-    texInfo[5].sampler = std::static_pointer_cast<VulkanTexture>(m_normalTexture)->getSampler();
-    texInfo[6].imageView = m_BRDFLUT->getImageView();
-    texInfo[6].sampler = m_BRDFLUT->getSampler();
-
-    VkWriteDescriptorSet descriptorWriteTextures{};
-    descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWriteTextures.dstSet = m_descriptorSets[index];
-    descriptorWriteTextures.dstBinding = 1;
-    descriptorWriteTextures.dstArrayElement = 0;
-    descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWriteTextures.descriptorCount = 7;
-    descriptorWriteTextures.pImageInfo = texInfo;
-
-    std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteMaterial, descriptorWriteTextures };
-    vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
-
-    m_descirptorsNeedUpdate[index] = false;
-
-    return true;
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */
-
 
 VulkanMaterialLambert::VulkanMaterialLambert(std::string name, 
     glm::vec4 a, 
@@ -265,8 +207,8 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     float e, 
     VkDevice device, 
     VkDescriptorSetLayout descriptorLayout,
-    std::shared_ptr<VulkanDynamicUBO<MaterialData>> materialsDynamicUBO)
-    :VulkanMaterialStorage<MaterialData>(materialsDynamicUBO), VulkanMaterialDescriptor(descriptorLayout), MaterialLambert(name)
+    VulkanUBO<MaterialData>& materialsUBO)
+    :VulkanMaterialStorage<MaterialData>(materialsUBO), MaterialLambert(name)
 {
     albedo() = a;
     ao() = ambient;
@@ -293,6 +235,11 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     setAOTexture(white);
     setEmissiveTexture(white);
     setNormalTexture(normalmap);
+}
+
+MaterialIndex VulkanMaterialLambert::getMaterialIndex() const
+{
+    return getUBOBlockIndex();
 }
 
 glm::vec4& VulkanMaterialLambert::albedo()
@@ -348,100 +295,37 @@ float VulkanMaterialLambert::getVTiling() const
 void VulkanMaterialLambert::setAlbedoTexture(std::shared_ptr<Texture> texture)
 {
     MaterialLambert::setAlbedoTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices1.r = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialLambert::setAOTexture(std::shared_ptr<Texture> texture)
 {
     MaterialLambert::setAOTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices1.a = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialLambert::setEmissiveTexture(std::shared_ptr<Texture> texture)
 {
     MaterialLambert::setEmissiveTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
+
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices2.r = static_cast<uint32_t>(textureIndex);
 }
 
 void VulkanMaterialLambert::setNormalTexture(std::shared_ptr<Texture> texture)
 {
     MaterialLambert::setNormalTexture(texture);
-    std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
-}
 
-bool VulkanMaterialLambert::createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images)
-{
-    m_descriptorSets.resize(images);
-    m_descirptorsNeedUpdate.resize(images, false);
-
-    std::vector<VkDescriptorSetLayout> layouts(images, m_descriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = pool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(images);
-    allocInfo.pSetLayouts = layouts.data();
-    if (vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to allocate PBR material descriptor sets");
-        return false;
-    }
-    return true;
-}
-
-bool VulkanMaterialLambert::updateDescriptorSets(VkDevice device, size_t images)
-{
-    /* Write descriptor sets */
-    for (size_t i = 0; i < images; i++) {
-        updateDescriptorSet(device, i);
-    }
-    return true;
-}
-
-bool VulkanMaterialLambert::updateDescriptorSet(VkDevice device, size_t index)
-{
-    VkDescriptorBufferInfo bufferInfoMaterial{};
-    bufferInfoMaterial.buffer = m_materialsDataStorage->getBuffer(index);
-    bufferInfoMaterial.offset = 0;
-    bufferInfoMaterial.range = m_materialsDataStorage->getBlockSizeAligned();
-    VkWriteDescriptorSet descriptorWriteMaterial{};
-    descriptorWriteMaterial.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWriteMaterial.dstSet = m_descriptorSets[index];
-    descriptorWriteMaterial.dstBinding = 0;
-    descriptorWriteMaterial.dstArrayElement = 0;
-    descriptorWriteMaterial.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    descriptorWriteMaterial.descriptorCount = 1;
-    descriptorWriteMaterial.pBufferInfo = &bufferInfoMaterial;
-    descriptorWriteMaterial.pImageInfo = nullptr; // Optional
-    descriptorWriteMaterial.pTexelBufferView = nullptr; // Optional
-
-    VkDescriptorImageInfo  texInfo[4];
-    for (size_t t = 0; t < 4; t++) {
-        texInfo[t] = VkDescriptorImageInfo();
-        texInfo[t].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    }
-    texInfo[0].imageView = std::static_pointer_cast<VulkanTexture>(m_albedoTexture)->getImageView();
-    texInfo[0].sampler = std::static_pointer_cast<VulkanTexture>(m_albedoTexture)->getSampler();
-    texInfo[1].imageView = std::static_pointer_cast<VulkanTexture>(m_aoTexture)->getImageView();
-    texInfo[1].sampler = std::static_pointer_cast<VulkanTexture>(m_aoTexture)->getSampler();
-    texInfo[2].imageView = std::static_pointer_cast<VulkanTexture>(m_emissiveTexture)->getImageView();
-    texInfo[2].sampler = std::static_pointer_cast<VulkanTexture>(m_emissiveTexture)->getSampler();
-    texInfo[3].imageView = std::static_pointer_cast<VulkanTexture>(m_normalTexture)->getImageView();
-    texInfo[3].sampler = std::static_pointer_cast<VulkanTexture>(m_normalTexture)->getSampler();
-
-    VkWriteDescriptorSet descriptorWriteTextures{};
-    descriptorWriteTextures.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWriteTextures.dstSet = m_descriptorSets[index];
-    descriptorWriteTextures.dstBinding = 1;
-    descriptorWriteTextures.dstArrayElement = 0;
-    descriptorWriteTextures.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWriteTextures.descriptorCount = 4;
-    descriptorWriteTextures.pImageInfo = texInfo;
-
-    std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteMaterial, descriptorWriteTextures };
-    vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
-
-    m_descirptorsNeedUpdate[index] = false;
-
-    return true;
+    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    assert(textureIndex >= 0);
+    m_data->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */

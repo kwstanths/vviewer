@@ -21,7 +21,9 @@ void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
     VkPhysicalDeviceProperties physicalDeviceProperties,
     VkDescriptorSetLayout cameraDescriptorLayout, 
     VkDescriptorSetLayout modelDescriptorLayout, 
-    VkDescriptorSetLayout skyboxDescriptorLayout)
+    VkDescriptorSetLayout skyboxDescriptorLayout,
+    VkDescriptorSetLayout materialDescriptorLayout,
+    VulkanTextures& textures)
 {
     m_physicalDevice = physicalDevice;
     m_device = device;
@@ -30,10 +32,10 @@ void VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
     m_descriptorSetLayoutCamera = cameraDescriptorLayout;
     m_descriptorSetLayoutModel = modelDescriptorLayout;
     m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
+    m_descriptorSetLayoutMaterial = materialDescriptorLayout;
+    m_descriptorSetLayoutTextures = textures.layoutTextures();
 
-    createDescriptorSetsLayout();
-
-    createBRDFLUT();
+    createBRDFLUT(textures);
 }
 
 void VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples)
@@ -57,10 +59,9 @@ void VulkanRendererPBR::releaseSwapChainResources()
 
 void VulkanRendererPBR::releaseResources()
 {
-    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMaterial, nullptr);
 }
 
-void VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
+void VulkanRendererPBR::createBRDFLUT(VulkanTextures& textures, uint32_t resolution) const
 {
     try {
         VkImage image;
@@ -409,39 +410,26 @@ void VulkanRendererPBR::createBRDFLUT(uint32_t resolution) const
         vkDestroyFramebuffer(m_device, framebuffer, nullptr);
         vkDestroyDescriptorSetLayout(m_device, descriptorSetlayout, nullptr);
 
+        auto vktex = std::make_shared<VulkanTexture>("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler, 0);
         AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();        
-        instance.add("PBR_BRDF_LUT", std::make_shared<VulkanTexture>("PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler, 0));
+        instance.add("PBR_BRDF_LUT", vktex);
+        textures.addTexture(vktex);
     }
     catch (std::runtime_error& e) {
         throw std::runtime_error("Failed to create the PBR BRDF LUT texture: " + std::string(e.what()));
     }
 }
 
-std::shared_ptr<VulkanMaterialPBRStandard> VulkanRendererPBR::createMaterial(std::string name,
-    glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
-    std::shared_ptr<VulkanDynamicUBO<MaterialData>>& materialsUBO)
-{
-    AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
-    if (instance.isPresent(name)) {
-        utils::ConsoleWarning("Material name already present");
-        return nullptr;
-    }
-
-    auto mat = std::make_shared<VulkanMaterialPBRStandard>(name, albedo, metallic, roughness, ao, emissive, m_device, m_descriptorSetLayoutMaterial, materialsUBO);
-    instance.add(name, mat);
-    return mat;
-}
-
 void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf, 
     VkDescriptorSet& descriptorScene,
     VkDescriptorSet& descriptorModel,
-    const std::shared_ptr<VulkanMaterialSkybox>& skybox,
+    VkDescriptorSet descriptorSkybox,
+    VkDescriptorSet& descriptorMaterials,
+    VkDescriptorSet& descriptorTextures,
     uint32_t imageIndex, 
-    const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+    const VulkanUBO<ModelData>& dynamicUBOModels,
     std::vector<std::shared_ptr<SceneObject>>& objects) const
 {
-    assert(skybox != nullptr);
-
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineBasePass);
     for (size_t i = 0; i < objects.size(); i++)
     {
@@ -451,8 +439,6 @@ void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         if (vkmesh == nullptr) continue;
         
         VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(object->get<ComponentMaterial>().material.get());
-        /* Check if material parameters have changed for that imageIndex descriptor set */
-        if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         
         VkBuffer vertexBuffers[] = { vkmesh->getVertexBuffer().vkbuffer() };
         VkDeviceSize offsets[] = { 0 };
@@ -460,19 +446,20 @@ void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
         
         /* Calculate model data offsets */
-        std::array<uint32_t, 2> dynamicOffsets = {
-            dynamicUBOModels.getBlockSizeAligned() * object->getTransformUBOBlock(),
-            material->getBlockSizeAligned() * material->getUBOBlockIndex()
+        std::array<uint32_t, 1> dynamicOffsets = {
+            dynamicUBOModels.getBlockSizeAligned() * object->getTransformUBOBlock()
         };
-        std::array<VkDescriptorSet, 4> descriptorSets = {
+        std::array<VkDescriptorSet, 5> descriptorSets = {
             descriptorScene,
             descriptorModel,
-            material->getDescriptor(imageIndex),
-            skybox->getDescriptor(imageIndex)
+            descriptorMaterials,
+            descriptorTextures,
+            descriptorSkybox
         };
         
         PushBlockForwardBasePass pushConstants;
         pushConstants.selected = glm::vec4(object->getIDRGB(), object->m_isSelected);
+        pushConstants.material.r = material->getMaterialIndex();
         vkCmdPushConstants(cmdBuf, 
             m_pipelineLayoutBasePass, 
             VK_SHADER_STAGE_FRAGMENT_BIT, 
@@ -494,10 +481,12 @@ void VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
 void VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer& cmdBuf, 
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
+        VkDescriptorSet& descriptorMaterials,
+        VkDescriptorSet& descriptorTextures,
         uint32_t imageIndex, 
-        const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        const VulkanUBO<ModelData>& dynamicUBOModels,
         std::shared_ptr<SceneObject> object,
-        const PushBlockForwardAddPass& lightInfo) const
+        PushBlockForwardAddPass& lightInfo) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
     
@@ -506,8 +495,6 @@ void VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     if (vkmesh == nullptr) return;
         
     VulkanMaterialPBRStandard* material = static_cast<VulkanMaterialPBRStandard*>(vobject->get<ComponentMaterial>().material.get());
-    /* Check if material parameters have changed for that imageIndex descriptor set */
-    if (material->needsUpdate(imageIndex)) material->updateDescriptorSet(m_device, imageIndex);
         
     VkBuffer vertexBuffers[] = { vkmesh->getVertexBuffer().vkbuffer() };
     VkDeviceSize offsets[] = { 0 };
@@ -515,16 +502,18 @@ void VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
         
     /* Calculate model data offsets */
-    std::array<uint32_t, 2> dynamicOffsets = {
-        dynamicUBOModels.getBlockSizeAligned() * vobject->getTransformUBOBlock(),
-        material->getBlockSizeAligned() * material->getUBOBlockIndex()
+    std::array<uint32_t, 1> dynamicOffsets = {
+        dynamicUBOModels.getBlockSizeAligned() * vobject->getTransformUBOBlock()
     };
     /* Create descriptor sets array */
-    std::array<VkDescriptorSet, 3> descriptorSets = {
+    std::array<VkDescriptorSet, 4> descriptorSets = {
         descriptorScene,
         descriptorModel,
-        material->getDescriptor(imageIndex),
+        descriptorMaterials,
+        descriptorTextures
     };
+
+    lightInfo.material.r = material->getMaterialIndex();
 
     vkCmdPushConstants(cmdBuf, 
         m_pipelineLayoutAddPass, 
@@ -540,39 +529,6 @@ void VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     );
     
     vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
-}
-
-bool VulkanRendererPBR::createDescriptorSetsLayout()
-{
-    {
-        /* Create binding for material data */
-        VkDescriptorSetLayoutBinding materiaDatalLayoutBinding{};
-        materiaDatalLayoutBinding.binding = 0;
-        materiaDatalLayoutBinding.descriptorCount = 1;   /* If we have an array of uniform buffers */
-        materiaDatalLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        materiaDatalLayoutBinding.pImmutableSamplers = nullptr;
-        materiaDatalLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        VkDescriptorSetLayoutBinding materialTexturesLayoutBinding{};
-        materialTexturesLayoutBinding.binding = 1;
-        materialTexturesLayoutBinding.descriptorCount = 7;  /* An array of 7 textures */
-        materialTexturesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        materialTexturesLayoutBinding.pImmutableSamplers = nullptr;
-        materialTexturesLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array<VkDescriptorSetLayoutBinding, 2> setBindings = { materiaDatalLayoutBinding, materialTexturesLayoutBinding };
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
-        layoutInfo.pBindings = setBindings.data();
-
-        if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayoutMaterial) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to create a descriptor set layout for the PBR material");
-            return false;
-        }
-    }
-
-    return true;
 }
 
 bool VulkanRendererPBR::createGraphicsPipelineBasePass()
@@ -690,7 +646,7 @@ bool VulkanRendererPBR::createGraphicsPipelineBasePass()
     colorBlending.blendConstants[3] = 0.0f; // Optional
 
     /* ------------------- PIPELINE LAYOUT ----------------- */
-    std::array<VkDescriptorSetLayout, 4> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutSkybox };
+    std::array<VkDescriptorSetLayout, 5> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutTextures, m_descriptorSetLayoutSkybox };
     
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -853,7 +809,7 @@ bool VulkanRendererPBR::createGraphicsPipelineAddPass()
     colorBlending.blendConstants[3] = 0.0f; // Optional
 
     /* ------------------- PIPELINE LAYOUT ----------------- */
-    std::array<VkDescriptorSetLayout, 3> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial };
+    std::array<VkDescriptorSetLayout, 4> descriptorSetsLayouts{ m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutTextures };
     
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;

@@ -1,5 +1,8 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive : enable
+#include "structs.glsl"
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 inNormal;
@@ -12,15 +15,9 @@ layout(location = 2) out vec3 fragWorldTangent;
 layout(location = 3) out vec3 fragWorldBiTangent;
 layout(location = 4) out vec2 fragUV;
 
-layout(set = 0, binding = 0) uniform SceneData {
-    mat4 view;
-	mat4 viewInverse;
-    mat4 projection;
-	mat4 projectionInverse;
-    vec4 directionalLightDir;
-    vec4 directionalLightColor;
-    vec4 exposure;
-} sceneData;
+layout(set = 0, binding = 0) uniform readonly SceneData {
+    Scene data;
+} scene;
 
 layout(set = 1, binding = 0) uniform ModelData {
     mat4 model;
@@ -28,7 +25,7 @@ layout(set = 1, binding = 0) uniform ModelData {
 
 void main() {
     vec4 worldPos = modelData.model * vec4(inPosition, 1.0);
-    gl_Position = sceneData.projection * sceneData.view * worldPos;
+    gl_Position = scene.data.projection * scene.data.view * worldPos;
     
     fragWorldPos = worldPos.xyz;
     fragWorldNormal = normalize(vec3(modelData.model * vec4(inNormal, 0.0)));

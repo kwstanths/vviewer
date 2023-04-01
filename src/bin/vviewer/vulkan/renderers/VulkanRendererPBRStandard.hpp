@@ -2,9 +2,10 @@
 #define __VulkanRendererPBR_hpp__
 
 #include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanMaterials.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanTextures.hpp"
 
 class VulkanRendererPBR {
     friend class VulkanRenderer;
@@ -18,15 +19,13 @@ public:
         VkPhysicalDeviceProperties physicalDeviceProperties,
         VkDescriptorSetLayout cameraDescriptorLayout, 
         VkDescriptorSetLayout modelDescriptorLayout, 
-        VkDescriptorSetLayout skyboxDescriptorLayout);
+        VkDescriptorSetLayout skyboxDescriptorLayout,
+        VkDescriptorSetLayout materialDescriptorLayout,
+        VulkanTextures& textures);
     void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples);
 
     void releaseSwapChainResources();
     void releaseResources();
-
-    std::shared_ptr<VulkanMaterialPBRStandard> createMaterial(std::string name,
-        glm::vec4 albedo, float metallic, float roughness, float ao, float emissive,
-        std::shared_ptr<VulkanDynamicUBO<MaterialData>>& materialsUBO);
 
     /**
      * @brief Render objects with the base pass, IBL + directional light + selection info
@@ -42,9 +41,11 @@ public:
     void renderObjectsBasePass(VkCommandBuffer& cmdBuf, 
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
-        const std::shared_ptr<VulkanMaterialSkybox>& skybox,
+        VkDescriptorSet descriptorSkybox,
+        VkDescriptorSet& descriptorMaterials,
+        VkDescriptorSet& descriptorTextures,
         uint32_t imageIndex, 
-        const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        const VulkanUBO<ModelData>& dynamicUBOModels,
         std::vector<std::shared_ptr<SceneObject>>& objects) const;
 
     /**
@@ -61,10 +62,12 @@ public:
     void renderObjectsAddPass(VkCommandBuffer& cmdBuf, 
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
+        VkDescriptorSet& descriptorMaterials,
+        VkDescriptorSet& descriptorTextures,
         uint32_t imageIndex, 
-        const VulkanDynamicUBO<ModelData>& dynamicUBOModels,
+        const VulkanUBO<ModelData>& dynamicUBOModels,
         std::shared_ptr<SceneObject> object,
-        const PushBlockForwardAddPass& lightInfo) const;
+        PushBlockForwardAddPass& lightInfo) const;
 
 private:
     VkDevice m_device;
@@ -77,15 +80,15 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
     VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
     VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
+    VkDescriptorSetLayout m_descriptorSetLayoutTextures;
 
     VkPipelineLayout m_pipelineLayoutBasePass, m_pipelineLayoutAddPass;
     VkPipeline m_graphicsPipelineBasePass, m_graphicsPipelineAddPass;
     VkRenderPass m_renderPass;
     VkSampleCountFlagBits m_msaaSamples;
 
-    void createBRDFLUT(uint32_t resolution = 128) const;
+    void createBRDFLUT(VulkanTextures& textures, uint32_t resolution = 128) const;
 
-    bool createDescriptorSetsLayout();
     bool createGraphicsPipelineBasePass();
     bool createGraphicsPipelineAddPass();
 };

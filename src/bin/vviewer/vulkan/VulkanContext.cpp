@@ -233,12 +233,20 @@ bool VulkanContext::createLogicalDevice()
     deviceFeatures16Storage.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES;
     deviceFeatures16Storage.storageBuffer16BitAccess = VK_TRUE;
     deviceFeatures16Storage.pNext = &physicalDeviceRayTracingPipelineFeatures;
+    VkPhysicalDeviceDescriptorIndexingFeatures indexing_features = {};
+    indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
+    indexing_features.runtimeDescriptorArray = VK_TRUE;
+    indexing_features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    indexing_features.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+    indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    indexing_features.pNext = &deviceFeatures16Storage;
     VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures2.features.geometryShader = VK_TRUE;
     deviceFeatures2.features.shaderInt64 = VK_TRUE;
     deviceFeatures2.features.shaderInt16 = VK_TRUE;
-    deviceFeatures2.pNext = &deviceFeatures16Storage;
+    deviceFeatures2.pNext = &indexing_features;
 
     std::vector<const char *> extensionNames;
     for(auto e : VULKAN_CORE_DEVICE_EXTENSIONS) extensionNames.push_back(e.first);

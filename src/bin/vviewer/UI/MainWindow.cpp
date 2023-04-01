@@ -399,15 +399,15 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             }
             else if (m.type == ImportedSceneMaterialType::DIFFUSE)
             {
-                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->materialSystem().createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     mat->setAlbedoTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     mat->setNormalTexture(tex);
                 }
 
@@ -416,25 +416,25 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             } 
             else if (m.type == ImportedSceneMaterialType::DISNEY)
             {
-                auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_vulkanWindow->getRenderer()->createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
+                auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_vulkanWindow->getRenderer()->materialSystem().createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     if (tex != nullptr) mat->setAlbedoTexture(tex);
                 }
                 mat->roughness() = m.roughness;
                 if (m.roughnessTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setRoughnessTexture(tex);
                 }
                 mat->metallic() = m.metallic;
                 if (m.metallicTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setMetallicTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setNormalTexture(tex);
                 }
                 
@@ -501,7 +501,7 @@ bool MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 const ImportedSceneLightMaterial& lm = importedSceneLightMaterialItr->second;
 
                 /* Create a simple emissive lambert for the the mesh light material */
-                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->materialSystem().createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
                 mat->albedo() = glm::vec4(lm.color, 1);
                 mat->emissive() = lm.intensity;
             }
@@ -599,7 +599,7 @@ void MainWindow::onImportTextureColorSlot()
             for (uint32_t t = 0; t < filenames.length(); t++)
             {
                 const auto& texture = filenames[t];
-                auto tex = renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
+                auto tex = renderer->textures().createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
                 if (tex) {
                     utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
@@ -637,7 +637,7 @@ void MainWindow::onImportTextureOtherSlot()
             for (uint32_t t = 0; t < filenames.length(); t++)
             {
                 const auto& texture = filenames[t];
-                auto tex = renderer->createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
+                auto tex = renderer->textures().createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
                 if (tex) {
                     utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
@@ -670,7 +670,7 @@ void MainWindow::onImportTextureHDRSlot()
         VulkanRenderer * renderer;
         std::string filename;
         bool operator () (float&) {
-            auto tex = renderer->createTextureHDR(filename);
+            auto tex = renderer->textures().createTextureHDR(filename);
             if (tex) {
                 utils::ConsoleInfo("Texture: " + filename + " imported");
                 return true;
@@ -947,7 +947,7 @@ void MainWindow::onAddMaterialSlot()
         return;
     }
 
-    auto material = m_vulkanWindow->getRenderer()->createMaterial(materialName, dialog->m_selectedMaterialType);
+    auto material = m_vulkanWindow->getRenderer()->materialSystem().createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     } else {
@@ -1001,9 +1001,9 @@ void MainWindow::onAddPointLightSlot()
 
 void MainWindow::onRenderSceneSlot()
 {
-    auto RTrenderer = m_vulkanWindow->getRenderer()->getRayTracingRenderer();
+    auto& RTrenderer = m_vulkanWindow->getRenderer()->getRayTracingRenderer();
     
-    if (!RTrenderer->isInitialized()) {
+    if (!RTrenderer.isInitialized()) {
         int ret = QMessageBox::warning(this, tr("Error"),
             tr("GPU Ray tracing has not been initialized. Most likely, no ray tracing capable GPU has been found"),
             QMessageBox::Ok);
@@ -1017,11 +1017,11 @@ void MainWindow::onRenderSceneSlot()
     std::string filename = dialog->getRenderOutputFileName();
     if (filename == "") return;
 
-    RTrenderer->setSamples(dialog->getSamples());
-    RTrenderer->setMaxDepth(dialog->getDepth());
-    RTrenderer->setRenderOutputFileName(dialog->getRenderOutputFileName());
-    RTrenderer->setRenderOutputFileType(dialog->getRenderOutputFileType());
-    RTrenderer->setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
+    RTrenderer.setSamples(dialog->getSamples());
+    RTrenderer.setMaxDepth(dialog->getDepth());
+    RTrenderer.setRenderOutputFileName(dialog->getRenderOutputFileName());
+    RTrenderer.setRenderOutputFileType(dialog->getRenderOutputFileType());
+    RTrenderer.setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
     delete dialog;
 
     struct RenederFunct {
@@ -1035,7 +1035,7 @@ void MainWindow::onRenderSceneSlot()
     struct RTRenderTask : public Task {
         VulkanRenderer * renderer;
         RTRenderTask(VulkanRenderer * r) : renderer(r) { };
-        float getProgress() const override { return renderer->getRayTracingRenderer()->getRenderProgress(); }
+        float getProgress() const override { return renderer->getRayTracingRenderer().getRenderProgress(); }
     };
     auto task = RTRenderTask(m_vulkanWindow->getRenderer());
     task.f = RenederFunct(m_vulkanWindow->getRenderer());

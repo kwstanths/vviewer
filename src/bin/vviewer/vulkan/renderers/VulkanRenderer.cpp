@@ -19,53 +19,53 @@
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/VulkanLimits.hpp"
 
-VulkanRenderer::VulkanRenderer(VulkanContext& vkctx, VulkanScene* scene) : m_vkctx(vkctx), m_scene(scene), m_rendererRayTracing(m_vkctx)
+VulkanRenderer::VulkanRenderer(VulkanContext& vkctx, VulkanScene* scene) : 
+    m_vkctx(vkctx), 
+    m_scene(scene), 
+    m_materialSystem(m_vkctx),
+    m_textures(m_vkctx),
+    m_rendererRayTracing(m_vkctx, m_materialSystem, m_textures)
 {
-    m_materialsUBO = std::make_shared<VulkanDynamicUBO<MaterialData>>(VULKAN_LIMITS_MAX_MATERIALS);
+
 }
 
 void VulkanRenderer::initResources()
 {
     utils::ConsoleInfo("Initializing resources...");
-        
-    /* Initialize dynamic uniform buffers for model matrix data */
-    m_scene->m_modelDataDynamicUBO.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
-    /* Initialize dynamic uniform buffers for material data */
-    m_materialsUBO->init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
-
-    /* Create descriptor set layouts for scene and model data */
-    createDescriptorSetsLayouts();
+    
+    m_scene->initResources();
+    m_materialSystem.initResources();
+    m_textures.initResources();
 
     createCommandBuffers();
     createSyncObjects();
-
-    /* Initialize some data */
-    auto whiteTexture = createTexture("white", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
-    auto whiteColor = createTexture("whiteColor", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_SRGB);
-    createTexture("normalmapdefault", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
 
     /* Initialize renderers */
     m_rendererSkybox.initResources(m_vkctx.physicalDevice(), 
         m_vkctx.device(), 
         m_vkctx.graphicsQueue(), 
         m_vkctx.graphicsCommandPool(), 
-        m_descriptorSetLayoutScene);
+        m_scene->layoutSceneData());
     m_rendererPBR.initResources(m_vkctx.physicalDevice(), 
         m_vkctx.device(), 
         m_vkctx.graphicsQueue(), 
         m_vkctx.graphicsCommandPool(), 
         m_vkctx.physicalDeviceProperties(), 
-        m_descriptorSetLayoutScene, 
-        m_descriptorSetLayoutModel, 
-        m_rendererSkybox.getDescriptorSetLayout());
+        m_scene->layoutSceneData(), 
+        m_scene->layoutModelData(), 
+        m_rendererSkybox.getDescriptorSetLayout(),
+        m_materialSystem.layoutMaterial(),
+        m_textures);
     m_rendererLambert.initResources(m_vkctx.physicalDevice(),
         m_vkctx.device(),
         m_vkctx.graphicsQueue(),
         m_vkctx.graphicsCommandPool(),
         m_vkctx.physicalDeviceProperties(),
-        m_descriptorSetLayoutScene,
-        m_descriptorSetLayoutModel,
-        m_rendererSkybox.getDescriptorSetLayout());
+        m_scene->layoutSceneData(),
+        m_scene->layoutModelData(),
+        m_rendererSkybox.getDescriptorSetLayout(),
+        m_materialSystem.layoutMaterial(),
+        m_textures.layoutTextures());
     m_rendererPost.initResources(m_vkctx.physicalDevice(), 
         m_vkctx.device(), 
         m_vkctx.graphicsQueue(), 
@@ -76,7 +76,7 @@ void VulkanRenderer::initResources()
             m_vkctx.device(), 
             m_vkctx.graphicsQueue(), 
             m_vkctx.graphicsCommandPool(), 
-            m_descriptorSetLayoutScene);
+            m_scene->layoutSceneData());
     }
     catch (std::exception& e) {
         utils::ConsoleCritical("VulkanRenderer::initResources(): Failed to initialize UI renderer: " + std::string(e.what()));
@@ -91,8 +91,8 @@ void VulkanRenderer::initResources()
     }
 
     /* Create a default material */
-    auto defaultMaterial = std::static_pointer_cast<VulkanMaterialPBRStandard>(createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD, false));
-    defaultMaterial->albedo() = glm::vec4(1, 1, 1, 1);
+    auto defaultMaterial = std::static_pointer_cast<VulkanMaterialPBRStandard>(m_materialSystem.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD, false));
+    defaultMaterial->albedo() = glm::vec4(0.8, 0.8, 0.8, 1);
     defaultMaterial->metallic() = 0.5;
     defaultMaterial->roughness() = 0.5;
     defaultMaterial->ao() = 1.0f;
@@ -126,9 +126,11 @@ void VulkanRenderer::initSwapChainResources(VulkanSwapchain * swapchain)
     createRenderPasses();
     createFrameBuffers();
     createColorSelectionTempImage();
-    createUniformBuffers();
-    createDescriptorPool(VULKAN_LIMITS_MAX_MATERIALS);
-    createDescriptorSets();
+
+    m_scene->initSwapchainResources(m_swapchain->imageCount());
+    m_materialSystem.initSwapchainResources(m_swapchain->imageCount());
+    m_textures.initSwapchainResources(m_swapchain->imageCount());
+
     m_rendererSkybox.initSwapChainResources(swapchainExtent, 
         m_renderPassForward, 
         m_vkctx.msaaSamples()
@@ -155,43 +157,19 @@ void VulkanRenderer::initSwapChainResources(VulkanSwapchain * swapchain)
         m_swapchain->imageCount(), 
         m_vkctx.msaaSamples()
     );
-
-    /* Update descriptor sets */
-    {
-        AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            auto material = std::dynamic_pointer_cast<VulkanMaterialDescriptor>(itr->second);
-            material->createDescriptors(m_vkctx.device(), m_descriptorPool, m_swapchain->imageCount());
-            material->updateDescriptorSets(m_vkctx.device(), m_swapchain->imageCount());
-        }
-    }
-    {
-        AssetManager<std::string, MaterialSkybox>& instance = AssetManager<std::string, MaterialSkybox>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            auto material = std::static_pointer_cast<VulkanMaterialSkybox>(itr->second);
-            material->createDescriptors(m_vkctx.device(), m_descriptorPool, m_swapchain->imageCount());
-            material->updateDescriptorSets(m_vkctx.device(), m_swapchain->imageCount());
-        }
-    }
 }
 
 void VulkanRenderer::releaseSwapChainResources()
 {
-    /* Destroy uniform buffers */
+    /* Destroy framebuffer attachments */
     for (int i = 0; i < m_swapchain->imageCount(); i++) {
-        m_scene->m_uniformBuffersScene[i].destroy(m_vkctx.device());
-
-        m_vkctx.deviceFunctions()->vkDestroyBuffer(m_vkctx.device(), m_scene->m_modelDataDynamicUBO.getBuffer(i), nullptr);
-        m_vkctx.deviceFunctions()->vkFreeMemory(m_vkctx.device(), m_scene->m_modelDataDynamicUBO.getBufferMemory(i), nullptr);
-
-        m_vkctx.deviceFunctions()->vkDestroyBuffer(m_vkctx.device(), m_materialsUBO->getBuffer(i), nullptr);
-        m_vkctx.deviceFunctions()->vkFreeMemory(m_vkctx.device(), m_materialsUBO->getBufferMemory(i), nullptr);
-
         m_attachmentColorForwardOutput[i].destroy(m_vkctx.device());
         m_attachmentHighlightForwardOutput[i].destroy(m_vkctx.device());
     }
 
-    m_vkctx.deviceFunctions()->vkDestroyDescriptorPool(m_vkctx.device(), m_descriptorPool, nullptr);
+    m_scene->releaseSwapchainResources();
+    m_materialSystem.releaseSwapchainResources();
+    m_textures.releaseSwapchainResources();
 
     for (auto framebuffer : m_framebuffersForward) {
         m_vkctx.deviceFunctions()->vkDestroyFramebuffer(m_vkctx.device(), framebuffer, nullptr);
@@ -226,24 +204,9 @@ void VulkanRenderer::releaseResources()
         m_vkctx.deviceFunctions()->vkDestroyFence(m_vkctx.device(), m_fenceInFlight[f], nullptr);        
     }
 
-    m_scene->m_modelDataDynamicUBO.destroyCPUMemory();
-    m_materialsUBO->destroyCPUMemory();
-
-    /* Destroy texture data */
-    {
-        AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            auto vkTexture = std::static_pointer_cast<VulkanTexture>(itr->second);
-            vkTexture->destroy(m_vkctx.device());
-        }
-        instance.reset();
-    }
-
-    /* Destroy material data */
-    {
-        AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
-        instance.reset();
-    }
+    m_scene->releaseResources();
+    m_materialSystem.releaseResources();
+    m_textures.releaseResources();
 
     /* Destroy cubemaps */
     {
@@ -254,9 +217,6 @@ void VulkanRenderer::releaseResources()
         }
     }
 
-    /* Destroy descriptor sets layouts */
-    m_vkctx.deviceFunctions()->vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutScene, nullptr);
-    m_vkctx.deviceFunctions()->vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutModel, nullptr);
     m_rendererSkybox.releaseResources();
     m_rendererPBR.releaseResources();
     m_rendererLambert.releaseResources();
@@ -390,8 +350,14 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
     std::vector<std::shared_ptr<SceneObject>> sceneObjects = m_scene->getSceneObjects();
 
-    /* Update GPU buffers */
-    updateUniformBuffers(imageIndex);
+    /* Update scene data changes to GPU */
+    m_scene->updateBuffers(static_cast<uint32_t>(imageIndex));
+
+    /* Update material data changes to GPU */
+    m_materialSystem.updateBuffers(static_cast<uint32_t>(imageIndex));
+
+    /* Update texture changes to GPU */
+    m_textures.updateTextures();
 
     /* Begin command buffer */
     VkCommandBufferBeginInfo beginInfo{};
@@ -435,7 +401,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
 
         /* Draw skybox if needed */
         if (m_scene->getEnvironmentType() == EnvironmentType::HDRI) {
-            m_rendererSkybox.renderSkybox(commandBuffer, m_descriptorSetsScene[imageIndex], imageIndex, skybox);
+            m_rendererSkybox.renderSkybox(commandBuffer, m_scene->descriptorSetSceneData(imageIndex), imageIndex, skybox);
         }
 
         /* Batch objects into materials */
@@ -467,17 +433,21 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
 
         /* Draw PBR material objects, base pass */
         m_rendererPBR.renderObjectsBasePass(commandBuffer,
-            m_descriptorSetsScene[imageIndex],
-            m_descriptorSetsModel[imageIndex],
-            skybox,
+            m_scene->descriptorSetSceneData(imageIndex),
+            m_scene->descriptorSetModelData(imageIndex),
+            skybox->getDescriptor(imageIndex),
+            m_materialSystem.descriptor(imageIndex),
+            m_textures.descriptorTextures(),
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
             pbrStandardObjects);
         /* Draw lambert material objects, base pass */
         m_rendererLambert.renderObjectsBasePass(commandBuffer,
-            m_descriptorSetsScene[imageIndex],
-            m_descriptorSetsModel[imageIndex],
-            skybox,
+            m_scene->descriptorSetSceneData(imageIndex),
+            m_scene->descriptorSetModelData(imageIndex),
+            skybox->getDescriptor(imageIndex),
+            m_materialSystem.descriptor(imageIndex),
+            m_textures.descriptorTextures(),
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
             lambertObjects);
@@ -491,8 +461,10 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
             for (auto& obj : pbrStandardObjects)
             {
                 m_rendererPBR.renderObjectsAddPass(commandBuffer,
-                    m_descriptorSetsScene[imageIndex],
-                    m_descriptorSetsModel[imageIndex],
+                    m_scene->descriptorSetSceneData(imageIndex),
+                    m_scene->descriptorSetModelData(imageIndex),
+                    m_materialSystem.descriptor(imageIndex),
+                    m_textures.descriptorTextures(),
                     imageIndex,
                     m_scene->m_modelDataDynamicUBO,
                     obj,
@@ -502,8 +474,9 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
             for (auto& obj : lambertObjects)
             {
                 m_rendererLambert.renderObjectsAddPass(commandBuffer,
-                    m_descriptorSetsScene[imageIndex],
-                    m_descriptorSetsModel[imageIndex],
+                    m_scene->descriptorSetSceneData(imageIndex),
+                    m_scene->descriptorSetModelData(imageIndex),
+                    m_materialSystem.descriptor(imageIndex),
                     imageIndex,
                     m_scene->m_modelDataDynamicUBO,
                     obj,
@@ -553,7 +526,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         
             glm::vec3 transformPosition = m_selectedObject->getWorldPosition();
             m_renderer3DUI.renderTransform(commandBuffer,
-                m_descriptorSetsScene[imageIndex],
+                m_scene->descriptorSetSceneData(imageIndex),
                 imageIndex,
                 m_selectedObject->m_modelMatrix,
                 m_scene->getCamera());
@@ -626,37 +599,6 @@ std::shared_ptr<MeshModel> VulkanRenderer::createVulkanMeshModel(std::string fil
     return nullptr;
 }
 
-std::shared_ptr<Material> VulkanRenderer::createMaterial(std::string name, MaterialType type, bool createDescriptors)
-{    
-    std::shared_ptr<Material> temp;
-    switch (type)
-    {
-    case MaterialType::MATERIAL_PBR_STANDARD:
-    {
-        temp = m_rendererPBR.createMaterial(name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_materialsUBO);
-        break;
-    }
-    case MaterialType::MATERIAL_LAMBERT:
-    {
-        temp = m_rendererLambert.createMaterial(name, glm::vec4(1, 1, 1, 1), 1, 0, m_materialsUBO);
-        break;
-    }
-    default:
-    {
-        throw std::runtime_error("VulkanRenderer::createMaterial(): Unexpected material");
-        break;
-    }
-    }
-
-    if (createDescriptors) {
-        auto matdesc = std::dynamic_pointer_cast<VulkanMaterialDescriptor>(temp);
-        matdesc->createDescriptors(m_vkctx.device(), m_descriptorPool, m_swapchain->imageCount());
-        matdesc->updateDescriptorSets(m_vkctx.device(), m_swapchain->imageCount());
-    }
-
-    return temp;
-}
-
 void VulkanRenderer::setSelectedObject(std::shared_ptr<SceneObject> sceneObject)
 {
     m_selectedObject = sceneObject;
@@ -717,113 +659,6 @@ float VulkanRenderer::deltaTime() const
     return m_deltaTime;
 }
 
-std::shared_ptr<Texture> VulkanRenderer::createTexture(std::string imagePath, VkFormat format, bool keepImage)
-{
-    try {
-        AssetManager<std::string, Image<stbi_uc>>& instance = AssetManager<std::string, Image<stbi_uc>>::getInstance();
-        
-        std::shared_ptr<Image<stbi_uc>> image;
-        if (instance.isPresent(imagePath)) {
-            image = instance.get(imagePath);
-        }
-        else {
-            image = std::make_shared<Image<stbi_uc>>(imagePath);
-            instance.add(imagePath, image);
-        }
-
-        auto temp = createTexture(imagePath, image, format);
-
-        if (!keepImage) {
-            instance.remove(imagePath);
-        }
-
-        return temp;
-    } catch (std::runtime_error& e) {
-        utils::ConsoleWarning("VulkanRenderer::createTexture(): Can't create a vulkan texture: " + std::string(e.what()));
-        return nullptr;
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<Texture> VulkanRenderer::createTexture(std::string id, std::shared_ptr<Image<stbi_uc>> image, VkFormat format)
-{
-    try {
-        AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-        
-        if (instance.isPresent(id)) {
-            return instance.get(id);
-        }
-
-        TextureType type = TextureType::NO_TYPE;
-        if (format == VK_FORMAT_R8G8B8A8_SRGB) type = TextureType::COLOR;
-        else if (format == VK_FORMAT_R8G8B8A8_UNORM) type = TextureType::LINEAR;
-
-        auto temp = std::make_shared<VulkanTexture>(id, 
-            image, 
-            type, 
-            m_vkctx.physicalDevice(), 
-            m_vkctx.device(), 
-            m_vkctx.graphicsQueue(), 
-            m_vkctx.graphicsCommandPool(), 
-            format, 
-            true);
-
-        return instance.add(id, temp);
-    }
-    catch (std::runtime_error& e) {
-        utils::ConsoleCritical("VulkanRenderer::createTexture(): Failed to create a vulkan texture: " + std::string(e.what()));
-        return nullptr;
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<Texture> VulkanRenderer::createTextureHDR(std::string imagePath, bool keepImage)
-{
-    try {
-        /* Check if an hdr texture has already been created for that image */
-        AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-        if (instance.isPresent(imagePath)) {
-            return instance.get(imagePath);
-        }
-        
-        /* Check if the image has already been imported, if not read it from disk  */
-        std::shared_ptr<Image<float>> image;
-        AssetManager<std::string, Image<float>>& images = AssetManager<std::string, Image<float>>::getInstance();
-        if (images.isPresent(imagePath)) {
-            image = images.get(imagePath);
-        }
-        else {
-            image = std::make_shared<Image<float>>(imagePath);
-            images.add(imagePath, image);
-        }
-
-        /* Create texture for that image */
-        auto temp = std::make_shared<VulkanTexture>(imagePath, 
-            image, 
-            TextureType::HDR, 
-            m_vkctx.physicalDevice(), 
-            m_vkctx.device(), 
-            m_vkctx.graphicsQueue(), 
-            m_vkctx.graphicsCommandPool(),
-            false);
-
-        /* If you are not to keep the image in memory, remove from the assets */
-        if (!keepImage) {
-            images.remove(imagePath);
-        }
-        
-        return instance.add(imagePath, temp);
-    }
-    catch (std::runtime_error& e) {
-        utils::ConsoleCritical("VulkanRenderer::createTextureHDR(): Failed to create a vulkan HDR texture: " + std::string(e.what()));
-        return nullptr;
-    }
-
-    return nullptr;
-}
-
 std::shared_ptr<Cubemap> VulkanRenderer::createCubemap(std::string directory)
 {
     AssetManager<std::string, Cubemap>& instance = AssetManager<std::string, Cubemap>::getInstance();
@@ -845,7 +680,7 @@ std::shared_ptr<EnvironmentMap> VulkanRenderer::createEnvironmentMap(std::string
         }
 
         /* Read HDR image */
-        std::shared_ptr<VulkanTexture> hdrImage = std::static_pointer_cast<VulkanTexture>(createTextureHDR(imagePath));
+        std::shared_ptr<VulkanTexture> hdrImage = std::static_pointer_cast<VulkanTexture>(m_textures.createTextureHDR(imagePath));
 
         /* Transform input texture into a cubemap */
         auto cubemap = m_rendererSkybox.createCubemap(hdrImage);
@@ -1294,199 +1129,6 @@ bool VulkanRenderer::createSyncObjects()
         {
             throw std::runtime_error("VulkanRenderer::createSyncObjects(): Failed to create the synchronization objects");
         }
-    }
-
-    return true;
-}
-
-bool VulkanRenderer::createDescriptorSetsLayouts()
-{
-    /* Create binding for scene data */
-    {
-        VkDescriptorSetLayoutBinding sceneDataLayoutBinding{};
-        sceneDataLayoutBinding.binding = 0;
-        sceneDataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        sceneDataLayoutBinding.descriptorCount = 1;    /* If we have an array of uniform buffers */
-        sceneDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        sceneDataLayoutBinding.pImmutableSamplers = nullptr;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &sceneDataLayoutBinding;
-
-        if (m_vkctx.deviceFunctions()->vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutScene) != VK_SUCCESS) {
-            utils::ConsoleCritical("VulkanRenderer::createDescriptorSetsLayouts(): Failed to create a descriptor set layout for the scene data");
-            return false;
-        }
-    }
-
-    {
-        /* Create binding for model data */
-        VkDescriptorSetLayoutBinding modelDataLayoutBinding{};
-        modelDataLayoutBinding.binding = 0;
-        modelDataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        modelDataLayoutBinding.descriptorCount = 1;    /* If we have an array of uniform buffers */
-        modelDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        modelDataLayoutBinding.pImmutableSamplers = nullptr;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &modelDataLayoutBinding;
-
-        if (m_vkctx.deviceFunctions()->vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutModel) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to create a descriptor set layout for model data");
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool VulkanRenderer::createUniformBuffers()
-{
-    {
-        VkDeviceSize bufferSize = sizeof(SceneData);
-
-        m_scene->m_uniformBuffersScene.resize(m_swapchain->imageCount());
-
-        for (int i = 0; i < m_swapchain->imageCount(); i++) {
-            createBuffer(m_vkctx.physicalDevice(), 
-                m_vkctx.device(), 
-                bufferSize,
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                m_scene->m_uniformBuffersScene[i]);
-        }
-    }
-
-    m_scene->m_modelDataDynamicUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), m_swapchain->imageCount());
-    m_materialsUBO->createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), m_swapchain->imageCount());
-
-    return true;
-}
-
-bool VulkanRenderer::updateUniformBuffers(size_t imageIndex)
-{
-    /* Flush scene data changes to GPU */
-    m_scene->updateBuffers(m_vkctx.device(), static_cast<uint32_t>(imageIndex));
-    /* Flush material data changes to GPU */
-    {
-        void* data;
-        m_vkctx.deviceFunctions()->vkMapMemory(m_vkctx.device(), m_materialsUBO->getBufferMemory(imageIndex), 0, m_materialsUBO->getBlockSizeAligned() * m_materialsUBO->getNBlocks(), 0, &data);
-        memcpy(data, m_materialsUBO->getBlock(0), m_materialsUBO->getBlockSizeAligned() * m_materialsUBO->getNBlocks());
-        m_vkctx.deviceFunctions()->vkUnmapMemory(m_vkctx.device(), m_materialsUBO->getBufferMemory(imageIndex));
-    }
-
-    return true;
-}
-
-bool VulkanRenderer::createDescriptorPool(size_t nMaterials)
-{
-    uint32_t nImages = m_swapchain->imageCount();
-
-    VkDescriptorPoolSize sceneDataPoolSize{};
-    sceneDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    sceneDataPoolSize.descriptorCount = nImages;
-
-    VkDescriptorPoolSize modelDataPoolSize{};
-    modelDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    modelDataPoolSize.descriptorCount = nImages;
-
-    VkDescriptorPoolSize materialDataPoolSize{};
-    materialDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    materialDataPoolSize.descriptorCount = static_cast<uint32_t>(nMaterials * nImages);
-
-    VkDescriptorPoolSize materialTexturesPoolSize{};
-    materialTexturesPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    materialTexturesPoolSize.descriptorCount = static_cast<uint32_t>(nMaterials * 6 * nImages);
-
-    std::array<VkDescriptorPoolSize, 4> poolSizes = { sceneDataPoolSize, modelDataPoolSize, materialDataPoolSize, materialTexturesPoolSize };
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(2 * nImages + nMaterials * nImages);
-
-    if (m_vkctx.deviceFunctions()->vkCreateDescriptorPool(m_vkctx.device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to create a descriptor pool");
-        return false;
-    }
-
-    return true;
-}
-
-bool VulkanRenderer::createDescriptorSets()
-{
-    uint32_t nImages = m_swapchain->imageCount();
-    
-    /* Create descriptor sets */
-    {
-        m_descriptorSetsScene.resize(nImages);
-
-        std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayoutScene);
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = nImages;
-        allocInfo.pSetLayouts = layouts.data();
-        if (m_vkctx.deviceFunctions()->vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, m_descriptorSetsScene.data()) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to allocate descriptor sets for the scene data");
-            return false;
-        }
-    }
-
-    {
-        m_descriptorSetsModel.resize(nImages);
-
-        std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayoutModel);
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = nImages;
-        allocInfo.pSetLayouts = layouts.data();
-        if (m_vkctx.deviceFunctions()->vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, m_descriptorSetsModel.data()) != VK_SUCCESS) {
-            utils::ConsoleCritical("Failed to allocate descriptor sets for model data");
-            return false;
-        }
-    }
-
-    /* Write descriptor sets */
-    for (size_t i = 0; i < nImages; i++) {
-
-        VkDescriptorBufferInfo bufferInfoScene{};
-        bufferInfoScene.buffer = m_scene->m_uniformBuffersScene[i].vkbuffer();
-        bufferInfoScene.offset = 0;
-        bufferInfoScene.range = sizeof(SceneData);
-        VkWriteDescriptorSet descriptorWriteScene{};
-        descriptorWriteScene.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWriteScene.dstSet = m_descriptorSetsScene[i];
-        descriptorWriteScene.dstBinding = 0;
-        descriptorWriteScene.dstArrayElement = 0;
-        descriptorWriteScene.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWriteScene.descriptorCount = 1;
-        descriptorWriteScene.pBufferInfo = &bufferInfoScene;
-        descriptorWriteScene.pImageInfo = nullptr; // Optional
-        descriptorWriteScene.pTexelBufferView = nullptr; // Optional
-        
-        VkDescriptorBufferInfo bufferInfoModel{};
-        bufferInfoModel.buffer = m_scene->m_modelDataDynamicUBO.getBuffer(i);
-        bufferInfoModel.offset = 0;
-        bufferInfoModel.range = m_scene->m_modelDataDynamicUBO.getBlockSizeAligned();
-        VkWriteDescriptorSet descriptorWriteModel{};
-        descriptorWriteModel.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWriteModel.dstSet = m_descriptorSetsModel[i];
-        descriptorWriteModel.dstBinding = 0;
-        descriptorWriteModel.dstArrayElement = 0;
-        descriptorWriteModel.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        descriptorWriteModel.descriptorCount = 1;
-        descriptorWriteModel.pBufferInfo = &bufferInfoModel;
-        descriptorWriteModel.pImageInfo = nullptr; // Optional
-        descriptorWriteModel.pTexelBufferView = nullptr; // Optional
-
-        std::array<VkWriteDescriptorSet, 2> writeSets = { descriptorWriteScene, descriptorWriteModel };
-        m_vkctx.deviceFunctions()->vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
     }
 
     return true;

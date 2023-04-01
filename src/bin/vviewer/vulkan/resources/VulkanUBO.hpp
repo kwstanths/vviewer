@@ -1,5 +1,5 @@
-#ifndef __VulkanDynamicUBO_hpp__
-#define __VulkanDynamicUBO_hpp__
+#ifndef __VulkanUBO_hpp__
+#define __VulkanUBO_hpp__
 
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanUtils.hpp"
@@ -9,13 +9,13 @@
 #include "utils/FreeList.hpp"
 
 /**
-    A class to manage a dynamic uniform buffer that stores data of type Block
+    A class to manage a uniform buffer that stores data of type Block
 */
 template<typename Block>
-class VulkanDynamicUBO : public FreeList {
+class VulkanUBO : public FreeList {
     friend class VulkanRenderer;
 public:
-    VulkanDynamicUBO(uint32_t nBlocks) : FreeList(nBlocks)
+    VulkanUBO(uint32_t nBlocks) : FreeList(nBlocks)
     {
         m_nBlocks = nBlocks;
     };
@@ -68,6 +68,14 @@ public:
         }
 
         return true;
+    }
+
+    void updateBuffer(VkDevice device, uint32_t index) const
+    {
+        void* data;
+        vkMapMemory(device, getBufferMemory(index), 0, m_blockAlignment * m_nBlocks, 0, &data);
+        memcpy(data, getBlock(0), m_blockAlignment * m_nBlocks);
+        vkUnmapMemory(device, getBufferMemory(index));
     }
 
     /**

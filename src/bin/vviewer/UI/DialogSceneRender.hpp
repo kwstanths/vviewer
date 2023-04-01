@@ -17,7 +17,7 @@ class DialogSceneRender : public QDialog
 {
     Q_OBJECT
 public:
-    DialogSceneRender(QWidget* parent, const VulkanRendererRayTracing * renderer);
+    DialogSceneRender(QWidget* parent, const VulkanRendererRayTracing& renderer);
 
     std::string getRenderOutputFileName() const;
     OutputFileType getRenderOutputFileType() const;

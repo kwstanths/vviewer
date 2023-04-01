@@ -31,15 +31,23 @@ struct MaterialData {
     glm::vec4 albedo; /* RGB: albedo, A: alpha */
     glm::vec4 metallicRoughnessAOEmissive;  /* R = metallic, G = roughness, B = AO, A = emissive */
     glm::vec4 uvTiling; /* R = u tiling, G = v tiling, B = unused, A = unused */
-};
+    glm::uvec4 gTexturesIndices1;    /* R = albedo texture index, G = metallic texture index, B = roughness texture index, A = AO texture index */   
+    glm::uvec4 gTexturesIndices2;    /* R = emissive texture index, G = normal texture index, B = BRDF LUT texture index, A = unused */
+
+    glm::uvec4 padding;
+    glm::uvec4 padding1;
+    glm::uvec4 padding2;
+};  /* sizeof(MaterialData) = 128 */
 
 struct PushBlockForwardBasePass {
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
+    glm::uvec4 material; /* R = Material index, GBA = unused */
 };
 
 struct PushBlockForwardAddPass {
     glm::vec4 lightPosition; /* RGB = World space light position,  A = unused */
     glm::vec4 lightColor;   /* RGB = light color, A = unused */
+    glm::uvec4 material; /* R = Material index, GBA = unused */
 };
 
 struct PushBlockForward3DUI {
@@ -58,7 +66,7 @@ struct ObjectDescriptionRT
     /* A pointer to a buffer holding mesh index data*/
     uint64_t indexAddress;
     /* An index to point to the materials buffer */
-    int materialIndex;
+    uint32_t materialIndex;
 };
 
 struct StorageImage
@@ -81,10 +89,6 @@ struct LightRT {
     glm::vec4 position;  /* RGB = world space position, A = light type  */
     glm::vec4 direction; /* RGB = world space direction, A = mesh id */
     glm::vec4 color;     /* RGB = color, A = mesh material id */
-};
-
-struct MaterialRT {
-    glm::vec4 albedo;
 };
 
 #endif

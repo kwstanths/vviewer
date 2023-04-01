@@ -20,6 +20,7 @@ static const std::vector<const char*> VULKAN_CORE_INSTANCE_EXTENSIONS =
     "VK_KHR_get_physical_device_properties2"
 };
 
+/* true means mandatory */
 static const std::vector<std::pair<const char*, bool>> VULKAN_CORE_DEVICE_EXTENSIONS = 
 {
     {"VK_KHR_swapchain", true},                 /* Presentation extension, is mandatory */
@@ -27,7 +28,7 @@ static const std::vector<std::pair<const char*, bool>> VULKAN_CORE_DEVICE_EXTENS
     {"VK_KHR_ray_tracing_pipeline", false},
     {"VK_KHR_buffer_device_address",  false},
     {"VK_KHR_deferred_host_operations", false},
-    {"VK_EXT_descriptor_indexing", false},
+    {"VK_EXT_descriptor_indexing", true},
     {"VK_KHR_spirv_1_4", false },
     {"VK_KHR_shader_float_controls", false},
     {"VK_KHR_maintenance3", false},

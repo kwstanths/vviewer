@@ -1,6 +1,6 @@
 #include "VulkanSceneObject.hpp"
 
-VulkanSceneObject::VulkanSceneObject(VulkanDynamicUBO<ModelData>& transformDynamicUBO)
+VulkanSceneObject::VulkanSceneObject(VulkanUBO<ModelData>& transformDynamicUBO)
     : m_transformDynamicUBO(transformDynamicUBO), SceneObject(Transform())
 {
     /* Get a free block index to store the model matrix */

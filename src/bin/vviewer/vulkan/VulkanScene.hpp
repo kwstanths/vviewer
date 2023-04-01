@@ -10,24 +10,53 @@
 #include "VulkanMaterials.hpp"
 #include "VulkanSceneObject.hpp"
 #include "VulkanStructs.hpp"
-#include "vulkan/resources/VulkanDynamicUBO.hpp"
+#include "VulkanContext.hpp"
+#include "vulkan/resources/VulkanUBO.hpp"
 
 class VulkanScene : public Scene {
     friend class VulkanRenderer;
 public:
-    VulkanScene(uint32_t maxObjects);
+    VulkanScene(VulkanContext& vkctx, uint32_t maxObjects);
     ~VulkanScene();
+
+    bool initResources();
+    bool initSwapchainResources(uint32_t nImages);
+
+    bool releaseResources();
+    bool releaseSwapchainResources();
+
+    VkDescriptorSetLayout& layoutSceneData() { return m_descriptorSetLayoutScene; }
+    VkDescriptorSetLayout& layoutModelData() { return m_descriptorSetLayoutModel; }
+
+    VkDescriptorSet& descriptorSetSceneData(uint32_t imageIndex) { return m_descriptorSetsScene[imageIndex]; };
+    VkDescriptorSet& descriptorSetModelData(uint32_t imageIndex) { return m_descriptorSetsModel[imageIndex]; };
 
     virtual SceneData getSceneData() const override;
 
     /* Flush buffer changes to gpu */
-    void updateBuffers(VkDevice device, uint32_t imageIndex) const;
+    void updateBuffers(uint32_t imageIndex) const;
 
 private:
-    /* Dynamic uniform buffer to hold model positions */
-    VulkanDynamicUBO<ModelData> m_modelDataDynamicUBO;
-    /* Buffers to hold the scene data */
+    VulkanContext& m_vkctx;
+
+    VkDescriptorPool m_descriptorPool;
+
+    /* Buffers to hold the scene data struct */
     std::vector<VulkanBuffer> m_uniformBuffersScene;
+    /* Scene data struct descriptor */
+    VkDescriptorSetLayout m_descriptorSetLayoutScene;
+    std::vector<VkDescriptorSet> m_descriptorSetsScene;
+
+    /* Dynamic uniform buffer to hold model matrices */
+    VulkanUBO<ModelData> m_modelDataDynamicUBO;
+    /* Model data descriptor */
+    VkDescriptorSetLayout m_descriptorSetLayoutModel;
+    std::vector<VkDescriptorSet> m_descriptorSetsModel;
+
+    bool createDescriptorSetsLayouts();
+    bool createDescriptorPool(uint32_t nImages);
+    bool createDescriptorSets(uint32_t nImages);
+    bool createBuffers(uint32_t nImages);
 
     std::shared_ptr<SceneObject> createObject(std::string name) override;
 };

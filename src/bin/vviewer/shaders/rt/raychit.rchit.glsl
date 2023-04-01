@@ -8,9 +8,10 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
-#include "structs.glsl"
+#include "rtstructs.glsl"
 #include "frame.glsl"
 #include "sampling.glsl"
+#include "../structs.glsl"
 
 hitAttributeEXT vec2 attribs;
 
@@ -23,35 +24,31 @@ layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 /* Descriptors */
-layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 2, set = 0) uniform SceneData 
-{
-    mat4 view;
-	mat4 viewInverse;
-    mat4 projection;
-	mat4 projectionInverse;
-    vec4 directionalLightDir;
-    vec4 directionalLightColor;
-    vec4 exposure;
-} sceneData;
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 2) uniform readonly SceneData {
+    Scene data;
+} scene;
 
 /* Descriptor with the buffer for the object description structs */
-layout(binding = 4, set = 0, scalar) buffer ObjDesc_ 
+layout(set = 0, binding = 4, scalar) buffer ObjDesc_ 
 { 
 	ObjDesc i[200]; 
 } objDesc;
 
 /* Descriptor with the buffer for the light structs */
-layout(binding = 5, set = 0) uniform readonly Lights 
+layout(set = 0, binding = 5) uniform readonly Lights 
 { 
 	Light i[20]; 
 } lights;
 
 /* Descriptor with materials */
-layout(binding = 6, set = 0) uniform readonly Materials
+layout(set = 1, binding = 0) uniform readonly Materials
 {
-	Material i[100];
+	Material i[200];
 } materials;
+
+layout (set = 2, binding = 0) uniform sampler2D global_textures[];
+layout (set = 2, binding = 0) uniform sampler3D global_textures_3d[];
 
 void main()
 {
@@ -82,6 +79,8 @@ void main()
 	/* Construct a local frame */
 	Frame frame = Frame(worldNormal, worldTangent, worldBitangent);
 	bool flipped = fixFrame(frame.normal, frame.tangent, frame.bitangent, gl_WorldRayDirectionEXT);
+	/* Interpolate uvs */
+	const vec2 uvs = v0.uv * barycentricCoords.x + v1.uv * barycentricCoords.y + v2.uv * barycentricCoords.z;
 
 	// /* light sampling test */
 	// {
@@ -110,5 +109,7 @@ void main()
 
 	float cosTheta = sampleDirectionLocal.y;
 
-	rayPayload.beta *= material.albedo.xyz /* * INVPI * cosTheta / sampleDirectionPDF */;
+	vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], uvs * material.uvTiling.rg).rgb;
+
+	rayPayload.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
 }

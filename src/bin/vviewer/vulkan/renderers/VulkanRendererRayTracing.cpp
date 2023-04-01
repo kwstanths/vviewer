@@ -24,7 +24,10 @@
 #include "vulkan/Shader.hpp"
 #include "vulkan/VulkanLimits.hpp"
 
-VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext& vkctx) : m_vkctx(vkctx)
+VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext& vkctx, 
+    VulkanMaterialSystem& materialSystem,
+    VulkanTextures& textures) 
+    : m_vkctx(vkctx), m_materialSystem(materialSystem), m_textures(textures)
 {
 }
 
@@ -148,9 +151,6 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 
     const SceneData& sceneData = scene->getSceneData();
     
-    std::unordered_map<std::string, int> materialIndices;
-    std::vector<MaterialRT> sceneMaterials = prepareSceneMaterials(sceneObjects, materialIndices);
-    
     /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
     for (size_t i = 0; i < sceneObjects.size(); i++)
     {
@@ -160,8 +160,8 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
         auto transform = sceneObjectMatrices[i];
         auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
         auto material = so->get<ComponentMaterial>().material;
-        
-        AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), materialIndices[material->m_name]);
+
+        AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material->getMaterialIndex());
         m_blas.push_back(std::make_pair(blas, transform));
     }
     
@@ -171,8 +171,11 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
     /* Prepare scene lights */
     auto sceneLights = prepareSceneLights(scene, sceneObjects);
     m_rayTracingData.lights.r = sceneLights.size();
-    updateUniformBuffers(sceneData, m_rayTracingData, sceneLights, sceneMaterials);
+    updateUniformBuffers(sceneData, m_rayTracingData, sceneLights);
     
+    /* Will use buffer index 0 for this renderer */
+    m_materialSystem.updateBuffers(0);
+
     render();
     
     releaseRenderResources();
@@ -253,7 +256,7 @@ uint64_t VulkanRendererRayTracing::getBufferDeviceAddress(VkDevice device, VkBuf
     return m_devF.vkGetBufferDeviceAddressKHR(device, &bufferDeviceAI);
 }
 
-VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& t, const int materialIndex)
+VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& t, const uint32_t materialIndex)
 {
     const std::vector<Vertex>& vertices = mesh.getVertices();
     const std::vector<uint32_t> indices = mesh.getIndices();
@@ -587,12 +590,11 @@ void VulkanRendererRayTracing::createStorageImage()
 
 void VulkanRendererRayTracing::createUniformBuffers()
 {
-    /* The scene buffer holds [SceneData | RayTracingData | VULKAN_LIMITS_MAX_LIGHTS * LightRT | VULKAN_LIMITS_MAX_MATERIALS * MaterialRT] */
+    /* The scene buffer holds [SceneData | RayTracingData | VULKAN_LIMITS_MAX_LIGHTS * LightRT ] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) +
-        alignedSize(sizeof(RayTracingData), alignment) +
-        alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), alignment) +
-        alignedSize(VULKAN_LIMITS_MAX_MATERIALS * sizeof(MaterialRT), alignment);
+    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) + 
+                                    alignedSize(sizeof(RayTracingData), alignment) + 
+                                    alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), alignment);
 
     /* Create a buffer to hold the scene buffer */
     createBuffer(m_vkctx.physicalDevice(),
@@ -611,7 +613,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
         m_uniformBufferObjectDescription);
 }
 
-void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights, const std::vector<MaterialRT>& materials)
+void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights)
 {
     if (m_sceneObjects.size() > VULKAN_LIMITS_MAX_OBJECTS)
     {
@@ -620,10 +622,6 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
     if (lights.size() > VULKAN_LIMITS_MAX_LIGHTS)
     {
         throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of lights exceeded");
-    }
-    if (materials.size() > VULKAN_LIMITS_MAX_MATERIALS)
-    {
-        throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of materials exceeded");
     }
 
     /* Update scene buffer */
@@ -635,7 +633,6 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
         memcpy(data, &sceneData, sizeof(sceneData));    /* Copy scene data struct */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment), &rtData, sizeof(RayTracingData));   /* Copy ray tracing data struct */
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment), lights.data(), lights.size() * sizeof(LightRT)); /* Copy lights vector */
-        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(RayTracingData), alignment) + alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), alignment), materials.data(), materials.size() * sizeof(MaterialRT)); /* Copy materials vector */
         vkUnmapMemory(m_device, m_uniformBufferScene.vkmemory());
     }
 
@@ -667,7 +664,6 @@ void VulkanRendererRayTracing::createDescriptorSets()
     * 1 uniform buffer for scene data
     * 1 storage buffer for references to scene object geometry
     * 1 uniform buffer for light data
-    * 1 uniform buffer for material data
     */
     std::vector<VkDescriptorPoolSize> poolSizes = {
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
@@ -675,7 +671,6 @@ void VulkanRendererRayTracing::createDescriptorSets()
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
     };
     VkDescriptorPoolCreateInfo descriptorPoolInfo{};
@@ -783,111 +778,97 @@ void VulkanRendererRayTracing::updateDescriptorSets()
     lightsWrite.pBufferInfo = &lightsDescriptor;
     lightsWrite.descriptorCount = 1;
 
-    /* Update materials buffer binding */
-    VkDescriptorBufferInfo materialsDescriptor{};
-    materialsDescriptor.buffer = m_uniformBufferScene.vkbuffer();
-    materialsDescriptor.offset = alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(RayTracingData), uniformBufferAlignment) + alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightRT), uniformBufferAlignment);
-    materialsDescriptor.range = VK_WHOLE_SIZE;
-    VkWriteDescriptorSet materialsWrite{};
-    materialsWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    materialsWrite.dstSet = m_descriptorSet;
-    materialsWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    materialsWrite.dstBinding = 6;
-    materialsWrite.pBufferInfo = &materialsDescriptor;
-    materialsWrite.descriptorCount = 1;
-
     std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
         accelerationStructureWrite,
         resultImageWrite,
         sceneDataWrite,
         rayTracingDataWrite,
         objectDescriptionWrite,
-        lightsWrite,
-        materialsWrite,
+        lightsWrite
     };
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 }
 
 void VulkanRendererRayTracing::createRayTracingPipeline()
 {
-    /* binding 0, the accelleration strucure */
-    VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
-    accelerationStructureLayoutBinding.binding = 0;
-    accelerationStructureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-    accelerationStructureLayoutBinding.descriptorCount = 1;
-    accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-
-    /* Binding 1, the output image */
-    VkDescriptorSetLayoutBinding resultImageLayoutBinding{};
-    resultImageLayoutBinding.binding = 1;
-    resultImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    resultImageLayoutBinding.descriptorCount = 1;
-    resultImageLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-
-    /* Binding 2, the scene data */
-    VkDescriptorSetLayoutBinding sceneDataBufferBinding{};
-    sceneDataBufferBinding.binding = 2;
-    sceneDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    sceneDataBufferBinding.descriptorCount = 1;
-    sceneDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
-
-    /* Binding 3, the ray tracing data */
-    VkDescriptorSetLayoutBinding rayTracingDataBufferBinding{};
-    rayTracingDataBufferBinding.binding = 3;
-    rayTracingDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    rayTracingDataBufferBinding.descriptorCount = 1;
-    rayTracingDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-
-    /* Binding 4, the object descriptions buffer */
-    VkDescriptorSetLayoutBinding objectDescrptionBufferBinding{};
-    objectDescrptionBufferBinding.binding = 4;
-    objectDescrptionBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    objectDescrptionBufferBinding.descriptorCount = 1;
-    objectDescrptionBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-
-    /* Binding 5, the lights buffer */
-    VkDescriptorSetLayoutBinding lightsBufferBinding{};
-    lightsBufferBinding.binding = 5;
-    lightsBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    lightsBufferBinding.descriptorCount = 1;
-    lightsBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-
-    /* Binding 6, the materials buffer */
-    VkDescriptorSetLayoutBinding materialsBufferBinding{};
-    materialsBufferBinding.binding = 6;
-    materialsBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    materialsBufferBinding.descriptorCount = 1;
-    materialsBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-
-    std::vector<VkDescriptorSetLayoutBinding> bindings({
-        accelerationStructureLayoutBinding,
-        resultImageLayoutBinding,
-        sceneDataBufferBinding,
-        rayTracingDataBufferBinding,
-        objectDescrptionBufferBinding,
-        lightsBufferBinding,
-        materialsBufferBinding
-    });
-
-    /* 1 set only */
-    VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo{};
-    descriptorSetlayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    descriptorSetlayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    descriptorSetlayoutInfo.pBindings = bindings.data();
-    VkResult res = vkCreateDescriptorSetLayout(m_device, &descriptorSetlayoutInfo, nullptr, &m_descriptorSetLayout);
-    if (res != VK_SUCCESS)
+    /* Create the main ray tracing descriptor set */
     {
-        throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Failed to create a descriptor set layout: " + std::to_string(res));
+        /* binding 0, the accelleration strucure */
+        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
+        accelerationStructureLayoutBinding.binding = 0;
+        accelerationStructureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+        accelerationStructureLayoutBinding.descriptorCount = 1;
+        accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+
+        /* Binding 1, the output image */
+        VkDescriptorSetLayoutBinding resultImageLayoutBinding{};
+        resultImageLayoutBinding.binding = 1;
+        resultImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        resultImageLayoutBinding.descriptorCount = 1;
+        resultImageLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+
+        /* Binding 2, the scene data */
+        VkDescriptorSetLayoutBinding sceneDataBufferBinding{};
+        sceneDataBufferBinding.binding = 2;
+        sceneDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        sceneDataBufferBinding.descriptorCount = 1;
+        sceneDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+
+        /* Binding 3, the ray tracing data */
+        VkDescriptorSetLayoutBinding rayTracingDataBufferBinding{};
+        rayTracingDataBufferBinding.binding = 3;
+        rayTracingDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        rayTracingDataBufferBinding.descriptorCount = 1;
+        rayTracingDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+
+        /* Binding 4, the object descriptions buffer */
+        VkDescriptorSetLayoutBinding objectDescrptionBufferBinding{};
+        objectDescrptionBufferBinding.binding = 4;
+        objectDescrptionBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        objectDescrptionBufferBinding.descriptorCount = 1;
+        objectDescrptionBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+
+        /* Binding 5, the lights buffer */
+        VkDescriptorSetLayoutBinding lightsBufferBinding{};
+        lightsBufferBinding.binding = 5;
+        lightsBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        lightsBufferBinding.descriptorCount = 1;
+        lightsBufferBinding.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+
+        std::vector<VkDescriptorSetLayoutBinding> bindings({
+            accelerationStructureLayoutBinding,
+            resultImageLayoutBinding,
+            sceneDataBufferBinding,
+            rayTracingDataBufferBinding,
+            objectDescrptionBufferBinding,
+            lightsBufferBinding
+        });
+
+        /* 1 set only */
+        VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo{};
+        descriptorSetlayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetlayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        descriptorSetlayoutInfo.pBindings = bindings.data();
+        VkResult res = vkCreateDescriptorSetLayout(m_device, &descriptorSetlayoutInfo, nullptr, &m_descriptorSetLayout);
+        if (res != VK_SUCCESS)
+        {
+            throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Failed to create a descriptor set layout: " + std::to_string(res));
+        }
+
     }
 
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-    res = vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
-    if (res != VK_SUCCESS)
+    /* Create pipeline layout */
     {
-        throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Failed to create a pipeline layout: " + std::to_string(res));
+        std::array<VkDescriptorSetLayout, 3> setsLayouts = { m_descriptorSetLayout, m_materialSystem.layoutMaterial(), m_textures.layoutTextures() };
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setsLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = setsLayouts.data();
+        VkResult res = vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
+        if (res != VK_SUCCESS)
+        {
+            throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Failed to create a pipeline layout: " + std::to_string(res));
+        }
     }
 
     /*
@@ -974,7 +955,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
     rayTracingPipelineInfo.pGroups = m_shaderGroups.data();
     rayTracingPipelineInfo.maxPipelineRayRecursionDepth = 2;
     rayTracingPipelineInfo.layout = m_pipelineLayout;
-    res = m_devF.vkCreateRayTracingPipelinesKHR(m_device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineInfo, nullptr, &m_pipeline);
+    VkResult res = m_devF.vkCreateRayTracingPipelinesKHR(m_device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineInfo, nullptr, &m_pipeline);
     if (res != VK_SUCCESS)
     {
         throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Failed to create a ray tracing pipeline: " + std::to_string(res));
@@ -1083,7 +1064,15 @@ void VulkanRendererRayTracing::render()
         updateDescriptorSets();
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, 0);
+
+        std::array<VkDescriptorSet, 3> descriptorSets = { m_descriptorSet, m_materialSystem.descriptor(0), m_textures.descriptorTextures() };
+        vkCmdBindDescriptorSets(commandBuffer, 
+            VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, 
+            m_pipelineLayout, 
+            0, 
+            static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 
+            0, nullptr
+        );
         
         /*
             Dispatch the ray tracing commands
@@ -1332,45 +1321,3 @@ std::vector<LightRT> VulkanRendererRayTracing::prepareSceneLights(const VulkanSc
     return sceneLights;
 }
 
-std::vector<MaterialRT> VulkanRendererRayTracing::prepareSceneMaterials(const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, std::unordered_map<std::string, int>& indices)
-{
-    /* Get the names of the unique materials used in the scene */
-    std::unordered_map<std::string, std::shared_ptr<Material>> uniqueMaterials;
-    for (size_t i = 0; i < sceneObjects.size(); i++)
-    {
-        auto so = sceneObjects[i];
-        if (so->has<ComponentMaterial>())
-        {
-            auto mat = so->get<ComponentMaterial>().material;
-            uniqueMaterials[mat->m_name] = mat;
-        }
-    }
-
-    /* Prepare buffer with the unique materials data */
-    indices.clear();
-    std::vector<MaterialRT> uniqueMaterialsData;
-    for(auto mat : uniqueMaterials)
-    {
-        uniqueMaterialsData.push_back(MaterialRT());
-
-        auto material = mat.second;
-        switch (material->getType())
-        {
-        case MaterialType::MATERIAL_PBR_STANDARD:
-        {
-            uniqueMaterialsData.back().albedo = std::reinterpret_pointer_cast<MaterialPBRStandard>(material)->albedo();
-        break;
-        }
-        case MaterialType::MATERIAL_LAMBERT:
-        {
-            uniqueMaterialsData.back().albedo = std::reinterpret_pointer_cast<MaterialLambert>(material)->albedo();
-        break;
-        }
-        default:
-            break;
-        }
-        indices.insert({material->m_name, uniqueMaterialsData.size() - 1});
-    }
-
-    return uniqueMaterialsData;
-}
