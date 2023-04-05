@@ -28,6 +28,11 @@ layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 layout(set = 0, binding = 2) uniform readonly SceneData {
     Scene data;
 } scene;
+layout(set = 0, binding = 3) uniform RayTracingData 
+{
+    uvec4 samplesBatchesDepthIndex;
+    uvec4 lights;
+} rayTracingData;
 
 /* Descriptor with the buffer for the object description structs */
 layout(set = 0, binding = 4, scalar) buffer ObjDesc_ 
@@ -110,6 +115,11 @@ void main()
 	float cosTheta = sampleDirectionLocal.y;
 
 	vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], uvs * material.uvTiling.rg).rgb;
+	float emissive = material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], uvs * material.uvTiling.rg).r;
 
 	rayPayload.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
+	rayPayload.radiance = emissive * rayPayload.beta;
+	if (emissive > 0) {
+		rayPayload.stop = true;
+	}
 }

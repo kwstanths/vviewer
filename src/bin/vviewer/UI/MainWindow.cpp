@@ -1024,21 +1024,24 @@ void MainWindow::onRenderSceneSlot()
     RTrenderer.setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
     delete dialog;
 
-    struct RenederFunct {
-        RenederFunct(VulkanRenderer * r) : renderer(r) {} ;
-        VulkanRenderer * renderer;
-        bool operator () (float&) {
-            renderer->renderRT();
-            return true;
-        }
-    };
     struct RTRenderTask : public Task {
         VulkanRenderer * renderer;
-        RTRenderTask(VulkanRenderer * r) : renderer(r) { };
+        RTRenderTask(VulkanRenderer * r) : renderer(r) { 
+            f = Funct(renderer);
+        };
+
+        struct Funct {
+            Funct(VulkanRenderer * r) : renderer(r) {} ;
+            VulkanRenderer * renderer;
+            bool operator () (float&) {
+                renderer->renderRT();
+                return true;
+            }
+        };
+
         float getProgress() const override { return renderer->getRayTracingRenderer().getRenderProgress(); }
     };
     auto task = RTRenderTask(m_vulkanWindow->getRenderer());
-    task.f = RenederFunct(m_vulkanWindow->getRenderer());
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Rendering...", &task);
     waiting->exec();

@@ -78,7 +78,7 @@ CameraType OrthographicCamera::getType() const
 
 glm::mat4 OrthographicCamera::getProjectionMatrix() const
 {
-    return glm::ortho((float)-m_orthoWidth /2, (float)m_orthoWidth /2, (float)-m_orthoHeight /2, (float)m_orthoHeight / 2, -100.0f, 100.0f);
+    return glm::ortho(-m_orthoWidth /2, m_orthoWidth /2, -m_orthoHeight /2, m_orthoHeight / 2, -100.0f, 100.0f);
 }
 
 glm::mat4 OrthographicCamera::getProjectionMatrixInverse() const
@@ -93,6 +93,16 @@ void OrthographicCamera::setOrthoWidth(float orthoWidth)
     
     assert(m_aspectRatio != 0);
     m_orthoHeight = m_orthoWidth / m_aspectRatio;
+}
+
+float OrthographicCamera::getOrthoWidth() const
+{
+    return m_orthoWidth;
+}
+
+float OrthographicCamera::getOrthoHeight() const
+{
+    return m_orthoHeight;
 }
 
 void OrthographicCamera::setWindowSize(int width, int height)

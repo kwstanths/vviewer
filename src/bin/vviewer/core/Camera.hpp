@@ -62,6 +62,8 @@ public:
     glm::mat4 getProjectionMatrixInverse() const;
 
     void setOrthoWidth(float orthoWidth);
+    float getOrthoWidth() const;
+    float getOrthoHeight() const;
 
 protected:
     virtual void setWindowSize(int width, int height) override;

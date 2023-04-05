@@ -139,6 +139,7 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
     utils::Timer timer;
     timer.Start();
 
+    /* Get the scene objects */
     std::vector<glm::mat4> sceneObjectMatrices;
     std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectMatrices);
     if (sceneObjects.size() == 0)
@@ -149,7 +150,35 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 
     m_renderInProgress = true;
 
-    const SceneData& sceneData = scene->getSceneData();
+    /* Prepare sceneData */
+    SceneData sceneData = scene->getSceneData();
+    {
+        /* Change to requested resolution */
+        auto camera = scene->getCamera();
+        switch (camera->getType())
+        {
+        case CameraType::PERSPECTIVE:
+        {
+            auto perspectiveCamera = std::static_pointer_cast<PerspectiveCamera>(camera);
+            sceneData.m_projection = glm::perspective(glm::radians(perspectiveCamera->getFoV()), static_cast<float>(m_width) / m_height, 0.01f, 200.0f);
+            sceneData.m_projection[1][1] *= -1;
+            sceneData.m_projectionInverse = glm::inverse(sceneData.m_projection);
+            break;
+        }
+        case CameraType::ORTHOGRAPHIC:
+        {
+            auto orthoCamera = std::static_pointer_cast<OrthographicCamera>(camera);
+            auto owidth = static_cast<float>(m_width);
+            auto oheight = static_cast<float>(m_height);
+            sceneData.m_projection = glm::ortho(-owidth /2, owidth /2, -oheight /2, oheight / 2, -100.0f, 100.0f);
+            sceneData.m_projection[1][1] *= -1;
+            sceneData.m_projectionInverse = glm::inverse(sceneData.m_projection);
+        }
+        default:
+            break;
+        }
+
+    }
     
     /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
     for (size_t i = 0; i < sceneObjects.size(); i++)
@@ -173,7 +202,7 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
     m_rayTracingData.lights.r = sceneLights.size();
     updateUniformBuffers(sceneData, m_rayTracingData, sceneLights);
     
-    /* Will use buffer index 0 for this renderer */
+    /* We will use materials for buffer index 0 for this renderer */
     m_materialSystem.updateBuffers(0);
 
     render();
