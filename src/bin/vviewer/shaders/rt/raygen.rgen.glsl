@@ -2,9 +2,8 @@
 #extension GL_EXT_ray_tracing : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#include "rng.glsl"
-#include "../structs.glsl"
-#include "rtstructs.glsl"
+#include "../include/rng.glsl"
+#include "../include/structs.glsl"
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 layout(set = 0, binding = 1, rgba8) uniform image2D image;

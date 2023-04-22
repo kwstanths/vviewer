@@ -2,17 +2,17 @@
 
 #extension GL_GOOGLE_include_directive : enable
 
-#include "pbr.glsl"
-#include "lighting.glsl"
-#include "tonemapping.glsl"
-#include "utils.glsl"
-#include "normalmapping.glsl"
-#include "structs.glsl"
+#include "include/pbr.glsl"
+#include "include/lighting.glsl"
+#include "include/tonemapping.glsl"
+#include "include/utils.glsl"
+#include "include/structs.glsl"
+#include "include/frame.glsl"
 
-layout(location = 0) in vec3 fragWorldPos;
-layout(location = 1) in vec3 fragWorldNormal;
-layout(location = 2) in vec3 fragWorldTangent;
-layout(location = 3) in vec3 fragWorldBiTangent;
+layout(location = 0) in vec3 fragPos_world;
+layout(location = 1) in vec3 fragNormal_world;
+layout(location = 2) in vec3 fragTangent_world;
+layout(location = 3) in vec3 fragBiTangent_world;
 layout(location = 4) in vec2 fragUV;
 
 layout(location = 0) out vec4 outColor;
@@ -37,40 +37,50 @@ layout(push_constant) uniform PushConsts {
 } pushConsts;
 
 void main() {
-    vec3 lightWorldPos = pushConsts.lightPosition.rgb;
-    vec3 lightColor = pushConsts.lightColor.rgb;
+    vec3 L_world = pushConsts.lightPosition.rgb;
+    vec3 L_color = pushConsts.lightColor.rgb;
+    vec3 cameraPosition_world = getCameraPosition(scene.data.viewInverse);
+    vec3 V_world = normalize(cameraPosition_world - fragPos_world);
 
     Material materialData = materials.i[nonuniformEXT(pushConsts.material.r)];
-
     vec2 tiledUV = materialData.uvTiling.rg * fragUV;
-    
-    vec3 L = normalize(lightWorldPos - fragWorldPos);
-    float attenuation = squareDistanceAttenuation(fragWorldPos, lightWorldPos);
+
+    /* Construct fragment frame */
+    Frame frame;
+    frame.normal = fragNormal_world;
+    frame.tangent = fragTangent_world;
+    frame.bitangent = fragBiTangent_world;
+
+    /* Normal mapping */
+    vec3 newNormal = texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.g)], tiledUV).rgb;
+    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
+
+    vec3 L = worldToLocal(frame, normalize(L_world - fragPos_world));
+    vec3 V = worldToLocal(frame, V_world);
+    vec3 H = normalize(V + L);
+
+    float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
     /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
-    if (attenuation * max3(lightColor) < 0.05)
+    if (attenuation * max3(L_color) < 0.05)
     {
         outColor = vec4(0, 0, 0, 1);
     	outHighlight = vec4(0, 0, 0, 0);
         return;
     }
-    
-    vec3 N = applyNormalMap(fragWorldTangent, fragWorldBiTangent, fragWorldNormal, texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.g)], tiledUV).rgb);
-    
-    vec3 cameraPosition = getCameraPosition(scene.data.viewInverse);
-    vec3 V = normalize(cameraPosition - fragWorldPos);
-    vec3 H = normalize(V + L);
-    
-    /* Calculate PBR components */
+
+    /* Calculate PBR data */
     PBRStandard pbr;
     pbr.albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
     pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.g)], tiledUV).r;
-    pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;  
-    vec3 Lo = lightColor * calculatePBRStandardShading(pbr, fragWorldPos, N, V, L, H) * attenuation;
-    
+    pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
+
+    /* Calculate light contribution */
+    vec3 Lo = L_color * calculatePBRStandardShading(pbr, V, L, H) * attenuation;
+
     vec3 color = Lo;
-    
+
     color = tonemapDefault2(color, scene.data.exposure.r);
-	
+
     outColor = vec4(color, 1);
 	outHighlight = vec4(0, 0, 0, 0);
 }

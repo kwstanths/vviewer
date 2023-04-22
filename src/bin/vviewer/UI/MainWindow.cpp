@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 
+#include <memory>
 #include <qvulkaninstance.h>
 #include <qlayout.h>
 #include <qlabel.h>
@@ -23,6 +24,7 @@
 
 #include "core/AssetManager.hpp"
 #include "core/Import.hpp"
+#include "core/Materials.hpp"
 #include "utils/Tasks.hpp"
 #include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 

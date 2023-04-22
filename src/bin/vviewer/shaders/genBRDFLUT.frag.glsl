@@ -6,8 +6,9 @@ layout (location = 0) in vec2 inUV;
 layout (location = 0) out vec4 outColor;
 layout (constant_id = 0) const uint NUM_SAMPLES = 1024u;
 
-#include "sampling.glsl"
-#include "pbr.glsl"
+#include "include/constants.glsl"
+#include "include/pbr.glsl"
+#include "skybox/sampling.glsl"
 
 vec2 BRDF(float NoV, float roughness)
 {
@@ -27,7 +28,7 @@ vec2 BRDF(float NoV, float roughness)
 		float dotNH = max(dot(H, N), 0.0);
 
 		if (dotNL > 0.0) {
-			float G = GeometrySmithGGX(N, V, L, roughness);
+			float G = GeometrySmithGGX(dotNV, dotNL, roughness);
 			float G_Vis = (G * dotVH) / (dotNH * dotNV);
 			float Fc = pow(1.0 - dotVH, 5.0);
 			LUT += vec2((1.0 - Fc) * G_Vis, Fc * G_Vis);

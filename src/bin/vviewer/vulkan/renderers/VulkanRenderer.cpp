@@ -477,6 +477,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
                     m_scene->descriptorSetSceneData(imageIndex),
                     m_scene->descriptorSetModelData(imageIndex),
                     m_materialSystem.descriptor(imageIndex),
+                    m_textures.descriptorTextures(),
                     imageIndex,
                     m_scene->m_modelDataDynamicUBO,
                     obj,

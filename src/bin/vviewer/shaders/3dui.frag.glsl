@@ -2,8 +2,8 @@
 
 #extension GL_GOOGLE_include_directive : enable
 
-#include "tonemapping.glsl"
-#include "structs.glsl"
+#include "include/tonemapping.glsl"
+#include "include/structs.glsl"
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outHighlight;

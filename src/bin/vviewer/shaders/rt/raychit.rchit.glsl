@@ -8,10 +8,10 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
-#include "rtstructs.glsl"
-#include "frame.glsl"
-#include "sampling.glsl"
-#include "../structs.glsl"
+#include "../include/structs.glsl"
+#include "../include/frame.glsl"
+#include "../include/sampling.glsl"
+#include "../include/utils.glsl"
 
 hitAttributeEXT vec2 attribs;
 
@@ -81,11 +81,16 @@ void main()
 	vec3 worldNormal = normalize(vec3(localNormal * gl_WorldToObjectEXT));
 	vec3 worldTangent = normalize(vec3(localTangent * gl_WorldToObjectEXT));
 	vec3 worldBitangent = normalize(vec3(localBitangent * gl_WorldToObjectEXT));
-	/* Construct a local frame */
-	Frame frame = Frame(worldNormal, worldTangent, worldBitangent);
-	bool flipped = fixFrame(frame.normal, frame.tangent, frame.bitangent, gl_WorldRayDirectionEXT);
 	/* Interpolate uvs */
 	const vec2 uvs = v0.uv * barycentricCoords.x + v1.uv * barycentricCoords.y + v2.uv * barycentricCoords.z;
+
+	/* Construct a geometry frame */
+	Frame frame = Frame(worldNormal, worldTangent, worldBitangent);
+	bool flipped = fixFrame(frame.normal, frame.tangent, frame.bitangent, gl_WorldRayDirectionEXT);
+
+	/* Apply normal map */
+	vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], uvs * material.uvTiling.rg).rgb;
+	applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
 	// /* light sampling test */
 	// {

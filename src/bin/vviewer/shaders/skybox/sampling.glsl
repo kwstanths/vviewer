@@ -1,5 +1,3 @@
-#include "constants.glsl"
-
 // Based on http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
 float random(vec2 co)
 {

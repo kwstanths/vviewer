@@ -62,6 +62,7 @@ public:
         VkDescriptorSet& descriptorScene,
         VkDescriptorSet& descriptorModel,
         VkDescriptorSet& descriptorMaterial,
+        VkDescriptorSet& descriptorTextures,
         uint32_t imageIndex, 
         const VulkanUBO<ModelData>& dynamicUBOModels,
         std::shared_ptr<SceneObject> object,

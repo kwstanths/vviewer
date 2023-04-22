@@ -87,10 +87,10 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
         vkCmdBindIndexBuffer(cmdBuf, vkmesh->getIndexBuffer().vkbuffer(), 0, vkmesh->indexType());
 
         /* Calculate model data offsets */
-        uint32_t dynamicOffsets[1] = {
+        std::array<uint32_t, 1> dynamicOffsets = {
             dynamicUBOModels.getBlockSizeAligned() * object->getTransformUBOBlock()
         };
-        VkDescriptorSet descriptorSets[5] = {
+        std::array<VkDescriptorSet, 5> descriptorSets = {
             descriptorScene,
             descriptorModel,
             descriptorMaterial,
@@ -109,7 +109,10 @@ void VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer& cmdBuf,
             &pushConstants);
 
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayoutBasePass,
-            0, 4, &descriptorSets[0], 1, &dynamicOffsets[0]);
+            0, 
+            static_cast<uint32_t>(descriptorSets.size()), &descriptorSets[0], 
+            static_cast<uint32_t>(dynamicOffsets.size()), &dynamicOffsets[0]
+        );
 
         vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
     }
@@ -119,6 +122,7 @@ void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
     VkDescriptorSet& descriptorScene,
     VkDescriptorSet& descriptorModel,
     VkDescriptorSet& descriptorMaterial,
+    VkDescriptorSet& descriptorTextures,
     uint32_t imageIndex, 
     const VulkanUBO<ModelData>& dynamicUBOModels,
     std::shared_ptr<SceneObject> object,
@@ -142,10 +146,11 @@ void VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer& cmdBuf,
         dynamicUBOModels.getBlockSizeAligned() * vobject->getTransformUBOBlock(),
     };
     /* Create descriptor sets array */
-    std::array<VkDescriptorSet, 3> descriptorSets = {
+    std::array<VkDescriptorSet, 4> descriptorSets = {
         descriptorScene,
         descriptorModel,
-        descriptorMaterial
+        descriptorMaterial,
+        descriptorTextures,
     };
 
     lightInfo.material.r = material->getMaterialIndex();

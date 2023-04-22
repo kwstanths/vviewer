@@ -39,3 +39,20 @@ vec3 localToWorld(Frame frame, vec3 localV)
 {
     return frame.tangent * localV.x + frame.normal * localV.y + frame.bitangent * localV.z;
 }
+
+vec3 worldToLocal(Frame frame, vec3 worldV)
+{
+    return vec3(dot(worldV, frame.tangent), dot(worldV, frame.normal), dot(worldV, frame.bitangent));
+}
+
+void applyNormalToFrame(inout Frame frame, vec3 newNormal)
+{
+    vec3 newNormal_world = localToWorld(frame, newNormal);
+
+	// mat3 TBN = mat3(frame.tangent, frame.normal, frame.bitangent);
+    // vec3 N = normalize(TBN * newNormal);
+
+	frame.normal = newNormal_world;
+	frame.tangent = cross(frame.normal, frame.bitangent);
+	frame.bitangent = cross(frame.tangent, frame.normal);
+}
