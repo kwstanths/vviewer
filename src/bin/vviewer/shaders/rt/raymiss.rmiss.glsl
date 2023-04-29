@@ -7,14 +7,19 @@
 
 layout(location = 0) rayPayloadInEXT RayPayload rayPayload;
 
+layout(set = 0, binding = 2) uniform readonly SceneData {
+    Scene data;
+} scene;
+
+layout(set = 3, binding = 0) uniform samplerCube skybox;
+
 void main()
 {
     rayPayload.stop = true;
     
     vec3 rayDir = gl_WorldRayDirectionEXT;
 
-    float t = 0.5 * (rayDir.y + 1.0);
-    vec3 backgroundColor = (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+    vec3 backgroundColor = textureLod(skybox, rayDir, 0).xyz;
 
-	rayPayload.radiance += backgroundColor * rayPayload.beta;
+	rayPayload.radiance += scene.data.exposure.g * backgroundColor * rayPayload.beta;
 }

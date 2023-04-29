@@ -31,7 +31,7 @@ VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext& vkctx,
 {
 }
 
-void VulkanRendererRayTracing::initResources(VkFormat format)
+void VulkanRendererRayTracing::initResources(VkFormat format, VkDescriptorSetLayout skyboxDescriptorLayout)
 {
     /* Check if physical device supports ray tracing */
     bool supportsRayTracing = VulkanRendererRayTracing::checkRayTracingSupport(m_vkctx.physicalDevice());
@@ -41,6 +41,7 @@ void VulkanRendererRayTracing::initResources(VkFormat format)
     }
 
     m_format = format;
+    m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
 
     m_physicalDeviceProperties = m_vkctx.physicalDeviceProperties();
 
@@ -96,11 +97,11 @@ void VulkanRendererRayTracing::initResources(VkFormat format)
 
 void VulkanRendererRayTracing::releaseRenderResources()
 {
-    for(auto& mb : m_meshBuffers)
+    for(auto& mb : m_renderBuffers)
     {
         mb.destroy(m_device);
     }
-    m_meshBuffers.clear();
+    m_renderBuffers.clear();
 
     destroyAccellerationStructures();
 }
@@ -116,7 +117,7 @@ void VulkanRendererRayTracing::releaseResources()
     m_shaderRayCHitBuffer.destroy(m_device);
 
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMain, nullptr);
 
     m_uniformBufferScene.destroy(m_device);
     m_uniformBufferObjectDescription.destroy(m_device);
@@ -205,7 +206,10 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
     /* We will use materials for buffer index 0 for this renderer */
     m_materialSystem.updateBuffers(0);
 
-    render();
+    /* Get skybox descriptor */
+    auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(scene->getSkybox());
+    assert(skybox != nullptr);
+    render(skybox->getDescriptor(0));
     
     releaseRenderResources();
 
@@ -415,7 +419,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     accelerationDeviceAddressInfo.accelerationStructure = blas.handle;
     blas.deviceAddress = m_devF.vkGetAccelerationStructureDeviceAddressKHR(m_device, &accelerationDeviceAddressInfo);
 
-    m_meshBuffers.push_back(transformBuffer);
+    m_renderBuffers.push_back(transformBuffer);
     deleteScratchBuffer(scratchBuffer);
 
     return blas;
@@ -542,7 +546,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     tlas.deviceAddress = m_devF.vkGetAccelerationStructureDeviceAddressKHR(m_device, &accelerationDeviceAddressInfo);
 
     deleteScratchBuffer(scratchBuffer);
-    m_meshBuffers.push_back(instancesBuffer);
+    m_renderBuffers.push_back(instancesBuffer);
 
     return tlas;
 }
@@ -716,7 +720,7 @@ void VulkanRendererRayTracing::createDescriptorSets()
     VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
     descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     descriptorSetAllocateInfo.descriptorPool = m_descriptorPool;
-    descriptorSetAllocateInfo.pSetLayouts = &m_descriptorSetLayout;
+    descriptorSetAllocateInfo.pSetLayouts = &m_descriptorSetLayoutMain;
     descriptorSetAllocateInfo.descriptorSetCount = 1;
     res = vkAllocateDescriptorSets(m_device, &descriptorSetAllocateInfo, &m_descriptorSet);
     if (res != VK_SUCCESS)
@@ -878,7 +882,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         descriptorSetlayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetlayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         descriptorSetlayoutInfo.pBindings = bindings.data();
-        VkResult res = vkCreateDescriptorSetLayout(m_device, &descriptorSetlayoutInfo, nullptr, &m_descriptorSetLayout);
+        VkResult res = vkCreateDescriptorSetLayout(m_device, &descriptorSetlayoutInfo, nullptr, &m_descriptorSetLayoutMain);
         if (res != VK_SUCCESS)
         {
             throw std::runtime_error("VulkanRayTracingRenderer::createRayTracingPipeline(): Failed to create a descriptor set layout: " + std::to_string(res));
@@ -888,7 +892,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
 
     /* Create pipeline layout */
     {
-        std::array<VkDescriptorSetLayout, 3> setsLayouts = { m_descriptorSetLayout, m_materialSystem.layoutMaterial(), m_textures.layoutTextures() };
+        std::array<VkDescriptorSetLayout, 4> setsLayouts = { m_descriptorSetLayoutMain, m_materialSystem.layoutMaterial(), m_textures.layoutTextures(), m_descriptorSetLayoutSkybox };
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setsLayouts.size());
@@ -1041,7 +1045,7 @@ void VulkanRendererRayTracing::createShaderBindingTable()
     }
 }
 
-void VulkanRendererRayTracing::render()
+void VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
 {
     /* Get strided device addresses for the shader binding tables where the shader group handles are stored. TODO get this out of the render function */
     const uint32_t handleSizeAligned = alignedSize(m_rayTracingPipelineProperties.shaderGroupHandleSize, m_rayTracingPipelineProperties.shaderGroupHandleAlignment);
@@ -1094,7 +1098,7 @@ void VulkanRendererRayTracing::render()
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
 
-        std::array<VkDescriptorSet, 3> descriptorSets = { m_descriptorSet, m_materialSystem.descriptor(0), m_textures.descriptorTextures() };
+        std::array<VkDescriptorSet, 4> descriptorSets = { m_descriptorSet, m_materialSystem.descriptor(0), m_textures.descriptorTextures(), skyboxDescriptor };
         vkCmdBindDescriptorSets(commandBuffer, 
             VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, 
             m_pipelineLayout, 

@@ -2,6 +2,7 @@
 #define __VulkanRendererRayTracing_hpp__
 
 #include <cstdint>
+#include <vulkan/vulkan_core.h>
 
 #include "core/Scene.hpp"
 #include "vulkan/IncludeVulkan.hpp"
@@ -31,7 +32,7 @@ public:
 
     VulkanRendererRayTracing(VulkanContext& vkctx, VulkanMaterialSystem& materialSystem, VulkanTextures& textures);
 
-    void initResources(VkFormat colorFormat);
+    void initResources(VkFormat colorFormat, VkDescriptorSetLayout skyboxDescriptorLayout);
 
     void releaseRenderResources();
     void releaseResources();
@@ -91,14 +92,14 @@ private:
     VkCommandPool m_commandPool;
     VkQueue m_queue;
 
-    /* Accelerations structure data */
+    /* Accelerator structure data */
     struct AccelerationStructure {
         VkAccelerationStructureKHR handle;
         uint64_t deviceAddress = 0;
         VkDeviceMemory memory;
         VkBuffer buffer;
     };
-    std::vector<VulkanBuffer> m_meshBuffers;
+    std::vector<VulkanBuffer> m_renderBuffers;
     std::vector<std::pair<AccelerationStructure, glm::mat4>> m_blas;
     AccelerationStructure m_tlas;
 
@@ -125,7 +126,8 @@ private:
     VkDescriptorSet m_descriptorSet;
 
     /* Ray tracing pipeline */
-    VkDescriptorSetLayout m_descriptorSetLayout;
+    VkDescriptorSetLayout m_descriptorSetLayoutMain;
+    VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
     VkPipelineLayout m_pipelineLayout;
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_shaderGroups;
     VkPipeline m_pipeline;
@@ -159,7 +161,7 @@ private:
     void createRayTracingPipeline();
     void createShaderBindingTable();
 
-    void render();
+    void render(VkDescriptorSet skyboxDescriptor);
 
     void storeToDisk(std::string filename, OutputFileType type) const;
 

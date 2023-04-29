@@ -6,6 +6,7 @@
 
 #include <math/Constants.hpp>
 #include <core/AssetManager.hpp>
+#include <vulkan/vulkan_core.h>
 
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/Shader.hpp"
@@ -2020,7 +2021,7 @@ bool VulkanRendererSkybox::createDescriptorSetsLayout()
     skyboxTextureLayoutBinding.descriptorCount = 1; 
     skyboxTextureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     skyboxTextureLayoutBinding.pImmutableSamplers = nullptr;
-    skyboxTextureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    skyboxTextureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_MISS_BIT_KHR;
     
     VkDescriptorSetLayoutBinding irradianceTextureLayoutBinding{};
     irradianceTextureLayoutBinding.binding = 1;

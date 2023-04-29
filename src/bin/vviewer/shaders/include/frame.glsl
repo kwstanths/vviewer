@@ -49,9 +49,6 @@ void applyNormalToFrame(inout Frame frame, vec3 newNormal)
 {
     vec3 newNormal_world = localToWorld(frame, newNormal);
 
-	// mat3 TBN = mat3(frame.tangent, frame.normal, frame.bitangent);
-    // vec3 N = normalize(TBN * newNormal);
-
 	frame.normal = newNormal_world;
 	frame.tangent = cross(frame.normal, frame.bitangent);
 	frame.bitangent = cross(frame.tangent, frame.normal);

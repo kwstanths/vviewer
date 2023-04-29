@@ -6,7 +6,7 @@ struct Scene {
 	mat4 projectionInverse;
     vec4 directionalLightDir;
     vec4 directionalLightColor;
-    vec4 exposure;
+    vec4 exposure; /* R = exposure, G = Ambient environment map multiplier, B = , A = */
 };
 
 /* Material struct. A mirror of the CPU struct */

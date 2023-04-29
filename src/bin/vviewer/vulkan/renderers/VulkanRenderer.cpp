@@ -84,7 +84,7 @@ void VulkanRenderer::initResources()
     }
     
     try {
-        m_rendererRayTracing.initResources(VK_FORMAT_R32G32B32A32_SFLOAT);
+        m_rendererRayTracing.initResources(VK_FORMAT_R32G32B32A32_SFLOAT, m_rendererSkybox.getDescriptorSetLayout());
     }
     catch (std::exception& e) {
         utils::ConsoleWarning("VulkanRenderer::initResources():Failed to initialize GPU ray tracing renderer: " + std::string(e.what()));
@@ -390,7 +390,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         rpBeginInfo.pClearValues = clearValues.data();
         m_vkctx.deviceFunctions()->vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        /* Get skybox material and check if its paremters have changed */
+        /* Get skybox material and check if its parameters have changed */
         auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(m_scene->getSkybox());
         assert(skybox != nullptr);
         /* If material parameters have changed, update descriptor */
@@ -619,7 +619,7 @@ void VulkanRenderer::renderRT()
 {
     if (m_rendererRayTracing.isInitialized()) {
 
-        m_rendererRayTracing.renderScene(m_scene);        
+        m_rendererRayTracing.renderScene(m_scene);
     }
 
 }
