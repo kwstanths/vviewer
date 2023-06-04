@@ -2,9 +2,13 @@
 #define __VulkanRendererRayTracing_hpp__
 
 #include <cstdint>
+#include <memory>
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 #include "core/Scene.hpp"
+#include "core/SceneObject.hpp"
+#include "math/Transform.hpp"
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
@@ -117,7 +121,7 @@ private:
     std::string m_renderResultOutputFileName;
     OutputFileType m_renderResultOutputFileType;
 
-    std::vector<ObjectDescriptionRT> m_sceneObjects;
+    std::vector<ObjectDescriptionRT> m_sceneObjectsDescription;
 
     /* Descriptor sets */
     VulkanBuffer m_uniformBufferScene;  /* Holds scene data, ray tracing data and light data */
@@ -142,7 +146,17 @@ private:
     
     static VkDevice createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t& queueFamilyIndex);
 
-    AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh& mesh, const glm::mat4& transformationMatrix, const uint32_t materialIndex);
+    /**
+     * @brief Create a Bottom Level Acceleration Structure object for a mesh
+     * 
+     * @param mesh Mesh object
+     * @param transformationMatrix Transform matrix
+     * @param materialIndex The material index of the mesh object
+     * @return AccelerationStructure 
+     */
+    AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh& mesh, 
+        const glm::mat4& transformationMatrix, 
+        const uint32_t materialIndex);
     AccelerationStructure createTopLevelAccelerationStructure();
     void destroyAccellerationStructures();
 
@@ -171,7 +185,10 @@ private:
     RayTracingScratchBuffer createScratchBuffer(VkDeviceSize size);
     void deleteScratchBuffer(RayTracingScratchBuffer& scratchBuffer);
 
-    std::vector<LightRT> prepareSceneLights(const VulkanScene * scene, const std::vector<std::shared_ptr<SceneObject>>& sceneObjects);
+    /* Scene lights functions */
+    bool isMeshLight(const std::shared_ptr<SceneObject> so);
+    void prepareSceneLights(const VulkanScene * scene, std::vector<LightRT>& sceneLights);
+    void prepareSceneObjectLight(const std::shared_ptr<SceneObject>& so, uint32_t objectDescriptionIndex, const glm::mat4& worldTransform, std::vector<LightRT>& sceneLights);
 };
 
 #endif

@@ -71,7 +71,7 @@ void main() {
 	vec3 kD = 1.0 - kS;
     vec3 ambient = ao * kD * diffuse;
 
-    vec3 Lo = scene.data.directionalLightColor.xyz * albedo * max(L.y, 0.0) * INVPI;
+    vec3 Lo = scene.data.directionalLightColor.xyz * albedo * max(L.y, 0.0) * INV_PI;
     vec3 emission = albedo * emissive;
     
     vec3 color = scene.data.exposure.g * ambient + Lo + emission;

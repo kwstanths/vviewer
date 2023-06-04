@@ -1,6 +1,7 @@
 #ifndef __VulkanDataStructs_hpp__
 #define __VulkanDataStructs_hpp__
 
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -67,6 +68,8 @@ struct ObjectDescriptionRT
     uint64_t indexAddress;
     /* An index to point to the materials buffer */
     uint32_t materialIndex;
+    /* The number of triangles in the buffer */
+    uint32_t numTriangles;
 };
 
 struct StorageImage
@@ -86,9 +89,10 @@ struct StorageImage
     3: environment map
 */
 struct LightRT {
-    glm::vec4 position;  /* RGB = world space position, A = light type  */
-    glm::vec4 direction; /* RGB = world space direction, A = mesh id */
-    glm::vec4 color;     /* RGB = color, A = mesh material id */
+    glm::vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
+    glm::vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */
+    glm::vec4 color;     /* RGB = color or column 3 of transform matrix, A = ... */
+    glm::vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
 
 #endif

@@ -12,3 +12,14 @@ vec3 processNormalFromNormalMap(vec3 normalMapNormal)
     vec3 N = normalMapNormal * 2 - 1;
     return vec3(N.x, N.z, -N.y);
 }
+
+float distanceSquared(vec3 p0, vec3 p1)
+{
+    float distance = length(p0 - p1);
+    return distance * distance;
+}
+
+bool isBlack(vec3 c)
+{
+	return c.x == 0 && c.y == 0 && c.z == 0;
+}

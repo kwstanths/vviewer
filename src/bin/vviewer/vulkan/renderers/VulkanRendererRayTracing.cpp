@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <unordered_set>
 #include <sys/types.h>
+#include <vector>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -181,29 +182,37 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 
     }
     
+    std::vector<LightRT> sceneLights;
+
     /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
     for (size_t i = 0; i < sceneObjects.size(); i++)
     {
         auto so = sceneObjects[i];
-        if (!so->has<ComponentMesh>() || !so->has<ComponentMaterial>()) continue;
-        
         auto transform = sceneObjectMatrices[i];
-        auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
-        auto material = so->get<ComponentMaterial>().material;
+        if (so->has<ComponentMesh>() && so->has<ComponentMaterial>()) 
+        {
+            auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
+            auto material = so->get<ComponentMaterial>().material;
 
-        AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material->getMaterialIndex());
-        m_blas.push_back(std::make_pair(blas, transform));
+            AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material->getMaterialIndex());
+            m_blas.push_back(std::make_pair(blas, transform));
+        }
+        
+        if (so->has<ComponentPointLight>() || isMeshLight(so))
+        {
+            prepareSceneObjectLight(so, m_sceneObjectsDescription.size() - 1, transform, sceneLights);
+        }
     }
     
     /* Create a top level accelleration structure out of all the blas */
     m_tlas = createTopLevelAccelerationStructure();
     
     /* Prepare scene lights */
-    auto sceneLights = prepareSceneLights(scene, sceneObjects);
+    prepareSceneLights(scene, sceneLights);
     m_rayTracingData.lights.r = sceneLights.size();
     updateUniformBuffers(sceneData, m_rayTracingData, sceneLights);
     
-    /* We will use materials for buffer index 0 for this renderer */
+    /* We will use the materials from buffer index 0 for this renderer */
     m_materialSystem.updateBuffers(0);
 
     /* Get skybox descriptor */
@@ -310,7 +319,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     VkBuffer indexBuffer = mesh.getIndexBuffer().vkbuffer();
     VkDeviceMemory indexBufferMemory = mesh.getIndexBuffer().vkmemory();
 
-    // TODO usage transform buffer from the dybamic UBO that stores the mvp matrices?
+    // TODO use transform buffer from the dybamic UBO that stores the mvp matrices?
     VulkanBuffer transformBuffer;
     createBuffer(m_vkctx.physicalDevice(),
         m_device,
@@ -320,17 +329,18 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
         &transformMatrix,
         transformBuffer);
 
-    /* Get the device address of the geometry  buffers and push them to the scene objects vector */
+    /* Get the device address of the geometry buffers and push them to the scene objects vector */
     VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
     vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, vertexBuffer);
     VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
     indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, indexBuffer);
     VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
     transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, transformBuffer.vkbuffer());
-    m_sceneObjects.push_back({ vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress, materialIndex });
 
     std::vector<uint32_t> numTriangles = { indexCount / 3 };
     uint32_t maxVertex = static_cast<uint32_t>(vertices.size());
+
+    m_sceneObjectsDescription.push_back( {vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress, materialIndex, numTriangles[0]});
 
     /* Specify an acceleration structure geometry for the mesh */
     VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
@@ -443,7 +453,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
         instances[i].instanceCustomIndex = static_cast<uint32_t>(i);    /* The custom index specifies where the reference of this object 
                                                                         is inside the array of references that is passed in the shader. 
                                                                         More specifically, this reference will tell the shader where the 
-                                                                        geometry buffers for this object are, the meshe's index inside 
+                                                                        geometry buffers for this object are, the mesh's position inside 
                                                                         the ObjectDescription buffer */
         instances[i].mask = 0xFF;
         instances[i].instanceShaderBindingTableRecordOffset = 0;    /* TODO Specify here the chit shader to be used from the SBT for this instance */
@@ -553,7 +563,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
 
 void VulkanRendererRayTracing::destroyAccellerationStructures()
 {
-    m_sceneObjects.clear();
+    m_sceneObjectsDescription.clear();
 
     for (auto& blas : m_blas) {
         m_devF.vkDestroyAccelerationStructureKHR(m_device, blas.first.handle, nullptr);
@@ -648,7 +658,7 @@ void VulkanRendererRayTracing::createUniformBuffers()
 
 void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, const RayTracingData& rtData, const std::vector<LightRT>& lights)
 {
-    if (m_sceneObjects.size() > VULKAN_LIMITS_MAX_OBJECTS)
+    if (m_sceneObjectsDescription.size() > VULKAN_LIMITS_MAX_OBJECTS)
     {
         throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of objects exceeded");
     }
@@ -673,7 +683,7 @@ void VulkanRendererRayTracing::updateUniformBuffers(const SceneData& sceneData, 
     {
         void* data;
         vkMapMemory(m_device, m_uniformBufferObjectDescription.vkmemory(), 0, VK_WHOLE_SIZE, 0, &data);
-        memcpy(data, m_sceneObjects.data(), m_sceneObjects.size() * sizeof(ObjectDescriptionRT));
+        memcpy(data, m_sceneObjectsDescription.data(), m_sceneObjectsDescription.size() * sizeof(ObjectDescriptionRT));
         vkUnmapMemory(m_device, m_uniformBufferObjectDescription.vkmemory());
     }
 }
@@ -852,7 +862,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         rayTracingDataBufferBinding.binding = 3;
         rayTracingDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         rayTracingDataBufferBinding.descriptorCount = 1;
-        rayTracingDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+        rayTracingDataBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 
         /* Binding 4, the object descriptions buffer */
         VkDescriptorSetLayoutBinding objectDescrptionBufferBinding{};
@@ -1291,10 +1301,39 @@ void VulkanRendererRayTracing::deleteScratchBuffer(RayTracingScratchBuffer& scra
     }
 }
 
-std::vector<LightRT> VulkanRendererRayTracing::prepareSceneLights(const VulkanScene * scene, const std::vector<std::shared_ptr<SceneObject>>& sceneObjects)
+bool VulkanRendererRayTracing::isMeshLight(const std::shared_ptr<SceneObject> so)
 {
-    std::vector<LightRT> sceneLights;
+    if (so->has<ComponentMaterial>()) 
+    {
+        auto material = so->get<ComponentMaterial>().material;
+        switch (material->getType())
+        {
+        case MaterialType::MATERIAL_PBR_STANDARD:
+        {
+            auto pbrStandard = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
+            if (pbrStandard->getEmissive() > 0.0001F) {
+                return true;
+            }
+            break;
+        }
+        case MaterialType::MATERIAL_LAMBERT:
+        {
+            auto lambert = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
+            if (lambert->getEmissive() > 0.0001F) {
+                return true;
+            }
+            break;
+        }
+        default:
+            throw std::runtime_error("VulkanRayTracing::isLight(): Unexpected material");
+        }
+    }
 
+    return false;
+}
+
+void VulkanRendererRayTracing::prepareSceneLights(const VulkanScene * scene, std::vector<LightRT>& sceneLights)
+{
     const SceneData& sceneData = scene->getSceneData();
 
     /* Environment map */
@@ -1312,45 +1351,27 @@ std::vector<LightRT> VulkanRendererRayTracing::prepareSceneLights(const VulkanSc
         sceneLights.back().direction = sceneData.m_directionalLightDir;
         sceneLights.back().color = sceneData.m_directionalLightColor;
     }
+}
 
-    for(auto so : sceneObjects)
+void VulkanRendererRayTracing::prepareSceneObjectLight(const std::shared_ptr<SceneObject>& so, uint32_t objectDescriptionIndex, const glm::mat4& t, std::vector<LightRT>& sceneLights)
+{
+    if (so->has<ComponentPointLight>())
     {
-        if (so->has<ComponentPointLight>())
-        {
-            auto pointLight = so->get<ComponentPointLight>().light;
-            sceneLights.push_back(LightRT());
-            sceneLights.back().position = glm::vec4(so->getWorldPosition(), 0.F);
-            sceneLights.back().color = glm::vec4(pointLight->lightMaterial->color * pointLight->lightMaterial->intensity, 0.F);
-        }
-
-        if (so->has<ComponentMaterial>()) 
-        {
-            auto material = so->get<ComponentMaterial>().material;
-            switch (material->getType())
-            {
-            case MaterialType::MATERIAL_PBR_STANDARD:
-            {
-                auto pbrStandard = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
-                if (pbrStandard->getEmissive() > 0.0001F) {
-                    // TODO add to scene lights 
-                }
-                break;
-            }
-            case MaterialType::MATERIAL_LAMBERT:
-            {
-                auto lambert = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
-                if (lambert->getEmissive() > 0.0001F) {
-                    // TODO add to scene lights
-                }
-                break;
-            }
-            default:
-                throw std::runtime_error("VulkanRayTracing::prepareSceneLights(): Unexpected material");
-            }
-        }
-
+        auto pointLight = so->get<ComponentPointLight>().light;
+        sceneLights.push_back(LightRT());
+        sceneLights.back().position = glm::vec4(so->getWorldPosition(), 0.F);
+        sceneLights.back().color = glm::vec4(pointLight->lightMaterial->color * pointLight->lightMaterial->intensity, 0.F);
     }
 
-    return sceneLights;
+    if (so->has<ComponentMaterial>() && isMeshLight(so)) 
+    {
+        auto material = so->get<ComponentMaterial>().material;
+        sceneLights.push_back(LightRT());
+        sceneLights.back().position = glm::vec4(t[0][0], t[0][1], t[0][2], 2.F);
+        sceneLights.back().direction = glm::vec4(t[1][0], t[1][1], t[1][2],objectDescriptionIndex);
+        sceneLights.back().color = glm::vec4(t[2][0], t[2][1], t[2][2], 0);
+        sceneLights.back().transform= glm::vec4(t[3][0], t[3][1], t[3][2], 0);
+        
+    }
 }
 

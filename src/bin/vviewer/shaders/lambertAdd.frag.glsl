@@ -60,18 +60,18 @@ void main() {
     if (attenuation * max3(L_color) < 0.05)
     {
         outColor = vec4(0, 0, 0, 1);
-    	outHighlight = vec4(0, 0, 0, 0);
+        outHighlight = vec4(0, 0, 0, 0);
         return;
     }
     
-	vec3 albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
+    vec3 albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
     
-    vec3 Lo = L_color * albedo * max(L.y, 0.0) * INVPI * attenuation;
+    vec3 Lo = L_color * albedo * max(L.y, 0.0) * INV_PI * attenuation;
     
     vec3 color = Lo;
     
     color = tonemapDefault2(color, scene.data.exposure.r);
 	
     outColor = vec4(color, 1);
-	outHighlight = vec4(0, 0, 0, 0);
+    outHighlight = vec4(0, 0, 0, 0);
 }

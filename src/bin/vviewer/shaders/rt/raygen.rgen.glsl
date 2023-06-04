@@ -48,17 +48,21 @@ void main()
 
 		vec3 beta = vec3(1);
 		vec3 radiance = vec3(0);
+		float bsdfPdf = 1.0F;
 		for (int d = 0; d < depth; d++)
 		{
 			/* Launch ray */
 			rayPayload.stop = false;
 			rayPayload.radiance = radiance;
 			rayPayload.beta = beta;
+			rayPayload.bsdfPdf = bsdfPdf;
+			rayPayload.depth = d;
 
 			traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin.xyz, 0.001, direction.xyz, 10000.0, 0);
 
 			beta = rayPayload.beta;
 			radiance = rayPayload.radiance;
+			bsdfPdf = rayPayload.bsdfPdf;
 			
 			if (rayPayload.stop) 
 			{

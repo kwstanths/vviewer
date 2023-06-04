@@ -20,15 +20,12 @@ void main()
 	vec3 right = normalize(cross(up, N));
 	up = cross(N, right);
 
-	const float TWO_PI = PI * 2.0;
-	const float HALF_PI = PI * 0.5;
-
 	vec3 color = vec3(0.0);
 	uint sampleCount = 0u;
-	for (float phi = 0.0; phi < TWO_PI; phi += pushConsts.deltaPhi) {
-		for (float theta = 0.0; theta < HALF_PI; theta += pushConsts.deltaTheta) {
-			vec3 tempVec = cos(phi) * right + sin(phi) * up;
-			vec3 sampleVector = cos(theta) * N + sin(theta) * tempVec;
+	for (float phi = 0.0; phi < TWO_TIMES_PI; phi += pushConsts.deltaPhi) {
+		for (float theta = 0.0; theta < PI_OVER_TWO; theta += pushConsts.deltaTheta) {
+			vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
+			vec3 sampleVector = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
 			color += texture(cubemap, sampleVector).rgb * cos(theta) * sin(theta);
 			sampleCount++;
 		}

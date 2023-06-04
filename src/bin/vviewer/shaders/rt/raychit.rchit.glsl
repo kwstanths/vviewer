@@ -12,6 +12,7 @@
 #include "../include/frame.glsl"
 #include "../include/sampling.glsl"
 #include "../include/utils.glsl"
+#include "../include/lighting.glsl"
 
 hitAttributeEXT vec2 attribs;
 
@@ -52,8 +53,12 @@ layout(set = 1, binding = 0) uniform readonly Materials
 	Material i[200];
 } materials;
 
+/* Descriptor for global textures arrays */
 layout (set = 2, binding = 0) uniform sampler2D global_textures[];
 layout (set = 2, binding = 0) uniform sampler3D global_textures_3d[];
+
+#include "lightSampling.glsl"
+#include "MIS.glsl"
 
 void main()
 {
@@ -92,39 +97,69 @@ void main()
 	vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], uvs * material.uvTiling.rg).rgb;
 	applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
-	// /* light sampling test */
-	// {
-	// 	vec3 lightRadiance = sceneData.directionalLightColor.xyz * clamp(vec3(dot(worldNormal, -sceneData.directionalLightDir.xyz)), 0, 1) * rayPayload.beta;
-
-	// 	/* Shadow ray */
-	// 	float tmin = 0.001;
-	// 	float tmax = 10000.0;
-	// 	vec3 origin = worldPosition;
-	// 	shadowed = true;
-	// 	/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
-	// 	traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, origin, tmin, -sceneData.directionalLightDir.xyz, tmax, 1);
-		
-	// 	if (!shadowed) {
-	// 		rayPayload.radiance += lightRadiance;
-	// 	}
-	// }
-
-	/* New ray direction */
-	rayPayload.origin = worldPosition;
-	
-	float sampleDirectionPDF;
-	vec3 sampleDirectionLocal = cosineSampleHemisphere(rayPayload.rngState, sampleDirectionPDF);
-	vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
-	rayPayload.direction = sampleDirectionWorld;
-
-	float cosTheta = sampleDirectionLocal.y;
-
+	/* Material information */
 	vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], uvs * material.uvTiling.rg).rgb;
 	float emissive = material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], uvs * material.uvTiling.rg).r;
 
-	rayPayload.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
-	rayPayload.radiance = emissive * rayPayload.beta;
-	if (emissive > 0) {
+	if (emissive > 0 && !flipped) {
+		if (rayPayload.depth == 0)
+		{
+			rayPayload.radiance = (emissive * albedo) * rayPayload.beta;
+		} 
+		else 
+		{
+			/* If this mesh is emissive and the depth is not 1, weight the emissive contribution with MIS */
+			vec3 v0WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v0.position, 1.0));
+			vec3 v1WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v1.position, 1.0));
+			vec3 v2WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v2.position, 1.0));
+			float triangleArea = 0.5 * length(cross(v1WorldPos - v0WorldPos, v2WorldPos - v0WorldPos));
+			float sampledPointPdf = (1.0 / objResource.numTriangles) * ( 1 / triangleArea );
+
+            const float dotProduct = dot(-gl_WorldRayDirectionEXT, worldNormal);
+            float lightDirectPdf = sampledPointPdf * distanceSquared(gl_ObjectRayOriginEXT, worldPosition) / dotProduct;
+
+			float weightMIS = PowerHeuristic(1, rayPayload.bsdfPdf, 1, lightDirectPdf);
+			rayPayload.radiance += weightMIS * (emissive * albedo) * rayPayload.beta;
+		}
 		rayPayload.stop = true;
+		return;
 	}
+
+	/* Light sampling */
+	LightSamplingRecord lsr = sampleLight(worldPosition);
+	if (!lsr.shadowed && !isBlack(lsr.radiance))
+	{
+		vec3 wi = worldToLocal(frame, lsr.direction);
+		float cosTheta = clamp(wi.y, 0, 1);
+
+		vec3 F = albedo * INV_PI * cosTheta;
+
+		if (!isBlack(F))
+		{
+			if (lsr.isDeltaLight)
+			{
+				rayPayload.radiance += lsr.radiance * F * rayPayload.beta / lsr.pdf;
+			}
+			else 
+			{
+				float bsdfPdf = cosineSampleHemispherePdf(cosTheta);
+				float weightMIS = PowerHeuristic(1, lsr.pdf, 1, bsdfPdf);
+				
+				rayPayload.radiance += weightMIS * lsr.radiance * F * rayPayload.beta / lsr.pdf;
+			}
+		}
+	}
+
+	/* BSDF sampling */
+	float sampleDirectionPDF;
+	vec3 sampleDirectionLocal = cosineSampleHemisphere(rayPayload.rngState, sampleDirectionPDF);
+	vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
+	
+	rayPayload.origin = worldPosition;
+	rayPayload.direction = sampleDirectionWorld;
+	rayPayload.bsdfPdf = sampleDirectionPDF;
+
+	/* float cosTheta = sampleDirectionLocal.y */
+	rayPayload.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
+
 }

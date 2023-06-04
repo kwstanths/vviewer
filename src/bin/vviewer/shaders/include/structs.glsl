@@ -32,6 +32,7 @@ struct ObjDesc
 	uint64_t vertexAddress;
 	uint64_t indexAddress;
 	uint materialIndex;
+    uint numTriangles;
 };
 
 /* Struct for vertex data stored per vertex in geometry buffers */
@@ -49,9 +50,11 @@ struct Vertex
 struct RayPayload {
     vec3 radiance;
     vec3 beta;
+    uint depth;
 
     vec3 origin;
     vec3 direction;
+    float bsdfPdf;  /* The pdf of sampling that direction, valid only if depth > 0 */
     bool stop;
 
     uint rngState;
@@ -65,8 +68,17 @@ struct RayPayload {
     3: environment map
 */
 struct Light {
-    vec4 position;  /* RGB = world space position, A = light type  */
-    vec4 direction; /* RGB = world space direction, A = mesh id */
-    vec4 color;     /* RGB = color, A = mesh material id */
+    vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
+    vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */
+    vec4 color;     /* RGB = color or column 3 of transform matrix, A = ... */
+    vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
 
+/* Struct for rt light sampling */
+struct LightSamplingRecord {
+	vec3 direction;
+	vec3 radiance;
+	float pdf;
+	bool shadowed;
+	bool isDeltaLight;
+};

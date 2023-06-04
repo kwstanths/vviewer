@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <qvulkaninstance.h>
 #include <qlayout.h>
@@ -25,6 +26,8 @@
 #include "core/AssetManager.hpp"
 #include "core/Import.hpp"
 #include "core/Materials.hpp"
+#include "math/Transform.hpp"
+#include "utils/ECS.hpp"
 #include "utils/Tasks.hpp"
 #include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 
@@ -1136,21 +1139,49 @@ void MainWindow::onStartUpInitialization()
     AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
     AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
 
+    /* Create Ball an plane scene */
+    // try {
+    //     auto matDef = instanceMaterials.get("defaultMaterial");
+    //     auto sphere = instanceModels.get("assets/models/uvsphere.obj");
+    //     auto plane = instanceModels.get("assets/models/plane.obj");
+    //     auto lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
+    
+    //     auto& cm = ComponentManager::getInstance();
+    //     auto o1 = createEmptySceneObject("sphere", Transform({0, 0, 0}, {1, 1, 1}), nullptr);
+    //     o1.second->assign(cm.create<ComponentMesh>(sphere->getMeshes()[0]));
+    //     o1.second->assign(cm.create<ComponentMaterial>(matDef));
+
+    //     auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
+    //     o2.second->assign(cm.create<ComponentMesh>(plane->getMeshes()[0]));
+    //     o2.second->assign(cm.create<ComponentMaterial>(matDef));
+    // } catch (std::exception& e) {
+    //     utils::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
+    // }
+
+    /* Create cornel box scene */
     try {
-        auto mat = instanceMaterials.get("defaultMaterial");
+        m_vulkanWindow->getRenderer()->createVulkanMeshModel("assets/models/rtscene.obj");
+        m_vulkanWindow->getRenderer()->materialSystem().createMaterial("emissive", MaterialType::MATERIAL_PBR_STANDARD);
+
+        auto matDef = instanceMaterials.get("defaultMaterial");
+        auto matEmis = instanceMaterials.get("emissive");
         auto sphere = instanceModels.get("assets/models/uvsphere.obj");
         auto plane = instanceModels.get("assets/models/plane.obj");
+        auto rtscene = instanceModels.get("assets/models/rtscene.obj");
         auto lightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
-        auto& cm = ComponentManager::getInstance();
-        
-        auto o1 = createEmptySceneObject("sphere", Transform({0, 0, 0}, {1, 1, 1}), nullptr);
-        o1.second->assign(cm.create<ComponentMesh>(sphere->getMeshes()[0]));
-        o1.second->assign(cm.create<ComponentMaterial>(mat));
+        auto root = createEmptySceneObject("root", Transform(), nullptr);
+        addSceneObjectMeshes(root.first, "assets/models/rtscene.obj", "defaultMaterial");
+        root.second->m_children.back()->get<ComponentMaterial>() = matEmis;
+        std::static_pointer_cast<MaterialPBRStandard>(matEmis)->emissive() = 25.0F;
 
-        auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0},{3, 3, 3}), nullptr);
-        o2.second->assign(cm.create<ComponentMesh>(plane->getMeshes()[0]));
-        o2.second->assign(cm.create<ComponentMaterial>(mat));
+        m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR);
+        m_scene->setAmbientIBL(0);
+        
+        // auto dirLight = m_scene->getDirectionalLight();
+        // dirLight->transform = Transform({0,0,0},{1,1,1},{-45, 0, 45});
+        // dirLight->lightMaterial->intensity = 1.0F;
+        
     } catch (std::exception& e) {
         utils::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
     }
