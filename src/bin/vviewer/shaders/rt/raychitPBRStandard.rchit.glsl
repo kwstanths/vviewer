@@ -8,11 +8,12 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
+#include "../include/rng.glsl"
 #include "../include/structs.glsl"
 #include "../include/frame.glsl"
-#include "../include/sampling.glsl"
 #include "../include/utils.glsl"
 #include "../include/lighting.glsl"
+#include "../include/brdfs/pbrStandard.glsl"
 
 hitAttributeEXT vec2 attribs;
 
@@ -93,18 +94,25 @@ void main()
 	Frame frame = Frame(worldNormal, worldTangent, worldBitangent);
 	bool flipped = fixFrame(frame.normal, frame.tangent, frame.bitangent, gl_WorldRayDirectionEXT);
 
+	vec2 tiledUV = uvs * material.uvTiling.rg;
+
 	/* Apply normal map */
-	vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], uvs * material.uvTiling.rg).rgb;
+	vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
 	applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
 	/* Material information */
-	vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], uvs * material.uvTiling.rg).rgb;
+	PBRStandard pbr;
+	pbr.albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
+	pbr.metallic = material.metallicRoughnessAOEmissive.r * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.g)], tiledUV).r;
+    pbr.roughness = material.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.b)], tiledUV).r;
+
+    float ao = material.metallicRoughnessAOEmissive.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
 	float emissive = material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], uvs * material.uvTiling.rg).r;
 
 	if (emissive > 0 && !flipped) {
 		if (rayPayload.depth == 0)
 		{
-			rayPayload.radiance = (emissive * albedo) * rayPayload.beta;
+			rayPayload.radiance = (emissive * pbr.albedo) * rayPayload.beta;
 		} 
 		else 
 		{
@@ -119,11 +127,13 @@ void main()
             float lightDirectPdf = sampledPointPdf * distanceSquared(gl_ObjectRayOriginEXT, worldPosition) / dotProduct;
 
 			float weightMIS = PowerHeuristic(1, rayPayload.bsdfPdf, 1, lightDirectPdf);
-			rayPayload.radiance += weightMIS * (emissive * albedo) * rayPayload.beta;
+			rayPayload.radiance += weightMIS * (emissive * pbr.albedo) * rayPayload.beta;
 		}
 		rayPayload.stop = true;
 		return;
 	}
+
+	vec3 wo = worldToLocal(frame, -gl_WorldRayDirectionEXT);
 
 	/* Light sampling */
 	LightSamplingRecord lsr = sampleLight(worldPosition);
@@ -132,17 +142,17 @@ void main()
 		vec3 wi = worldToLocal(frame, lsr.direction);
 		float cosTheta = clamp(wi.y, 0, 1);
 
-		vec3 F = albedo * INV_PI * cosTheta;
+		vec3 F = evalPBRStandard(pbr, wi, wo, normalize(wo + wi));
 
 		if (!isBlack(F))
 		{
 			if (lsr.isDeltaLight)
 			{
-				rayPayload.radiance += lsr.radiance * F * rayPayload.beta / lsr.pdf;
+				rayPayload.radiance += lsr.radiance * F * rayPayload.beta;
 			}
 			else 
 			{
-				float bsdfPdf = cosineSampleHemispherePdf(cosTheta);
+				float bsdfPdf = pdfPBRStandard(wi, wo, pbr);
 				float weightMIS = PowerHeuristic(1, lsr.pdf, 1, bsdfPdf);
 				
 				rayPayload.radiance += weightMIS * lsr.radiance * F * rayPayload.beta / lsr.pdf;
@@ -152,14 +162,21 @@ void main()
 
 	/* BSDF sampling */
 	float sampleDirectionPDF;
-	vec3 sampleDirectionLocal = cosineSampleHemisphere(rayPayload.rngState, sampleDirectionPDF);
+	vec3 sampleDirectionLocal;
+	vec3 F = samplePBRStandard(sampleDirectionLocal, wo, sampleDirectionPDF, pbr, vec3(rand(rayPayload.rngState), rand(rayPayload.rngState), rand(rayPayload.rngState)));
+	
 	vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
 	
 	rayPayload.origin = worldPosition;
 	rayPayload.direction = sampleDirectionWorld;
 	rayPayload.bsdfPdf = sampleDirectionPDF;
 
-	/* float cosTheta = sampleDirectionLocal.y */
-	rayPayload.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
+	if (!isBlack(F))
+	{
+		rayPayload.beta *= clamp(F / sampleDirectionPDF, 0, 1);
+	} else {
+		rayPayload.stop = true;
+	}
+
 
 }

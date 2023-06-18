@@ -113,9 +113,9 @@ void VulkanRendererRayTracing::releaseResources()
 
     vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
 
-    m_shaderRayGenBuffer.destroy(m_device);
-    m_shaderRayMissBuffer.destroy(m_device);
-    m_shaderRayCHitBuffer.destroy(m_device);
+    m_sbt.raygenBuffer.destroy(m_device);
+    m_sbt.raymissBuffer.destroy(m_device);
+    m_sbt.raychitBuffer.destroy(m_device);
 
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMain, nullptr);
@@ -195,7 +195,15 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
             auto material = so->get<ComponentMaterial>().material;
 
             AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material->getMaterialIndex());
-            m_blas.push_back(std::make_pair(blas, transform));
+
+            uint32_t sbtOffset;
+            if (material->getType() == MaterialType::MATERIAL_LAMBERT) sbtOffset = 0;
+            else if (material->getType() == MaterialType::MATERIAL_PBR_STANDARD) sbtOffset = 1;
+            else {
+                throw std::runtime_error("VulkanRendererRayTracing::renderScene(): Unexpected material");
+            }
+            
+            m_blas.emplace_back(blas, transform, sbtOffset);
         }
         
         if (so->has<ComponentPointLight>() || isMeshLight(so))
@@ -441,7 +449,7 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     std::vector<VkAccelerationStructureInstanceKHR> instances(m_blas.size());
     for (size_t i = 0; i < m_blas.size(); i++)
     {
-        auto& t = m_blas[i].second;
+        auto& t = m_blas[i].transform;
         /* Set transform matrix per blas */
         VkTransformMatrixKHR transformMatrix = {
             t[0][0], t[1][0], t[2][0], t[3][0],
@@ -456,9 +464,9 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
                                                                         geometry buffers for this object are, the mesh's position inside 
                                                                         the ObjectDescription buffer */
         instances[i].mask = 0xFF;
-        instances[i].instanceShaderBindingTableRecordOffset = 0;    /* TODO Specify here the chit shader to be used from the SBT for this instance */
+        instances[i].instanceShaderBindingTableRecordOffset = m_blas[i].sbtOffset;    /* Specify here the chit shader to be used from the SBT for this instance */
         instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-        instances[i].accelerationStructureReference = m_blas[i].first.deviceAddress;
+        instances[i].accelerationStructureReference = m_blas[i].as.deviceAddress;
     }
     uint32_t instancesCount = static_cast<uint32_t>(instances.size());
 
@@ -566,9 +574,9 @@ void VulkanRendererRayTracing::destroyAccellerationStructures()
     m_sceneObjectsDescription.clear();
 
     for (auto& blas : m_blas) {
-        m_devF.vkDestroyAccelerationStructureKHR(m_device, blas.first.handle, nullptr);
-        vkDestroyBuffer(m_device, blas.first.buffer, nullptr);
-        vkFreeMemory(m_device, blas.first.memory, nullptr);
+        m_devF.vkDestroyAccelerationStructureKHR(m_device, blas.as.handle, nullptr);
+        vkDestroyBuffer(m_device, blas.as.buffer, nullptr);
+        vkFreeMemory(m_device, blas.as.memory, nullptr);
     }
     m_blas.clear();
 
@@ -937,7 +945,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         m_shaderGroups.push_back(shaderGroup);
     }
 
-    /* Miss groups: one for primary ray miss, one for shadow raw miss */
+    /* Miss groups: one for primary ray miss, one for shadow ray miss */
     {
         VkPipelineShaderStageCreateInfo rayMissShaderStageInfo{};
         rayMissShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -964,12 +972,30 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
         m_shaderGroups.push_back(shaderGroup);
     }
 
-    /* Closest hit group */
+    /* Closest hit group, Lambert material */
     {
         VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo{};
         rayClosestHitShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         rayClosestHitShaderStageInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-        rayClosestHitShaderStageInfo.module = Shader::load(m_device, readSPIRV("shaders/SPIRV/rt/raychit.rchit.spv"));
+        rayClosestHitShaderStageInfo.module = Shader::load(m_device, readSPIRV("shaders/SPIRV/rt/raychitLambert.rchit.spv"));
+        rayClosestHitShaderStageInfo.pName = "main";
+        shaderStages.push_back(rayClosestHitShaderStageInfo);
+        VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
+        shaderGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+        shaderGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+        shaderGroup.generalShader = VK_SHADER_UNUSED_KHR;
+        shaderGroup.closestHitShader = static_cast<uint32_t>(shaderStages.size()) - 1;  /* The closet hit shader to use for this hit group */
+        shaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
+        shaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
+        m_shaderGroups.push_back(shaderGroup);
+    }
+
+    /* Closest hit group, PBRStandard material */
+    {
+        VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo{};
+        rayClosestHitShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        rayClosestHitShaderStageInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+        rayClosestHitShaderStageInfo.module = Shader::load(m_device, readSPIRV("shaders/SPIRV/rt/raychitPBRStandard.rchit.spv"));
         rayClosestHitShaderStageInfo.pName = "main";
         shaderStages.push_back(rayClosestHitShaderStageInfo);
         VkRayTracingShaderGroupCreateInfoKHR shaderGroup{};
@@ -1028,52 +1054,47 @@ void VulkanRendererRayTracing::createShaderBindingTable()
     const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayGenBuffer);
-    createBuffer(m_vkctx.physicalDevice(), m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayMissBuffer);
-    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_shaderRayCHitBuffer);
+    createBuffer(m_vkctx.physicalDevice(), m_device,     handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raygenBuffer);
+    createBuffer(m_vkctx.physicalDevice(), m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raymissBuffer);
+    createBuffer(m_vkctx.physicalDevice(), m_device, 2 * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raychitBuffer);
 
     /* 1 ray gen group */
     {
         void* data;
-        vkMapMemory(m_device, m_shaderRayGenBuffer.vkmemory(), 0, handleSize, 0, &data);
+        vkMapMemory(m_device, m_sbt.raygenBuffer.vkmemory(), 0, handleSize, 0, &data);
         memcpy(data, shaderHandleStorage.data(), handleSize);
-        vkUnmapMemory(m_device, m_shaderRayGenBuffer.vkmemory());
+        vkUnmapMemory(m_device, m_sbt.raygenBuffer.vkmemory());
     }
     /* 2 ray miss groups */
     {
         void* data;
-        vkMapMemory(m_device, m_shaderRayMissBuffer.vkmemory(), 0, handleSize, 0, &data);
+        vkMapMemory(m_device, m_sbt.raymissBuffer.vkmemory(), 0, handleSize, 0, &data);
         memcpy(data, shaderHandleStorage.data() + handleSizeAligned, handleSize * 2);
-        vkUnmapMemory(m_device, m_shaderRayMissBuffer.vkmemory());
+        vkUnmapMemory(m_device, m_sbt.raymissBuffer.vkmemory());
     }
-    /* 1 ray chit group */
+    /* 2 ray chit group */
     {
         void* data;
-        vkMapMemory(m_device, m_shaderRayCHitBuffer.vkmemory(), 0, handleSize, 0, &data);
-        memcpy(data, shaderHandleStorage.data() + handleSizeAligned * 3, handleSize);
-        vkUnmapMemory(m_device, m_shaderRayCHitBuffer.vkmemory());
+        vkMapMemory(m_device, m_sbt.raychitBuffer.vkmemory(), 0, handleSize, 0, &data);
+        memcpy(data, shaderHandleStorage.data() + handleSizeAligned * 3, handleSize * 2);
+        vkUnmapMemory(m_device, m_sbt.raychitBuffer.vkmemory());
     }
+
+    /* Get strided device addresses for the shader binding tables where the shader group handles are stored */
+    m_sbt.raygenSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raygenBuffer.vkbuffer());
+    m_sbt.raygenSbtEntry.stride = handleSizeAligned;
+    m_sbt.raygenSbtEntry.size = handleSizeAligned;
+    m_sbt.raymissSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raymissBuffer.vkbuffer());
+    m_sbt.raymissSbtEntry.stride = handleSizeAligned;
+    m_sbt.raymissSbtEntry.size = 2 * handleSizeAligned;
+    m_sbt.raychitSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raychitBuffer.vkbuffer());
+    m_sbt.raychitSbtEntry.stride = handleSizeAligned;
+    m_sbt.raychitSbtEntry.size = 2 * handleSizeAligned;
+    m_sbt.callableSbtEntry = {};
 }
 
 void VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
 {
-    /* Get strided device addresses for the shader binding tables where the shader group handles are stored. TODO get this out of the render function */
-    const uint32_t handleSizeAligned = alignedSize(m_rayTracingPipelineProperties.shaderGroupHandleSize, m_rayTracingPipelineProperties.shaderGroupHandleAlignment);
-    VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
-    raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayGenBuffer.vkbuffer());
-    raygenShaderSbtEntry.stride = handleSizeAligned;
-    raygenShaderSbtEntry.size = handleSizeAligned;
-    VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
-    missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayMissBuffer.vkbuffer());
-    missShaderSbtEntry.stride = handleSizeAligned;
-    missShaderSbtEntry.size = 2 * handleSizeAligned;
-    VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
-    hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_shaderRayCHitBuffer.vkbuffer());
-    hitShaderSbtEntry.stride = handleSizeAligned;
-    hitShaderSbtEntry.size = handleSizeAligned;
-    /* No callable shader binding tables */
-    VkStridedDeviceAddressRegionKHR emptySbtEntry{};
-
     VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
     
     uint32_t batchSize = 16U;
@@ -1122,10 +1143,10 @@ void VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
         */
         m_devF.vkCmdTraceRaysKHR(
             commandBuffer,
-            &raygenShaderSbtEntry,
-            &missShaderSbtEntry,
-            &hitShaderSbtEntry,
-            &emptySbtEntry,
+            &m_sbt.raygenSbtEntry,
+            &m_sbt.raymissSbtEntry,
+            &m_sbt.raychitSbtEntry,
+            &m_sbt.callableSbtEntry,
             m_width,
             m_height,
             1);

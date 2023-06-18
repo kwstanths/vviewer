@@ -6,8 +6,7 @@ layout (location = 0) in vec2 inUV;
 layout (location = 0) out vec4 outColor;
 layout (constant_id = 0) const uint NUM_SAMPLES = 1024u;
 
-#include "include/constants.glsl"
-#include "include/pbr.glsl"
+#include "include/brdfs/common.glsl"
 #include "skybox/sampling.glsl"
 
 vec2 BRDF(float NoV, float roughness)

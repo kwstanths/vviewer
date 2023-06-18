@@ -2,7 +2,7 @@
 
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/pbr.glsl"
+#include "include/brdfs/pbrStandard.glsl"
 #include "include/lighting.glsl"
 #include "include/tonemapping.glsl"
 #include "include/utils.glsl"
@@ -75,7 +75,7 @@ void main() {
     pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
 
     /* Calculate light contribution */
-    vec3 Lo = L_color * calculatePBRStandardShading(pbr, V, L, H) * attenuation;
+    vec3 Lo = L_color * evalPBRStandard(pbr, L, V, H) * attenuation;
 
     vec3 color = Lo;
 

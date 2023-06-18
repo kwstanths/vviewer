@@ -12,7 +12,7 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 		return lsr;
 	}
 
-	/* Uniformle pick a light */
+	/* Uniformly pick a light */
 	float pdf = 1.0 / totalLights;
 	uint randomLight = uint(rand(rayPayload.rngState) * totalLights);
 	Light light = lights.i[randomLight];

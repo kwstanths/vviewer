@@ -96,6 +96,8 @@ private:
     VkCommandPool m_commandPool;
     VkQueue m_queue;
 
+    /* Buffers used during rendering */
+    std::vector<VulkanBuffer> m_renderBuffers;
     /* Accelerator structure data */
     struct AccelerationStructure {
         VkAccelerationStructureKHR handle;
@@ -103,8 +105,13 @@ private:
         VkDeviceMemory memory;
         VkBuffer buffer;
     };
-    std::vector<VulkanBuffer> m_renderBuffers;
-    std::vector<std::pair<AccelerationStructure, glm::mat4>> m_blas;
+    struct BLAS {
+        AccelerationStructure as;
+        glm::mat4 transform;
+        uint32_t sbtOffset;
+        BLAS(const AccelerationStructure& _as, const glm::mat4& _transform, uint32_t _sbtOffset): as(_as), transform(_transform), sbtOffset(_sbtOffset){};
+    };
+    std::vector<BLAS> m_blas;
     AccelerationStructure m_tlas;
 
     struct RayTracingScratchBuffer {
@@ -135,9 +142,15 @@ private:
     VkPipelineLayout m_pipelineLayout;
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_shaderGroups;
     VkPipeline m_pipeline;
-    VulkanBuffer m_shaderRayGenBuffer;
-    VulkanBuffer m_shaderRayCHitBuffer;
-    VulkanBuffer m_shaderRayMissBuffer;
+    struct ShaderBindingTable {
+        VulkanBuffer raygenBuffer;
+        VulkanBuffer raychitBuffer;
+        VulkanBuffer raymissBuffer;
+        VkStridedDeviceAddressRegionKHR raygenSbtEntry;
+        VkStridedDeviceAddressRegionKHR raymissSbtEntry;
+        VkStridedDeviceAddressRegionKHR raychitSbtEntry;
+        VkStridedDeviceAddressRegionKHR callableSbtEntry;
+    } m_sbt;
 
     static std::vector<const char *> getRequiredExtensions();
     static bool checkRayTracingSupport(VkPhysicalDevice device);

@@ -11,8 +11,7 @@ layout(push_constant) uniform PushConsts {
 	layout (offset = 68) uint numSamples;
 } pushConsts;
 
-#include "../include/constants.glsl"
-#include "../include/pbr.glsl"
+#include "../include/brdfs/common.glsl"
 #include "sampling.glsl"
 
 vec3 prefilterEnvMap(vec3 R, float roughness)
@@ -32,7 +31,7 @@ vec3 prefilterEnvMap(vec3 R, float roughness)
 			float dotVH = clamp(dot(V, H), 0.0, 1.0);
 
 			// Probability Distribution Function
-			float pdf = DistributionGGX(dotNH, roughness) * dotNH / (4.0 * dotVH) + 0.0001;
+			float pdf = GTR2(dotNH, roughness) * dotNH / (4.0 * dotVH) + 0.0001;
 			// Solid angle of current sample
 			float omegaS = 1.0 / (float(pushConsts.numSamples) * pdf);
 			// Solid angle of 1 pixel across all cube faces

@@ -3,7 +3,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_nonuniform_qualifier : enable
 
-#include "include/pbr.glsl"
+#include "include/brdfs/pbrStandard.glsl"
 #include "skybox/ibl.glsl"
 #include "include/lighting.glsl"
 #include "include/tonemapping.glsl"
@@ -73,7 +73,7 @@ void main() {
     /* Calculate ambient IBL */
     vec3 ambient = ao * calculateIBLContribution(pbr, frame.normal, V_world, skyboxIrradiance, skyboxPrefiltered, global_textures[nonuniformEXT(materialData.gTexturesIndices2.b)]);
     /* Calculate light contrubution from directional light */
-    vec3 Lo = scene.data.directionalLightColor.xyz * calculatePBRStandardShading(pbr, V, L, H);
+    vec3 Lo = scene.data.directionalLightColor.xyz * evalPBRStandard(pbr, L, V, H);
     /* Calculate emission */
     vec3 emission = pbr.albedo * emissive;
     /* Add all together */

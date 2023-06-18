@@ -2,7 +2,7 @@
 
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/pbr.glsl"
+#include "include/brdfs/common.glsl"
 #include "include/lighting.glsl"
 #include "include/tonemapping.glsl"
 #include "include/utils.glsl"
