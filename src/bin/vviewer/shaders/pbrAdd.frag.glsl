@@ -55,27 +55,42 @@ void main() {
     vec3 newNormal = texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.g)], tiledUV).rgb;
     applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
-    vec3 L = worldToLocal(frame, normalize(L_world - fragPos_world));
-    vec3 V = worldToLocal(frame, V_world);
-    vec3 H = normalize(V + L);
-
-    float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
-    /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
-    if (attenuation * max3(L_color) < 0.05)
-    {
-        outColor = vec4(0, 0, 0, 1);
-    	outHighlight = vec4(0, 0, 0, 0);
-        return;
-    }
-
     /* Calculate PBR data */
     PBRStandard pbr;
     pbr.albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
     pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.g)], tiledUV).r;
     pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
 
-    /* Calculate light contribution */
-    vec3 Lo = L_color * evalPBRStandard(pbr, L, V, H) * attenuation;
+    vec3 Lo = vec3(0, 0, 0);
+    if (!isBlack(L_color))
+    {
+        if (pushConsts.lightPosition.a == 0)
+        {
+            /* Point light */
+            vec3 L = worldToLocal(frame, normalize(L_world - fragPos_world));
+            vec3 V = worldToLocal(frame, V_world);
+            vec3 H = normalize(V + L);
+
+            /* Calculate light contrubution from point light */
+            float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
+            /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
+            if (attenuation * max3(L_color) < 0.05)
+            {
+                outColor = vec4(0, 0, 0, 1);
+                outHighlight = vec4(0, 0, 0, 0);
+                return;
+            }
+            Lo = L_color * evalPBRStandard(pbr, L, V, H) * attenuation;
+
+        } else {
+            /* Calculate light contrubution from directional light */
+            vec3 L = worldToLocal(frame, normalize(-L_world));
+            vec3 V = worldToLocal(frame, V_world);
+            vec3 H = normalize(V + L);
+
+            Lo = L_color * evalPBRStandard(pbr, L, V, H);
+        }
+    }
 
     vec3 color = Lo;
 

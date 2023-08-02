@@ -1,6 +1,12 @@
 #include "VulkanRenderer.hpp"
+#include "core/Lights.hpp"
+#include "core/Scene.hpp"
+#include "core/SceneObject.hpp"
+#include "utils/ECS.hpp"
+#include "utils/IDGeneration.hpp"
 
 #include <chrono>
+#include <memory>
 #include <set>
 
 #define GLM_FORCE_RADIANS
@@ -407,7 +413,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         /* Batch objects into materials */
         std::vector<std::shared_ptr<SceneObject>> pbrStandardObjects;
         std::vector<std::shared_ptr<SceneObject>> lambertObjects;
-        std::vector<std::shared_ptr<SceneObject>> pointLights;
+        std::vector<std::shared_ptr<SceneObject>> lights;
         for (auto& itr : sceneObjects)
         {
             if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) 
@@ -425,8 +431,8 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
                 }
             }
 
-            if (itr->has<ComponentPointLight>()){
-                pointLights.push_back(itr);
+            if (itr->has<ComponentLight>()){
+                lights.push_back(itr);
             }
 
         }
@@ -451,13 +457,24 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
             lambertObjects);
-        /* Draw additive pass for all point lights in the scene */
-        for (auto& pl : pointLights)
+
+        /* Draw additive pass for all lights in the scene */
+        for (auto& l : lights)
         {
-            auto light = pl->get<ComponentPointLight>().light;
+            auto light = l->get<ComponentLight>().light;
             PushBlockForwardAddPass t;
+            if (light->type == LightType::POINT_LIGHT)
+            {
+                t.lightPosition = glm::vec4(l->getWorldPosition(), 0);
+                t.lightPosition.a = static_cast<float>(LightType::POINT_LIGHT);
+            }
+            else if (light->type == LightType::DIRECTIONAL_LIGHT)
+            {
+                t.lightPosition = l->m_modelMatrix * glm::vec4(Transform::Z, 0);
+                t.lightPosition.a = static_cast<float>(LightType::DIRECTIONAL_LIGHT);
+            }
             t.lightColor = light->lightMaterial->intensity * glm::vec4(light->lightMaterial->color, 0);
-            t.lightPosition = glm::vec4(pl->getWorldPosition(), 0);
+
             for (auto& obj : pbrStandardObjects)
             {
                 m_rendererPBR.renderObjectsAddPass(commandBuffer,

@@ -10,6 +10,7 @@
 #include "Lights.hpp"
 #include "SceneObject.hpp"
 #include "Export.hpp"
+#include "utils/ECS.hpp"
 
 
 enum class EnvironmentType {
@@ -24,8 +25,6 @@ struct SceneData {
     glm::mat4 m_viewInverse;
     glm::mat4 m_projection;
     glm::mat4 m_projectionInverse;
-    glm::vec4 m_directionalLightDir;    /* RGB = world space light direction, A = */
-    glm::vec4 m_directionalLightColor;  /* RGB = light color, A = */
     glm::vec4 m_exposure; /* R = exposure, G = ambient environment map multiplier, B = , A = */
 };
 
@@ -36,9 +35,6 @@ public:
 
     void setCamera(std::shared_ptr<Camera> camera);
     std::shared_ptr<Camera> getCamera() const;
-
-    void setDirectionalLight(std::shared_ptr<DirectionalLight> directionaLight);
-    std::shared_ptr<DirectionalLight> getDirectionalLight() const;
 
     float getExposure() const;
     void setExposure(float exposure);
@@ -78,7 +74,6 @@ protected:
     float m_ambientIBL = 1.0f;
     
     std::shared_ptr<Camera> m_camera;
-    std::shared_ptr<DirectionalLight> m_directionalLight;
     
     std::vector<std::shared_ptr<SceneObject>> m_sceneGraph;
     std::unordered_map<ID, std::shared_ptr<SceneObject>> m_objectsMap;

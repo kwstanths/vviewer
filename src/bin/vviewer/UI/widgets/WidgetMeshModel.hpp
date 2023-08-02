@@ -11,10 +11,14 @@ class WidgetMeshModel : public QWidget
 {
     Q_OBJECT
 public:
+    static const int HEIGHT = 90;
+
     WidgetMeshModel(QWidget * parent, ComponentMesh& meshComponent);
 
     std::string getSelectedModel() const;
     std::string getSelectedMesh() const;
+
+    uint32_t getHeight() const;
 
 private:
     ComponentMesh& m_meshComponent;

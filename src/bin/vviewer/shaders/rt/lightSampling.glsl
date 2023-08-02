@@ -103,9 +103,11 @@ LightSamplingRecord sampleLight(vec3 originPosition)
     /* Shadow ray */
 	if (!isBlack(lsr.radiance))
 	{
-		shadowed = true;
 		/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
-		traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, originPosition, tmin, lsr.direction, tmax, 1);		
+		shadowed = true;
+
+		/* Slightly reduce tmax to make sure we don't hit the sampled surface at all */
+		traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, originPosition, tmin, lsr.direction, tmax - tmin, 1);		
 		
 		lsr.shadowed = shadowed;
 	}

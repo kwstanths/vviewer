@@ -30,13 +30,12 @@ file(GLOB ${NAME}_MODELS_HEADERS models/*.hpp)
 file(GLOB ${NAME}_MODELS_SOURCES models/*.cpp)
 file(GLOB ${NAME}_CORE_HEADERS core/*.hpp)
 file(GLOB ${NAME}_CORE_SOURCES core/*.cpp)
-file(GLOB ${NAME}_UI_HEADERS UI/*.hpp)
-file(GLOB ${NAME}_UI_SOURCES UI/*.cpp)
 file(GLOB ${NAME}_UTILS_HEADERS utils/*.hpp)
 file(GLOB ${NAME}_UTILS_SOURCES utils/*.cpp)
 file(GLOB ${NAME}_RESOURCES *.qrc)
 #QT5_ADD_RESOURCES(${NAME}_RESOURCES_RCC ${${NAME}_RESOURCES})
 
+include(UI/sources.cmake)
 include(vulkan/sources.cmake)
 
 # Target

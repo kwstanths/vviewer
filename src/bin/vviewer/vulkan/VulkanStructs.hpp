@@ -46,7 +46,7 @@ struct PushBlockForwardBasePass {
 };
 
 struct PushBlockForwardAddPass {
-    glm::vec4 lightPosition; /* RGB = World space light position,  A = unused */
+    glm::vec4 lightPosition; /* RGB = World space light position or direction,  A = light type */
     glm::vec4 lightColor;   /* RGB = light color, A = unused */
     glm::uvec4 material; /* R = Material index, GBA = unused */
 };

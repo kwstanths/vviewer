@@ -1,6 +1,7 @@
 #ifndef __WidgetPointLight_hpp__
 #define __WidgetPointLight_hpp__
 
+#include <qcombobox.h>
 #include <qwidget.h>
 #include <qpushbutton.h>
 #include <qslider.h>
@@ -11,16 +12,22 @@
 #include "WidgetLightMaterial.hpp"
 
 /* A UI widget for a point light */
-class WidgetPointLight : public QWidget
+class WidgetLight : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetPointLight(QWidget * parent, ComponentPointLight& lightComponent);
+    static const int HEIGHT = 210;
+    WidgetLight(QWidget * parent, ComponentLight& lightComponent);
 
 private:
-    ComponentPointLight& m_lightComponent;
+    ComponentLight& m_lightComponent;
+
+    QComboBox * m_lightTypeComboBox;
 
     WidgetLightMaterial * m_widgetLightMaterial;
+
+private slots:
+    void onLightTypeChanged(int);
 };
 
 #endif

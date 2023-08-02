@@ -4,7 +4,7 @@
 #include <qlabel.h>
 #include <qcolordialog.h>
 
-#include "UIUtils.hpp"
+#include "UI/UIUtils.hpp"
 
 WidgetColorButton::WidgetColorButton(QWidget * parent, glm::vec3 color) : QWidget(parent)
 {

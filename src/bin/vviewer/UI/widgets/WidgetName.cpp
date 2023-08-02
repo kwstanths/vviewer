@@ -9,7 +9,11 @@ WidgetName::WidgetName(QWidget * parent, QString textName) : QWidget(parent)
     m_text = new QTextEdit(textName);
     m_text->setPlainText(textName);
 
+    QFont font;
+    font.setBold(true);
+
     QGroupBox * groupBox = new QGroupBox(tr("Name"));
+    groupBox->setStyleSheet("QGroupBox { font-weight: bold; } ");
     QVBoxLayout * layoutTest = new QVBoxLayout();
     layoutTest->addWidget(m_text);
     layoutTest->setContentsMargins(5, 5, 5, 5);

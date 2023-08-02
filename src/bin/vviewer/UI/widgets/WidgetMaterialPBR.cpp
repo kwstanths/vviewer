@@ -12,7 +12,7 @@
 #include "core/AssetManager.hpp"
 #include "core/Materials.hpp"
 
-#include "UIUtils.hpp"
+#include "UI/UIUtils.hpp"
 
 WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, std::shared_ptr<MaterialPBRStandard> material) : QWidget(parent)
 {

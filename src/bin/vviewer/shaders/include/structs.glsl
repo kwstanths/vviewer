@@ -1,11 +1,27 @@
+/* Struct for vertex data stored per vertex in geometry buffers */
+struct Vertex
+{
+    vec3 position;
+    vec2 uv;
+    vec3 normal;
+    vec3 color;
+    vec3 tangent;
+    vec3 bitangent;
+};
+
+/* Types of lights:
+    0: point light
+    1: directional light
+    2: mesh light
+    3: environment map
+*/
+
 /* Scene struct. A mirror of the CPU struct */
 struct Scene {
     mat4 view;
 	mat4 viewInverse;
     mat4 projection;
 	mat4 projectionInverse;
-    vec4 directionalLightDir;
-    vec4 directionalLightColor;
     vec4 exposure; /* R = exposure, G = Ambient environment map multiplier, B = , A = */
 };
 
@@ -23,9 +39,8 @@ struct Material
     uvec4 padding2;
 };
 
-
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-/* Struct for the object description of a mesh in the scene */
+/* Struct for the object description of a mesh in the scene for RT */
 struct ObjDesc
 {
     /* Pointers to GPU buffers */
@@ -35,18 +50,7 @@ struct ObjDesc
     uint numTriangles;
 };
 
-/* Struct for vertex data stored per vertex in geometry buffers */
-struct Vertex
-{
-    vec3 position;
-    vec2 uv;
-    vec3 normal;
-    vec3 color;
-    vec3 tangent;
-    vec3 bitangent;
-};
-
-/* Struct with ray payload */
+/* Struct with ray payload for RT */
 struct RayPayload {
     vec3 radiance;
     vec3 beta;
@@ -60,13 +64,7 @@ struct RayPayload {
     uint rngState;
 };
 
-/* Struct to represent lights */
-/* Types of lights:
-    0: point light
-    1: directional light
-    2: mesh light
-    3: environment map
-*/
+/* Struct to represent lights in RT */
 struct Light {
     vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
     vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */
@@ -74,7 +72,7 @@ struct Light {
     vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
 
-/* Struct for rt light sampling */
+/* Struct for RT light sampling */
 struct LightSamplingRecord {
 	vec3 direction;
 	vec3 radiance;

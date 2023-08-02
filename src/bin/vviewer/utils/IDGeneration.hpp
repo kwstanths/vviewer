@@ -8,6 +8,7 @@
 typedef uint32_t ID;
 
 enum class ReservedObjectID {
+    UNDEFINED = 0,
     RIGHT_TRANSFORM_ARROW = 1,
     FORWARD_TRANSFORM_ARROW = 2,
     UP_TRANSFORM_ARROW = 3,

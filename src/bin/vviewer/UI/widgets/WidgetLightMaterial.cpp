@@ -9,7 +9,7 @@
 #include <core/AssetManager.hpp>
 #include <Console.hpp>
 
-#include "UIUtils.hpp"
+#include "UI/UIUtils.hpp"
 
 WidgetLightMaterial::WidgetLightMaterial(QWidget * parent, std::shared_ptr<Light> light) : QWidget(parent)
 {

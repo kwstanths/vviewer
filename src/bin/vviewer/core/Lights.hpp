@@ -8,6 +8,13 @@
 #include <math/Transform.hpp>
 #include <utils/ECS.hpp>
 
+enum class LightType {
+    POINT_LIGHT = 0,
+    DIRECTIONAL_LIGHT = 1,
+    MESH_LIGHT = 2,
+    ENVIRONMENT_MAP = 3,
+};
+
 struct LightMaterial {
     std::string name;
     glm::vec3 color;
@@ -17,21 +24,11 @@ struct LightMaterial {
 };
 
 struct Light {
+    std::string name;
+    LightType type;
     std::shared_ptr<LightMaterial> lightMaterial;
 
-    Light(std::shared_ptr<LightMaterial>& lm) : lightMaterial(lm) {};
-};
-
-struct DirectionalLight : public Light 
-{
-    Transform transform;
-    
-    DirectionalLight(Transform t, std::shared_ptr<LightMaterial>& lm) : Light(lm), transform(t) {};
-};
-
-struct PointLight : public Light
-{
-    PointLight(std::shared_ptr<LightMaterial>& lm): Light(lm) {};
+    Light(std::string n, LightType t, std::shared_ptr<LightMaterial>& lm) : name(n), type(t), lightMaterial(lm) {};
 };
 
 static float squareFalloff(glm::vec3 a, glm::vec3 b) 

@@ -6,8 +6,8 @@
 #include <qcombobox.h>
 #include <qpushbutton.h>
 
-#include "WidgetTransform.hpp"
-#include "WidgetMeshModel.hpp"
+#include "UI/widgets/WidgetTransform.hpp"
+#include "UI/widgets//WidgetMeshModel.hpp"
 
 /* A dialog to add an object in a scene */
 class DialogAddSceneObject : public QDialog

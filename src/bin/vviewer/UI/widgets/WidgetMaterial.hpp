@@ -14,6 +14,9 @@ class WidgetMaterial : public QWidget
 {
     Q_OBJECT
 public:
+    static const int HEIGHT_PBR = 620;
+    static const int HEIGHT_LAMBERT = 400;
+
     WidgetMaterial(QWidget* parent, ComponentMaterial& materialComponent);
 
     void updateAvailableMaterials();
@@ -26,10 +29,10 @@ private:
     void createUI(QWidget* widgetMaterial);
     QWidget* createMaterialWidget(std::shared_ptr<Material>& material);
 
-    QGroupBox* m_widgetGroupBox = nullptr;
-    QVBoxLayout* m_layoutGroupBox = nullptr;
-    QVBoxLayout* m_layoutMain = nullptr;
-    QWidget* m_widgetMaterial = nullptr;
+    QWidget * m_widgetGroupBox = nullptr;
+    QVBoxLayout * m_layoutGroupBox = nullptr;
+    QVBoxLayout * m_layoutMain = nullptr;
+    QWidget * m_widgetMaterial = nullptr;
 
 private slots:
     void onMaterialChanged(int);

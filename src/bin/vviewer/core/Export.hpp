@@ -31,7 +31,6 @@ struct ExportRenderParams {
 
 void exportJson(const ExportRenderParams& renderParams,
 	std::shared_ptr<Camera> sceneCamera, 
-	std::shared_ptr<DirectionalLight> sceneLight,
 	const std::vector<std::shared_ptr<SceneObject>>& sceneObjects, 
 	std::shared_ptr<EnvironmentMap> envMap);
 

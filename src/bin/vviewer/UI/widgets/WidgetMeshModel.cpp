@@ -8,13 +8,13 @@
 
 #include "core/AssetManager.hpp"
 
-#include "UIUtils.hpp"
+#include "UI/UIUtils.hpp"
 
 WidgetMeshModel::WidgetMeshModel(QWidget * parent, ComponentMesh& meshComponent) : QWidget(parent), m_meshComponent(meshComponent)
 {
     m_meshModel = meshComponent.mesh->m_meshModel;
 
-    QGroupBox * boxPickModel = new QGroupBox(tr("Mesh Model"));
+    QGroupBox * boxPickModel = new QGroupBox();
 
     m_models = new QComboBox();
     m_models->addItems(getImportedModels());
@@ -50,7 +50,11 @@ WidgetMeshModel::WidgetMeshModel(QWidget * parent, ComponentMesh& meshComponent)
     layoutMain->setContentsMargins(0, 0, 0, 0);
     layoutMain->setAlignment(Qt::AlignTop);
     setLayout(layoutMain);
-    setFixedHeight(90);
+}
+
+uint32_t WidgetMeshModel::getHeight() const
+{
+    return 90;
 }
 
 std::string WidgetMeshModel::getSelectedModel() const

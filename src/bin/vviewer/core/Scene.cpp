@@ -4,17 +4,17 @@
 #include <functional>
 
 #include "AssetManager.hpp"
+#include "Console.hpp"
+#include "core/Lights.hpp"
+#include "core/SceneObject.hpp"
+#include "math/Transform.hpp"
+#include "utils/ECS.hpp"
 
 Scene::Scene()
 {
     auto& lightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
     auto directionalLightMaterial = lightMaterials.add("DirectionalLightMaterial", std::make_shared<LightMaterial>("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F));
     auto defaultPointLightMaterial = lightMaterials.add("DefaultPointLightMaterial", std::make_shared<LightMaterial>("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1.F));
-
-    Transform directionalLightTransform;
-    directionalLightTransform.setRotationEuler(0, glm::radians(180.0f), 0);
-    m_directionalLight = std::make_shared<DirectionalLight>(directionalLightTransform, directionalLightMaterial);
-    
 }
 
 Scene::~Scene()
@@ -29,16 +29,6 @@ void Scene::setCamera(std::shared_ptr<Camera> camera)
 std::shared_ptr<Camera> Scene::getCamera() const
 {
     return m_camera;
-}
-
-void Scene::setDirectionalLight(std::shared_ptr<DirectionalLight> directionaLight)
-{
-    m_directionalLight = directionaLight;
-}
-
-std::shared_ptr<DirectionalLight> Scene::getDirectionalLight() const
-{
-    return m_directionalLight;
 }
 
 float Scene::getExposure() const
@@ -69,16 +59,6 @@ SceneData Scene::getSceneData() const
     sceneData.m_projection = m_camera->getProjectionMatrix();
     sceneData.m_projectionInverse = m_camera->getProjectionMatrixInverse();
     sceneData.m_exposure = glm::vec4(getExposure(), getAmbientIBL(), 0, 0);
-
-    std::shared_ptr<DirectionalLight> light = getDirectionalLight();
-    if (light != nullptr) {
-        sceneData.m_directionalLightDir = glm::vec4(light->transform.getForward(), 0);
-        sceneData.m_directionalLightColor = light->lightMaterial->intensity * glm::vec4(light-> lightMaterial->color, 0);
-    }
-    else {
-        sceneData.m_directionalLightColor = glm::vec4(0, 0, 0, 0);
-    }
-
     return sceneData;
 }
 
@@ -217,5 +197,5 @@ void Scene::exportScene(const ExportRenderParams& renderParams) const
         temp = m_skybox->getMap();
     }
 
-    exportJson(renderParams, m_camera, m_directionalLight, m_sceneGraph, temp);
+    exportJson(renderParams, m_camera, m_sceneGraph, temp);
 }

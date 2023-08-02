@@ -12,7 +12,7 @@
 #include "core/AssetManager.hpp"
 #include "core/Materials.hpp"
 
-#include "UIUtils.hpp"
+#include "UI/UIUtils.hpp"
 
 WidgetMaterialLambert::WidgetMaterialLambert(QWidget* parent, std::shared_ptr<MaterialLambert> material) : QWidget(parent)
 {
@@ -89,7 +89,6 @@ WidgetMaterialLambert::WidgetMaterialLambert(QWidget* parent, std::shared_ptr<Ma
     layoutMain->setContentsMargins(0, 0, 0, 0);
 
     setLayout(layoutMain);
-    setFixedHeight(480);
 
     connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onColorButton()));
     connect(m_ao, &QSlider::valueChanged, this, &WidgetMaterialLambert::onAOChanged);

@@ -206,7 +206,7 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
             m_blas.emplace_back(blas, transform, sbtOffset);
         }
         
-        if (so->has<ComponentPointLight>() || isMeshLight(so))
+        if (so->has<ComponentLight>() || isMeshLight(so))
         {
             prepareSceneObjectLight(so, m_sceneObjectsDescription.size() - 1, transform, sceneLights);
         }
@@ -1364,24 +1364,25 @@ void VulkanRendererRayTracing::prepareSceneLights(const VulkanScene * scene, std
         sceneLights.back().position.a = 3.F;
     }
 
-    /* Directional light */
-    if (sceneData.m_directionalLightColor.r > 0.0001F || sceneData.m_directionalLightColor.g > 0.0001F || sceneData.m_directionalLightColor.b > 0.0001F)
-    {
-        sceneLights.push_back(LightRT());
-        sceneLights.back().position.a = 1.F;
-        sceneLights.back().direction = sceneData.m_directionalLightDir;
-        sceneLights.back().color = sceneData.m_directionalLightColor;
-    }
 }
 
 void VulkanRendererRayTracing::prepareSceneObjectLight(const std::shared_ptr<SceneObject>& so, uint32_t objectDescriptionIndex, const glm::mat4& t, std::vector<LightRT>& sceneLights)
 {
-    if (so->has<ComponentPointLight>())
+    if (so->has<ComponentLight>())
     {
-        auto pointLight = so->get<ComponentPointLight>().light;
+        auto cl = so->get<ComponentLight>().light;
         sceneLights.push_back(LightRT());
-        sceneLights.back().position = glm::vec4(so->getWorldPosition(), 0.F);
-        sceneLights.back().color = glm::vec4(pointLight->lightMaterial->color * pointLight->lightMaterial->intensity, 0.F);
+        if (cl->type == LightType::POINT_LIGHT)
+        {
+            sceneLights.back().position = glm::vec4(so->getWorldPosition(), 0.F);
+            sceneLights.back().color = glm::vec4(cl->lightMaterial->color * cl->lightMaterial->intensity, 0.F);
+        }
+        else if (cl->type == LightType::DIRECTIONAL_LIGHT)
+        {
+            sceneLights.back().position = glm::vec4(0, 0, 0, 1.F);
+            sceneLights.back().direction = glm::vec4(so->m_modelMatrix * glm::vec4(Transform::Z, 0));
+            sceneLights.back().color = glm::vec4(cl->lightMaterial->color * cl->lightMaterial->intensity, 0.F);
+        }
     }
 
     if (so->has<ComponentMaterial>() && isMeshLight(so)) 
@@ -1389,7 +1390,7 @@ void VulkanRendererRayTracing::prepareSceneObjectLight(const std::shared_ptr<Sce
         auto material = so->get<ComponentMaterial>().material;
         sceneLights.push_back(LightRT());
         sceneLights.back().position = glm::vec4(t[0][0], t[0][1], t[0][2], 2.F);
-        sceneLights.back().direction = glm::vec4(t[1][0], t[1][1], t[1][2],objectDescriptionIndex);
+        sceneLights.back().direction = glm::vec4(t[1][0], t[1][1], t[1][2], objectDescriptionIndex);
         sceneLights.back().color = glm::vec4(t[2][0], t[2][1], t[2][2], 0);
         sceneLights.back().transform= glm::vec4(t[3][0], t[3][1], t[3][2], 0);
         

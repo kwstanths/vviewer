@@ -12,11 +12,13 @@ class WidgetTransform : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetTransform(QWidget * parent, std::shared_ptr<SceneObject> sceneObject, QString groupBoxName = "Transform");
+    WidgetTransform(QWidget * parent, std::shared_ptr<SceneObject> sceneObject, QString groupBoxName = "Transform", bool bold = false);
 
     Transform getTransform() const;
 
     void setTransform(const Transform& transform);
+
+    void updateTransformUI();
 
     QDoubleSpinBox *m_positionX, *m_positionY, *m_positionZ;
     QDoubleSpinBox *m_scaleX, *m_scaleY, *m_scaleZ;
@@ -29,9 +31,6 @@ private:
 
 private slots:
     void onTransformChangedSlot(double d);
-
-public slots:
-    void onPositionChangedFrom3DScene();
 
 };
 

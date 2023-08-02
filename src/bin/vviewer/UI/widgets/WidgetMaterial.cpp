@@ -6,8 +6,9 @@
 
 #include <core/AssetManager.hpp>
 #include <Console.hpp>
+#include <qnamespace.h>
 
-#include "UIUtils.hpp"
+#include "UI/UIUtils.hpp"
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetMaterialLambert.hpp"
 
@@ -19,15 +20,15 @@ WidgetMaterial::WidgetMaterial(QWidget* parent, ComponentMaterial& materialCompo
     updateAvailableMaterials();
     connect(m_comboBoxAvailableMaterials, SIGNAL(currentIndexChanged(int)), this, SLOT(onMaterialChanged(int)));
 
-    m_widgetGroupBox = new QGroupBox(tr("Material"));
+    m_widgetGroupBox = new QGroupBox();
     createUI(createMaterialWidget(material));
     
     m_layoutMain = new QVBoxLayout();
     m_layoutMain->addWidget(m_widgetGroupBox);
     m_layoutMain->setContentsMargins(0, 0, 0, 0);
+    m_layoutMain->setAlignment(Qt::AlignTop);
 
     setLayout(m_layoutMain);
-    setFixedHeight(620);
 }
 
 void WidgetMaterial::updateAvailableMaterials()

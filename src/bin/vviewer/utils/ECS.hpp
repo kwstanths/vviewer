@@ -1,6 +1,7 @@
 #ifndef __ECS_hpp__
 #define __ECS_hpp__
 
+#include <cstdint>
 #include <unordered_map>
 #include <memory>
 #include <stdexcept>
@@ -14,34 +15,58 @@ static const uint32_t MAX_COMPONENTS = 1000;
 
 class Mesh;
 class Material;
-class PointLight;
+class Light;
 
 class Component {
 public:
     virtual ~Component() = default;
+    ID m_entity = 0;
 private:
 };
 
 class ComponentMesh : public Component {
 public:
     ComponentMesh() {};
-    ComponentMesh(const std::shared_ptr<Mesh>& m) : mesh(m) {};
     std::shared_ptr<Mesh> mesh;
 };
 class ComponentMaterial : public Component {
 public:
     ComponentMaterial() {};
-    ComponentMaterial(const std::shared_ptr<Material>& m) : material(m) {};
     std::shared_ptr<Material> material;
 };
-class ComponentPointLight : public Component {
+class ComponentLight : public Component {
 public:
-    ComponentPointLight() {};
-    ComponentPointLight(const std::shared_ptr<PointLight>& l) : light(l) {};
-    std::shared_ptr<PointLight> light;
+    ComponentLight() {};
+    std::shared_ptr<Light> light;
 };
 
+/* Component buffers */
+class IComponentBuffer {
+public:
+
+    virtual void clear() = 0;
+
+private:
+
+};
+template<typename T>
+class ComponentBuffer : public IComponentBuffer, public FreeBlockList<T>
+{
+public:
+    ComponentBuffer(uint32_t nComponents) : FreeBlockList<T>(nComponents){};
+
+    void clear() override 
+    {
+        FreeBlockList<T>::clear();
+    }
+
+private:
+
+};
+
+/* Component manager */
 class ComponentManager {
+    friend class Entity;
 public:
     static ComponentManager& getInstance()
     {
@@ -51,45 +76,79 @@ public:
     ComponentManager(ComponentManager const&) = delete;
     void operator=(ComponentManager const&) = delete;
 
-    /* Create a component */
-    template<typename T, typename... Args>
-    T* create(Args... args);
-
-    /* Remove a component */
-    template<typename T>
-    void remove(T * t);
 
     void clear();
 
 private:
-    ComponentManager() : m_meshes(MAX_COMPONENTS), m_materials(MAX_COMPONENTS), m_pointLights(MAX_COMPONENTS) {};
+    ComponentManager() 
+    {
+        {
+            const char * name = typeid(ComponentMesh).name();
+            m_componentBuffers.insert({name, new ComponentBuffer<ComponentMesh>(MAX_COMPONENTS)});
+        }
+        {
+            const char * name = typeid(ComponentMaterial).name();
+            m_componentBuffers.insert({name, new ComponentBuffer<ComponentMaterial>(MAX_COMPONENTS)});
+        }
+        {
+            const char * name = typeid(ComponentLight).name();
+            m_componentBuffers.insert({name, new ComponentBuffer<ComponentLight>(MAX_COMPONENTS)});
+        }
 
-    FreeBlockList<ComponentMesh> m_meshes;
-    FreeBlockList<ComponentMaterial> m_materials;
-    FreeBlockList<ComponentPointLight> m_pointLights;
+    }
+    std::unordered_map<const char *, IComponentBuffer*> m_componentBuffers;
+
+    template<typename T>
+    T* create()
+    {
+        auto componentBuffer = getComponentBuffer<T>();
+        auto * component = componentBuffer->add(T());
+        return component;
+    }
+
+    template<typename T>
+    void remove(T * t)
+    {
+        auto componentBuffer = getComponentBuffer<T>();
+        size_t index = componentBuffer->getIndex(t);
+        componentBuffer->remove(index);
+    }
+
+    template<typename T>
+	ComponentBuffer<T>* getComponentBuffer()
+	{
+		const char* name = typeid(T).name();
+		return static_cast<ComponentBuffer<T>*>(m_componentBuffers[name]);
+	}
 };
 
+/* Entity */
 class Entity {
 public:
     Entity();
+    
     virtual ~Entity()
     {
         // TODO optimise this 
         remove<ComponentMesh>();
         remove<ComponentMaterial>();
-        remove<ComponentPointLight>();
+        remove<ComponentLight>();
     }
 
-    /* c pointers MUST come from the component manager */
-    void assign(Component * c)
+    template<typename T>
+    T& add()
     {
-        const char * name = typeid(*c).name();
-        if (m_components.find(name) != m_components.end())
-        {
-            utils::ConsoleWarning("assign(): Assigning a component to entity that already has that component");
-        }
+        static_assert(std::is_base_of<Component, T>::value);
 
+        if (has<T>()) return get<T>();
+
+        auto& cm = ComponentManager::getInstance();
+        T * c = cm.create<T>();
+        c->m_entity = m_id;
+
+        const char * name = typeid(T).name();
         m_components[name] = c;
+        return *c;
     }
 
     template<typename T>

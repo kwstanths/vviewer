@@ -40,7 +40,6 @@ layout(push_constant) uniform PushConsts {
 
 void main() {
 
-    vec3 L_world = -scene.data.directionalLightDir.xyz;
 	vec3 cameraPosition_world = getCameraPosition(scene.data.viewInverse);
     vec3 V_world = normalize(cameraPosition_world - fragPos_world);
 
@@ -57,7 +56,6 @@ void main() {
     vec3 newNormal = texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.g)], tiledUV).rgb;
     applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
-    vec3 L = worldToLocal(frame, L_world);
     vec3 V = worldToLocal(frame, V_world);
     
     /* Calculate material data */
@@ -70,11 +68,10 @@ void main() {
 	vec3 kS = fresnelSchlick(max(V.y, 0.0), vec3(0.04));
 	vec3 kD = 1.0 - kS;
     vec3 ambient = ao * kD * diffuse;
-
-    vec3 Lo = scene.data.directionalLightColor.xyz * albedo * max(L.y, 0.0) * INV_PI;
+    
     vec3 emission = albedo * emissive;
     
-    vec3 color = scene.data.exposure.g * ambient + Lo + emission;
+    vec3 color = scene.data.exposure.g * ambient + emission;
     
     color = tonemapDefault2(color, scene.data.exposure.r);
 	

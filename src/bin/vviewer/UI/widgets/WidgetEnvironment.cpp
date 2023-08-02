@@ -9,14 +9,14 @@
 
 #include <core/AssetManager.hpp>
 #include <core/Materials.hpp>
+#include "core/SceneObject.hpp"
 
-#include "UIUtils.hpp"
+#include "UI/UIUtils.hpp"
 
 
 WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(parent)
 {
     m_scene = scene;
-    m_light = m_scene->getDirectionalLight();
     m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(m_scene->getCamera());
 
     /* Initialize camera widget */
@@ -89,39 +89,11 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     QWidget* widgetExposure = new QWidget();
     widgetExposure->setLayout(layoutExposure);
 
-    /* Initialize directional light widget */
-    /* Transform */
-    m_lightTransform = new WidgetTransform(nullptr, nullptr);
-    m_lightTransform->setTransform(m_light->transform);
-    connect(m_lightTransform->m_rotationX, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
-    connect(m_lightTransform->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
-    connect(m_lightTransform->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onLightDirectionChanged(double)));
-    /* Color */
-    m_lightColorWidget = new WidgetColorButton(this, m_light->lightMaterial->color);
-    connect(m_lightColorWidget, SIGNAL(colorChanged(glm::vec3)), this, SLOT(onLightColorChanged(glm::vec3)));
-    /* Intensity slider */
-    m_lightIntensityWidget = new WidgetSliderValue(this, 0, 100, m_light->lightMaterial->intensity, 1);
-    connect(m_lightIntensityWidget, SIGNAL(valueChanged(double)), this, SLOT(onLightIntensityChanged(double)));
-    QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
-    lightIntensityLayout->addWidget(new QLabel("Intensity:"));
-    lightIntensityLayout->addWidget(m_lightIntensityWidget);
-    lightIntensityLayout->setContentsMargins(0, 0, 0, 0);
-    QWidget* widgetLightIntensity = new QWidget();
-    widgetLightIntensity->setLayout(lightIntensityLayout);
-    /* Group box widget */
-    QGroupBox* lightGroupBox = new QGroupBox("Directional light");
-    QVBoxLayout* layoutLight = new QVBoxLayout();
-    layoutLight->addWidget(m_lightTransform);
-    layoutLight->addWidget(m_lightColorWidget);
-    layoutLight->addWidget(widgetLightIntensity);
-    lightGroupBox->setLayout(layoutLight);
-
     /* Complete layout */
     QVBoxLayout* layoutMain = new QVBoxLayout();
     layoutMain->addWidget(cameraGroupBox);
     layoutMain->addWidget(envGroupBox);
     layoutMain->addWidget(widgetExposure);
-    layoutMain->addWidget(lightGroupBox);
     layoutMain->setAlignment(Qt::AlignTop);
 
     setLayout(layoutMain);
@@ -181,15 +153,6 @@ void WidgetEnvironment::setEnvironmentType(const EnvironmentType& type, bool upd
     }
 }
 
-void WidgetEnvironment::setDirectionalLight(std::shared_ptr<DirectionalLight> light)
-{
-    m_light = light;
-
-    m_lightTransform->setTransform(m_light->transform);
-    m_lightColorWidget->setColor(m_light->lightMaterial->color);
-    m_lightIntensityWidget->setValue(m_light->lightMaterial->intensity);
-}
-
 void WidgetEnvironment::updateCamera()
 {
     /* If the transform was changed from the UI, update camera and return */
@@ -209,22 +172,6 @@ void WidgetEnvironment::updateCamera()
         m_cameraTransformWidget->setTransform(m_camera->getTransform());
         m_cameraTransformWidget->blockSignals(false);
     }
-}
-
-void WidgetEnvironment::onLightDirectionChanged(double)
-{
-    m_light->transform = m_lightTransform->getTransform();
-}
-
-void WidgetEnvironment::onLightColorChanged(glm::vec3 color)
-{
-    m_light->lightMaterial->color = color;
-}
-
-void WidgetEnvironment::onLightIntensityChanged(double)
-{
-    float intensity  = m_lightIntensityWidget->getValue();
-    m_light->lightMaterial->intensity = intensity;
 }
 
 void WidgetEnvironment::onBackgroundColorChanged(glm::vec3 color)
@@ -252,9 +199,7 @@ void WidgetEnvironment::onCameraWidgetChanged(double)
 
 void WidgetEnvironment::showEvent(QShowEvent * event)
 {
-    /* When the widget is shown, update the light information since it might have been updated from outside */
-    m_lightIntensityWidget->setValue(m_light->lightMaterial->intensity);
-    m_lightColorWidget->setColor(m_light->lightMaterial->color);
+
 }
 
 void WidgetEnvironment::onEnvironmentChanged(int)

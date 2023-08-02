@@ -54,20 +54,28 @@ void main() {
     applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
     vec3 L = worldToLocal(frame, normalize(L_world - fragPos_world));
-
-    float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
-    /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
-    if (attenuation * max3(L_color) < 0.05)
-    {
-        outColor = vec4(0, 0, 0, 1);
-        outHighlight = vec4(0, 0, 0, 0);
-        return;
-    }
     
     vec3 albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
     
-    vec3 Lo = L_color * albedo * max(L.y, 0.0) * INV_PI * attenuation;
-    
+    vec3 Lo = vec3(0, 0, 0);
+    if (pushConsts.lightPosition.a == 0)
+    {
+        /* Calculate light contrubution from point light */
+        float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
+        /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
+        if (attenuation * max3(L_color) < 0.05)
+        {
+            outColor = vec4(0, 0, 0, 1);
+            outHighlight = vec4(0, 0, 0, 0);
+            return;
+        }
+        Lo = L_color * albedo * max(L.y, 0.0) * INV_PI * attenuation;
+
+    } else {
+        /* Calculate light contrubution from directional light */
+        Lo = L_color * albedo * max(L.y, 0.0) * INV_PI;
+    }
+
     vec3 color = Lo;
     
     color = tonemapDefault2(color, scene.data.exposure.r);

@@ -1,6 +1,7 @@
 #ifndef __WidgetEnvironment_hpp__
 #define __WidgetEnvironment_hpp__
 
+#include <memory>
 #include <qwidget.h>
 #include <qspinbox.h>
 #include <qpushbutton.h>
@@ -14,11 +15,13 @@
 #include "core/Materials.hpp"
 #include "core/Lights.hpp"
 #include "core/Scene.hpp"
+#include "core/SceneObject.hpp"
 #include "math/Transform.hpp"
 
 #include "WidgetTransform.hpp"
 #include "WidgetSliderValue.hpp"
 #include "WidgetColorButton.hpp"
+#include "utils/ECS.hpp"
 
 /* A UI widget to represent environment variables */
 class WidgetEnvironment : public QWidget {
@@ -32,29 +35,23 @@ public:
 
     void setEnvironmentType(const EnvironmentType& type, bool updateUI = false);
 
-    void setDirectionalLight(std::shared_ptr<DirectionalLight> light);
-
 private:
     QComboBox* m_environmentPicker;
     QComboBox* m_comboMaps;
+
     WidgetColorButton * m_backgroundColorWidget;
     QVBoxLayout* m_layoutEnvironmentGroupBox;
 
     QSlider* m_exposureSlider;
 
-    /* Directional light widgets */
-    WidgetTransform * m_lightTransform;
-    WidgetColorButton * m_lightColorWidget;
-    WidgetSliderValue * m_lightIntensityWidget;
+    /* Scene info */
+    Scene* m_scene;
+    std::shared_ptr<PerspectiveCamera> m_camera;
 
     /* Camera widgets */
     WidgetTransform* m_cameraTransformWidget;
     bool m_cameraTransformWidgetChanged = false;
     QDoubleSpinBox * m_cameraFov = nullptr;
-
-    Scene* m_scene;
-    std::shared_ptr<DirectionalLight> m_light;
-    std::shared_ptr<PerspectiveCamera> m_camera;
 
     /* Update timer */
     QTimer* m_updateTimer;
@@ -65,9 +62,6 @@ private slots:
     void onEnvironmentChanged(int);
     void onEnvironmentMapChanged(int);
     void onBackgroundColorChanged(glm::vec3);
-    void onLightDirectionChanged(double);
-    void onLightColorChanged(glm::vec3);
-    void onLightIntensityChanged(double);
     void onExposureChanged(int);
     void onCameraWidgetChanged(double);
     void onCameraFovChanged(double);

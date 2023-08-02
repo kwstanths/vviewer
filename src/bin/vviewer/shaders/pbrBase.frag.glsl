@@ -41,7 +41,6 @@ layout(push_constant) uniform PushConsts {
 
 void main() {
 
-    vec3 L_world = -scene.data.directionalLightDir.xyz;
     vec3 cameraPosition_world = getCameraPosition(scene.data.viewInverse);
     vec3 V_world = normalize(cameraPosition_world - fragPos_world);
 
@@ -58,10 +57,6 @@ void main() {
     vec3 newNormal = texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.g)], tiledUV).rgb;
     applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
     
-    vec3 L = worldToLocal(frame, L_world);
-    vec3 V = worldToLocal(frame, V_world);
-    vec3 H = normalize(V + L);
-    
     /* Calculate PBR data */
     PBRStandard pbr;
     pbr.albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
@@ -72,12 +67,12 @@ void main() {
     
     /* Calculate ambient IBL */
     vec3 ambient = ao * calculateIBLContribution(pbr, frame.normal, V_world, skyboxIrradiance, skyboxPrefiltered, global_textures[nonuniformEXT(materialData.gTexturesIndices2.b)]);
-    /* Calculate light contrubution from directional light */
-    vec3 Lo = scene.data.directionalLightColor.xyz * evalPBRStandard(pbr, L, V, H);
+
     /* Calculate emission */
     vec3 emission = pbr.albedo * emissive;
+    
     /* Add all together */
-    vec3 color = scene.data.exposure.g * ambient + Lo + emission;
+    vec3 color = scene.data.exposure.g * ambient + emission;
     
     color = tonemapDefault2(color, scene.data.exposure.r);
 	

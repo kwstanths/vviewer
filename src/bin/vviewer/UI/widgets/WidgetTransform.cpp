@@ -6,11 +6,15 @@
 
 #include <glm/glm.hpp>
 
-WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneObject> sceneObject, QString groupBoxName) : QWidget(parent)
+WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneObject> sceneObject, QString groupBoxName, bool bold) : QWidget(parent)
 {
     m_sceneObject = sceneObject;
 
     QGroupBox * groupBox = new QGroupBox(groupBoxName);
+    if (bold)
+    {
+        groupBox->setStyleSheet("QGroupBox { font-weight: bold; } ");
+    }
     QVBoxLayout * layoutTest = new QVBoxLayout();
     layoutTest->addWidget(createRow("P:", &m_positionX, &m_positionY, &m_positionZ));
     layoutTest->addWidget(createRow("S:", &m_scaleX, &m_scaleY, &m_scaleZ));
@@ -125,7 +129,7 @@ QWidget * WidgetTransform::createRow(QString name, QDoubleSpinBox ** X, QDoubleS
     return widgetMain;
 }
 
-void WidgetTransform::onPositionChangedFrom3DScene()
+void WidgetTransform::updateTransformUI()
 {
     this->blockSignals(true);
     if (m_sceneObject != nullptr) {

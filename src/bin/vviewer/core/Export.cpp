@@ -32,7 +32,6 @@ std::string copyFileToDirectoryAndGetFileName(std::string file, std::string dire
 
 void exportJson(const ExportRenderParams& renderParams, 
     std::shared_ptr<Camera> sceneCamera, 
-	std::shared_ptr<DirectionalLight> sceneLight,
     const std::vector<std::shared_ptr<SceneObject>>& sceneGraph, 
     std::shared_ptr<EnvironmentMap> envMap)
 {
@@ -173,25 +172,6 @@ void exportJson(const ExportRenderParams& renderParams,
             parseSceneObject(d, scene, itr, materials, lightMaterials, meshesFolderName);
         }
 
-        /* Add the directional light as an object at root */
-        if (sceneLight->lightMaterial->intensity > 0.00001F)
-        {
-            Value sceneObjectDirectionalLight;
-            sceneObjectDirectionalLight.SetObject();
-
-            Value name;
-            name.SetString("Directional light", d.GetAllocator());
-            sceneObjectDirectionalLight.AddMember("name", name, d.GetAllocator());
-
-            addTransform(d, sceneObjectDirectionalLight, sceneLight->transform);
-
-            addAnalyticalLight(d, sceneObjectDirectionalLight, sceneLight.get(), "DISTANT");
-
-            lightMaterials.insert(sceneLight->lightMaterial.get());
-
-            scene.PushBack(sceneObjectDirectionalLight, d.GetAllocator());
-        }
-
         d.AddMember("scene", scene, d.GetAllocator());
     }
 
@@ -268,7 +248,7 @@ void parseSceneObject(rapidjson::Document& d,
 
     bool hasMeshComponent = sceneObject->has<ComponentMesh>();
     bool hasMaterialComponent = sceneObject->has<ComponentMaterial>();
-    bool hasLightComponent = sceneObject->has<ComponentPointLight>();
+    bool hasLightComponent = sceneObject->has<ComponentLight>();
 
     if (hasMeshComponent && hasMaterialComponent)
     {
@@ -288,10 +268,16 @@ void parseSceneObject(rapidjson::Document& d,
 
     if (hasLightComponent)
     {
-        Light * light = sceneObject->get<ComponentPointLight>().light.get();
+        Light * light = sceneObject->get<ComponentLight>().light.get();
         lightMaterials.insert(light->lightMaterial.get());
 
-        addAnalyticalLight(d, sceneObjectEntry, light, "POINT");
+        if (light->type == LightType::POINT_LIGHT)
+        {
+            addAnalyticalLight(d, sceneObjectEntry, light, "POINT");
+        } else if (light->type == LightType::DIRECTIONAL_LIGHT)
+        {
+            addAnalyticalLight(d, sceneObjectEntry, light, "DISTANT");
+        }
     }
 
     /* Add children */

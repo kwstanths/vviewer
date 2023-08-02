@@ -8,19 +8,20 @@
 #include <qlayout.h>
 #include <qtreewidget.h>
 
-#include "WidgetName.hpp"
-#include "WidgetTransform.hpp"
-#include "WidgetMeshModel.hpp"
-#include "WidgetMaterial.hpp"
-#include "WidgetEnvironment.hpp"
-#include "WidgetPointLight.hpp"
-#include "WidgetMeshModel.hpp"
+#include "widgets/WidgetName.hpp"
+#include "widgets/WidgetTransform.hpp"
+#include "widgets/WidgetMeshModel.hpp"
+#include "widgets/WidgetMaterial.hpp"
+#include "widgets/WidgetEnvironment.hpp"
+#include "widgets/WidgetLight.hpp"
+#include "widgets/WidgetMeshModel.hpp"
+#include "widgets/WidgetComponent.hpp"
+#include "widgets/WidgetRightPanel.hpp"
+#include "widgets/WidgetSceneGraph.hpp"
 
 #include "core/Scene.hpp"
 #include "core/Import.hpp"
 #include "vulkan/VulkanWindow.hpp"
-
-Q_DECLARE_METATYPE(std::shared_ptr<SceneObject>)
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -29,40 +30,25 @@ public:
     virtual ~MainWindow();
 
 private:
-    /* UI */
-    QVBoxLayout * m_layoutControls;
     /* UI vulkan */
     QVulkanInstance * m_vulkanInstance;
     VulkanWindow * m_vulkanWindow;
 
     /* For naming new objects */
     int m_nObjects = 0;
-    /* Holds a pointer to the scene */
-    Scene* m_scene = nullptr;
-    /* Holds a pointer to the scene graph widget */
-    QTreeWidget* m_sceneGraphWidget = nullptr;
-    /* Previously selected item */
-    QTreeWidgetItem* m_selectedPreviousWidgetItem = nullptr;
-    std::unordered_map<ID, QTreeWidgetItem*> m_treeWidgetItems;
 
-    /* Widgets that appear on the controls on the right panel */
-    WidgetName * m_selectedObjectWidgetName = nullptr;
-    WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
-    WidgetMaterial * m_selectedObjectWidgetMaterial = nullptr;
-    WidgetPointLight * m_selectedObjectWidgetPointLight = nullptr;
-    WidgetMeshModel * m_selectedObjectWidgetMeshModel = nullptr;
-    WidgetEnvironment * m_widgetEnvironment = nullptr;
+    Scene* m_scene = nullptr;
+
+    WidgetSceneGraph * m_sceneGraphWidget = nullptr;
+    WidgetRightPanel * m_widgetRightPanel = nullptr;
 
     QWidget * initLeftPanel();
     QWidget * initVulkanWindowWidget();
-    QWidget * initControlsWidget();
+    QWidget * initRightPanel();
     void createMenu();
 
-    QTreeWidgetItem* createTreeWidgetItem(std::shared_ptr<SceneObject> object);
-    std::shared_ptr<SceneObject> getSceneObject(QTreeWidgetItem* item) const;
-
     /**
-     * @brief Create an Empty Scene Object with name and transform under parent. If parent is null add at root
+     * @brief Create an Empty Scene Object with name and transform under a parent. If parent is null add at root
      * 
      * @param name 
      * @param transform 
@@ -93,9 +79,8 @@ private:
      * @param material 
      */
     void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
-    void clearControlsUI();
 
-    bool addImportedSceneObject(const ImportedSceneObject& object, 
+    void addImportedSceneObject(const ImportedSceneObject& object, 
             const std::unordered_map<std::string, ImportedSceneMaterial>& materials,
             const std::unordered_map<std::string, ImportedSceneLightMaterial>& lights,
             QTreeWidgetItem * parentItem, std::string sceneFolder);
@@ -121,16 +106,14 @@ private slots:
     /* Import a scene */
     void onImportScene();
 
-    /* Add an object in the scene at root */
-    void onAddSceneObjectRootSlot();
-    /* Add an object in the scene as a child to the currently selected node */
+    /* Add an empty object in the scene */
+    void onAddEmptyObjectSlot();
+    /* Add an object in the scene */
     void onAddSceneObjectSlot();
     /* Remove the selected object from the scene */
     void onRemoveSceneObjectSlot();
     /* Create a material */
     void onAddMaterialSlot();
-    /* Add a point light at root */
-    void onAddPointLightRootSlot();
     /* Add a point light as a child of the currently selected node */
     void onAddPointLightSlot();
     /* Render scene */
@@ -143,7 +126,7 @@ private slots:
     /* Currently selected item in the scene changed from the 3d scene */
     void onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<SceneObject> object);
     /* Currently selected item's name in the scene changed */
-    void onSelectedSceneObjectNameChangedSlot();
+    void onSelectedSceneObjectNameChangedSlot(QString newName);
 
     /* Show context menu for scene graph */
     void onContextMenuSceneGraph(const QPoint& pos);

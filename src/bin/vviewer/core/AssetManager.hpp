@@ -2,6 +2,7 @@
 #define __AssetManager_hpp__
 
 #include <unordered_map>
+#include <memory>
 #include <stdexcept>
 
 /**

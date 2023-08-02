@@ -9,7 +9,7 @@
 #include <qcombobox.h>
 #include <qradiobutton.h>
 
-#include "WidgetColorButton.hpp"
+#include "UI/widgets/WidgetColorButton.hpp"
 
 /* A dialog to export a scene */
 class DialogSceneExport : public QDialog
