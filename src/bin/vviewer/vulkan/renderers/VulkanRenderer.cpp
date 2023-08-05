@@ -461,6 +461,8 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         /* Draw additive pass for all lights in the scene */
         for (auto& l : lights)
         {
+            if (!l->has<ComponentLight>()) continue;
+
             auto light = l->get<ComponentLight>().light;
             PushBlockForwardAddPass t;
             if (light->type == LightType::POINT_LIGHT)

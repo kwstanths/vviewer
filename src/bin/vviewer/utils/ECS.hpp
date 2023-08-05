@@ -1,6 +1,7 @@
 #ifndef __ECS_hpp__
 #define __ECS_hpp__
 
+#include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 #include <memory>
@@ -21,6 +22,7 @@ class Component {
 public:
     virtual ~Component() = default;
     ID m_entity = 0;
+    bool removed = false;
 private:
 };
 
@@ -61,7 +63,6 @@ public:
     }
 
 private:
-
 };
 
 /* Component manager */
@@ -145,6 +146,7 @@ public:
         auto& cm = ComponentManager::getInstance();
         T * c = cm.create<T>();
         c->m_entity = m_id;
+        c->removed = true;
 
         const char * name = typeid(T).name();
         m_components[name] = c;
@@ -158,7 +160,7 @@ public:
 
         const char * name = typeid(T).name();
         auto itr = m_components.find(name);
-        if (itr == m_components.end())
+        if (itr == m_components.end() || itr->second->removed == false)
         {
             throw std::runtime_error("Entity::get(): Component doesn't exist");
         }
@@ -171,7 +173,8 @@ public:
         static_assert(std::is_base_of<Component, T>::value);
 
         const char * name = typeid(T).name();
-        return m_components.find(name) != m_components.end();
+        auto itr = m_components.find(name);
+        return (itr != m_components.end()) && (itr->second->removed != false);
     }
 
     ID getID() const;
@@ -186,6 +189,21 @@ public:
         const char * name = typeid(T).name();
         T * t = static_cast<T*>(m_components[name]);
         m_components.erase(name);
+
+        auto& cm = ComponentManager::getInstance();
+        cm.remove<T>(t);
+    }
+
+    template<typename T>
+    void markRemoved()
+    {
+        static_assert(std::is_base_of<Component, T>::value);
+
+        if (!has<T>()) return;
+        
+        const char * name = typeid(T).name();
+        T * t = static_cast<T*>(m_components[name]);
+        t->removed = false;
 
         auto& cm = ComponentManager::getInstance();
         cm.remove<T>(t);

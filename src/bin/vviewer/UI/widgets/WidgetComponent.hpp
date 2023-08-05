@@ -70,7 +70,7 @@ public:
 
     void removeComponent()
     {
-        m_object->remove<ComponentMesh>();
+        m_object->markRemoved<ComponentMesh>();
         return;
     }
 
@@ -93,7 +93,7 @@ public:
 
     void removeComponent()
     {
-        m_object->remove<ComponentMaterial>();
+        m_object->markRemoved<ComponentMaterial>();
         return;
     }
 
@@ -123,7 +123,7 @@ public:
 
     void removeComponent()
     {
-        m_object->remove<ComponentLight>();
+        m_object->markRemoved<ComponentLight>();
         return;
     }
 

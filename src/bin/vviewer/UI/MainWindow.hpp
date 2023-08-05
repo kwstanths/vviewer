@@ -120,7 +120,9 @@ private slots:
     void onRenderSceneSlot();
     /* Export scene */
     void onExportSceneSlot();
-    
+    /* Duplicate scene object */
+    void onDuplicateSceneObjectSlot();
+
     /* Currently selected item in the scene changed from UI */
     void onSelectedSceneObjectChangedSlotUI();
     /* Currently selected item in the scene changed from the 3d scene */

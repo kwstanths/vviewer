@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <qaction.h>
 #include <qdebug.h>
 #include <qtreewidget.h>
 #include <qvulkaninstance.h>
@@ -19,6 +20,7 @@
 
 #include "UI/widgets/WidgetRightPanel.hpp"
 #include "UI/widgets/WidgetSceneGraph.hpp"
+#include "core/SceneObject.hpp"
 #include "dialogs/DialogAddSceneObject.hpp"
 #include "dialogs/DialogCreateMaterial.hpp"
 #include "dialogs/DialogSceneExport.hpp"
@@ -788,9 +790,14 @@ void MainWindow::onAddEmptyObjectSlot()
     /* Get currently selected tree item */
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
     
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->getRenderer()->waitIdle();
+
     /* Create parent a oject for the mesh model */
     /* TODO set the name in some other way */
     auto parent = createEmptySceneObject("New object (" + std::to_string(m_nObjects++) + ")", Transform(), selectedItem);
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(true);
 }
 
 void MainWindow::onAddSceneObjectSlot()
@@ -803,12 +810,17 @@ void MainWindow::onAddSceneObjectSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->getRenderer()->waitIdle();
+
     /* Create parent a oject for the mesh model */
     /* TODO set the name in some other way */
     auto parent = createEmptySceneObject("New object (" + std::to_string(m_nObjects++) + ")", dialog->getTransform(), selectedItem);
 
     /* Add all the meshes of this mesh model as children of the parent item */
     addSceneObjectMeshes(parent.first, selectedModel, dialog->getSelectedMaterial());
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(true);
 }
 
 void MainWindow::onRemoveSceneObjectSlot()
@@ -818,7 +830,12 @@ void MainWindow::onRemoveSceneObjectSlot()
 
     if (selectedItem == nullptr) return;
 
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->getRenderer()->waitIdle();
+
     removeObjectFromScene(selectedItem);
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(true);
 }
 
 void MainWindow::onAddMaterialSlot()
@@ -847,6 +864,9 @@ void MainWindow::onAddPointLightSlot()
     /* Get currently selected tree item */
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
 
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->getRenderer()->waitIdle();
+
     /* Create new empty item under the selected item */
     auto newObject = createEmptySceneObject("Point light", Transform(), selectedItem);
 
@@ -859,6 +879,8 @@ void MainWindow::onAddPointLightSlot()
     auto lightMat = lightMaterials.get("DefaultPointLightMaterial");
 
     newObject.second->add<ComponentLight>().light = std::make_shared<Light>(newObject.second->m_name, LightType::POINT_LIGHT, lightMat);
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(true);
 }
 
 void MainWindow::onRenderSceneSlot()
@@ -906,7 +928,14 @@ void MainWindow::onRenderSceneSlot()
     auto task = RTRenderTask(m_vulkanWindow->getRenderer());
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Rendering...", &task);
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->getRenderer()->waitIdle();
+
     waiting->exec();
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+
     delete waiting;
     
 }
@@ -940,6 +969,44 @@ void MainWindow::onExportSceneSlot()
     utils::ConsoleInfo("Scene exported: " + folderName);
 
     delete dialog;
+}
+
+void MainWindow::onDuplicateSceneObjectSlot()
+{
+    /* Get currently selected tree item */
+    QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
+
+    std::function<void(QTreeWidgetItem*, QTreeWidgetItem*)> duplicate;
+    duplicate = [&](QTreeWidgetItem* item, QTreeWidgetItem* parent) { 
+        std::shared_ptr<SceneObject> so = m_sceneGraphWidget->getSceneObject(item);
+        auto newObject = createEmptySceneObject(so->m_name + " (D)", so->m_localTransform, parent);
+
+        if (so->has<ComponentLight>())
+        {
+            auto l = so->get<ComponentLight>().light;
+            newObject.second->add<ComponentLight>().light = std::make_shared<Light>(newObject.second->m_name, l->type, l->lightMaterial); 
+        }
+        if (so->has<ComponentMesh>())
+        {
+            newObject.second->add<ComponentMesh>().mesh = so->get<ComponentMesh>().mesh;
+        }
+        if (so->has<ComponentMaterial>())
+        {
+            newObject.second->add<ComponentMaterial>().material = so->get<ComponentMaterial>().material;
+        }
+
+        for(int c = 0; c < item->childCount(); c++)
+        {
+            duplicate(item->child(c), newObject.first);
+        }
+    };
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->getRenderer()->waitIdle();
+
+    duplicate(selectedItem, selectedItem->parent());
+
+    m_vulkanWindow->getRenderer()->renderLoopActive(true);
 }
 
 void MainWindow::onSelectedSceneObjectChangedSlotUI()
@@ -988,8 +1055,19 @@ void MainWindow::onContextMenuSceneGraph(const QPoint& pos)
     QAction action4("Add point light", this);
     connect(&action4, SIGNAL(triggered()), this, SLOT(onAddPointLightSlot()));
     contextMenu.addAction(&action4);
+    
+    /* Check if it's a valid index */
+    QModelIndex index = m_sceneGraphWidget->indexAt(pos);
+    QAction * action5 = nullptr;
+    if(index.isValid())
+    {
+        action5 = new QAction("Duplicate", this);
+        connect(action5, SIGNAL(triggered()), this, SLOT(onDuplicateSceneObjectSlot()));
+        contextMenu.addAction(action5);
+    }
 
     contextMenu.exec(m_sceneGraphWidget->mapToGlobal(pos));
+    if (action5 != nullptr) delete action5;
 }
 
 void MainWindow::onStartUpInitialization()
