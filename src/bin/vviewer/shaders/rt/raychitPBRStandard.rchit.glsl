@@ -107,13 +107,14 @@ void main()
     pbr.roughness = material.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.b)], tiledUV).r;
 
     float ao = material.metallicRoughnessAOEmissive.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
-	float emissive = material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], uvs * material.uvTiling.rg).r;
+	vec3 emissive = pbr.albedo * material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], uvs * material.uvTiling.rg).r;
 
-	if (emissive > 0 && !flipped) {
+	if (!isBlack(emissive) && !flipped) {
 		if (rayPayload.depth == 0)
 		{
-			rayPayload.radiance = (emissive * pbr.albedo) * rayPayload.beta;
-		} 
+			/* beta is 1 at depth 0 */
+			rayPayload.radiance = emissive;
+		}
 		else 
 		{
 			/* If this mesh is emissive and the depth is not 1, weight the emissive contribution with MIS */
@@ -127,7 +128,7 @@ void main()
             float lightDirectPdf = sampledPointPdf * distanceSquared(gl_ObjectRayOriginEXT, worldPosition) / dotProduct;
 
 			float weightMIS = PowerHeuristic(1, rayPayload.bsdfPdf, 1, lightDirectPdf);
-			rayPayload.radiance += weightMIS * (emissive * pbr.albedo) * rayPayload.beta;
+			rayPayload.radiance += weightMIS * emissive * rayPayload.beta;
 		}
 		rayPayload.stop = true;
 		return;

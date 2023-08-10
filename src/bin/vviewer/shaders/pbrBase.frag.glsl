@@ -63,7 +63,7 @@ void main() {
     pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.g)], tiledUV).r;
     pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
     float ao = materialData.metallicRoughnessAOEmissive.b * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.a)], tiledUV).r;
-    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.r)], tiledUV).r;
+    vec3 emissive = min(materialData.metallicRoughnessAOEmissive.a, 1.0) * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.r)], tiledUV).rgb;
     
     /* Calculate ambient IBL */
     vec3 ambient = ao * calculateIBLContribution(pbr, frame.normal, V_world, skyboxIrradiance, skyboxPrefiltered, global_textures[nonuniformEXT(materialData.gTexturesIndices2.b)]);

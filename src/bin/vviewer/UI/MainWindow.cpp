@@ -895,11 +895,16 @@ void MainWindow::onRenderSceneSlot()
         return;
     }
 
+    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+
     DialogSceneRender* dialog = new DialogSceneRender(nullptr, RTrenderer);
     dialog->exec();
 
     std::string filename = dialog->getRenderOutputFileName();
-    if (filename == "") return;
+    if (filename == "") {
+        return;
+        m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    }
 
     RTrenderer.setSamples(dialog->getSamples());
     RTrenderer.setMaxDepth(dialog->getDepth());
@@ -927,13 +932,14 @@ void MainWindow::onRenderSceneSlot()
     };
     auto task = RTRenderTask(m_vulkanWindow->getRenderer());
 
-    DialogWaiting * waiting = new DialogWaiting(nullptr, "Rendering...", &task);
-
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    /* Wait for the render loop to idle */
     m_vulkanWindow->getRenderer()->waitIdle();
 
+    /* Spawn rendering RTRenderTask */
+    DialogWaiting * waiting = new DialogWaiting(nullptr, "Rendering...", &task);
     waiting->exec();
 
+    /* Continue render loop */
     m_vulkanWindow->getRenderer()->renderLoopActive(true);
 
     delete waiting;

@@ -60,7 +60,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     setMetallicTexture(white);
     setRoughnessTexture(white);
     setAOTexture(white);
-    setEmissiveTexture(white);
+    setEmissiveTexture(whiteColor);
     setNormalTexture(normalmap);
 
     if (!instance.isPresent("PBR_BRDF_LUT")) {
@@ -233,7 +233,7 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
 
     setAlbedoTexture(whiteColor);
     setAOTexture(white);
-    setEmissiveTexture(white);
+    setEmissiveTexture(whiteColor);
     setNormalTexture(normalmap);
 }
 

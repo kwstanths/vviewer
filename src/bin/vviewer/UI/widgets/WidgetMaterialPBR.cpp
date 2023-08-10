@@ -93,7 +93,6 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, std::shared_ptr<MaterialP
     m_emissive->setValue(material->getEmissive());
     QGroupBox * groupBoxEmssive = new QGroupBox(tr("Emissive"));
     QHBoxLayout * layoutEmissive = new QHBoxLayout();
-    layoutEmissive->addWidget(new QLabel("Emissive: "));
     layoutEmissive->addWidget(m_emissive);
     layoutEmissive->setContentsMargins(5, 5, 5, 5);
     groupBoxEmssive->setLayout(layoutEmissive);

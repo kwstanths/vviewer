@@ -61,14 +61,15 @@ void main() {
     /* Calculate material data */
 	vec3 albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
     float ao = materialData.metallicRoughnessAOEmissive.b * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.a)], tiledUV).r;
-    float emissive = materialData.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.r)], tiledUV).r;
+    vec3 emissive = min(materialData.metallicRoughnessAOEmissive.a, 1) * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.r)], tiledUV).rgb;
 	
 	vec3 irradiance = texture(skyboxIrradiance, frame.normal).rgb;
     vec3 diffuse    = irradiance * albedo;
 	vec3 kS = fresnelSchlick(max(V.y, 0.0), vec3(0.04));
 	vec3 kD = 1.0 - kS;
     vec3 ambient = ao * kD * diffuse;
-    
+
+    /* Calculate emission */
     vec3 emission = albedo * emissive;
     
     vec3 color = scene.data.exposure.g * ambient + emission;
