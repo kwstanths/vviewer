@@ -17,7 +17,7 @@
 #include "vulkan/VulkanStructs.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/resources/VulkanBuffer.hpp"
-#include "vulkan/resources/VulkanMaterialSystem.hpp"
+#include "vulkan/resources/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
 
 struct RayTracingData {
@@ -33,8 +33,7 @@ enum class OutputFileType {
 class VulkanRendererRayTracing {
     friend class VulkanRenderer;
 public:
-
-    VulkanRendererRayTracing(VulkanContext& vkctx, VulkanMaterialSystem& materialSystem, VulkanTextures& textures);
+    VulkanRendererRayTracing(VulkanContext& vkctx, VulkanMaterials& materials, VulkanTextures& textures);
 
     void initResources(VkFormat colorFormat, VkDescriptorSetLayout skyboxDescriptorLayout);
 
@@ -82,7 +81,7 @@ private:
     bool m_renderInProgress = false;
     float m_renderProgress = 0.0F;
 
-    VulkanMaterialSystem& m_materialSystem;
+    VulkanMaterials& m_materials;
     VulkanTextures& m_textures;
 
     /* Device data */

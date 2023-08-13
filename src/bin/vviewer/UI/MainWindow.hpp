@@ -21,7 +21,7 @@
 
 #include "core/Scene.hpp"
 #include "core/Import.hpp"
-#include "vulkan/VulkanWindow.hpp"
+#include "VulkanWindow.hpp"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -31,7 +31,6 @@ public:
 
 private:
     /* UI vulkan */
-    QVulkanInstance * m_vulkanInstance;
     VulkanWindow * m_vulkanWindow;
 
     /* For naming new objects */

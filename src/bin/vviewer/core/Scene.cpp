@@ -53,6 +53,8 @@ void Scene::setAmbientIBL(float ambientIBL)
 
 SceneData Scene::getSceneData() const
 {
+    assert(m_camera != nullptr);
+
     SceneData sceneData;
     sceneData.m_view = m_camera->getViewMatrix();
     sceneData.m_viewInverse = m_camera->getViewMatrixInverse();

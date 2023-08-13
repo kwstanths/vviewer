@@ -1,20 +1,20 @@
-#include "VulkanMaterialSystem.hpp"
+#include "VulkanMaterials.hpp"
 
 #include "core/AssetManager.hpp"
 
 #include "vulkan/VulkanLimits.hpp"
 
-VulkanMaterialSystem::VulkanMaterialSystem(VulkanContext& ctx) : m_vkctx(ctx), m_materialsStorage(VULKAN_LIMITS_MAX_MATERIALS)
+VulkanMaterials::VulkanMaterials(VulkanContext& ctx) : m_vkctx(ctx), m_materialsStorage(VULKAN_LIMITS_MAX_MATERIALS)
 {
 }
 
-bool VulkanMaterialSystem::initResources()
+bool VulkanMaterials::initResources()
 {
     bool ret = m_materialsStorage.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
 
     if (m_materialsStorage.getBlockSizeAligned() != sizeof(MaterialData))
     {
-        std::string error = "VulkanMaterialSystem::initResources(): The Material GPU block size is different than the size of MaterialData. GPU Block Size = " + m_materialsStorage.getBlockSizeAligned();
+        std::string error = "VulkanMaterials::initResources(): The Material GPU block size is different than the size of MaterialData. GPU Block Size = " + m_materialsStorage.getBlockSizeAligned();
         utils::ConsoleCritical(error);
         throw std::runtime_error(error);
     }
@@ -23,7 +23,7 @@ bool VulkanMaterialSystem::initResources()
     return ret;
 }
 
-bool VulkanMaterialSystem::initSwapchainResources(uint32_t nImages)
+bool VulkanMaterials::initSwapchainResources(uint32_t nImages)
 {
     m_swapchainImages = nImages;
 
@@ -46,7 +46,7 @@ bool VulkanMaterialSystem::initSwapchainResources(uint32_t nImages)
     return ret;
 }
 
-bool VulkanMaterialSystem::releaseResources()
+bool VulkanMaterials::releaseResources()
 {
     /* Destroy material data */
     {
@@ -61,7 +61,7 @@ bool VulkanMaterialSystem::releaseResources()
     return true;
 }
 
-bool VulkanMaterialSystem::releaseSwapchainResources()
+bool VulkanMaterials::releaseSwapchainResources()
 {
     m_materialsStorage.destroyGPUBuffers(m_vkctx.device());
 
@@ -70,17 +70,17 @@ bool VulkanMaterialSystem::releaseSwapchainResources()
     return true;
 }
 
-void VulkanMaterialSystem::updateBuffers(uint32_t index) const
+void VulkanMaterials::updateBuffers(uint32_t index) const
 {
     m_materialsStorage.updateBuffer(m_vkctx.device(), index);
 }
 
-VkBuffer VulkanMaterialSystem::getBuffer(uint32_t index)
+VkBuffer VulkanMaterials::getBuffer(uint32_t index)
 {
     return m_materialsStorage.getBuffer(index);
 }
 
-std::shared_ptr<Material> VulkanMaterialSystem::createMaterial(std::string name, MaterialType type, bool createDescriptors)
+std::shared_ptr<Material> VulkanMaterials::createMaterial(std::string name, MaterialType type, bool createDescriptors)
 {
     AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
     if (instance.isPresent(name)) {
@@ -113,7 +113,7 @@ std::shared_ptr<Material> VulkanMaterialSystem::createMaterial(std::string name,
     return temp;
 }
 
-bool VulkanMaterialSystem::createDescriptorSetsLayout()
+bool VulkanMaterials::createDescriptorSetsLayout()
 {
     {
         /* Create binding for material data */
@@ -139,7 +139,7 @@ bool VulkanMaterialSystem::createDescriptorSetsLayout()
     return true;
 }
 
-bool VulkanMaterialSystem::createDescriptorPool(uint32_t nImages, uint32_t maxCubemaps)
+bool VulkanMaterials::createDescriptorPool(uint32_t nImages, uint32_t maxCubemaps)
 {
     VkDescriptorPoolSize materialDataPoolSize{};
     materialDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -164,7 +164,7 @@ bool VulkanMaterialSystem::createDescriptorPool(uint32_t nImages, uint32_t maxCu
     return true;
 }
 
-bool VulkanMaterialSystem::createDescriptorSets(uint32_t nImages)
+bool VulkanMaterials::createDescriptorSets(uint32_t nImages)
 {
     m_descriptorSets.resize(nImages);
 
@@ -180,7 +180,7 @@ bool VulkanMaterialSystem::createDescriptorSets(uint32_t nImages)
     return true;
 }
 
-void VulkanMaterialSystem::updateDescriptor(uint32_t index)
+void VulkanMaterials::updateDescriptor(uint32_t index)
 {
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_materialsStorage.getBuffer(index);
@@ -201,7 +201,7 @@ void VulkanMaterialSystem::updateDescriptor(uint32_t index)
     vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);  
 }
 
-bool VulkanMaterialSystem::updateDescriptorSets()
+bool VulkanMaterials::updateDescriptorSets()
 {
     for(uint32_t i = 0; i < m_descriptorSets.size(); i++)
     {

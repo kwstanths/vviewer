@@ -73,7 +73,7 @@ protected:
     float m_exposure = 0.0f;
     float m_ambientIBL = 1.0f;
     
-    std::shared_ptr<Camera> m_camera;
+    std::shared_ptr<Camera> m_camera = nullptr;
     
     std::vector<std::shared_ptr<SceneObject>> m_sceneGraph;
     std::unordered_map<ID, std::shared_ptr<SceneObject>> m_objectsMap;

@@ -9,9 +9,9 @@
 #include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanUBO.hpp"
 
-class VulkanMaterialSystem {
+class VulkanMaterials {
 public:
-    VulkanMaterialSystem(VulkanContext& ctx);
+    VulkanMaterials(VulkanContext& ctx);
 
     bool initResources();
     bool initSwapchainResources(uint32_t nImages);

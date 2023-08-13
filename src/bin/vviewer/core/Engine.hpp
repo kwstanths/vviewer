@@ -1,0 +1,35 @@
+#ifndef __Engine_hpp__
+#define __Engine_hpp__
+
+#include "Scene.hpp"
+#include "Renderer.hpp"
+
+class Engine {
+public:
+    enum class STATUS {
+        NOT_STARTED = 0,
+        RUNNING = 1,
+        PAUSED = 2,
+        EXITED = 3,
+    };
+
+    Engine() {};
+    virtual ~Engine() {};
+
+    STATUS status() { return m_status; }
+
+    virtual Scene * scene() = 0;
+    virtual Renderer * renderer() = 0;
+    virtual float delta() = 0;
+
+    virtual void start() = 0;
+    virtual void stop() = 0;
+    virtual void exit() = 0;
+    virtual void waitIdle() = 0;
+
+protected:
+    STATUS m_status = STATUS::NOT_STARTED;
+
+};
+
+#endif

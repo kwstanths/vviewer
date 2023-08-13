@@ -11,7 +11,7 @@ VulkanSwapchain::~VulkanSwapchain()
 {
 }
 
-bool VulkanSwapchain::init(uint32_t width, uint32_t height)
+bool VulkanSwapchain::initResources(uint32_t width, uint32_t height)
 {
     SwapChainDetails details = querySwapChainSupport(m_vkctx.physicalDevice(), m_vkctx.surface());
 
@@ -72,7 +72,7 @@ bool VulkanSwapchain::init(uint32_t width, uint32_t height)
     return true;
 }
 
-void VulkanSwapchain::destroy()
+void VulkanSwapchain::releaseResources()
 {
     vkDestroyImageView(m_vkctx.device(), m_msaaImageView, nullptr);
     vkDestroyImage(m_vkctx.device(), m_msaaImage, nullptr);

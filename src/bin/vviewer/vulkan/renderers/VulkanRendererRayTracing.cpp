@@ -26,9 +26,9 @@
 #include "vulkan/VulkanLimits.hpp"
 
 VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext& vkctx, 
-    VulkanMaterialSystem& materialSystem,
+    VulkanMaterials& materials,
     VulkanTextures& textures) 
-    : m_vkctx(vkctx), m_materialSystem(materialSystem), m_textures(textures)
+    : m_vkctx(vkctx), m_materials(materials), m_textures(textures)
 {
 }
 
@@ -221,7 +221,7 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
     updateUniformBuffers(sceneData, m_rayTracingData, sceneLights);
     
     /* We will use the materials from buffer index 0 for this renderer */
-    m_materialSystem.updateBuffers(0);
+    m_materials.updateBuffers(0);
 
     /* Get skybox descriptor */
     auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(scene->getSkybox());
@@ -910,7 +910,7 @@ void VulkanRendererRayTracing::createRayTracingPipeline()
 
     /* Create pipeline layout */
     {
-        std::array<VkDescriptorSetLayout, 4> setsLayouts = { m_descriptorSetLayoutMain, m_materialSystem.layoutMaterial(), m_textures.layoutTextures(), m_descriptorSetLayoutSkybox };
+        std::array<VkDescriptorSetLayout, 4> setsLayouts = { m_descriptorSetLayoutMain, m_materials.layoutMaterial(), m_textures.layoutTextures(), m_descriptorSetLayoutSkybox };
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setsLayouts.size());
@@ -1129,7 +1129,7 @@ void VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
 
-        std::array<VkDescriptorSet, 4> descriptorSets = { m_descriptorSet, m_materialSystem.descriptor(0), m_textures.descriptorTextures(), skyboxDescriptor };
+        std::array<VkDescriptorSet, 4> descriptorSets = { m_descriptorSet, m_materials.descriptor(0), m_textures.descriptorTextures(), skyboxDescriptor };
         vkCmdBindDescriptorSets(commandBuffer, 
             VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, 
             m_pipelineLayout, 

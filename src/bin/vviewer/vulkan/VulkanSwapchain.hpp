@@ -10,8 +10,8 @@ public:
     VulkanSwapchain(VulkanContext& vkctx);
     ~VulkanSwapchain();
 
-    bool init(uint32_t width, uint32_t height);
-    void destroy();
+    bool initResources(uint32_t width, uint32_t height);
+    void releaseResources();
     bool isInitialized() const { return m_initialized; };
 
     VkSwapchainKHR swapchain() { return m_swapchain; }

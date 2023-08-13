@@ -5,10 +5,11 @@
 #include <qvulkaninstance.h>
 #include <qtimer.h>
 
-#include "VulkanContext.hpp"
-#include "VulkanScene.hpp"
-#include "VulkanSwapchain.hpp"
-#include "renderers/VulkanRenderer.hpp"
+#include "vulkan/VulkanEngine.hpp"
+
+#include "vulkan/VulkanScene.hpp"
+#include "vulkan/VulkanSwapchain.hpp"
+#include "vulkan/renderers/VulkanRenderer.hpp"
 
 class VulkanWindow : public QWindow 
 {
@@ -17,10 +18,7 @@ public:
     VulkanWindow();
     ~VulkanWindow();
 
-    VulkanScene* getScene() const;
-    VulkanRenderer * getRenderer() const;
-
-    float delta() const;
+    VulkanEngine * engine() const;
 
     std::shared_ptr<Material> importMaterial(std::string name, std::string stackDirectory);
     std::shared_ptr<Material> importZipMaterial(std::string name, std::string filename);
@@ -28,8 +26,6 @@ public:
     void windowActicated(bool activated);
 
 protected:
-
-    VulkanScene * m_scene;
 
     void releaseResources();
 
@@ -43,11 +39,7 @@ signals:
 
 private:
     bool m_initialized = false;
-    VulkanContext m_vkctx;
-
-    VulkanSwapchain * m_swapchain = nullptr;
-    VulkanRenderer * m_renderer = nullptr;
-    bool m_renderPaused = true;
+    VulkanEngine * m_engine = nullptr;
 
     std::unordered_map<int, bool> m_keysPressed;
     bool m_mousePosFirst = true;

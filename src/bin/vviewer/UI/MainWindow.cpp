@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     QWidget * widget_main = new QWidget();
     widget_main->setLayout(layout_main);
 
-    m_scene = m_vulkanWindow->getScene();
+    m_scene = m_vulkanWindow->engine()->scene();
 
     createMenu();
 
@@ -88,7 +88,7 @@ QWidget * MainWindow::initVulkanWindowWidget()
 
 QWidget * MainWindow::initRightPanel()
 {
-    m_widgetRightPanel = new WidgetRightPanel(this, m_vulkanWindow->getScene());
+    m_widgetRightPanel = new WidgetRightPanel(this, m_vulkanWindow->engine()->scene());
     connect(m_widgetRightPanel, &WidgetRightPanel::selectedSceneObjectNameChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
     connect(m_vulkanWindow, &VulkanWindow::selectedObjectPositionChanged, m_widgetRightPanel, &WidgetRightPanel::onTransformChanged);
 
@@ -201,7 +201,7 @@ void MainWindow::selectObject(QTreeWidgetItem* selectedItem)
     /* Set selection to new item */
     m_sceneGraphWidget->setPreviouslySelectedItem(selectedItem);
     sceneObject->m_isSelected = true;
-    m_vulkanWindow->getRenderer()->setSelectedObject(sceneObject);
+    m_vulkanWindow->engine()->renderer()->setSelectedObject(sceneObject);
 
     m_widgetRightPanel->setSelectedObject(sceneObject);
 
@@ -217,7 +217,7 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem* treeItem)
     m_scene->removeSceneObject(selectedObject);
 
     /* Set selected to null */
-    m_vulkanWindow->getRenderer()->setSelectedObject(nullptr);
+    m_vulkanWindow->engine()->renderer()->setSelectedObject(nullptr);
 
     /* Remove from scene graph UI */
     m_sceneGraphWidget->removeItem(treeItem);
@@ -268,6 +268,8 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
         throw std::runtime_error("addImportedSceneObject(): Imported scene node has both a mesh component and a light mesh component");
     }
 
+    VulkanEngine * engine = m_vulkanWindow->engine();
+
     /* Add mesh component */
     if (object.mesh.has_value()) 
     {
@@ -289,15 +291,15 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             }
             else if (m.type == ImportedSceneMaterialType::DIFFUSE)
             {
-                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->materialSystem().createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(engine->materials().createMaterial(m.name, MaterialType::MATERIAL_LAMBERT));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = engine->textures().createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     mat->setAlbedoTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = engine->textures().createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     mat->setNormalTexture(tex);
                 }
 
@@ -306,25 +308,25 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             } 
             else if (m.type == ImportedSceneMaterialType::DISNEY)
             {
-                auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_vulkanWindow->getRenderer()->materialSystem().createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
+                auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(engine->materials().createMaterial(m.name, MaterialType::MATERIAL_PBR_STANDARD));
 
                 mat->albedo() = glm::vec4(m.albedo, 1);
                 if (m.albedoTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+                    auto tex = engine->textures().createTexture(sceneFolder + m.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
                     if (tex != nullptr) mat->setAlbedoTexture(tex);
                 }
                 mat->roughness() = m.roughness;
                 if (m.roughnessTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = engine->textures().createTexture(sceneFolder + m.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setRoughnessTexture(tex);
                 }
                 mat->metallic() = m.metallic;
                 if (m.metallicTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = engine->textures().createTexture(sceneFolder + m.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setMetallicTexture(tex);
                 }
                 if (m.normalTexture != "") {
-                    auto tex = m_vulkanWindow->getRenderer()->textures().createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
+                    auto tex = engine->textures().createTexture(sceneFolder + m.normalTexture, VK_FORMAT_R8G8B8A8_UNORM);
                     if (tex != nullptr) mat->setNormalTexture(tex);
                 }
                 
@@ -333,7 +335,7 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
             }
         }
 
-        auto meshModel = m_vulkanWindow->getRenderer()->createVulkanMeshModel(sceneFolder + object.mesh->path);
+        auto meshModel = static_cast<VulkanRenderer *>(engine->renderer())->createVulkanMeshModel(sceneFolder + object.mesh->path);
         if (meshModel != nullptr) {
             if (object.mesh->submesh == -1 || object.mesh->submesh >= meshModel->getMeshes().size()) {
                 /* Imported mesh defines a path, but not a submesh. Create a new node and add all the meshes as children */
@@ -410,12 +412,12 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 const ImportedSceneLightMaterial& lm = importedSceneLightMaterialItr->second;
 
                 /* Create a simple emissive lambert for the the mesh light material */
-                auto mat = std::dynamic_pointer_cast<MaterialLambert>(m_vulkanWindow->getRenderer()->materialSystem().createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
+                auto mat = std::dynamic_pointer_cast<MaterialLambert>(engine->materials().createMaterial(lm.name, MaterialType::MATERIAL_LAMBERT));
                 mat->albedo() = glm::vec4(lm.color, 1);
                 mat->emissive() = lm.intensity;
             }
 
-            auto meshModel = m_vulkanWindow->getRenderer()->createVulkanMeshModel(sceneFolder + object.light->path);
+            auto meshModel = static_cast<VulkanRenderer *>(engine->renderer())->createVulkanMeshModel(sceneFolder + object.light->path);
             if (meshModel != nullptr) {
                 if (object.light->submesh == -1 || object.light->submesh >= meshModel->getMeshes().size()) {
                     /* Imported mesh defines a path, but not a submesh. Create a new node and add all the meshes as children */
@@ -480,7 +482,7 @@ void MainWindow::onImportModelSlot()
         }
     };
     Task task;
-    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filename.toStdString());
+    task.f = ImportFunct(static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer()), filename.toStdString());
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -497,8 +499,8 @@ void MainWindow::onImportTextureColorSlot()
     if (filenames.length() == 0) return;
 
     struct ImportFunct {
-        ImportFunct(VulkanRenderer * r, QStringList& fs) : renderer(r), filenames(fs) {} ;
-        VulkanRenderer * renderer;
+        ImportFunct(VulkanTextures& t, QStringList& fs) : textures(t), filenames(fs) {} ;
+        VulkanTextures& textures;
         QStringList filenames;
     
         bool operator () (float& progress) {
@@ -506,7 +508,7 @@ void MainWindow::onImportTextureColorSlot()
             for (uint32_t t = 0; t < filenames.length(); t++)
             {
                 const auto& texture = filenames[t];
-                auto tex = renderer->textures().createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
+                auto tex = textures.createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
                 if (tex) {
                     utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
@@ -518,7 +520,7 @@ void MainWindow::onImportTextureColorSlot()
         }
     };
     Task task;
-    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filenames);
+    task.f = ImportFunct(m_vulkanWindow->engine()->textures(), filenames);
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -535,8 +537,8 @@ void MainWindow::onImportTextureOtherSlot()
     if (filenames.length() == 0) return;
 
     struct ImportFunct {
-        ImportFunct(VulkanRenderer * r, QStringList& fs) : renderer(r), filenames(fs) {} ;
-        VulkanRenderer * renderer;
+        ImportFunct(VulkanTextures& t, QStringList& fs) : textures(t), filenames(fs) {} ;
+        VulkanTextures& textures;
         QStringList filenames;
     
         bool operator () (float& progress) {
@@ -544,7 +546,7 @@ void MainWindow::onImportTextureOtherSlot()
             for (uint32_t t = 0; t < filenames.length(); t++)
             {
                 const auto& texture = filenames[t];
-                auto tex = renderer->textures().createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
+                auto tex = textures.createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
                 if (tex) {
                     utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
@@ -556,7 +558,7 @@ void MainWindow::onImportTextureOtherSlot()
         }
     };
     Task task;
-    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filenames);
+    task.f = ImportFunct(m_vulkanWindow->engine()->textures(), filenames);
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -573,11 +575,11 @@ void MainWindow::onImportTextureHDRSlot()
     if (filename == "") return;
 
     struct ImportFunct {
-        ImportFunct(VulkanRenderer * r, std::string f) : renderer(r), filename(f) {} ;
-        VulkanRenderer * renderer;
+        ImportFunct(VulkanTextures& t, std::string f) : textures(t), filename(f) {} ;
+        VulkanTextures& textures;
         std::string filename;
         bool operator () (float&) {
-            auto tex = renderer->textures().createTextureHDR(filename);
+            auto tex = textures.createTextureHDR(filename);
             if (tex) {
                 utils::ConsoleInfo("Texture: " + filename + " imported");
                 return true;
@@ -586,7 +588,7 @@ void MainWindow::onImportTextureHDRSlot()
         }
     };
     Task task;
-    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filename.toStdString());
+    task.f = ImportFunct(m_vulkanWindow->engine()->textures(), filename.toStdString());
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -616,7 +618,7 @@ void MainWindow::onImportEnvironmentMap()
         }
     };
     Task task;
-    task.f = ImportFunct(m_vulkanWindow->getRenderer(), filename.toStdString());
+    task.f = ImportFunct(static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer()), filename.toStdString());
 
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -723,8 +725,8 @@ void MainWindow::onImportScene()
         return;
     }
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
-    m_vulkanWindow->getRenderer()->waitIdle();
+    m_vulkanWindow->engine()->stop();
+    m_vulkanWindow->engine()->waitIdle();
 
     /* Set camera */
     {
@@ -763,9 +765,11 @@ void MainWindow::onImportScene()
         addImportedSceneObject(o, materials, lights, nullptr, sceneFolder);
     }
 
+    VulkanRenderer * renderer = static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer());    
+
     /* Create and set the environment map */
     if (env.path != "") {
-        auto envMap = m_vulkanWindow->getRenderer()->createEnvironmentMap(sceneFolder + env.path);
+        auto envMap = renderer->createEnvironmentMap(sceneFolder + env.path);
         if (envMap) {
             utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
 
@@ -781,7 +785,7 @@ void MainWindow::onImportScene()
         m_widgetRightPanel->getEnvironmentWidget()->setEnvironmentType(EnvironmentType::SOLID_COLOR, true);
     }
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    m_vulkanWindow->engine()->start();
     utils::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
 
@@ -790,14 +794,14 @@ void MainWindow::onAddEmptyObjectSlot()
     /* Get currently selected tree item */
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
     
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
-    m_vulkanWindow->getRenderer()->waitIdle();
+    m_vulkanWindow->engine()->stop();
+    m_vulkanWindow->engine()->waitIdle();
 
     /* Create parent a oject for the mesh model */
     /* TODO set the name in some other way */
     auto parent = createEmptySceneObject("New object (" + std::to_string(m_nObjects++) + ")", Transform(), selectedItem);
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    m_vulkanWindow->engine()->start();
 }
 
 void MainWindow::onAddSceneObjectSlot()
@@ -810,8 +814,8 @@ void MainWindow::onAddSceneObjectSlot()
     std::string selectedModel = dialog->getSelectedModel();
     if (selectedModel == "") return;
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
-    m_vulkanWindow->getRenderer()->waitIdle();
+    m_vulkanWindow->engine()->stop();
+    m_vulkanWindow->engine()->waitIdle();
 
     /* Create parent a oject for the mesh model */
     /* TODO set the name in some other way */
@@ -820,7 +824,7 @@ void MainWindow::onAddSceneObjectSlot()
     /* Add all the meshes of this mesh model as children of the parent item */
     addSceneObjectMeshes(parent.first, selectedModel, dialog->getSelectedMaterial());
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    m_vulkanWindow->engine()->start();
 }
 
 void MainWindow::onRemoveSceneObjectSlot()
@@ -830,12 +834,12 @@ void MainWindow::onRemoveSceneObjectSlot()
 
     if (selectedItem == nullptr) return;
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
-    m_vulkanWindow->getRenderer()->waitIdle();
+    m_vulkanWindow->engine()->stop();
+    m_vulkanWindow->engine()->waitIdle();
 
     removeObjectFromScene(selectedItem);
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    m_vulkanWindow->engine()->start();
 }
 
 void MainWindow::onAddMaterialSlot()
@@ -851,7 +855,7 @@ void MainWindow::onAddMaterialSlot()
         return;
     }
 
-    auto material = m_vulkanWindow->getRenderer()->materialSystem().createMaterial(materialName, dialog->m_selectedMaterialType);
+    auto material = m_vulkanWindow->engine()->materials().createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
         utils::ConsoleWarning("Failed to create material");
     } else {
@@ -864,8 +868,8 @@ void MainWindow::onAddPointLightSlot()
     /* Get currently selected tree item */
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
-    m_vulkanWindow->getRenderer()->waitIdle();
+    m_vulkanWindow->engine()->stop();
+    m_vulkanWindow->engine()->waitIdle();
 
     /* Create new empty item under the selected item */
     auto newObject = createEmptySceneObject("Point light", Transform(), selectedItem);
@@ -880,12 +884,13 @@ void MainWindow::onAddPointLightSlot()
 
     newObject.second->add<ComponentLight>().light = std::make_shared<Light>(newObject.second->m_name, LightType::POINT_LIGHT, lightMat);
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    m_vulkanWindow->engine()->start();
 }
 
 void MainWindow::onRenderSceneSlot()
 {
-    auto& RTrenderer = m_vulkanWindow->getRenderer()->getRayTracingRenderer();
+    VulkanRenderer * renderer = static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer());
+    auto& RTrenderer = renderer->getRayTracingRenderer();
     
     if (!RTrenderer.isInitialized()) {
         int ret = QMessageBox::warning(this, tr("Error"),
@@ -895,15 +900,15 @@ void MainWindow::onRenderSceneSlot()
         return;
     }
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
+    m_vulkanWindow->engine()->stop();
 
     DialogSceneRender* dialog = new DialogSceneRender(nullptr, RTrenderer);
     dialog->exec();
 
     std::string filename = dialog->getRenderOutputFileName();
     if (filename == "") {
+        m_vulkanWindow->engine()->start();
         return;
-        m_vulkanWindow->getRenderer()->renderLoopActive(true);
     }
 
     RTrenderer.setSamples(dialog->getSamples());
@@ -930,17 +935,16 @@ void MainWindow::onRenderSceneSlot()
 
         float getProgress() const override { return renderer->getRayTracingRenderer().getRenderProgress(); }
     };
-    auto task = RTRenderTask(m_vulkanWindow->getRenderer());
+    auto task = RTRenderTask(renderer);
 
     /* Wait for the render loop to idle */
-    m_vulkanWindow->getRenderer()->waitIdle();
+    m_vulkanWindow->engine()->waitIdle();
 
     /* Spawn rendering RTRenderTask */
     DialogWaiting * waiting = new DialogWaiting(nullptr, "Rendering...", &task);
     waiting->exec();
 
-    /* Continue render loop */
-    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    m_vulkanWindow->engine()->start();
 
     delete waiting;
     
@@ -1007,12 +1011,12 @@ void MainWindow::onDuplicateSceneObjectSlot()
         }
     };
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(false);
-    m_vulkanWindow->getRenderer()->waitIdle();
+    m_vulkanWindow->engine()->stop();
+    m_vulkanWindow->engine()->waitIdle();
 
     duplicate(selectedItem, selectedItem->parent());
 
-    m_vulkanWindow->getRenderer()->renderLoopActive(true);
+    m_vulkanWindow->engine()->start();
 }
 
 void MainWindow::onSelectedSceneObjectChangedSlotUI()

@@ -16,6 +16,7 @@
 #include "core/Materials.hpp"
 #include "core/EnvironmentMap.hpp"
 #include "core/Lights.hpp"
+#include "core/Renderer.hpp"
 
 #include "vulkan/IncludeVulkan.hpp"
 #include "vulkan/VulkanContext.hpp"
@@ -34,51 +35,39 @@
 #include "VulkanRendererRayTracing.hpp"
 #include "vulkan/resources/VulkanMesh.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
-#include "vulkan/resources/VulkanMaterialSystem.hpp"
+#include "vulkan/resources/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
 
 /* Main renderer */
-class VulkanRenderer {
+class VulkanRenderer : public Renderer {
 public:
-    enum class STATUS {
-        RUNNING,
-        IDLE,
-        STOPPED,
-    };
-
-    VulkanRenderer(VulkanContext& vkctx, VulkanScene* scene);
+    VulkanRenderer(VulkanContext& context, 
+        VulkanSwapchain& swapchain,
+        VulkanTextures& textures, 
+        VulkanMaterials& materials, 
+        VulkanScene* scene);
 
     void initResources();
-    void initSwapChainResources(VulkanSwapchain * swapchain);
+    void initSwapChainResources();
 
     void releaseSwapChainResources();
     void releaseResources();
-    
-    VulkanScene* getActiveScene() const;
-
-    void setSelectedObject(std::shared_ptr<SceneObject> sceneObject);
-    std::shared_ptr<SceneObject> getSelectedObject() const;
 
     bool isRTEnabled() const;
     void renderRT();
 
     glm::vec3 selectObject(float x, float y);
 
-    float deltaTime() const;
-
     VulkanRendererRayTracing& getRayTracingRenderer() { return m_rendererRayTracing; }
-    VulkanMaterialSystem& materialSystem() { return m_materialSystem; }
-    VulkanTextures& textures() { return m_textures; }
 
     std::shared_ptr<MeshModel> createVulkanMeshModel(std::string filename);
     std::shared_ptr<Cubemap> createCubemap(std::string directory);
     std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
 
+    VkResult renderFrame();
+
     /* Blocks and waits for the renderer to idle, stop the renderer before waiting here */
     void waitIdle();
-    void startRenderLoop();
-    void renderLoopActive(bool active);
-    void stopRenderLoop();
 
 private:
     /* Graphics pipeline */
@@ -90,13 +79,15 @@ private:
     /* Descriptor resources */
     bool createColorSelectionTempImage();
     
-    /* Render loop */
-    void renderLoop();
+    /* Render */
     void buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
 private:
     VulkanContext& m_vkctx;
-    VulkanSwapchain * m_swapchain = VK_NULL_HANDLE;
+    VulkanSwapchain& m_swapchain;
+    VulkanMaterials& m_materials;
+    VulkanTextures& m_textures;
+    VulkanScene * m_scene = nullptr;
 
     /* Render pass and framebuffers */
     VkRenderPass m_renderPassForward;
@@ -125,24 +116,6 @@ private:
     std::vector<VkFence> m_fenceInFlight;
     const uint32_t MAX_FRAMES_IN_FLIGHT = 3;
     uint32_t m_currentFrame = 0;
-
-    /* Active scene */
-    VulkanScene * m_scene = nullptr;
-    std::chrono::steady_clock::time_point m_frameTimePrev;
-    float m_deltaTime = 0.016F;
-
-    /* Material resources */
-    VulkanMaterialSystem m_materialSystem;
-    /* Texture resources */
-    VulkanTextures m_textures;
-
-    std::shared_ptr<SceneObject> m_selectedObject = nullptr;
-
-    /* Render loop data */
-    std::thread m_renderThread;
-    bool m_renderLoopActive = false;
-    bool m_renderLoopExit = false;
-    STATUS m_status = STATUS::IDLE;
 };
 
 #endif

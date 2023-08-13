@@ -4,19 +4,17 @@
 
 #include <zip.h>
 
-#include "VulkanLimits.hpp"
+#include "vulkan/VulkanLimits.hpp"
 
 VulkanWindow::VulkanWindow() : QWindow()
 {
     setSurfaceType(QSurface::SurfaceType::VulkanSurface);
 
-    setVulkanInstance(m_vkctx.instance());
+    m_engine = new VulkanEngine();
 
-    m_scene = new VulkanScene(m_vkctx, VULKAN_LIMITS_MAX_OBJECTS);
-    m_swapchain = new VulkanSwapchain(m_vkctx);
-    m_renderer = new VulkanRenderer(m_vkctx, m_scene);
+    setVulkanInstance(m_engine->context().instance());
 
-    /* Create camera */
+    /* Create default camera */
     auto camera = std::make_shared<PerspectiveCamera>();
     camera->setFoV(60.0f);
     
@@ -25,7 +23,7 @@ VulkanWindow::VulkanWindow() : QWindow()
     cameraTransform.setRotation(glm::quat(glm::vec3(0, glm::radians(1.F), 0)));
     camera->getTransform() = cameraTransform;
     
-    m_scene->setCamera(camera);
+    m_engine->scene()->setCamera(camera);
 
     m_updateCameraTimer = new QTimer();
     m_updateCameraTimer->setInterval(16);
@@ -38,35 +36,21 @@ VulkanWindow::~VulkanWindow()
 
 }
 
-VulkanScene* VulkanWindow::getScene() const
+VulkanEngine * VulkanWindow::engine() const
 {
-    return m_scene;
-}
-
-float VulkanWindow::delta() const
-{
-    if (m_renderer != nullptr)
-    {
-        return m_renderer->deltaTime();
-    }
-    return 0.016f;
+    return m_engine;
 }
 
 void VulkanWindow::windowActicated(bool activated)
 {
-    m_renderer->renderLoopActive(activated);
-}
-
-VulkanRenderer * VulkanWindow::getRenderer() const
-{
-    return m_renderer;
+    if (activated) m_engine->start();
+    else m_engine->stop();
 }
 
 void VulkanWindow::releaseResources()
 {
-    m_renderer->releaseSwapChainResources();
-    m_renderer->releaseResources();
-    m_swapchain->destroy();
+    m_engine->releaseSwapChainResources();
+    m_engine->releaseResources();    
 }
 
 void VulkanWindow::exposeEvent(QExposeEvent* event)
@@ -74,19 +58,17 @@ void VulkanWindow::exposeEvent(QExposeEvent* event)
     if(isExposed() && !m_initialized)
     {
         /* Perform first time initialization the first time the surface window becomes available */
-        VkSurfaceKHR surface = m_vkctx.instance()->surfaceForWindow(this);
+        VkSurfaceKHR surface = m_engine->context().instance()->surfaceForWindow(this);
+        m_engine->setSurface(surface);
         
-        m_vkctx.init(surface);
-        m_swapchain->init(static_cast<uint32_t>(size().width()), static_cast<uint32_t>(size().height()));
-
-        m_renderer->initResources();
-        m_renderer->initSwapChainResources(m_swapchain);
-
-        m_initialized =  true;
+        m_engine->initResources();
+        m_engine->initSwapChainResources(static_cast<uint32_t>(size().width()), static_cast<uint32_t>(size().height()));
 
         emit initializationFinished();
 
-        m_renderer->renderLoopActive(true);
+        m_initialized = true;
+
+        m_engine->start();
     }
 }
 
@@ -98,8 +80,8 @@ bool VulkanWindow::event(QEvent* event)
     {
         if (static_cast<QPlatformSurfaceEvent *>(event)->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed)
         {
-            m_renderer->stopRenderLoop();
-            m_renderer->waitIdle();
+            m_engine->exit();
+            m_engine->waitIdle();
 
             releaseResources();
         }
@@ -111,25 +93,23 @@ bool VulkanWindow::event(QEvent* event)
 
 void VulkanWindow::resizeEvent(QResizeEvent *ev) 
 {
-    m_scene->getCamera()->setWindowSize(ev->size().width(), ev->size().height());
+    m_engine->scene()->getCamera()->setWindowSize(ev->size().width(), ev->size().height());
+
+    VulkanSwapchain& swapchain = m_engine->swapchain();
 
     /* If the swapchain has been initialized, then we have to recreate it for the new size */
-    if (m_swapchain->isInitialized())
+    if (swapchain.isInitialized())
     {
         /* Stop the render loop and wait for idle */
-        m_renderer->renderLoopActive(false);
-        m_renderer->waitIdle();
+        m_engine->stop();
+        m_engine->waitIdle();
 
-        /* Destroy old and create new swapchain */
-        m_swapchain->destroy();
-        m_swapchain->init(static_cast<uint32_t>(ev->size().width()), static_cast<uint32_t>(ev->size().height()));
-        
-        /* reinitialize swapchain based resources */
-        m_renderer->releaseSwapChainResources();
-        m_renderer->initSwapChainResources(m_swapchain);
+        /* Reinitialize swapchain based resources */
+        m_engine->releaseSwapChainResources();
+        m_engine->initSwapChainResources(static_cast<uint32_t>(ev->size().width()), static_cast<uint32_t>(ev->size().height()));
 
         /* continue the render loop */
-        m_renderer->renderLoopActive(true);
+        m_engine->start();
     }
 }
 
@@ -149,7 +129,9 @@ void VulkanWindow::mousePressEvent(QMouseEvent *ev)
         /* Select object from scene */
         QPointF pos = ev->position();
         QSize size = this->size();
-        ID objectID = IDGeneration::fromRGB(m_renderer->selectObject(pos.x() / size.width(), pos.y() / size.height()));
+
+        VulkanRenderer * renderer = static_cast<VulkanRenderer *>(m_engine->renderer());
+        ID objectID = IDGeneration::fromRGB(renderer->selectObject(pos.x() / size.width(), pos.y() / size.height()));
 
         m_selectedPressed = objectID;
     }
@@ -157,7 +139,7 @@ void VulkanWindow::mousePressEvent(QMouseEvent *ev)
 
 void VulkanWindow::mouseReleaseEvent(QMouseEvent *ev) 
 {
-    std::shared_ptr<SceneObject> object = m_scene->getSceneObject(m_selectedPressed);
+    std::shared_ptr<SceneObject> object = m_engine->scene()->getSceneObject(m_selectedPressed);
     m_selectedPressed = 0;
 
     if (object.get() == nullptr) return;
@@ -180,10 +162,11 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *ev)
     m_mousePos = newMousePos;
 
     /* Perform camera movement if right button is pressed */
+    float delta = m_engine->delta();
     Qt::MouseButtons buttons = ev->buttons();
-    Transform& cameraTransform = m_scene->getCamera()->getTransform();
+    Transform& cameraTransform = m_engine->scene()->getCamera()->getTransform();
     if (buttons & Qt::RightButton) {
-        float mouseSensitivity = 0.125f * delta();
+        float mouseSensitivity = 0.125f * delta;
         
         /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.getRotation();
@@ -194,9 +177,10 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *ev)
     }
 
     /* Perform movement of selected object if left button is pressed */
-    float movementSensitivity = 1.25f * delta();
+    VulkanRenderer * renderer = static_cast<VulkanRenderer *>(m_engine->renderer());
+    float movementSensitivity = 1.25f * delta;
     if (buttons & Qt::LeftButton) {
-        std::shared_ptr<SceneObject> selectedObject = m_renderer->getSelectedObject();
+        std::shared_ptr<SceneObject> selectedObject = renderer->getSelectedObject();
         if (selectedObject.get() == nullptr) return;
 
         Transform& selectedObjectTransform = selectedObject->m_localTransform;
@@ -278,8 +262,8 @@ void VulkanWindow::onUpdateCamera()
     float speed = cameraDefaultSpeed;
     if (m_keysPressed[Qt::Key_Shift]) speed = cameraFastSpeed;
 
-    float finalSpeed = speed * delta();
-    Transform& cameraTransform = m_scene->getCamera()->getTransform();
+    float finalSpeed = speed * m_engine->delta();
+    Transform& cameraTransform = m_engine->scene()->getCamera()->getTransform();
     cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.getForward() * finalSpeed);
     cameraTransform.setPosition(cameraTransform.getPosition() - static_cast<float>(m_keysPressed[Qt::Key_S]) * cameraTransform.getForward() * finalSpeed);
     cameraTransform.setPosition(cameraTransform.getPosition() + static_cast<float>(m_keysPressed[Qt::Key_D]) * cameraTransform.getRight() * finalSpeed);
@@ -290,14 +274,14 @@ void VulkanWindow::onUpdateCamera()
 
 std::shared_ptr<Material> VulkanWindow::importMaterial(std::string name, std::string stackDirectory)
 {
-    auto material = m_renderer->materialSystem().createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
+    auto material = m_engine->materials().createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
     if (material == nullptr) return nullptr;
 
-    auto albedo = m_renderer->textures().createTexture(stackDirectory + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
-    auto ao = m_renderer->textures().createTexture(stackDirectory + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
-    auto metallic = m_renderer->textures().createTexture(stackDirectory + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
-    auto normal = m_renderer->textures().createTexture(stackDirectory + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
-    auto roughness = m_renderer->textures().createTexture(stackDirectory + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto albedo = m_engine->textures().createTexture(stackDirectory + "/albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
+    auto ao = m_engine->textures().createTexture(stackDirectory + "/ao.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto metallic = m_engine->textures().createTexture(stackDirectory + "/metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto normal = m_engine->textures().createTexture(stackDirectory + "/normal.png", VK_FORMAT_R8G8B8A8_UNORM);
+    auto roughness = m_engine->textures().createTexture(stackDirectory + "/roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
 
     if (albedo != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setAlbedoTexture(albedo);
     if (ao != nullptr) std::static_pointer_cast<MaterialPBRStandard>(material)->setAOTexture(ao);
@@ -310,6 +294,8 @@ std::shared_ptr<Material> VulkanWindow::importMaterial(std::string name, std::st
 
 std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std::string filename)
 {
+    VulkanRenderer * renderer = static_cast<VulkanRenderer *>(m_engine->renderer());
+
     struct zip_t *zip = zip_open(filename.c_str(), 0, 'r');
 
     /* Get .xtex file name */
@@ -366,7 +352,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
 
         auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + albedoZipPath;
-        albedoTexture = m_renderer->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_SRGB);
+        albedoTexture = m_engine->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_SRGB);
         if (albedoTexture == nullptr) {
             utils::ConsoleWarning("Unable to load albedo from zip texture stack");
         }
@@ -385,7 +371,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
 
         auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + roughnessZipPath;
-        roughnessTexture = m_renderer->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
+        roughnessTexture = m_engine->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (roughnessTexture == nullptr) {
             utils::ConsoleWarning("Unable to load roughness from zip texture stack");
         }
@@ -404,7 +390,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
 
         auto image = std::make_shared<Image<stbi_uc>>(rawImgBuffer, x, y, 4, false);
         std::string id = filename + ":" + normalZipPath;
-        normalTexture = m_renderer->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
+        normalTexture = m_engine->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (normalTexture == nullptr) {
             utils::ConsoleWarning("Unable to load normal from zip texture stack");
         }
@@ -412,7 +398,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
         zip_entry_close(zip);
     }
 
-    auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_renderer->materialSystem().createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
+    auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(m_engine->materials().createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
     mat->setAlbedoTexture(albedoTexture);
     mat->setRoughnessTexture(roughnessTexture);
     mat->roughness() = 1.0F;

@@ -25,12 +25,18 @@
 #include "vulkan/VulkanUtils.hpp"
 #include "vulkan/VulkanLimits.hpp"
 
-VulkanRenderer::VulkanRenderer(VulkanContext& vkctx, VulkanScene* scene) : 
-    m_vkctx(vkctx), 
+VulkanRenderer::VulkanRenderer(VulkanContext& context, 
+        VulkanSwapchain& swapchain,
+        VulkanTextures& textures, 
+        VulkanMaterials& materials, 
+        VulkanScene* scene) : 
+    Renderer(),
+    m_vkctx(context),
+    m_swapchain(swapchain),
+    m_textures(textures),
+    m_materials(materials),
     m_scene(scene), 
-    m_materialSystem(m_vkctx),
-    m_textures(m_vkctx),
-    m_rendererRayTracing(m_vkctx, m_materialSystem, m_textures)
+    m_rendererRayTracing(context, materials, textures)
 {
 
 }
@@ -39,10 +45,6 @@ void VulkanRenderer::initResources()
 {
     utils::ConsoleInfo("Initializing resources...");
     
-    m_scene->initResources();
-    m_materialSystem.initResources();
-    m_textures.initResources();
-
     createCommandBuffers();
     createSyncObjects();
 
@@ -60,7 +62,7 @@ void VulkanRenderer::initResources()
         m_scene->layoutSceneData(), 
         m_scene->layoutModelData(), 
         m_rendererSkybox.getDescriptorSetLayout(),
-        m_materialSystem.layoutMaterial(),
+        m_materials.layoutMaterial(),
         m_textures);
     m_rendererLambert.initResources(m_vkctx.physicalDevice(),
         m_vkctx.device(),
@@ -70,7 +72,7 @@ void VulkanRenderer::initResources()
         m_scene->layoutSceneData(),
         m_scene->layoutModelData(),
         m_rendererSkybox.getDescriptorSetLayout(),
-        m_materialSystem.layoutMaterial(),
+        m_materials.layoutMaterial(),
         m_textures.layoutTextures());
     m_rendererPost.initResources(m_vkctx.physicalDevice(), 
         m_vkctx.device(), 
@@ -97,7 +99,7 @@ void VulkanRenderer::initResources()
     }
 
     /* Create a default material */
-    auto defaultMaterial = std::static_pointer_cast<VulkanMaterialPBRStandard>(m_materialSystem.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD, false));
+    auto defaultMaterial = std::static_pointer_cast<VulkanMaterialPBRStandard>(m_materials.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD, false));
     defaultMaterial->albedo() = glm::vec4(0.8, 0.8, 0.8, 1);
     defaultMaterial->metallic() = 0.5;
     defaultMaterial->roughness() = 0.5;
@@ -119,23 +121,16 @@ void VulkanRenderer::initResources()
         m_scene->setSkybox(skybox);
     }
 
-    startRenderLoop();
 }
 
-void VulkanRenderer::initSwapChainResources(VulkanSwapchain * swapchain)
+void VulkanRenderer::initSwapChainResources()
 {
-    m_swapchain = swapchain;
-
-    VkExtent2D swapchainExtent = m_swapchain->extent();
-    VkFormat swapchainFormat = m_swapchain->format();
+    VkExtent2D swapchainExtent = m_swapchain.extent();
+    VkFormat swapchainFormat = m_swapchain.format();
 
     createRenderPasses();
     createFrameBuffers();
     createColorSelectionTempImage();
-
-    m_scene->initSwapchainResources(m_swapchain->imageCount());
-    m_materialSystem.initSwapchainResources(m_swapchain->imageCount());
-    m_textures.initSwapchainResources(m_swapchain->imageCount());
 
     m_rendererSkybox.initSwapChainResources(swapchainExtent, 
         m_renderPassForward, 
@@ -143,24 +138,24 @@ void VulkanRenderer::initSwapChainResources(VulkanSwapchain * swapchain)
     );
     m_rendererPBR.initSwapChainResources(swapchainExtent, 
         m_renderPassForward, 
-        m_swapchain->imageCount(), 
+        m_swapchain.imageCount(), 
         m_vkctx.msaaSamples()
     );
     m_rendererLambert.initSwapChainResources(swapchainExtent, 
         m_renderPassForward, 
-        m_swapchain->imageCount(), 
+        m_swapchain.imageCount(), 
         m_vkctx.msaaSamples()
     );
     m_rendererPost.initSwapChainResources(swapchainExtent, 
         m_renderPassPost, 
-        m_swapchain->imageCount(), 
+        m_swapchain.imageCount(), 
         m_vkctx.msaaSamples(), 
         m_attachmentColorForwardOutput, 
         m_attachmentHighlightForwardOutput
     );
     m_renderer3DUI.initSwapChainResources(swapchainExtent, 
         m_renderPassUI, 
-        m_swapchain->imageCount(), 
+        m_swapchain.imageCount(), 
         m_vkctx.msaaSamples()
     );
 }
@@ -168,14 +163,10 @@ void VulkanRenderer::initSwapChainResources(VulkanSwapchain * swapchain)
 void VulkanRenderer::releaseSwapChainResources()
 {
     /* Destroy framebuffer attachments */
-    for (int i = 0; i < m_swapchain->imageCount(); i++) {
+    for (int i = 0; i < m_swapchain.imageCount(); i++) {
         m_attachmentColorForwardOutput[i].destroy(m_vkctx.device());
         m_attachmentHighlightForwardOutput[i].destroy(m_vkctx.device());
     }
-
-    m_scene->releaseSwapchainResources();
-    m_materialSystem.releaseSwapchainResources();
-    m_textures.releaseSwapchainResources();
 
     for (auto framebuffer : m_framebuffersForward) {
         m_vkctx.deviceFunctions()->vkDestroyFramebuffer(m_vkctx.device(), framebuffer, nullptr);
@@ -210,10 +201,6 @@ void VulkanRenderer::releaseResources()
         m_vkctx.deviceFunctions()->vkDestroyFence(m_vkctx.device(), m_fenceInFlight[f], nullptr);        
     }
 
-    m_scene->releaseResources();
-    m_materialSystem.releaseResources();
-    m_textures.releaseResources();
-
     /* Destroy cubemaps */
     {
         AssetManager<std::string, Cubemap>& instance = AssetManager<std::string, Cubemap>::getInstance();
@@ -243,114 +230,67 @@ void VulkanRenderer::releaseResources()
 
 void VulkanRenderer::waitIdle()
 {
-    /* Wait CPU to idle */
-    for(;;) {
-        if (m_status == STATUS::IDLE || m_status == STATUS::STOPPED) break;
-    }
-
     /* Wait GPU to idle */
     m_vkctx.deviceFunctions()->vkDeviceWaitIdle(m_vkctx.device());
 }
 
-void VulkanRenderer::startRenderLoop()
+VkResult VulkanRenderer::renderFrame()
 {
-    m_renderThread = std::thread(&VulkanRenderer::renderLoop, this);
-}
+    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-void VulkanRenderer::renderLoopActive(bool active)
-{
-    if (m_swapchain == nullptr)
-    {
-        return;
+    /* Wait previous render operation to finish */
+    VkResult result = m_vkctx.deviceFunctions()->vkWaitForFences(m_vkctx.device(), 1, &m_fenceInFlight[m_currentFrame], VK_TRUE, UINT64_MAX);
+
+    /* Get next available image */
+    uint32_t imageIndex;
+    result = vkAcquireNextImageKHR(m_vkctx.device(), m_swapchain.swapchain(), UINT64_MAX, m_semaphoreImageAvailable[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+    if (result != VK_SUCCESS) {
+        return result;
     }
 
-    m_renderLoopActive = active;
-}
+    m_vkctx.deviceFunctions()->vkResetFences(m_vkctx.device(), 1, &m_fenceInFlight[m_currentFrame]);
 
-void VulkanRenderer::stopRenderLoop()
-{
-    m_renderLoopExit = true;
-    m_renderThread.join();
-}
+    /* Record command buffer */
+    m_vkctx.deviceFunctions()->vkResetCommandBuffer(m_commandBuffer[m_currentFrame], 0);
+    buildFrame(imageIndex, m_commandBuffer[m_currentFrame]);
 
-void VulkanRenderer::renderLoop()
-{
-    for(;;)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-
-        if (m_renderLoopExit) {
-            break;
-        }
-
-        if (!m_renderLoopActive)
-        {
-            m_status = STATUS::IDLE;
-            continue;
-        }
-
-        m_status = STATUS::RUNNING;
-        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
-        /* Wait previous render operation to finish */
-        VkResult result = m_vkctx.deviceFunctions()->vkWaitForFences(m_vkctx.device(), 1, &m_fenceInFlight[m_currentFrame], VK_TRUE, UINT64_MAX);
-
-        /* Get next available image */
-        uint32_t imageIndex;
-        result = vkAcquireNextImageKHR(m_vkctx.device(), m_swapchain->swapchain(), UINT64_MAX, m_semaphoreImageAvailable[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
-        if (result != VK_SUCCESS) {
-            continue;
-        }
-
-        m_vkctx.deviceFunctions()->vkResetFences(m_vkctx.device(), 1, &m_fenceInFlight[m_currentFrame]);
-
-        /* Record command buffer */
-        m_vkctx.deviceFunctions()->vkResetCommandBuffer(m_commandBuffer[m_currentFrame], 0);
-        buildFrame(imageIndex, m_commandBuffer[m_currentFrame]);
-
-        /* Submit command buffer */
-        VkSemaphore waitSemaphores[] = { m_semaphoreImageAvailable[m_currentFrame] };
-        VkSemaphore signalSemaphores[] = { m_semaphoreRenderFinished[m_currentFrame] };
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphores;
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &m_commandBuffer[m_currentFrame];
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
-        result = m_vkctx.deviceFunctions()->vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, m_fenceInFlight[m_currentFrame]);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("VulkanRenderer::renderFrame(): Failed to submit the command buffer: " + std::to_string(result));
-        }
-
-        /* Present to swapchain */
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
-        VkSwapchainKHR swapChains[] = { m_swapchain->swapchain() };
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapChains;
-        presentInfo.pImageIndices = &imageIndex;
-        result = vkQueuePresentKHR(m_vkctx.presentQueue(), &presentInfo);
-        if (result != VK_SUCCESS) {
-            continue;
-        }
+    /* Submit command buffer */
+    VkSemaphore waitSemaphores[] = { m_semaphoreImageAvailable[m_currentFrame] };
+    VkSemaphore signalSemaphores[] = { m_semaphoreRenderFinished[m_currentFrame] };
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_commandBuffer[m_currentFrame];
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+    result = m_vkctx.deviceFunctions()->vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, m_fenceInFlight[m_currentFrame]);
+    if (result != VK_SUCCESS) {
+        return result;
     }
 
-    m_status = STATUS::STOPPED;
+    /* Present to swapchain */
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    VkSwapchainKHR swapChains[] = { m_swapchain.swapchain() };
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    result = vkQueuePresentKHR(m_vkctx.presentQueue(), &presentInfo);
+    if (result != VK_SUCCESS) {
+        return result;
+    }
+
+    return VK_SUCCESS;
 }
 
 void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {   
-    /* Calculate delta time */
-    auto currentTime = std::chrono::steady_clock::now();
-    m_deltaTime = (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_frameTimePrev).count()) / 1000.0f;
-    m_frameTimePrev = currentTime;
-
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
     m_scene->updateSceneGraph();
     /* TODO(optimization) check if anything has changed to not traverse the entire tree */
@@ -360,7 +300,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
     m_scene->updateBuffers(static_cast<uint32_t>(imageIndex));
 
     /* Update material data changes to GPU */
-    m_materialSystem.updateBuffers(static_cast<uint32_t>(imageIndex));
+    m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
 
     /* Update texture changes to GPU */
     m_textures.updateTextures();
@@ -391,7 +331,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         rpBeginInfo.renderPass = m_renderPassForward;
         rpBeginInfo.framebuffer = m_framebuffersForward[imageIndex];
         rpBeginInfo.renderArea.offset = { 0, 0 };
-        rpBeginInfo.renderArea.extent = m_swapchain->extent();
+        rpBeginInfo.renderArea.extent = m_swapchain.extent();
         rpBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());;
         rpBeginInfo.pClearValues = clearValues.data();
         m_vkctx.deviceFunctions()->vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -442,7 +382,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
             m_scene->descriptorSetSceneData(imageIndex),
             m_scene->descriptorSetModelData(imageIndex),
             skybox->getDescriptor(imageIndex),
-            m_materialSystem.descriptor(imageIndex),
+            m_materials.descriptor(imageIndex),
             m_textures.descriptorTextures(),
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
@@ -452,7 +392,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
             m_scene->descriptorSetSceneData(imageIndex),
             m_scene->descriptorSetModelData(imageIndex),
             skybox->getDescriptor(imageIndex),
-            m_materialSystem.descriptor(imageIndex),
+            m_materials.descriptor(imageIndex),
             m_textures.descriptorTextures(),
             imageIndex,
             m_scene->m_modelDataDynamicUBO,
@@ -482,7 +422,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
                 m_rendererPBR.renderObjectsAddPass(commandBuffer,
                     m_scene->descriptorSetSceneData(imageIndex),
                     m_scene->descriptorSetModelData(imageIndex),
-                    m_materialSystem.descriptor(imageIndex),
+                    m_materials.descriptor(imageIndex),
                     m_textures.descriptorTextures(),
                     imageIndex,
                     m_scene->m_modelDataDynamicUBO,
@@ -495,7 +435,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
                 m_rendererLambert.renderObjectsAddPass(commandBuffer,
                     m_scene->descriptorSetSceneData(imageIndex),
                     m_scene->descriptorSetModelData(imageIndex),
-                    m_materialSystem.descriptor(imageIndex),
+                    m_materials.descriptor(imageIndex),
                     m_textures.descriptorTextures(),
                     imageIndex,
                     m_scene->m_modelDataDynamicUBO,
@@ -520,7 +460,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         rpBeginInfo.renderPass = m_renderPassPost;
         rpBeginInfo.framebuffer = m_framebuffersPost[imageIndex];
         rpBeginInfo.renderArea.offset = { 0, 0 };
-        rpBeginInfo.renderArea.extent = m_swapchain->extent();
+        rpBeginInfo.renderArea.extent = m_swapchain.extent();
         rpBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());;
         rpBeginInfo.pClearValues = clearValues.data();
         
@@ -539,7 +479,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
             rpBeginInfo.renderPass = m_renderPassUI;
             rpBeginInfo.framebuffer = m_framebuffersUI[imageIndex];
             rpBeginInfo.renderArea.offset = { 0, 0 };
-            rpBeginInfo.renderArea.extent = m_swapchain->extent();
+            rpBeginInfo.renderArea.extent = m_swapchain.extent();
             rpBeginInfo.clearValueCount = 0;
             rpBeginInfo.pClearValues = nullptr;
             m_vkctx.deviceFunctions()->vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -572,7 +512,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         copyRegion.srcOffset = { 0, 0, 0 };
         copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
         copyRegion.dstOffset = { 0, 0, 0 };
-        copyRegion.extent = { m_swapchain->extent().width, m_swapchain->extent().height, 1};
+        copyRegion.extent = { m_swapchain.extent().width, m_swapchain.extent().height, 1};
         m_vkctx.deviceFunctions()->vkCmdCopyImage(commandBuffer, 
             m_attachmentHighlightForwardOutput[imageIndex].getImageResolve(), 
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
@@ -585,11 +525,6 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
     if (m_vkctx.deviceFunctions()->vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
        throw std::runtime_error("VulkanRenderer::buildFrame(): Failed to end the command buffer");
     }
-}
-
-VulkanScene* VulkanRenderer::getActiveScene() const
-{
-    return m_scene;
 }
 
 std::shared_ptr<MeshModel> VulkanRenderer::createVulkanMeshModel(std::string filename)
@@ -619,16 +554,6 @@ std::shared_ptr<MeshModel> VulkanRenderer::createVulkanMeshModel(std::string fil
     return nullptr;
 }
 
-void VulkanRenderer::setSelectedObject(std::shared_ptr<SceneObject> sceneObject)
-{
-    m_selectedObject = sceneObject;
-}
-
-std::shared_ptr<SceneObject> VulkanRenderer::getSelectedObject() const
-{
-    return m_selectedObject;
-}
-
 bool VulkanRenderer::isRTEnabled() const
 {
     return m_rendererRayTracing.isInitialized();
@@ -646,8 +571,8 @@ void VulkanRenderer::renderRT()
 glm::vec3 VulkanRenderer::selectObject(float x, float y)
 {
     /* Get the texel color at this row and column of the highlight render target */
-    uint32_t row = y * m_swapchain->extent().height;
-    uint32_t column = x * m_swapchain->extent().width;
+    uint32_t row = y * m_swapchain.extent().height;
+    uint32_t column = x * m_swapchain.extent().width;
 
     /* Since the image is stored in linear tiling, get the subresource layout to calculate the padding */
     VkImageSubresource subResource{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
@@ -672,11 +597,6 @@ glm::vec3 VulkanRenderer::selectObject(float x, float y)
     m_vkctx.deviceFunctions()->vkUnmapMemory(m_vkctx.device(), m_imageTempColorSelection.memory);
 
     return highlightTexelColor;
-}
-
-float VulkanRenderer::deltaTime() const
-{
-    return m_deltaTime;
 }
 
 std::shared_ptr<Cubemap> VulkanRenderer::createCubemap(std::string directory)
@@ -788,7 +708,7 @@ bool VulkanRenderer::createRenderPasses()
         highlightAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   /* During the subpass */
 
         VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = m_swapchain->depthFormat();
+        depthAttachment.format = m_swapchain.depthFormat();
         depthAttachment.samples = m_vkctx.msaaSamples();
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -845,7 +765,7 @@ bool VulkanRenderer::createRenderPasses()
         VkSubpassDescription renderPassPostSubpass{};
         /* One color attachment which is the swapchain output */
         VkAttachmentDescription postColorAttachment{};
-        postColorAttachment.format = m_swapchain->format();
+        postColorAttachment.format = m_swapchain.format();
         postColorAttachment.samples = m_vkctx.msaaSamples();
         postColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         postColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -857,7 +777,7 @@ bool VulkanRenderer::createRenderPasses()
         postColorAttachmentRef.attachment = 0;
         postColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   /* During the subpass */
         VkAttachmentDescription postColorAttachmentResolve{};
-        postColorAttachmentResolve.format = m_swapchain->format();
+        postColorAttachmentResolve.format = m_swapchain.format();
         postColorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
         postColorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         postColorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -908,7 +828,7 @@ bool VulkanRenderer::createRenderPasses()
         VkSubpassDescription renderPassUISubpass{};
         /* One color attachment which is the swapchain output, and one with the highlight information */
         VkAttachmentDescription swapchainColorAttachment{};
-        swapchainColorAttachment.format = m_swapchain->format();
+        swapchainColorAttachment.format = m_swapchain.format();
         swapchainColorAttachment.samples = m_vkctx.msaaSamples();
         swapchainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         swapchainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -920,7 +840,7 @@ bool VulkanRenderer::createRenderPasses()
         swapchainColorAttachmentRef.attachment = 0;
         swapchainColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;   /* During the subpass */
         VkAttachmentDescription swapchainColorAttachmentResolve{};
-        swapchainColorAttachmentResolve.format = m_swapchain->format();
+        swapchainColorAttachmentResolve.format = m_swapchain.format();
         swapchainColorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
         swapchainColorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         swapchainColorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1003,8 +923,8 @@ bool VulkanRenderer::createRenderPasses()
 
 bool VulkanRenderer::createFrameBuffers()
 {
-    uint32_t swapchainImages = m_swapchain->imageCount();
-    VkExtent2D swapchainExtent = m_swapchain->extent();
+    uint32_t swapchainImages = m_swapchain.imageCount();
+    VkExtent2D swapchainExtent = m_swapchain.extent();
 
     /* Create internal render targets for color and highlight */
     m_attachmentColorForwardOutput.resize(swapchainImages);
@@ -1044,7 +964,7 @@ bool VulkanRenderer::createFrameBuffers()
                 m_attachmentColorForwardOutput[i].getViewResolve(),
                 m_attachmentHighlightForwardOutput[i].getView(),
                 m_attachmentHighlightForwardOutput[i].getViewResolve(),
-                m_swapchain->depthStencilImageView()
+                m_swapchain.depthStencilImageView()
             };
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1064,8 +984,8 @@ bool VulkanRenderer::createFrameBuffers()
         {
             /* Create post process pass framebuffers */
             std::array<VkImageView, 2> attachments = {
-                m_swapchain->msaaImageView(),
-                m_swapchain->swapchainImageView(i)
+                m_swapchain.msaaImageView(),
+                m_swapchain.swapchainImageView(i)
             };
 
             VkFramebufferCreateInfo framebufferInfo{};
@@ -1086,8 +1006,8 @@ bool VulkanRenderer::createFrameBuffers()
         {
             /* Create UI pass framebuffers */
             std::array<VkImageView, 4> attachments = {
-                m_swapchain->msaaImageView(),
-                m_swapchain->swapchainImageView(i),
+                m_swapchain.msaaImageView(),
+                m_swapchain.swapchainImageView(i),
                 m_attachmentHighlightForwardOutput[i].getView(),
                 m_attachmentHighlightForwardOutput[i].getViewResolve()
             };
@@ -1159,8 +1079,8 @@ bool VulkanRenderer::createColorSelectionTempImage()
     /* Create temp image used to copy render result from gpu memory to cpu memory */
     bool ret = createImage(m_vkctx.physicalDevice(),
         m_vkctx.device(),
-        m_swapchain->extent().width,
-        m_swapchain->extent().height,
+        m_swapchain.extent().width,
+        m_swapchain.extent().height,
         1,
         VK_SAMPLE_COUNT_1_BIT,
         m_internalRenderFormat,
