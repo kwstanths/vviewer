@@ -8,6 +8,7 @@
 
 #include "core/Scene.hpp"
 #include "core/SceneObject.hpp"
+#include "core/Engine.hpp"
 
 #include "WidgetName.hpp"
 #include "WidgetTransform.hpp"
@@ -21,7 +22,7 @@ class WidgetRightPanel : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetRightPanel(QWidget * parent, Scene * scene);
+    WidgetRightPanel(QWidget * parent, Engine * engine);
 
     void setSelectedObject(std::shared_ptr<SceneObject> object);
 
@@ -44,15 +45,16 @@ private:
     /* Update timer */
     QTimer* m_updateTimer;
 
+    Engine * m_engine;
     std::shared_ptr<SceneObject> m_object;
 
     void deleteWidgets();
     void createUI(std::shared_ptr<SceneObject> object);
 
-public slots:
+public Q_SLOTS:
     void onTransformChanged();
 
-private slots:
+private Q_SLOTS:
     void onUpdate();
     void onSceneObjectNameChanged();
     void onComponentRemoved();
@@ -60,7 +62,7 @@ private slots:
     void onAddComponentMaterial();
     void onAddComponentLight();
 
-signals:
+Q_SIGNALS:
     void selectedSceneObjectNameChanged(QString newName);
 };
 

@@ -234,7 +234,7 @@ void VulkanRenderer::waitIdle()
     m_vkctx.deviceFunctions()->vkDeviceWaitIdle(m_vkctx.device());
 }
 
-VkResult VulkanRenderer::renderFrame()
+VkResult VulkanRenderer::renderFrame(SceneGraph& sceneGraphArray)
 {
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -252,7 +252,7 @@ VkResult VulkanRenderer::renderFrame()
 
     /* Record command buffer */
     m_vkctx.deviceFunctions()->vkResetCommandBuffer(m_commandBuffer[m_currentFrame], 0);
-    buildFrame(imageIndex, m_commandBuffer[m_currentFrame]);
+    buildFrame(sceneGraphArray, imageIndex, m_commandBuffer[m_currentFrame]);
 
     /* Submit command buffer */
     VkSemaphore waitSemaphores[] = { m_semaphoreImageAvailable[m_currentFrame] };
@@ -289,13 +289,8 @@ VkResult VulkanRenderer::renderFrame()
     return VK_SUCCESS;
 }
 
-void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer)
+void VulkanRenderer::buildFrame(SceneGraph& sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {   
-    /* TODO(optimization) check if anything has changed to not traverse the entire tree */
-    m_scene->updateSceneGraph();
-    /* TODO(optimization) check if anything has changed to not traverse the entire tree */
-    std::vector<std::shared_ptr<SceneObject>> sceneObjects = m_scene->getSceneObjects();
-
     /* Update scene data changes to GPU */
     m_scene->updateBuffers(static_cast<uint32_t>(imageIndex));
 
@@ -354,7 +349,7 @@ void VulkanRenderer::buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuff
         std::vector<std::shared_ptr<SceneObject>> pbrStandardObjects;
         std::vector<std::shared_ptr<SceneObject>> lambertObjects;
         std::vector<std::shared_ptr<SceneObject>> lights;
-        for (auto& itr : sceneObjects)
+        for (auto& itr : sceneGraphArray)
         {
             if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) 
             {

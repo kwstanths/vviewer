@@ -64,7 +64,7 @@ void VulkanWindow::exposeEvent(QExposeEvent* event)
         m_engine->initResources();
         m_engine->initSwapChainResources(static_cast<uint32_t>(size().width()), static_cast<uint32_t>(size().height()));
 
-        emit initializationFinished();
+        Q_EMIT initializationFinished();
 
         m_initialized = true;
 
@@ -144,7 +144,7 @@ void VulkanWindow::mouseReleaseEvent(QMouseEvent *ev)
 
     if (object.get() == nullptr) return;
 
-    emit sceneObjectSelected(object);
+    Q_EMIT sceneObjectSelected(object);
 }
 
 void VulkanWindow::mouseMoveEvent(QMouseEvent *ev) 
@@ -208,7 +208,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *ev)
             position += selectedObjectTransform.getX() * movementSensitivity * movement;
             
             selectedObjectTransform.setPosition(position);
-            emit selectedObjectPositionChanged();
+            Q_EMIT selectedObjectPositionChanged();
             break;
         }
         case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW):
@@ -226,7 +226,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *ev)
             position += selectedObjectTransform.getZ() * movementSensitivity * movement;
 
             selectedObjectTransform.setPosition(position);
-            emit selectedObjectPositionChanged();
+            Q_EMIT selectedObjectPositionChanged();
             break;
         }
         case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW):
@@ -244,7 +244,7 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *ev)
             position += selectedObjectTransform.getY() * movementSensitivity * movement;
 
             selectedObjectTransform.setPosition(position);
-            emit selectedObjectPositionChanged();
+            Q_EMIT selectedObjectPositionChanged();
             break;
         }
         default:

@@ -1,10 +1,13 @@
 #ifndef __FreeList__
 #define __FreeList__
 
-#include <unordered_set>
+#include <iostream>
+#include <atomic>
 #include <vector>
 
-/* A class that manages free indices between 0 and nElements */
+#include <oneapi/tbb/concurrent_queue.h>
+
+/* A thread safe class that manages free indices */
 class FreeList {
 public:
 	FreeList(size_t nElements);
@@ -18,12 +21,12 @@ public:
 	void clear();
 
 private:
-	size_t m_end;
+	std::atomic<size_t> m_end;
 	size_t m_nElements;
-	std::unordered_set<size_t> m_freeElements;
+	oneapi::tbb::concurrent_queue<size_t> m_freeElements;
 };
 
-/* A class that manages nElements blocks */
+/* A thread safe class that manages free blocks */
 template<typename T>
 class FreeBlockList : public FreeList
 {

@@ -25,7 +25,7 @@ private:
     QPushButton * m_buttonOk = nullptr;
     QPushButton * m_buttonCancel = nullptr;
 
-private slots:
+private Q_SLOTS:
     void onButtonOk();
     void onButtonCancel();
 };

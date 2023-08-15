@@ -34,7 +34,7 @@ private:
     QVBoxLayout * m_layoutMain = nullptr;
     QWidget * m_widgetMaterial = nullptr;
 
-private slots:
+private Q_SLOTS:
     void onMaterialChanged(int);
 };
 

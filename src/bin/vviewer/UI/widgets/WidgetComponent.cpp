@@ -4,7 +4,10 @@
 #include <qnamespace.h>
 #include <qpushbutton.h>
 
-WidgetComponent::WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper) : QWidget(parent), m_componentWrapper(componentWrapper)
+WidgetComponent::WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper, Engine * engine) : 
+    QWidget(parent), 
+    m_componentWrapper(componentWrapper), 
+    m_engine(engine)
 {
     m_widgetEncapsulated = m_componentWrapper->generateWidget();
 
@@ -59,6 +62,10 @@ void WidgetComponent::updateHeight()
 
 void WidgetComponent::onRemoved()
 {
+    m_engine->stop();
+    m_engine->waitIdle();
     m_componentWrapper->removeComponent();
-    emit componentRemoved();
+    m_engine->start();
+    
+    Q_EMIT componentRemoved();
 }

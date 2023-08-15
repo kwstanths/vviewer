@@ -29,7 +29,7 @@ protected:
 
     void releaseResources();
 
-signals:
+Q_SIGNALS:
     /* emitted when the vulkan initialization has finished */
     void initializationFinished();
     /* emitted when the user selected an object from the 3d scene with the mouse */
@@ -57,7 +57,7 @@ private:
     void mouseReleaseEvent(QMouseEvent *ev) override;
     void mouseMoveEvent(QMouseEvent *ev) override;
 
-private slots:
+private Q_SLOTS:
     void onUpdateCamera();
 };
 

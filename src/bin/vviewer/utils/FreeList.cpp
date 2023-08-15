@@ -11,14 +11,16 @@ FreeList::FreeList(size_t nElements)
 
 size_t FreeList::getFree()
 {
-	if (m_freeElements.size() != 0) {
-		auto itr = m_freeElements.begin();
-		size_t freeElement = *itr;
-		m_freeElements.erase(itr);
+	if (!m_freeElements.empty()) {
+		size_t freeElement;
+		bool ret = m_freeElements.try_pop(freeElement);
+		if (!ret) {
+			throw std::runtime_error("FreeList: Concurrency error");
+		}
 		return freeElement;
 	}
 	else if (m_end == m_nElements) {
-		throw std::runtime_error("Free list is full");
+		throw std::runtime_error("FreeList is full");
 	}
 	else {
 		return m_end++;
@@ -28,7 +30,7 @@ size_t FreeList::getFree()
 void FreeList::remove(size_t index)
 {
 	assert(index < m_end);
-	m_freeElements.insert(index);
+	m_freeElements.push(index);
 }
 
 bool FreeList::isFull() const

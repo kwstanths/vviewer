@@ -28,7 +28,7 @@ private:
 
     QStringList getModelMeshes(const MeshModel* model);
 
-private slots:
+private Q_SLOTS:
     void onMeshModelChangedSlot(int);
     void onMeshChangedSlot(int);
 

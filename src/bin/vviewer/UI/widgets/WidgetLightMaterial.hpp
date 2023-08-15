@@ -28,7 +28,7 @@ private:
     WidgetSliderValue * m_lightIntensityWidget;
 
     QPushButton * m_buttonCreate;
-private slots:
+private Q_SLOTS:
     void onLightMaterialChanged(int);
     void onLightColorChanged(glm::vec3);
     void onLightIntensityChanged(double);

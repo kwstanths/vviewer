@@ -194,21 +194,6 @@ public:
         cm.remove<T>(t);
     }
 
-    template<typename T>
-    void markRemoved()
-    {
-        static_assert(std::is_base_of<Component, T>::value);
-
-        if (!has<T>()) return;
-        
-        const char * name = typeid(T).name();
-        T * t = static_cast<T*>(m_components[name]);
-        t->removed = false;
-
-        auto& cm = ComponentManager::getInstance();
-        cm.remove<T>(t);
-    }
-
 private:
     ID m_id;
     std::unordered_map<const char *, Component*> m_components;

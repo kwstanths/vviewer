@@ -18,11 +18,11 @@ private:
     QSlider * m_slider;
     QDoubleSpinBox * m_spinBox;
 
-public slots:
+public Q_SLOTS:
     void onSliderChanged(int);
     void onSpinBoxChanged(double);
 
-signals:
+Q_SIGNALS:
     void valueChanged(double);
 };
 

@@ -34,7 +34,7 @@ private:
 
     void setColorButtonColor();
 
-private slots:
+private Q_SLOTS:
     void onColorButton();
     void onColorChanged(QColor color);
     void onColorTextureChanged(int);

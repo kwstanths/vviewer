@@ -44,6 +44,6 @@ void WidgetColorButton::onColorChanged(QColor color)
 {
     m_color = color;
 
-    emit colorChanged(glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f));
+    Q_EMIT colorChanged(glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f));
 }
 

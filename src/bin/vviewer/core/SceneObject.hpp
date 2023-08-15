@@ -6,7 +6,7 @@
 #include <utils/ECS.hpp>
 #include "MeshModel.hpp"
 #include "Materials.hpp"
-#include "SceneGraph.hpp"
+#include "SceneNode.hpp"
 
 class SceneObject : public SceneNode<SceneObject> , public Entity {
 public:

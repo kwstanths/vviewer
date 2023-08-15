@@ -29,7 +29,7 @@ private:
 
     std::shared_ptr<SceneObject> m_sceneObject;
 
-private slots:
+private Q_SLOTS:
     void onTransformChangedSlot(double d);
 
 };

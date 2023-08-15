@@ -9,7 +9,7 @@
 #ifndef NDEBUG 
     #define VULKAN_CHECK(VK_RESULT) if (VK_RESULT != VK_SUCCESS) { utils::ConsoleWarning(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " " + std::to_string(VK_RESULT)); }
 #else
-    #define VULKAN_CHECK(LOCATION, VK_RESULT) 
+    #define VULKAN_CHECK(VK_RESULT) 
 #endif
 
 #endif

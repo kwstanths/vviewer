@@ -143,10 +143,10 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene* scene)
 
     /* Get the scene objects */
     std::vector<glm::mat4> sceneObjectMatrices;
-    std::vector<std::shared_ptr<SceneObject>> sceneObjects = scene->getSceneObjects(sceneObjectMatrices);
+    SceneGraph sceneObjects = scene->getSceneObjectsArray(sceneObjectMatrices);
     if (sceneObjects.size() == 0)
     {
-        utils::ConsoleWarning("Trying to ray trace an empty scene");
+        utils::ConsoleWarning("Trying to render an empty scene");
         return;
     }
 

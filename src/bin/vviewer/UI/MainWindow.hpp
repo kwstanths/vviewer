@@ -87,7 +87,7 @@ private:
 
     bool event(QEvent* event) override;
 
-private slots:
+private Q_SLOTS:
     /* Import a model */
     void onImportModelSlot();
     /* Import a color texture */

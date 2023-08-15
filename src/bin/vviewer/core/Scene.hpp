@@ -28,6 +28,9 @@ struct SceneData {
     glm::vec4 m_exposure; /* R = exposure, G = ambient environment map multiplier, B = , A = */
 };
 
+typedef std::vector<std::shared_ptr<SceneObject>> SceneGraph;
+ 
+
 class Scene {
 public:
     Scene();
@@ -62,8 +65,10 @@ public:
     void removeSceneObject(std::shared_ptr<SceneObject> node);
 
     void updateSceneGraph();
-    std::vector<std::shared_ptr<SceneObject>> getSceneObjects() const;
-    std::vector<std::shared_ptr<SceneObject>> getSceneObjects(std::vector<glm::mat4>& modelMatrices) const;
+
+    /* Get all scene objects in a flat array */
+    SceneGraph getSceneObjectsArray() const;
+    SceneGraph getSceneObjectsArray(std::vector<glm::mat4>& modelMatrices) const;
 
     std::shared_ptr<SceneObject> getSceneObject(ID id) const;
     
@@ -75,7 +80,6 @@ protected:
     
     std::shared_ptr<Camera> m_camera = nullptr;
     
-    std::vector<std::shared_ptr<SceneObject>> m_sceneGraph;
     std::unordered_map<ID, std::shared_ptr<SceneObject>> m_objectsMap;
 
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
@@ -83,8 +87,8 @@ protected:
     glm::vec3 m_backgroundColor = { 0, 0.5, 0.5 };
 
     virtual std::shared_ptr<SceneObject> createObject(std::string name) = 0;
-    
-    void removeIDs(std::vector<std::shared_ptr<SceneObject>>& objects);
+
+    SceneGraph m_sceneGraph;
 };
 
 #endif

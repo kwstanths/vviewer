@@ -1,5 +1,6 @@
 #include "VulkanEngine.hpp"
 
+#include "IncludeVulkan.hpp"
 #include "VulkanLimits.hpp"
 
 VulkanEngine::VulkanEngine() : 
@@ -115,13 +116,19 @@ void VulkanEngine::mainLoop()
 
         m_status = STATUS::RUNNING;
 
+        /* update scene */
+        m_scene->updateSceneGraph();
+        
+        /* parse scene */
+        SceneGraph sceneGraphArray = m_scene->getSceneObjectsArray();
+
         /* Calculate delta time */
         auto currentTime = std::chrono::steady_clock::now();
         m_deltaTime = (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_frameTimePrev).count()) / 1000.0f;
         m_frameTimePrev = currentTime;
 
         /* Render frame */
-        VULKAN_CHECK(m_renderer->renderFrame());
+        VULKAN_CHECK(m_renderer->renderFrame(sceneGraphArray));
 
     }
 

@@ -28,23 +28,27 @@ macro(SetupEnvironment)
     set(GLM_DIR ${PROJECT_ROOT}/src/lib/external/glm/)
     set(GLM_INCLUDE_DIRS ${GLM_DIR})
     
-    #STB
+    # STB
     set(STB_DIR ${PROJECT_ROOT}/src/lib/external/stb)
     set(STB_INCLUDE_DIRS ${STB_DIR})
     
-    #RAPIDJSON
+    # RAPIDJSON
     set(RAPIDJSON_DIR ${PROJECT_ROOT}/src/lib/external/rapidjson)
     set(RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_DIR}/include)
 
-    #kuba-zip
+    # kuba-zip
     set(ZIP_DIR ${PROJECT_ROOT}/src/lib/external/zip)
     set(ZIP_INCLUDE_DIRS ${ZIP_DIR}/src)
     set(ZIP_LIBRARIES zip)
 
+    # TBB
+    set(TBB_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/external/oneTBB/include)
+    set(TBB_LIBRARIES tbb)
+
     # UTILS
     set(UTILS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/utils/)
     set(UTILS_LIBRARIES utils)
-    
+   
     if(MSVC)
         #ASSIMP
         set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP_LIBS)
@@ -59,5 +63,27 @@ macro(SetupEnvironment)
         
         set(ASSIMP_LIBRARIES /usr/lib/x86_64-linux-gnu/libassimp.so)
     endif()
+
+    set(ENGINE_INCLUDE_DIRS 
+        ${INTERNAL_LIBRARIES_ROOT}
+        ${QT_INCLUDE_DIRS} 
+        ${VULKAN_INCLUDE_DIRS}
+        ${GLM_INCLUDE_DIRS}
+        ${STB_INCLUDE_DIRS}
+        ${RAPIDJSON_INCLUDE_DIRS}
+        ${ZIP_INCLUDE_DIRS}
+        ${TBB_INCLUDE_DIRS}
+        ${UTILS_INCLUDE_DIRS}
+        ${ASSIMP_INCLUDE_DIRS}
+	)
+	
+	set(ENGINE_LIBS
+		${QT_LIBRARIES}
+		${VULKAN_LIBRARIES}
+		${ZIP_LIBRARIES}
+		${TBB_LIBRARIES}
+		${UTILS_LIBRARIES}
+		${ASSIMP_LIBRARIES}
+	)
 
 endmacro()

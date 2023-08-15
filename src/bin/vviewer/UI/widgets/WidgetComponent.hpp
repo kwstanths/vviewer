@@ -12,6 +12,7 @@
 #include "UI/widgets/WidgetLight.hpp"
 #include "core/Materials.hpp"
 #include "core/SceneObject.hpp"
+#include "core/Engine.hpp"
 #include "utils/ECS.hpp"
 
 #include "WidgetMeshModel.hpp"
@@ -36,7 +37,7 @@ protected:
 class WidgetComponent : public QWidget {
     Q_OBJECT
 public:
-    WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper);
+    WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper, Engine * engine);
     ~WidgetComponent();
 
     template<typename T>
@@ -50,11 +51,12 @@ public:
 private:
     QWidget * m_widgetEncapsulated;
     UIComponentWrapper * m_componentWrapper;
+    Engine * m_engine;
 
-private slots:
+private Q_SLOTS:
     void onRemoved();
 
-signals:
+Q_SIGNALS:
     void componentRemoved();
 
 };
@@ -70,7 +72,7 @@ public:
 
     void removeComponent()
     {
-        m_object->markRemoved<ComponentMesh>();
+        m_object->remove<ComponentMesh>();
         return;
     }
 
@@ -93,7 +95,7 @@ public:
 
     void removeComponent()
     {
-        m_object->markRemoved<ComponentMaterial>();
+        m_object->remove<ComponentMaterial>();
         return;
     }
 
@@ -123,7 +125,7 @@ public:
 
     void removeComponent()
     {
-        m_object->markRemoved<ComponentLight>();
+        m_object->remove<ComponentLight>();
         return;
     }
 

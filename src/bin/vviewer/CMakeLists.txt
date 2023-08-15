@@ -11,15 +11,7 @@ include(${PROJECT_ROOT}/src/lib/SetupEnvironment.cmake)
 SetupEnvironment()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${INTERNAL_LIBRARIES_ROOT})
-include_directories(${QT_INCLUDE_DIRS})
-include_directories(${VULKAN_INCLUDE_DIRS})
-include_directories(${UTILS_INCLUDE_DIRS})
-include_directories(${GLM_INCLUDE_DIRS})
-include_directories(${STB_INCLUDE_DIRS})
-include_directories(${ASSIMP_INCLUDE_DIRS})
-include_directories(${RAPIDJSON_INCLUDE_DIRS})
-include_directories(${ZIP_INCLUDE_DIRS})
+include_directories(${ENGINE_INCLUDE_DIRS})
 
 # Sources
 file(GLOB ${NAME}_HEADERS *.hpp)
@@ -51,9 +43,10 @@ add_executable(${NAME} ${GUI_TYPE}
 	)
 
 target_compile_features(${NAME} PRIVATE cxx_std_17)
+target_compile_definitions(${NAME} PRIVATE QT_NO_KEYWORDS)
     
 # Libraries
-target_link_libraries(${NAME} ${QT_LIBRARIES} ${VULKAN_LIBRARIES} ${UTILS_LIBRARIES} ${ASSIMP_LIBRARIES} ${ZIP_LIBRARIES})
+target_link_libraries(${NAME} ${ENGINE_LIBS})
 
 source_group("top_level\\"	FILES	${${NAME}_HEADERS} ${${NAME}_SOURCES})
 source_group("math\\"		FILES	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES})

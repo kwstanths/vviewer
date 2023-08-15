@@ -64,7 +64,7 @@ public:
     std::shared_ptr<Cubemap> createCubemap(std::string directory);
     std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
 
-    VkResult renderFrame();
+    VkResult renderFrame(SceneGraph& sceneGraphArray);
 
     /* Blocks and waits for the renderer to idle, stop the renderer before waiting here */
     void waitIdle();
@@ -80,7 +80,7 @@ private:
     bool createColorSelectionTempImage();
     
     /* Render */
-    void buildFrame(uint32_t imageIndex, VkCommandBuffer commandBuffer);
+    void buildFrame(SceneGraph& sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer);
 
 private:
     VulkanContext& m_vkctx;

@@ -43,11 +43,11 @@ void WidgetSliderValue::onSliderChanged(int)
 {
     double value = (double) m_slider->value() / m_scale;
     m_spinBox->setValue(value);
-    emit valueChanged(value);
+    Q_EMIT valueChanged(value);
 }
 
 void WidgetSliderValue::onSpinBoxChanged(double)
 {
     m_slider->setValue(m_spinBox->value() * m_scale);
-    emit valueChanged(m_spinBox->value());
+    Q_EMIT valueChanged(m_spinBox->value());
 }

@@ -150,14 +150,14 @@ void Scene::updateSceneGraph()
     }
 }
 
-std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects() const
+std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray() const
 {
     std::vector<std::shared_ptr<SceneObject>> temp;
 
     for (auto&& rootNode : m_sceneGraph)
     {
         temp.push_back(rootNode);
-        auto rootNodeObjects = rootNode->getSceneObjects();
+        auto rootNodeObjects = rootNode->getSceneObjectsArray();
 
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
     }
@@ -165,7 +165,7 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects() const
     return temp;
 }
 
-std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects(std::vector<glm::mat4>& modelMatrices) const
+std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray(std::vector<glm::mat4>& modelMatrices) const
 {
     std::vector<std::shared_ptr<SceneObject>> temp;
     modelMatrices.clear();
@@ -175,7 +175,7 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjects(std::vector<glm
         temp.push_back(rootNode);
         modelMatrices.push_back(rootNode->m_modelMatrix);
         std::vector<glm::mat4> rootNodeMatrices;
-        auto rootNodeObjects = rootNode->getSceneObjects(rootNodeMatrices);
+        auto rootNodeObjects = rootNode->getSceneObjectsArray(rootNodeMatrices);
 
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
         modelMatrices.insert(modelMatrices.end(), rootNodeMatrices.begin(), rootNodeMatrices.end());

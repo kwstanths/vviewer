@@ -58,7 +58,7 @@ private:
 
     void showEvent(QShowEvent * event) override;
 
-private slots:
+private Q_SLOTS:
     void onEnvironmentChanged(int);
     void onEnvironmentMapChanged(int);
     void onBackgroundColorChanged(glm::vec3);

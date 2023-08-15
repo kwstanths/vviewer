@@ -1,5 +1,5 @@
-#ifndef __SceneGraph_hpp__
-#define __SceneGraph_hpp__
+#ifndef __Node_hpp__
+#define __Node_hpp__
 
 #include <vector>
 #include <memory>
@@ -22,8 +22,9 @@ public:
 
 	void update();
 
-	std::vector<std::shared_ptr<T>> getSceneObjects();
-	std::vector<std::shared_ptr<T>> getSceneObjects(std::vector<glm::mat4>& modelMatrices);
+	/* Get all nodes in a flat array */
+	std::vector<std::shared_ptr<T>> getSceneObjectsArray();
+	std::vector<std::shared_ptr<T>> getSceneObjectsArray(std::vector<glm::mat4>& modelMatrices);
 
 	virtual void setModelMatrix(const glm::mat4& modelMatrix) = 0;
 

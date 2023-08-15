@@ -16,7 +16,7 @@
 #include "utils/ECS.hpp"
 #include "core/AssetManager.hpp"
 
-WidgetRightPanel::WidgetRightPanel(QWidget * parent, Scene * scene): QWidget(parent)
+WidgetRightPanel::WidgetRightPanel(QWidget * parent, Engine * engine): QWidget(parent), m_engine(engine)
 {
     m_layoutControls = new QVBoxLayout();
     m_layoutControls->setAlignment(Qt::AlignTop);
@@ -27,7 +27,7 @@ WidgetRightPanel::WidgetRightPanel(QWidget * parent, Scene * scene): QWidget(par
     m_widgetScroll = new QScrollArea();
     m_widgetScroll->setWidget(m_widgetControls);
     
-    m_widgetEnvironment = new WidgetEnvironment(nullptr, scene);
+    m_widgetEnvironment = new WidgetEnvironment(nullptr, m_engine->scene());
 
     QTabWidget* widgetTab = new QTabWidget();
     widgetTab->insertTab(0, m_widgetScroll, "Scene object");
@@ -98,21 +98,21 @@ void WidgetRightPanel::createUI(std::shared_ptr<SceneObject> object)
 
     if (object->has<ComponentMesh>())
     {
-        m_selectedObjectWidgetMeshModel = new WidgetComponent(nullptr, new UIComponentMesh(object, "Mesh Model"));
+        m_selectedObjectWidgetMeshModel = new WidgetComponent(nullptr, new UIComponentMesh(object, "Mesh Model"), m_engine);
         connect(m_selectedObjectWidgetMeshModel, &WidgetComponent::componentRemoved, this, &WidgetRightPanel::onComponentRemoved);
         m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
     }
     
     if (object->has<ComponentMaterial>()) 
     {
-        m_selectedObjectWidgetMaterial = new WidgetComponent(nullptr, new UIComponentMaterial(object, "Material"));
+        m_selectedObjectWidgetMaterial = new WidgetComponent(nullptr, new UIComponentMaterial(object, "Material"), m_engine);
         connect(m_selectedObjectWidgetMaterial, &WidgetComponent::componentRemoved, this, &WidgetRightPanel::onComponentRemoved);
         m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
     }
 
     if (object->has<ComponentLight>()) 
     {
-        m_selectedObjectWidgetLight = new WidgetComponent(nullptr, new UIComponentLight(object, "Light"));
+        m_selectedObjectWidgetLight = new WidgetComponent(nullptr, new UIComponentLight(object, "Light"), m_engine);
         connect(m_selectedObjectWidgetLight, &WidgetComponent::componentRemoved, this, &WidgetRightPanel::onComponentRemoved);
         m_layoutControls->addWidget(m_selectedObjectWidgetLight);
     }
@@ -151,7 +151,7 @@ void WidgetRightPanel::onTransformChanged()
 void WidgetRightPanel::onSceneObjectNameChanged()
 {
     QString newName = m_selectedObjectWidgetName->m_text->toPlainText();
-    emit selectedSceneObjectNameChanged(newName);
+    Q_EMIT selectedSceneObjectNameChanged(newName);
 }
 
 void WidgetRightPanel::onComponentRemoved()
@@ -165,7 +165,12 @@ void WidgetRightPanel::onAddComponentMesh()
     AssetManager<std::string, MeshModel>& instanceModels = AssetManager<std::string, MeshModel>::getInstance();
     auto sphere = instanceModels.get("assets/models/uvsphere.obj");
 
+    m_engine->stop();
+    m_engine->waitIdle();
+
     m_object->add<ComponentMesh>().mesh = sphere->getMeshes()[0];
+
+    m_engine->start();
 
     deleteWidgets();
     createUI(m_object);
@@ -176,7 +181,12 @@ void WidgetRightPanel::onAddComponentMaterial()
     AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
     auto matDef = instanceMaterials.get("defaultMaterial");
 
+    m_engine->stop();
+    m_engine->waitIdle();
+
     m_object->add<ComponentMaterial>().material = matDef;
+
+    m_engine->start();
 
     deleteWidgets();
     createUI(m_object);
@@ -187,7 +197,12 @@ void WidgetRightPanel::onAddComponentLight()
     AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
     auto pointLightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
+    m_engine->stop();
+    m_engine->waitIdle();
+
     m_object->add<ComponentLight>().light = std::make_shared<Light>("PointLight", LightType::POINT_LIGHT, pointLightMaterial);
+
+    m_engine->start();
 
     deleteWidgets();
     createUI(m_object);

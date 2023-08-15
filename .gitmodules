@@ -10,3 +10,6 @@
 [submodule "src/lib/external/zip"]
 	path = src/lib/external/zip
 	url = https://github.com/kuba--/zip.git
+[submodule "src/lib/external/oneTBB"]
+	path = src/lib/external/oneTBB
+	url = https://github.com/oneapi-src/oneTBB.git

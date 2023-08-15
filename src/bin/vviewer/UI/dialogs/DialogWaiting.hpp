@@ -27,7 +27,7 @@ private:
 
     void closeEvent (QCloseEvent *event);
     
-private slots:
+private Q_SLOTS:
     void update();
 };
 

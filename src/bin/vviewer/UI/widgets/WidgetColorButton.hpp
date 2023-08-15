@@ -17,11 +17,11 @@ private:
     QPushButton* m_colorButton;
     QColor m_color;
 
-private slots:
+private Q_SLOTS:
     void onColorButtonPressed();
     void onColorChanged(QColor color);
 
-signals:
+Q_SIGNALS:
     void colorChanged(glm::vec3);
 };
 

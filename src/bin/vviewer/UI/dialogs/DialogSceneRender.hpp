@@ -44,7 +44,7 @@ private:
     QPushButton* m_buttonRender = nullptr;
     QPushButton* m_buttonCancel = nullptr;
 
-private slots:
+private Q_SLOTS:
     void onButtonSetRenderOutputFile();
     void onButtonRender();
     void onButtonCancel();

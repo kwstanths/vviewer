@@ -88,7 +88,7 @@ QWidget * MainWindow::initVulkanWindowWidget()
 
 QWidget * MainWindow::initRightPanel()
 {
-    m_widgetRightPanel = new WidgetRightPanel(this, m_vulkanWindow->engine()->scene());
+    m_widgetRightPanel = new WidgetRightPanel(this, m_vulkanWindow->engine());
     connect(m_widgetRightPanel, &WidgetRightPanel::selectedSceneObjectNameChanged, this, &MainWindow::onSelectedSceneObjectNameChangedSlot);
     connect(m_vulkanWindow, &VulkanWindow::selectedObjectPositionChanged, m_widgetRightPanel, &WidgetRightPanel::onTransformChanged);
 
@@ -987,8 +987,8 @@ void MainWindow::onDuplicateSceneObjectSlot()
     QTreeWidgetItem* selectedItem = m_sceneGraphWidget->currentItem();
 
     std::function<void(QTreeWidgetItem*, QTreeWidgetItem*)> duplicate;
-    duplicate = [&](QTreeWidgetItem* item, QTreeWidgetItem* parent) { 
-        std::shared_ptr<SceneObject> so = m_sceneGraphWidget->getSceneObject(item);
+    duplicate = [&](QTreeWidgetItem* duplicatedItem, QTreeWidgetItem* parent) { 
+        std::shared_ptr<SceneObject> so = m_sceneGraphWidget->getSceneObject(duplicatedItem);
         auto newObject = createEmptySceneObject(so->m_name + " (D)", so->m_localTransform, parent);
 
         if (so->has<ComponentLight>())
@@ -1005,9 +1005,9 @@ void MainWindow::onDuplicateSceneObjectSlot()
             newObject.second->add<ComponentMaterial>().material = so->get<ComponentMaterial>().material;
         }
 
-        for(int c = 0; c < item->childCount(); c++)
+        for(int c = 0; c < duplicatedItem->childCount(); c++)
         {
-            duplicate(item->child(c), newObject.first);
+            duplicate(duplicatedItem->child(c), newObject.first);
         }
     };
 

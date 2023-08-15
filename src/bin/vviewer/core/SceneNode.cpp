@@ -1,4 +1,4 @@
-#include "SceneGraph.hpp"
+#include "SceneNode.hpp"
 
 #include <iostream>
 
@@ -39,14 +39,14 @@ void SceneNode<SceneObject>::update()
 }
 
 template<>
-std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjects()
+std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjectsArray()
 {
 	std::vector<std::shared_ptr<SceneObject>> temp;
 
 	for (auto&& child : m_children)
 	{
 		temp.push_back(child);
-		auto childrenObjects = child->getSceneObjects();
+		auto childrenObjects = child->getSceneObjectsArray();
 
 		temp.insert(temp.end(), childrenObjects.begin(), childrenObjects.end());
 	}
@@ -55,7 +55,7 @@ std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObject
 }
 
 template<>
-std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjects(std::vector<glm::mat4>& modelMatrices)
+std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjectsArray(std::vector<glm::mat4>& modelMatrices)
 {
 	std::vector<std::shared_ptr<SceneObject>> temp;
 
@@ -65,7 +65,7 @@ std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObject
 		modelMatrices.push_back(child->m_modelMatrix);
 
 		std::vector<glm::mat4> childrenMatrices;
-		auto childrenObjects = child->getSceneObjects(childrenMatrices);
+		auto childrenObjects = child->getSceneObjectsArray(childrenMatrices);
 
 		temp.insert(temp.end(), childrenObjects.begin(), childrenObjects.end());
 		modelMatrices.insert(modelMatrices.end(), childrenMatrices.begin(), childrenMatrices.end());

@@ -30,7 +30,7 @@ private:
     std::string m_pickedModel = "";
     std::string m_pickedMaterial = "";
 
-private slots:
+private Q_SLOTS:
     void onButtonOk();
     void onButtonCancel();
 };

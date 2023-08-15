@@ -26,7 +26,7 @@ private:
 
     WidgetLightMaterial * m_widgetLightMaterial;
 
-private slots:
+private Q_SLOTS:
     void onLightTypeChanged(int);
 };
 
