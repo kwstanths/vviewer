@@ -14,7 +14,7 @@
 #include "TerminalColors.hpp"
 #include "DebugLevels.hpp"
 
-namespace utils {
+namespace debug_tools {
     
     /**
         Print anything fast

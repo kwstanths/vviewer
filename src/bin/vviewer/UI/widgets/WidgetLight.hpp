@@ -8,6 +8,7 @@
 #include <qlabel.h>
 
 #include <core/Lights.hpp>
+#include <utils/ECS.hpp>
 
 #include "WidgetLightMaterial.hpp"
 
@@ -17,10 +18,10 @@ class WidgetLight : public QWidget
     Q_OBJECT
 public:
     static const int HEIGHT = 210;
-    WidgetLight(QWidget * parent, ComponentLight& lightComponent);
+    WidgetLight(QWidget * parent, vengine::ComponentLight& lightComponent);
 
 private:
-    ComponentLight& m_lightComponent;
+    vengine::ComponentLight& m_lightComponent;
 
     QComboBox * m_lightTypeComboBox;
 

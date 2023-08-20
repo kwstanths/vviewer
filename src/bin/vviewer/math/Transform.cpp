@@ -3,6 +3,8 @@
 #include <glm/gtx/quaternion.hpp>
 #include <iostream>
 
+namespace vengine {
+
 Transform::Transform()
 {
     m_position = glm::vec3(0, 0, 0);
@@ -137,4 +139,6 @@ void Transform::computeBasisVectors()
     m_x = glm::rotate(m_rotation, Transform::X);
     m_y = glm::rotate(m_rotation, Transform::Y);
     m_z = glm::rotate(m_rotation, Transform::Z);
+}
+
 }

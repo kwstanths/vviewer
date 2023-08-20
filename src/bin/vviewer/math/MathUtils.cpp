@@ -1,5 +1,7 @@
 #include "MathUtils.hpp"
 
+namespace vengine {
+
 uint32_t roundPow2(uint32_t v)
 {
 	v--;
@@ -11,4 +13,6 @@ uint32_t roundPow2(uint32_t v)
 	v++;
 
 	return v;
+}
+
 }

@@ -5,7 +5,7 @@
 #include <chrono>
 #include <string>
 
-namespace utils {
+namespace debug_tools {
 
     /** A timestamp struct */
     typedef struct Timestamp{

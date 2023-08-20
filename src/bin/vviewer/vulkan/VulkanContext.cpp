@@ -2,9 +2,14 @@
 
 #include <set>
 
-#include "utils/Console.hpp"
+#include <qvulkaninstance.h>
+#include <qvulkanfunctions.h>
 
-#include "VulkanUtils.hpp"
+#include "debug_tools/Console.hpp"
+
+#include "vulkan/common/VulkanUtils.hpp"
+
+namespace vengine {
 
 VulkanContext::VulkanContext()
 {
@@ -26,7 +31,7 @@ bool VulkanContext::init(VkSurfaceKHR surface)
 
     bool res = pickPhysicalDevice();
     if (!res) {
-        utils::ConsoleFatal("VulkanContext::init(): Failed to find suitable Vulkan device");
+        debug_tools::ConsoleFatal("VulkanContext::init(): Failed to find suitable Vulkan device");
         return false;
     }
 
@@ -64,20 +69,20 @@ void VulkanContext::createVulkanInstance()
     m_vulkanInstance->setApiVersion(QVersionNumber(1, 2));
 
     if (!m_vulkanInstance->create()) {
-        utils::ConsoleFatal("VulkanContext::createVulkanInstance(): Failed to create Vulkan instance: " + std::to_string(m_vulkanInstance->errorCode()));
+        debug_tools::ConsoleFatal("VulkanContext::createVulkanInstance(): Failed to create Vulkan instance: " + std::to_string(m_vulkanInstance->errorCode()));
     }
 
     QVulkanInfoVector<QVulkanLayer> supportedLayers = m_vulkanInstance->supportedLayers();
     for (auto layer : layers) {
         if (!supportedLayers.contains(layer)) {
-            utils::ConsoleWarning("VulkanContext::createVulkanInstance(): Layer not found: " + std::string(layer));
+            debug_tools::ConsoleWarning("VulkanContext::createVulkanInstance(): Layer not found: " + std::string(layer));
         }
     }
 
     QVulkanInfoVector<QVulkanExtension> supportedExtensions = m_vulkanInstance->supportedExtensions();
     for (auto extension : extensions) {
         if (!supportedExtensions.contains(extension)) {
-            utils::ConsoleWarning("VulkanContext::createVulkanInstance(): Extension not found: " + std::string(extension));
+            debug_tools::ConsoleWarning("VulkanContext::createVulkanInstance(): Extension not found: " + std::string(extension));
         }
     }
 }
@@ -100,7 +105,7 @@ void VulkanContext::createDebugCallback()
     }
 
     if (res != VK_SUCCESS) {
-        utils::ConsoleWarning("VulkanContext::createDebugCallback(): Failed to setup the debug callback");
+        debug_tools::ConsoleWarning("VulkanContext::createDebugCallback(): Failed to setup the debug callback");
     }
 }
 
@@ -133,8 +138,8 @@ bool VulkanContext::pickPhysicalDevice()
             m_physicalDeviceProperties = deviceProperties;
 
             m_msaaSamples = getMaxUsableSampleCount(deviceProperties);
-            utils::ConsoleInfo("Using device: " + std::string(deviceProperties.deviceName));
-            utils::ConsoleInfo("MSAA samples: " + std::to_string(m_msaaSamples));
+            debug_tools::ConsoleInfo("Using device: " + std::string(deviceProperties.deviceName));
+            debug_tools::ConsoleInfo("MSAA samples: " + std::to_string(m_msaaSamples));
             return true;
         }
     }
@@ -299,4 +304,6 @@ void VulkanContext::createCommandPool()
             throw std::runtime_error("VulkanContext::createCommandPool(): Failed to create a command pool");
         }
     }
+}
+
 }

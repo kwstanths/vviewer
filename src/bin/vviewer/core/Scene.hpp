@@ -12,6 +12,7 @@
 #include "Export.hpp"
 #include "utils/ECS.hpp"
 
+namespace vengine {
 
 enum class EnvironmentType {
     /* Order matters for the UI */
@@ -70,7 +71,7 @@ public:
     SceneGraph getSceneObjectsArray() const;
     SceneGraph getSceneObjectsArray(std::vector<glm::mat4>& modelMatrices) const;
 
-    std::shared_ptr<SceneObject> getSceneObject(ID id) const;
+    std::shared_ptr<SceneObject> getSceneObject(vengine::ID id) const;
     
     void exportScene(const ExportRenderParams& renderParams) const;
 
@@ -80,7 +81,7 @@ protected:
     
     std::shared_ptr<Camera> m_camera = nullptr;
     
-    std::unordered_map<ID, std::shared_ptr<SceneObject>> m_objectsMap;
+    std::unordered_map<vengine::ID, std::shared_ptr<SceneObject>> m_objectsMap;
 
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
     std::shared_ptr<MaterialSkybox> m_skybox;
@@ -90,5 +91,7 @@ protected:
 
     SceneGraph m_sceneGraph;
 };
+
+}
 
 #endif

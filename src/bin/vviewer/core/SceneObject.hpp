@@ -8,7 +8,9 @@
 #include "Materials.hpp"
 #include "SceneNode.hpp"
 
-class SceneObject : public SceneNode<SceneObject> , public Entity {
+namespace vengine {
+
+class SceneObject : public SceneNode<SceneObject> , public vengine::Entity {
 public:
     SceneObject(const Transform& t);
     virtual ~SceneObject();
@@ -24,5 +26,7 @@ public:
 protected:
     glm::vec3 m_idRGB;
 };
+
+}
 
 #endif

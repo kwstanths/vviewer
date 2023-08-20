@@ -6,46 +6,50 @@
 #include <core/Image.hpp>
 #include <core/Texture.hpp>
 
-#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
 
-class VulkanTexture : public Texture {
+namespace vengine
+{
+
+class VulkanTexture : public Texture
+{
 public:
-    VulkanTexture(std::string name, 
-        std::shared_ptr<Image<stbi_uc>> image, 
-        TextureType type, 
-        VkPhysicalDevice physicalDevice, 
-        VkDevice device, 
-        VkQueue queue, 
-        VkCommandPool commandPool, 
-        VkFormat format,
-        bool genMipMaps);
+    VulkanTexture(std::string name,
+                  std::shared_ptr<Image<stbi_uc>> image,
+                  TextureType type,
+                  VkPhysicalDevice physicalDevice,
+                  VkDevice device,
+                  VkQueue queue,
+                  VkCommandPool commandPool,
+                  VkFormat format,
+                  bool genMipMaps);
 
-    VulkanTexture(std::string name, 
-        std::shared_ptr<Image<float>> image, 
-        TextureType type, 
-        VkPhysicalDevice physicalDevice, 
-        VkDevice device, 
-        VkQueue queue, 
-        VkCommandPool commandPool,
-        bool genMipMaps);
+    VulkanTexture(std::string name,
+                  std::shared_ptr<Image<float>> image,
+                  TextureType type,
+                  VkPhysicalDevice physicalDevice,
+                  VkDevice device,
+                  VkQueue queue,
+                  VkCommandPool commandPool,
+                  bool genMipMaps);
 
-    VulkanTexture(std::string name, 
-        TextureType type, 
-        VkFormat format, 
-        size_t width, 
-        size_t height, 
-        VkImage& image, 
-        VkDeviceMemory& imageMemory, 
-        VkImageView& imageView, 
-        VkSampler& sampler,
-        uint32_t numMips);
+    VulkanTexture(std::string name,
+                  TextureType type,
+                  VkFormat format,
+                  size_t width,
+                  size_t height,
+                  VkImage &image,
+                  VkDeviceMemory &imageMemory,
+                  VkImageView &imageView,
+                  VkSampler &sampler,
+                  uint32_t numMips);
 
     void destroy(VkDevice device);
 
     VkImage getImage() const;
     VkImageView getImageView() const;
     VkDeviceMemory getImageMemory() const;
-    VkFormat getFormat() const;    
+    VkFormat getFormat() const;
     VkSampler getSampler() const;
 
     void setBindlessResourceIndex(int32_t index);
@@ -62,8 +66,10 @@ private:
 
     int32_t m_bindlessResourceIndex = -1;
 
-    VkSampler createSampler(VkDevice device) const;
+    VkResult createSampler(VkDevice device, VkSampler &sampler) const;
     void generateMipMaps(VkDevice device, VkCommandPool commandPool, VkQueue queue);
 };
+
+}  // namespace vengine
 
 #endif

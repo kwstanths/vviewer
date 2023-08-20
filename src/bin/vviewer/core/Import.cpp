@@ -16,6 +16,8 @@
 
 using namespace rapidjson;
 
+namespace vengine {
+
 std::string importScene(std::string filename, 
 	ImportedSceneCamera& c, 
 	std::unordered_map<std::string, ImportedSceneMaterial>& materials, 
@@ -548,4 +550,6 @@ glm::quat parseRotation(const rapidjson::Value& o, std::string name, glm::quat d
         value.w = vec4.w;
         return value;
     }
+}
+
 }

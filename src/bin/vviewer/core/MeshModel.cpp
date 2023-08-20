@@ -1,5 +1,7 @@
 #include "MeshModel.hpp"
 
+namespace vengine {
+
 MeshModel::MeshModel(const std::vector<std::shared_ptr<Mesh>>& meshes)
 {
     m_meshes = meshes;
@@ -18,4 +20,6 @@ void MeshModel::setName(std::string name)
 std::string MeshModel::getName() const
 {
     return m_name;
+}
+
 }

@@ -1,7 +1,6 @@
 #include "Timestamp.hpp"
 
-
-namespace utils {
+namespace debug_tools {
 
     std::string GetStringTimestamp(){
 

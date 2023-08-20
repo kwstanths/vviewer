@@ -4,6 +4,8 @@
 #include "qlabel.h"
 #include "QCloseEvent"
 
+using namespace vengine;
+
 DialogWaiting::DialogWaiting(QWidget *parent, QString text, Task * task) : m_task(task)
 {
     m_progressBar = new QProgressBar();

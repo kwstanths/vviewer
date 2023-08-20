@@ -1,5 +1,7 @@
 #include "ECS.hpp"
 
+namespace vengine {
+
 Entity::Entity() 
 {
     m_id = IDGeneration::getInstance().getID();
@@ -15,4 +17,6 @@ void ComponentManager::clear()
     for (auto& it: m_componentBuffers) {
         it.second->clear();
     }
+}
+
 }

@@ -12,7 +12,9 @@
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetMaterialLambert.hpp"
 
-WidgetMaterial::WidgetMaterial(QWidget* parent, ComponentMaterial& materialComponent) : m_materialComponent(materialComponent)
+using namespace vengine;
+
+WidgetMaterial::WidgetMaterial(QWidget* parent, vengine::ComponentMaterial& materialComponent) : m_materialComponent(materialComponent)
 {
     auto material = materialComponent.material;
 
@@ -85,7 +87,7 @@ void WidgetMaterial::onMaterialChanged(int)
     auto material = instance.get(newMaterial);
 
     if (material == nullptr) {
-        utils::ConsoleWarning("Material: " + newMaterial + " doesn't exist");
+        debug_tools::ConsoleWarning("Material: " + newMaterial + " doesn't exist");
         return;
     }
 

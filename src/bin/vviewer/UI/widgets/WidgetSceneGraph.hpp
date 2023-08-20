@@ -9,7 +9,7 @@
 
 #include "core/SceneObject.hpp"
 
-Q_DECLARE_METATYPE(std::shared_ptr<SceneObject>)
+Q_DECLARE_METATYPE(std::shared_ptr<vengine::SceneObject>)
 
 class WidgetSceneGraph : public QTreeWidget
 {
@@ -20,22 +20,22 @@ public:
     QTreeWidgetItem * getPreviouslySelectedItem() const;
     void setPreviouslySelectedItem(QTreeWidgetItem * item);
 
-    static std::shared_ptr<SceneObject> getSceneObject(QTreeWidgetItem* item)
+    static std::shared_ptr<vengine::SceneObject> getSceneObject(QTreeWidgetItem* item)
     {
-        return item->data(0, Qt::UserRole).value<std::shared_ptr<SceneObject>>();
+        return item->data(0, Qt::UserRole).value<std::shared_ptr<vengine::SceneObject>>();
     }
 
-    QTreeWidgetItem* createTreeWidgetItem(std::shared_ptr<SceneObject> object);
+    QTreeWidgetItem* createTreeWidgetItem(std::shared_ptr<vengine::SceneObject> object);
 
     void removeItem(QTreeWidgetItem * item);
 
-    QTreeWidgetItem * getTreeWidgetItem(std::shared_ptr<SceneObject> object);
+    QTreeWidgetItem * getTreeWidgetItem(std::shared_ptr<vengine::SceneObject> object);
 
 private:
     /* Previously selected item */
     QTreeWidgetItem * m_previouslySelectedItem = nullptr;
     /* Holds a relationships between IDs and tree widget items */
-    std::unordered_map<ID, QTreeWidgetItem*> m_treeWidgetItems;
+    std::unordered_map<vengine::ID, QTreeWidgetItem*> m_treeWidgetItems;
 
 private:
     void mouseReleaseEvent(QMouseEvent *ev) override;

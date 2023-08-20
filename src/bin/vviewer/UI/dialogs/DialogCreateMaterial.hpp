@@ -16,7 +16,7 @@ class DialogCreateMaterial : public QDialog
 public:
     DialogCreateMaterial(QWidget *parent, const char *name, QStringList availableModels);
 
-    MaterialType m_selectedMaterialType = MaterialType::MATERIAL_NOT_SET;
+    vengine::MaterialType m_selectedMaterialType = vengine::MaterialType::MATERIAL_NOT_SET;
     QString m_selectedName = "";
 
 private:

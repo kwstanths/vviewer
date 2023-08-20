@@ -36,7 +36,7 @@ private:
     /* For naming new objects */
     int m_nObjects = 0;
 
-    Scene* m_scene = nullptr;
+    vengine::Scene* m_scene = nullptr;
 
     WidgetSceneGraph * m_sceneGraphWidget = nullptr;
     WidgetRightPanel * m_widgetRightPanel = nullptr;
@@ -54,7 +54,7 @@ private:
      * @param parent 
      * @return The UI tree widget item, and the actual scene object
      */
-    std::pair<QTreeWidgetItem*, std::shared_ptr<SceneObject>> createEmptySceneObject(std::string name, const Transform& transform, QTreeWidgetItem* parent);
+    std::pair<QTreeWidgetItem*, std::shared_ptr<vengine::SceneObject>> createEmptySceneObject(std::string name, const vengine::Transform& transform, QTreeWidgetItem* parent);
 
     /**
      * @brief Change UI selection to the selectedItem 
@@ -79,9 +79,9 @@ private:
      */
     void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
 
-    void addImportedSceneObject(const ImportedSceneObject& object, 
-            const std::unordered_map<std::string, ImportedSceneMaterial>& materials,
-            const std::unordered_map<std::string, ImportedSceneLightMaterial>& lights,
+    void addImportedSceneObject(const vengine::ImportedSceneObject& object, 
+            const std::unordered_map<std::string, vengine::ImportedSceneMaterial>& materials,
+            const std::unordered_map<std::string, vengine::ImportedSceneLightMaterial>& lights,
             QTreeWidgetItem * parentItem, std::string sceneFolder);
 
 
@@ -125,7 +125,7 @@ private Q_SLOTS:
     /* Currently selected item in the scene changed from UI */
     void onSelectedSceneObjectChangedSlotUI();
     /* Currently selected item in the scene changed from the 3d scene */
-    void onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<SceneObject> object);
+    void onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<vengine::SceneObject> object);
     /* Currently selected item's name in the scene changed */
     void onSelectedSceneObjectNameChangedSlot(QString newName);
 

@@ -16,7 +16,7 @@
 #include <glm/glm.hpp>
 
 #include <string>
-#include <utils/Console.hpp>
+#include <debug_tools/Console.hpp>
 
 #include "UI/widgets/WidgetRightPanel.hpp"
 #include "UI/widgets/WidgetSceneGraph.hpp"
@@ -35,8 +35,9 @@
 #include "math/Transform.hpp"
 #include "utils/ECS.hpp"
 #include "utils/Tasks.hpp"
-#include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/renderers/VulkanRendererRayTracing.hpp"
+
+using namespace vengine;
 
 MainWindow::MainWindow(QWidget *parent) :QMainWindow(parent) {
     
@@ -228,13 +229,13 @@ void MainWindow::addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string 
     AssetManager<std::string, MeshModel>& instanceModels = AssetManager<std::string, MeshModel>::getInstance();
     if (!instanceModels.isPresent(modelName))
     {
-        utils::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Mesh model " + modelName + " is not imported");
+        debug_tools::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Mesh model " + modelName + " is not imported");
         return;
     }
     AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
     if (!instanceMaterials.isPresent(material)) 
     {
-        utils::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Material " + material + " is not created");
+        debug_tools::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Material " + material + " is not created");
         return;
     }
 
@@ -351,7 +352,7 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                 newSceneObject.second->add<ComponentMaterial>().material = mat;
             }
         } else {
-            utils::ConsoleWarning("addImportedSceneObject(): Failed to import: " + sceneFolder + object.mesh->path);
+            debug_tools::ConsoleWarning("addImportedSceneObject(): Failed to import: " + sceneFolder + object.mesh->path);
         }
     }
     
@@ -432,7 +433,7 @@ void MainWindow::addImportedSceneObject(const ImportedSceneObject& object,
                     newSceneObject.second->add<ComponentMaterial>().material = instanceMaterials.get(object.light->lightMaterial);
                 }
             } else {
-                utils::ConsoleWarning("addImportedSceneObject(): Failed to import: " + sceneFolder + object.mesh->path);
+                debug_tools::ConsoleWarning("addImportedSceneObject(): Failed to import: " + sceneFolder + object.mesh->path);
             }
         }
     }
@@ -476,7 +477,7 @@ void MainWindow::onImportModelSlot()
         bool operator () (float&) {
             bool ret = renderer->createVulkanMeshModel(filename) != nullptr;
             if (ret) {
-                utils::ConsoleInfo("Model imported");
+                debug_tools::ConsoleInfo("Model imported");
             }
             return ret;
         }
@@ -510,7 +511,7 @@ void MainWindow::onImportTextureColorSlot()
                 const auto& texture = filenames[t];
                 auto tex = textures.createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_SRGB);
                 if (tex) {
-                    utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
+                    debug_tools::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
                     success = false;
                 }
@@ -548,7 +549,7 @@ void MainWindow::onImportTextureOtherSlot()
                 const auto& texture = filenames[t];
                 auto tex = textures.createTexture(texture.toStdString(), VK_FORMAT_R8G8B8A8_UNORM);
                 if (tex) {
-                    utils::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
+                    debug_tools::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
                     success = false;
                 }
@@ -581,7 +582,7 @@ void MainWindow::onImportTextureHDRSlot()
         bool operator () (float&) {
             auto tex = textures.createTextureHDR(filename);
             if (tex) {
-                utils::ConsoleInfo("Texture: " + filename + " imported");
+                debug_tools::ConsoleInfo("Texture: " + filename + " imported");
                 return true;
             }
             return false;
@@ -611,7 +612,7 @@ void MainWindow::onImportEnvironmentMap()
         bool operator () (float&) {
             auto envMap = renderer->createEnvironmentMap(filename);
             if (envMap) {
-                utils::ConsoleInfo("Environment map: " + filename + " imported");
+                debug_tools::ConsoleInfo("Environment map: " + filename + " imported");
                 return true;
             }
             return false;
@@ -644,7 +645,7 @@ void MainWindow::onImportMaterial()
         bool operator () (float&) {
             auto material = vkwindow->importMaterial(materialName, dir);
             if (material) {
-                utils::ConsoleInfo("Material: " + materialName + " has been created");
+                debug_tools::ConsoleInfo("Material: " + materialName + " has been created");
                 return true;
             } else {
                 return false;
@@ -682,7 +683,7 @@ void MainWindow::onImportMaterialZipStackSlot()
         bool operator () (float&) {
             auto material = vkwindow->importZipMaterial(materialName, filename);
             if (material) {
-                utils::ConsoleInfo("Material: " + materialName + " has been created");
+                debug_tools::ConsoleInfo("Material: " + materialName + " has been created");
                 return true;
             } else {
                 return false;
@@ -721,7 +722,7 @@ void MainWindow::onImportScene()
     try {
         sceneFolder = importScene(sceneFile.toStdString(), camera, materials, lights, env, sceneObjects);
     } catch (std::runtime_error& e) {
-        utils::ConsoleWarning("Unable to open scene file: " + std::string(e.what()));
+        debug_tools::ConsoleWarning("Unable to open scene file: " + std::string(e.what()));
         return;
     }
 
@@ -759,7 +760,7 @@ void MainWindow::onImportScene()
     m_sceneGraphWidget->blockSignals(false);
 
     /* Create new scene */
-    utils::ConsoleInfo("Importing models...");
+    debug_tools::ConsoleInfo("Importing models...");
     for (auto& o : sceneObjects) 
     {
         addImportedSceneObject(o, materials, lights, nullptr, sceneFolder);
@@ -771,7 +772,7 @@ void MainWindow::onImportScene()
     if (env.path != "") {
         auto envMap = renderer->createEnvironmentMap(sceneFolder + env.path);
         if (envMap) {
-            utils::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
+            debug_tools::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
 
             AssetManager<std::string, MaterialSkybox>& materials = AssetManager<std::string, MaterialSkybox>::getInstance();
             auto material = materials.get("skybox");
@@ -786,7 +787,7 @@ void MainWindow::onImportScene()
     }
 
     m_vulkanWindow->engine()->start();
-    utils::ConsoleInfo(sceneFile.toStdString() + " imported");
+    debug_tools::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
 
 void MainWindow::onAddEmptyObjectSlot()
@@ -851,13 +852,13 @@ void MainWindow::onAddMaterialSlot()
 
     std::string materialName = dialog->m_selectedName.toStdString();
     if (materialName == "") {
-        utils::ConsoleWarning("Material name can't be empty");
+        debug_tools::ConsoleWarning("Material name can't be empty");
         return;
     }
 
     auto material = m_vulkanWindow->engine()->materials().createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
-        utils::ConsoleWarning("Failed to create material");
+        debug_tools::ConsoleWarning("Failed to create material");
     } else {
         m_widgetRightPanel->updateAvailableMaterials();
     }
@@ -976,7 +977,7 @@ void MainWindow::onExportSceneSlot()
 
     m_scene->exportScene(params);
 
-    utils::ConsoleInfo("Scene exported: " + folderName);
+    debug_tools::ConsoleInfo("Scene exported: " + folderName);
 
     delete dialog;
 }
@@ -1092,8 +1093,8 @@ void MainWindow::onStartUpInitialization()
         auto sphere = instanceModels.get("assets/models/uvsphere.obj");
         auto plane = instanceModels.get("assets/models/plane.obj");
 
-        std::static_pointer_cast<VulkanMaterialPBRStandard>(matDef)->metallic() = 0.5;
-        std::static_pointer_cast<VulkanMaterialPBRStandard>(matDef)->roughness() = 0.5;
+        std::static_pointer_cast<MaterialPBRStandard>(matDef)->metallic() = 0.5;
+        std::static_pointer_cast<MaterialPBRStandard>(matDef)->roughness() = 0.5;
     
         auto o1 = createEmptySceneObject("sphere", Transform({0, 0, 0}, {1, 1, 1}), nullptr);
         o1.second->add<ComponentMesh>().mesh = sphere->getMeshes()[0];
@@ -1104,7 +1105,7 @@ void MainWindow::onStartUpInitialization()
         o2.second->add<ComponentMaterial>().material = matDef;
 
     } catch (std::exception& e) {
-        utils::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
+        debug_tools::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
     }
     
 }

@@ -6,6 +6,8 @@
 
 #include <math/Transform.hpp>
 
+namespace vengine {
+
 template<typename T>
 class SceneNode {
 public:
@@ -31,5 +33,7 @@ public:
 private:
 
 };
+
+}
 
 #endif

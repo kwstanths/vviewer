@@ -3,7 +3,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <utils/Console.hpp>
+namespace vengine {
 
 template <>
 stbi_uc * Image<stbi_uc>::loadDiskImage(std::string filename, int& width, int& height, int& channels) {
@@ -16,4 +16,6 @@ float * Image<float>::loadDiskImage(std::string filename, int& width, int& heigh
     stbi_set_flip_vertically_on_load(true);
     float* pixels = stbi_loadf(filename.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     return pixels;
+}
+
 }

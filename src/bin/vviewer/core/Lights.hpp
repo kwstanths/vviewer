@@ -2,11 +2,13 @@
 #define __Lights_hpp__
 
 #include <string>
+#include <memory>
 
 #include "glm/glm.hpp"
 
 #include <math/Transform.hpp>
-#include <utils/ECS.hpp>
+
+namespace vengine {
 
 enum class LightType {
     POINT_LIGHT = 0,
@@ -35,6 +37,8 @@ static float squareFalloff(glm::vec3 a, glm::vec3 b)
 {
     float distance = glm::length(a - b);
     return 1.0F / (distance * distance);
+}
+
 }
 
 #endif

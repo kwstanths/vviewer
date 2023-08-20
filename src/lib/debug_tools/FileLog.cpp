@@ -1,6 +1,6 @@
 #include "FileLog.hpp"
 
-namespace utils {
+namespace debug_tools {
 
     FileLog & FileLog::GetInstance(std::string file_name){
         static FileLog instance(file_name);

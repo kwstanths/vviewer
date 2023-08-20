@@ -21,7 +21,7 @@
 /* UI classes that represent each available component, QT doesn't support templated Q_OBJECT */
 class UIComponentWrapper {
 public:
-    UIComponentWrapper(std::shared_ptr<SceneObject> object, QString name) : m_object(object), m_name(name) {};
+    UIComponentWrapper(std::shared_ptr<vengine::SceneObject> object, QString name) : m_object(object), m_name(name) {};
     virtual ~UIComponentWrapper(){};
 
     virtual QWidget * generateWidget() = 0;
@@ -30,14 +30,14 @@ public:
 
     QString m_name;
 protected:
-    std::shared_ptr<SceneObject> m_object;
+    std::shared_ptr<vengine::SceneObject> m_object;
 };
 
 /* A UI widget to represent a specific component */
 class WidgetComponent : public QWidget {
     Q_OBJECT
 public:
-    WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper, Engine * engine);
+    WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper, vengine::Engine * engine);
     ~WidgetComponent();
 
     template<typename T>
@@ -51,7 +51,7 @@ public:
 private:
     QWidget * m_widgetEncapsulated;
     UIComponentWrapper * m_componentWrapper;
-    Engine * m_engine;
+    vengine::Engine * m_engine;
 
 private Q_SLOTS:
     void onRemoved();
@@ -63,16 +63,16 @@ Q_SIGNALS:
 
 class UIComponentMesh : public UIComponentWrapper {
 public:
-    UIComponentMesh(std::shared_ptr<SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
+    UIComponentMesh(std::shared_ptr<vengine::SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
 
     QWidget * generateWidget()
     {
-        return new WidgetMeshModel(nullptr, m_object->get<ComponentMesh>());
+        return new WidgetMeshModel(nullptr, m_object->get<vengine::ComponentMesh>());
     }
 
     void removeComponent()
     {
-        m_object->remove<ComponentMesh>();
+        m_object->remove<vengine::ComponentMesh>();
         return;
     }
 
@@ -86,25 +86,25 @@ private:
 
 class UIComponentMaterial : public UIComponentWrapper {
 public:
-    UIComponentMaterial(std::shared_ptr<SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
+    UIComponentMaterial(std::shared_ptr<vengine::SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
 
     QWidget * generateWidget()
     {
-        return new WidgetMaterial(nullptr, m_object->get<ComponentMaterial>());
+        return new WidgetMaterial(nullptr, m_object->get<vengine::ComponentMaterial>());
     }
 
     void removeComponent()
     {
-        m_object->remove<ComponentMaterial>();
+        m_object->remove<vengine::ComponentMaterial>();
         return;
     }
 
     int getWidgetHeight()
     {
-        if (m_object->get<ComponentMaterial>().material->getType() == MaterialType::MATERIAL_PBR_STANDARD)
+        if (m_object->get<vengine::ComponentMaterial>().material->getType() == vengine::MaterialType::MATERIAL_PBR_STANDARD)
         {
             return WidgetMaterial::HEIGHT_PBR;
-        } else if (m_object->get<ComponentMaterial>().material->getType() == MaterialType::MATERIAL_LAMBERT) {
+        } else if (m_object->get<vengine::ComponentMaterial>().material->getType() == vengine::MaterialType::MATERIAL_LAMBERT) {
             return WidgetMaterial::HEIGHT_LAMBERT;
         } else {
             throw std::runtime_error("UIComponentMaterial::Unexpected material");
@@ -116,16 +116,16 @@ private:
 
 class UIComponentLight : public UIComponentWrapper {
 public:
-    UIComponentLight(std::shared_ptr<SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
+    UIComponentLight(std::shared_ptr<vengine::SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
 
     QWidget * generateWidget()
     {
-        return new WidgetLight(nullptr, m_object->get<ComponentLight>());
+        return new WidgetLight(nullptr, m_object->get<vengine::ComponentLight>());
     }
 
     void removeComponent()
     {
-        m_object->remove<ComponentLight>();
+        m_object->remove<vengine::ComponentLight>();
         return;
     }
 

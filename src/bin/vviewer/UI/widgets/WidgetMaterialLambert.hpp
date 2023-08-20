@@ -17,7 +17,7 @@ class WidgetMaterialLambert: public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMaterialLambert(QWidget* parent, std::shared_ptr<MaterialLambert> material);
+    WidgetMaterialLambert(QWidget* parent, std::shared_ptr<vengine::MaterialLambert> material);
 
     QPushButton* m_colorButton;
     QSlider* m_ao;
@@ -28,7 +28,7 @@ public:
     QComboBox* m_comboBoxNormal;
 
 private:
-    std::shared_ptr<MaterialLambert> m_material = nullptr;
+    std::shared_ptr<vengine::MaterialLambert> m_material = nullptr;
 
     void setColorButtonColor();
 

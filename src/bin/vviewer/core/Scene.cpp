@@ -10,6 +10,8 @@
 #include "math/Transform.hpp"
 #include "utils/ECS.hpp"
 
+namespace vengine {
+
 Scene::Scene()
 {
     auto& lightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
@@ -184,7 +186,7 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray(std::vecto
     return temp;
 }
 
-std::shared_ptr<SceneObject> Scene::getSceneObject(ID id) const
+std::shared_ptr<SceneObject> Scene::getSceneObject(vengine::ID id) const
 {
     auto itr = m_objectsMap.find(id);
     if (itr == m_objectsMap.end()) return std::shared_ptr<SceneObject>(nullptr);
@@ -200,4 +202,6 @@ void Scene::exportScene(const ExportRenderParams& renderParams) const
     }
 
     exportJson(renderParams, m_camera, m_sceneGraph, temp);
+}
+
 }

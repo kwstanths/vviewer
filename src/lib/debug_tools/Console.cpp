@@ -1,6 +1,6 @@
 #include "Console.hpp"
 
-namespace utils {
+namespace debug_tools {
 
     void Console(DebugLevel level, std::string text, TerminalColor color){
         std::pair<std::string, TerminalColor> level_info = GetLevelInfo(level);

@@ -7,10 +7,11 @@
 
 #include <glm/glm.hpp>
 
-#include <utils/ECS.hpp>
 #include "Texture.hpp"
 #include "Cubemap.hpp"
 #include "EnvironmentMap.hpp"
+
+namespace vengine {
 
 enum class MaterialType {
     MATERIAL_NOT_SET = -1,
@@ -148,5 +149,7 @@ public:
 protected:
     std::shared_ptr<EnvironmentMap> m_envMap = nullptr;
 };
+
+}
 
 #endif

@@ -12,6 +12,8 @@
 
 #include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 
+using namespace vengine;
+
 /* A dialog to render a scene */
 class DialogSceneRender : public QDialog
 {

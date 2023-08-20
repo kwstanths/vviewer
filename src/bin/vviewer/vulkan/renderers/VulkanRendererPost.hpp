@@ -3,33 +3,35 @@
 
 #include <vector>
 
-#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/VulkanFramebuffer.hpp"
 
-class VulkanRendererPost {
+namespace vengine
+{
+
+class VulkanRendererPost
+{
     friend class VulkanRenderer;
+
 public:
     VulkanRendererPost();
 
-    void initResources(VkPhysicalDevice physicalDevice,
-        VkDevice device,
-        VkQueue queue,
-        VkCommandPool commandPool);
-    void initSwapChainResources(VkExtent2D swapchainExtent, 
-        VkRenderPass renderPass, 
-        uint32_t swapchainImages, 
-        VkSampleCountFlagBits msaaSamples,
-        const std::vector<VulkanFrameBufferAttachment>& colorattachments, 
-        const std::vector<VulkanFrameBufferAttachment>& highlightAttachments);
+    VkResult initResources(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
+    VkResult initSwapChainResources(VkExtent2D swapchainExtent,
+                                    VkRenderPass renderPass,
+                                    uint32_t swapchainImages,
+                                    VkSampleCountFlagBits msaaSamples,
+                                    const std::vector<VulkanFrameBufferAttachment> &colorattachments,
+                                    const std::vector<VulkanFrameBufferAttachment> &highlightAttachments);
 
-    void releaseSwapChainResources();
-    void releaseResources();
+    VkResult releaseSwapChainResources();
+    VkResult releaseResources();
 
     VkPipeline getPipeline() const;
     VkPipelineLayout getPipelineLayout() const;
     VkDescriptorSetLayout getDescriptorSetLayout() const;
 
-    void render(VkCommandBuffer cmdBuf, uint32_t imageIndex);
+    VkResult render(VkCommandBuffer cmdBuf, uint32_t imageIndex);
 
 private:
     VkDevice m_device;
@@ -48,11 +50,15 @@ private:
     std::vector<VkDescriptorSet> m_descriptorSets;
     VkSampler m_inputSampler;
 
-    bool createGraphicsPipeline();
-    bool createDescriptorSetsLayout();
-    bool createDescriptorPool(uint32_t imageCount);
-    bool createSampler();
-    bool createDescriptors(uint32_t imageCount, const std::vector<VulkanFrameBufferAttachment>& colorAttachments, const std::vector<VulkanFrameBufferAttachment>& highlightAttachments);
+    VkResult createGraphicsPipeline();
+    VkResult createDescriptorSetsLayout();
+    VkResult createDescriptorPool(uint32_t imageCount);
+    VkResult createSampler(VkSampler &sampler);
+    VkResult createDescriptors(uint32_t imageCount,
+                               const std::vector<VulkanFrameBufferAttachment> &colorAttachments,
+                               const std::vector<VulkanFrameBufferAttachment> &highlightAttachments);
 };
+
+}  // namespace vengine
 
 #endif

@@ -6,7 +6,7 @@
 
 #include "TerminalColors.hpp"
 
-namespace utils {
+namespace debug_tools {
 
     /** Type of debugging */
     enum DebugLevel {

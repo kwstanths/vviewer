@@ -6,7 +6,7 @@
 
 #include <glm/glm.hpp>
 
-#include <utils/ECS.hpp>
+namespace vengine {
 
 struct Vertex {
     glm::vec3 position;
@@ -55,5 +55,7 @@ private:
     bool m_hasUVs = false;
 
 };
+
+}
 
 #endif

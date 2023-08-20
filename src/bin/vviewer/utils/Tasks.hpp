@@ -3,6 +3,8 @@
 
 #include <functional>
 
+namespace vengine {
+
 struct Task {
     std::function<bool(float&)> f;
 
@@ -22,5 +24,6 @@ struct Task {
     virtual float getProgress() const { return progress; }
 };
 
+}
 
 #endif

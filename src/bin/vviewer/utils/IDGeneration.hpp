@@ -2,8 +2,11 @@
 #define __IDGeneration_hpp__
 
 #include <stdint.h>
+#include <atomic>
 
 #include <glm/glm.hpp>
+
+namespace vengine {
 
 typedef uint32_t ID;
 
@@ -35,7 +38,9 @@ public:
 private:
     IDGeneration() {}
 
-    ID m_index = 4;
+    std::atomic<ID> m_index = 4;
 };
+
+}
 
 #endif

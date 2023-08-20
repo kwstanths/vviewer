@@ -2,6 +2,8 @@
 
 #include "Console.hpp"
 
+namespace vengine {
+
 ID IDGeneration::getID()
 {
 	return m_index++;
@@ -10,7 +12,7 @@ ID IDGeneration::getID()
 glm::vec3 IDGeneration::toRGB(ID id)
 {
 	if (id > 0xFFFFFF) {
-		utils::ConsoleWarning("IdGeneration::toRGB(): ID encoding overflow");
+		debug_tools::ConsoleWarning("IdGeneration::toRGB(): ID encoding overflow");
 	}
 
 	glm::vec3 rgb;
@@ -25,4 +27,6 @@ ID IDGeneration::fromRGB(glm::vec3 rgb)
 	return static_cast<uint32_t>(rgb.r * 255.0F) |
 		(static_cast<uint32_t>(rgb.g * 255.0F) << 8) |
 		(static_cast<uint32_t>(rgb.b * 255.0F) << 16);
+}
+
 }

@@ -10,7 +10,7 @@
 QStringList getImportedModels();
 QStringList getCreatedMaterials();
 QStringList getCreatedLightMaterials();
-QStringList getImportedTextures(TextureType type);
+QStringList getImportedTextures(vengine::TextureType type);
 QStringList getImportedCubemaps();
 QStringList getImportedEnvironmentMaps();
 

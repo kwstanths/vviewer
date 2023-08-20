@@ -10,9 +10,11 @@
 #include <qdir.h>
 
 #include "Lights.hpp"
-#include "utils/Console.hpp"
+#include "debug_tools/Console.hpp"
 
 using namespace rapidjson;
+
+namespace vengine {
 
 std::string copyFileToDirectoryAndGetFileName(std::string file, std::string directory)
 {
@@ -22,7 +24,7 @@ std::string copyFileToDirectoryAndGetFileName(std::string file, std::string dire
     bool ret = sourceFile.copy(destination);
     if (!ret && sourceFile.errorString() != "Destination file exists")
     {
-        utils::ConsoleWarning("Can't export file: " + file + " with error: " + sourceFile.errorString().toStdString());
+        debug_tools::ConsoleWarning("Can't export file: " + file + " with error: " + sourceFile.errorString().toStdString());
     }
     /* Get the name of the file itself */
     QStringList destinationSplit = destination.split("/");
@@ -661,4 +663,4 @@ bool isMaterialEmissive(const Material * material)
     }
 }
 
-
+}

@@ -1,6 +1,7 @@
 #include "Timer.hpp"
 
-namespace utils {
+namespace debug_tools {
+    
     Timer::Timer() {
         Start();
     }

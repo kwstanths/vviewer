@@ -3,6 +3,8 @@
 
 #include "Image.hpp"
 
+namespace vengine {
+
 class Cubemap {
 public:
     Cubemap();
@@ -19,5 +21,7 @@ protected:
     Image<stbi_uc> * m_image_right = nullptr;
     Image<stbi_uc> * m_image_top = nullptr;
 };
+
+}
 
 #endif

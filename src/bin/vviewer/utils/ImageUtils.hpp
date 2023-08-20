@@ -3,8 +3,12 @@
 
 #include <cmath>
 
+namespace vengine {
+
 float linearToSRGB(float linear);
 
 float sRGBToLinear(float srgb);
+
+}
 
 #endif

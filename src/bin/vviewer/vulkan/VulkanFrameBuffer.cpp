@@ -1,54 +1,49 @@
 #include "VulkanFramebuffer.hpp"
 
-#include "VulkanUtils.hpp"
+#include "vulkan/common/VulkanInitializers.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/common/VulkanUtils.hpp"
 
-bool VulkanFrameBufferAttachment::init(VkPhysicalDevice physicalDevice, 
-    VkDevice device, 
-    uint32_t width, 
-    uint32_t height, 
-    VkFormat format, 
-    VkSampleCountFlagBits numSamples,
-    bool createResolveAttachment,
-    VkImageUsageFlags extraUsageFlags)
+namespace vengine
+{
+
+bool VulkanFrameBufferAttachment::init(VkPhysicalDevice physicalDevice,
+                                       VkDevice device,
+                                       uint32_t width,
+                                       uint32_t height,
+                                       VkFormat format,
+                                       VkSampleCountFlagBits numSamples,
+                                       bool createResolveAttachment,
+                                       VkImageUsageFlags extraUsageFlags)
 {
     m_format = format;
     m_hasResolveAttachment = createResolveAttachment;
 
-    bool ret = createImage(physicalDevice,
-        device,
-        width,
-        height,
-        1,
-        numSamples,
-        format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | extraUsageFlags,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        m_image,
-        m_memory);
+    VkImageCreateInfo imageInfo =
+        vkinit::imageCreateInfo({width, height, 1},
+                                format,
+                                1,
+                                numSamples,
+                                VK_IMAGE_TILING_OPTIMAL,
+                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | extraUsageFlags);
+    createImage(physicalDevice, device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_memory);
 
-    if (!ret) {
-        return ret;
-    }
+    VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    vkCreateImageView(device, &imageViewInfo, nullptr, &m_view);
 
-    m_view = createImageView(device, m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    if (createResolveAttachment) {
+        VkImageCreateInfo resolveImageInfo =
+            vkinit::imageCreateInfo({width, height, 1},
+                                    format,
+                                    1,
+                                    VK_SAMPLE_COUNT_1_BIT,
+                                    VK_IMAGE_TILING_OPTIMAL,
+                                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | extraUsageFlags);
+        createImage(physicalDevice, device, resolveImageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_imageResolve, m_memoryResolve);
 
-    if (createResolveAttachment)
-    {
-        ret = createImage(physicalDevice, 
-            device, 
-            width, 
-            height,
-            1, 
-            VK_SAMPLE_COUNT_1_BIT, 
-            format, 
-            VK_IMAGE_TILING_OPTIMAL, 
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | extraUsageFlags, 
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-            m_imageResolve, 
-            m_memoryResolve);
-            
-        m_viewResolve = createImageView(device, m_imageResolve, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        VkImageViewCreateInfo resolveImageViewInfo =
+            vkinit::imageViewCreateInfo(m_imageResolve, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        vkCreateImageView(device, &resolveImageViewInfo, nullptr, &m_viewResolve);
     }
 
     return true;
@@ -56,15 +51,14 @@ bool VulkanFrameBufferAttachment::init(VkPhysicalDevice physicalDevice,
 
 void VulkanFrameBufferAttachment::destroy(VkDevice device)
 {
-	vkDestroyImageView(device, m_view, nullptr);
-	vkDestroyImage(device, m_image, nullptr);
-	vkFreeMemory(device, m_memory, nullptr);
+    vkDestroyImageView(device, m_view, nullptr);
+    vkDestroyImage(device, m_image, nullptr);
+    vkFreeMemory(device, m_memory, nullptr);
 
-    if (m_hasResolveAttachment)
-    {
+    if (m_hasResolveAttachment) {
         vkDestroyImageView(device, m_viewResolve, nullptr);
-	    vkDestroyImage(device, m_imageResolve, nullptr);
-	    vkFreeMemory(device, m_memoryResolve, nullptr);
+        vkDestroyImage(device, m_imageResolve, nullptr);
+        vkFreeMemory(device, m_memoryResolve, nullptr);
     }
 }
 
@@ -92,3 +86,5 @@ VkImage VulkanFrameBufferAttachment::getImageResolve() const
 {
     return m_imageResolve;
 }
+
+}  // namespace vengine

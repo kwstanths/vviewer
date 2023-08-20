@@ -1,8 +1,8 @@
 #include "Mesh.hpp"
 
-#include <utils/Console.hpp>
-
 #include <glm/glm.hpp>
+
+namespace vengine {
 
 Mesh::Mesh()
 {
@@ -66,4 +66,6 @@ void Mesh::computeNormals()
     for (size_t i = 0; i < m_vertices.size(); i++) {
         m_vertices[i].normal = glm::normalize(m_vertices[i].normal);
     };
+}
+
 }

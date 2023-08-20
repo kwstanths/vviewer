@@ -1,9 +1,13 @@
 #include "VulkanMesh.hpp"
 
-#include "vulkan/VulkanUtils.hpp"
 #include "math/Constants.hpp"
+#include "vulkan/common/VulkanUtils.hpp"
 
-VulkanMesh::VulkanMesh(const Mesh & mesh) : Mesh(mesh)
+namespace vengine
+{
+
+VulkanMesh::VulkanMesh(const Mesh &mesh)
+    : Mesh(mesh)
 {
 }
 
@@ -13,22 +17,28 @@ void VulkanMesh::destroy(VkDevice device)
     m_indexBuffer.destroy(device);
 }
 
-VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes, VkBufferUsageFlags extraUsageFlags)
+VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice,
+                                 VkDevice device,
+                                 VkQueue transferQueue,
+                                 VkCommandPool transferCommandPool,
+                                 std::vector<Mesh> &meshes,
+                                 VkBufferUsageFlags extraUsageFlags)
 {
     /* Create a VulkanMesh for every mesh, allocate gpu buffers for vertices and indices and push it back to the mesh vector */
     for (size_t i = 0; i < meshes.size(); i++) {
-
-        Mesh& mesh = meshes[i];
-        if (!mesh.hasNormals()) mesh.computeNormals();
+        Mesh &mesh = meshes[i];
+        if (!mesh.hasNormals())
+            mesh.computeNormals();
 
         auto vkmesh = std::make_shared<VulkanMesh>(mesh);
-        createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), extraUsageFlags, vkmesh->vertexBuffer());
-        createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), extraUsageFlags, vkmesh->indexBuffer());
+        createVertexBuffer(
+            physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), extraUsageFlags, vkmesh->vertexBuffer());
+        createIndexBuffer(
+            physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), extraUsageFlags, vkmesh->indexBuffer());
 
         vkmesh->m_meshModel = this;
         m_meshes.push_back(vkmesh);
     }
-    
 }
 
 void VulkanMeshModel::destroy(VkDevice device)
@@ -41,36 +51,24 @@ void VulkanMeshModel::destroy(VkDevice device)
 
 VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool)
 {
-    std::vector<Vertex> vertices = {
-        {{-1.0, -1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-        {{1.0, -1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-        {{ 1.0,  1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-        {{-1.0,  1.0,  1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-        {{-1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-        {{1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-        {{1.0,  1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-        {{-1.0,  1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)}
-    };
+    std::vector<Vertex> vertices = {{{-1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                                    {{1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                                    {{1.0, 1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                                    {{-1.0, 1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                                    {{-1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                                    {{1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                                    {{1.0, 1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                                    {{-1.0, 1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)}};
 
-    std::vector<uint32_t> indices = {
-        0, 1, 2,
-        2, 3, 0,
-        1, 5, 6,
-        6, 2, 1,
-        7, 6, 5,
-        5, 4, 7,
-        4, 0, 3,
-        3, 7, 4,
-        4, 5, 1,
-        1, 0, 4,
-        3, 2, 6,
-        6, 7, 3
-    };
+    std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 7, 6, 5, 5, 4, 7,
+                                     4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
 
     Mesh mesh(vertices, indices, false, false);
     auto vkmesh = std::make_shared<VulkanMesh>(mesh);
     createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), {}, vkmesh->vertexBuffer());
     createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), {}, vkmesh->indexBuffer());
-     
+
     m_meshes.push_back(vkmesh);
 }
+
+}  // namespace vengine

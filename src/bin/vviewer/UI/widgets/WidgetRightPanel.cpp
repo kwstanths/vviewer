@@ -16,6 +16,8 @@
 #include "utils/ECS.hpp"
 #include "core/AssetManager.hpp"
 
+using namespace vengine;
+
 WidgetRightPanel::WidgetRightPanel(QWidget * parent, Engine * engine): QWidget(parent), m_engine(engine)
 {
     m_layoutControls = new QVBoxLayout();

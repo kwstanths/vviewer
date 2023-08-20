@@ -5,6 +5,8 @@
 #include <qabstractitemmodel.h>
 #include <qpoint.h>
 
+using namespace vengine;
+
 WidgetSceneGraph::WidgetSceneGraph(QWidget * parent) : QTreeWidget(parent)
 {
 

@@ -5,6 +5,8 @@
 
 #include "Cubemap.hpp"
 
+namespace vengine {
+
 class EnvironmentMap {
 public:
     EnvironmentMap(std::string name, std::shared_ptr<Cubemap> skybox, std::shared_ptr<Cubemap> irradiance, std::shared_ptr<Cubemap> prefilteredMap)
@@ -21,5 +23,7 @@ private:
     std::shared_ptr<Cubemap> m_irradianceMap;
     std::shared_ptr<Cubemap> m_prefilteredMap;
 };
+
+}
 
 #endif

@@ -7,6 +7,8 @@
 
 #include <oneapi/tbb/concurrent_queue.h>
 
+namespace vengine {
+
 /* A thread safe class that manages free indices */
 class FreeList {
 public:
@@ -51,5 +53,7 @@ public:
 private:
 	std::vector<T> m_blocks;
 };
+
+}
 
 #endif

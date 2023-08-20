@@ -9,6 +9,8 @@
 
 #include "IncludeVulkan.hpp"
 
+namespace vengine {
+
 /* Stores supported queue family indices */
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -94,5 +96,7 @@ struct LightRT {
     glm::vec4 color;     /* RGB = color or column 3 of transform matrix, A = ... */
     glm::vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
+
+}
 
 #endif

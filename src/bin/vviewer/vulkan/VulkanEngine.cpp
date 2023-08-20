@@ -1,13 +1,16 @@
 #include "VulkanEngine.hpp"
 
-#include "IncludeVulkan.hpp"
-#include "VulkanLimits.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/common/VulkanLimits.hpp"
 
-VulkanEngine::VulkanEngine() : 
-    Engine(), 
-    m_textures(m_context),
-    m_materials(m_context),
-    m_swapchain(m_context)
+namespace vengine
+{
+
+VulkanEngine::VulkanEngine()
+    : Engine()
+    , m_textures(m_context)
+    , m_materials(m_context)
+    , m_swapchain(m_context)
 {
     m_scene = new VulkanScene(m_context, VULKAN_LIMITS_MAX_OBJECTS);
     m_renderer = new VulkanRenderer(m_context, m_swapchain, m_textures, m_materials, m_scene);
@@ -21,7 +24,7 @@ VulkanEngine::~VulkanEngine()
     delete m_scene;
 }
 
-bool VulkanEngine::setSurface(VkSurfaceKHR& surface)
+bool VulkanEngine::setSurface(VkSurfaceKHR &surface)
 {
     m_context.init(surface);
 
@@ -66,7 +69,8 @@ void VulkanEngine::releaseSwapChainResources()
 
 float VulkanEngine::delta()
 {
-    if (m_status == STATUS::RUNNING) return m_deltaTime;
+    if (m_status == STATUS::RUNNING)
+        return m_deltaTime;
 
     return 0.016f;
 }
@@ -90,8 +94,9 @@ void VulkanEngine::exit()
 void VulkanEngine::waitIdle()
 {
     /* Wait for the main loop to stop or exit */
-    for(;;) {
-        if (m_status == STATUS::PAUSED || m_status == STATUS::EXITED) break;
+    for (;;) {
+        if (m_status == STATUS::PAUSED || m_status == STATUS::EXITED)
+            break;
     }
 
     /* Wait for the renderer to stop working */
@@ -100,16 +105,14 @@ void VulkanEngine::waitIdle()
 
 void VulkanEngine::mainLoop()
 {
-    for(;;)
-    {
+    for (;;) {
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
 
         if (m_threadMainExit) {
             break;
         }
 
-        if (m_threadMainPaused)
-        {
+        if (m_threadMainPaused) {
             m_status = STATUS::PAUSED;
             continue;
         }
@@ -118,7 +121,7 @@ void VulkanEngine::mainLoop()
 
         /* update scene */
         m_scene->updateSceneGraph();
-        
+
         /* parse scene */
         SceneGraph sceneGraphArray = m_scene->getSceneObjectsArray();
 
@@ -128,10 +131,10 @@ void VulkanEngine::mainLoop()
         m_frameTimePrev = currentTime;
 
         /* Render frame */
-        VULKAN_CHECK(m_renderer->renderFrame(sceneGraphArray));
-
+        VULKAN_WARNING(m_renderer->renderFrame(sceneGraphArray));
     }
 
     m_status = STATUS::EXITED;
 }
 
+}  // namespace vengine

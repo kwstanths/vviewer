@@ -6,6 +6,8 @@
 
 #include <stb_image.h>
 
+namespace vengine {
+
 template<typename T>
 class Image {
 public:
@@ -113,5 +115,7 @@ private:
 
 template<> stbi_uc * Image<stbi_uc>::loadDiskImage(std::string filename, int& width, int& height, int& channels);
 template<> float * Image<float>::loadDiskImage(std::string filename, int& width, int& height, int& channels);
+
+}
 
 #endif

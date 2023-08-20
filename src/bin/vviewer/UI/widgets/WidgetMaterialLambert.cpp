@@ -14,6 +14,8 @@
 
 #include "UI/UIUtils.hpp"
 
+using namespace vengine;
+
 WidgetMaterialLambert::WidgetMaterialLambert(QWidget* parent, std::shared_ptr<MaterialLambert> material) : QWidget(parent)
 {
     m_material = material;

@@ -2,6 +2,8 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+namespace vengine {
+
 glm::mat4 Camera::getViewMatrix() const
 {
     return glm::lookAt(m_transform.getPosition(), m_transform.getPosition() + m_transform.getForward(), m_transform.getUp());
@@ -111,4 +113,6 @@ void OrthographicCamera::setWindowSize(int width, int height)
 
     assert(m_aspectRatio != 0);
     m_orthoHeight = m_orthoWidth / m_aspectRatio;
+}
+
 }

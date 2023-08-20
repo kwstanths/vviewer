@@ -2,9 +2,11 @@
 #define __VulkanSceneObject_hpp__
 
 #include <core/SceneObject.hpp>
-#include <vulkan/VulkanStructs.hpp>
+#include <vulkan/common/VulkanStructs.hpp>
 #include <vulkan/resources/VulkanUBO.hpp>
 #include <vulkan/resources/VulkanMesh.hpp>
+
+namespace vengine {
 
 class VulkanSceneObject : public SceneObject
 {
@@ -24,5 +26,7 @@ private:
     uint32_t m_transformUBOBlock = -1;
     VulkanUBO<ModelData>& m_transformDynamicUBO;
 };
+
+}
 
 #endif

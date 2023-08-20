@@ -7,16 +7,18 @@
 #include <memory>
 #include <stdexcept>
 
-#include <utils/Console.hpp>
+#include <debug_tools/Console.hpp>
+
+#include "core/Mesh.hpp"
+#include "core/Materials.hpp"
+#include "core/Lights.hpp"
 
 #include "IDGeneration.hpp"
 #include "FreeList.hpp"
 
-static const uint32_t MAX_COMPONENTS = 1000;
+namespace vengine {
 
-class Mesh;
-class Material;
-class Light;
+static const uint32_t MAX_COMPONENTS = 1000;
 
 class Component {
 public:
@@ -199,5 +201,6 @@ private:
     std::unordered_map<const char *, Component*> m_components;
 };
 
+}
 
 #endif

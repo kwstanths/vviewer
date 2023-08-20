@@ -12,6 +12,8 @@
 #include "Materials.hpp"
 #include "Lights.hpp"
 
+namespace vengine {
+
 struct ExportRenderParams {
 	std::string name;
 	std::vector<std::string> fileTypes;
@@ -74,5 +76,7 @@ void addLightMaterial(rapidjson::Document& d, rapidjson::Value& v, const LightMa
 void addVec3(rapidjson::Document& d, rapidjson::Value& v, std::string name, glm::vec3 value);
 
 bool isMaterialEmissive(const Material * material);
+
+}
 
 #endif

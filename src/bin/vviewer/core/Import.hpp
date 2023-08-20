@@ -12,6 +12,8 @@
 
 #include <math/Transform.hpp>
 
+namespace vengine {
+
 enum class ImportedSceneMaterialType {
 	DIFFUSE = 0,
 	DISNEY = 1,
@@ -126,5 +128,7 @@ glm::vec2 parseVec2(const rapidjson::Value& o, std::string name, glm::vec2 defau
 glm::vec3 parseVec3(const rapidjson::Value& o, std::string name, glm::vec3 defaultValue);
 glm::vec4 parseVec4(const rapidjson::Value& o, std::string name, glm::vec4 defaultValue);
 glm::quat parseRotation(const rapidjson::Value& o, std::string name, glm::quat defaultValue);
+
+}
 
 #endif

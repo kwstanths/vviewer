@@ -1,6 +1,6 @@
 #include "TerminalColors.hpp"
 
-namespace utils {
+namespace debug_tools {
 
     int GetWindowsColorCombination(TerminalColor fg_color, TerminalColor bg_color){
         return bg_color * 16 + fg_color;

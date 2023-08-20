@@ -7,6 +7,8 @@
 #include <qlabel.h>
 #include <qmessagebox.h>
 
+using namespace vengine;
+
 DialogCreateMaterial::DialogCreateMaterial(QWidget *parent, const char *name, QStringList availableModels) 
 {
     m_name = new QTextEdit();

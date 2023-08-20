@@ -1,7 +1,9 @@
 #ifndef __VulkanFramebuffer_hpp__
 #define __VulkanFramebuffer_hpp__
 
-#include "IncludeVulkan.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
+
+namespace vengine {
 
 class VulkanFrameBufferAttachment {
 public:
@@ -38,5 +40,7 @@ private:
 
 	VkFormat m_format;
 };
+
+}
 
 #endif

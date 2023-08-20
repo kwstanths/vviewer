@@ -6,6 +6,8 @@
 
 #include "Mesh.hpp"
 
+namespace vengine {
+
 class MeshModel {
 public:
     MeshModel() {};
@@ -20,5 +22,7 @@ protected:
     std::string m_name;
     std::vector<std::shared_ptr<Mesh>> m_meshes;
 };
+
+}
 
 #endif

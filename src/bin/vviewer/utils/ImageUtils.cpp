@@ -1,5 +1,7 @@
 #include "ImageUtils.hpp"
 
+namespace vengine {
+
 float linearToSRGB(float linear) {
 	float srgb;
 	if (linear <= 0.0031308f) {
@@ -18,4 +20,6 @@ float sRGBToLinear(float srgb) {
 		linear = std::pow((linear + 0.055f) / 1.055f, 2.4f);
 	}
 	return linear;
+}
+
 }

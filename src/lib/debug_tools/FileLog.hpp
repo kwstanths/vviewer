@@ -8,7 +8,7 @@
 #include "TerminalColors.hpp"
 #include "DebugLevels.hpp"
 
-namespace utils {
+namespace debug_tools {
 
     class FileLog {
         public:

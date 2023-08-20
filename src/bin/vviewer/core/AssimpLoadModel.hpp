@@ -6,6 +6,8 @@
 
 #include "core/Mesh.hpp"
 
+namespace vengine {
+
 /**
  * @brief Load a model from the disk, and get back a list of meshes
  * 
@@ -20,5 +22,7 @@ glm::mat4 getTransformation(aiNode * node);
 std::vector<Mesh> assimpLoadNode(aiNode * node, const aiScene * scene, bool applyTransformation = true, glm::mat4 parentTransformation = glm::mat4(1.0F));
 
 Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene, bool applyTransformation = true, glm::mat4 transfomation = glm::mat4(1.0F));
+
+}
 
 #endif

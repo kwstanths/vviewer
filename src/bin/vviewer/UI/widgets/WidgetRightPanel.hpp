@@ -22,9 +22,9 @@ class WidgetRightPanel : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetRightPanel(QWidget * parent, Engine * engine);
+    WidgetRightPanel(QWidget * parent, vengine::Engine * engine);
 
-    void setSelectedObject(std::shared_ptr<SceneObject> object);
+    void setSelectedObject(std::shared_ptr<vengine::SceneObject> object);
 
     WidgetEnvironment * getEnvironmentWidget();
 
@@ -45,11 +45,11 @@ private:
     /* Update timer */
     QTimer* m_updateTimer;
 
-    Engine * m_engine;
-    std::shared_ptr<SceneObject> m_object;
+    vengine::Engine * m_engine;
+    std::shared_ptr<vengine::SceneObject> m_object;
 
     void deleteWidgets();
-    void createUI(std::shared_ptr<SceneObject> object);
+    void createUI(std::shared_ptr<vengine::SceneObject> object);
 
 public Q_SLOTS:
     void onTransformChanged();

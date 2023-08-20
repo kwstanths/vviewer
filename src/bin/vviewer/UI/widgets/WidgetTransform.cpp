@@ -6,6 +6,8 @@
 
 #include <glm/glm.hpp>
 
+using namespace vengine;
+
 WidgetTransform::WidgetTransform(QWidget * parent, std::shared_ptr<SceneObject> sceneObject, QString groupBoxName, bool bold) : QWidget(parent)
 {
     m_sceneObject = sceneObject;

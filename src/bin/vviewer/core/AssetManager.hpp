@@ -5,6 +5,8 @@
 #include <memory>
 #include <stdexcept>
 
+namespace vengine {
+
 /**
     A singleton class that wraps an unordered map to store an AssetID -> Asset relationship
 */
@@ -67,5 +69,7 @@ private:
 
     std::unordered_map<AssetID, std::shared_ptr<Asset>> m_assets;
 };
+
+}
 
 #endif

@@ -8,6 +8,8 @@
 
 #include "math/Transform.hpp"
 
+namespace vengine {
+
 enum class CameraType {
     PERSPECTIVE = 0,
     ORTHOGRAPHIC = 1,
@@ -73,5 +75,7 @@ private:
     float m_orthoHeight = 10.F;
 
 };
+
+}
 
 #endif

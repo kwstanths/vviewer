@@ -10,6 +10,8 @@
 
 #include "UI/UIUtils.hpp"
 
+using namespace vengine;
+
 WidgetMeshModel::WidgetMeshModel(QWidget * parent, ComponentMesh& meshComponent) : QWidget(parent), m_meshComponent(meshComponent)
 {
     m_meshModel = meshComponent.mesh->m_meshModel;

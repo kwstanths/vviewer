@@ -1,5 +1,7 @@
 #include "Materials.hpp"
 
+namespace vengine {
+
 void MaterialPBRStandard::setAlbedoTexture(std::shared_ptr<Texture> texture)
 {
     m_albedoTexture = texture;
@@ -108,4 +110,6 @@ void MaterialSkybox::setMap(std::shared_ptr<EnvironmentMap> envMap)
 std::shared_ptr<EnvironmentMap> MaterialSkybox::getMap() const
 {
     return m_envMap;
+}
+
 }

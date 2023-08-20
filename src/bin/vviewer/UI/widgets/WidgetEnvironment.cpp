@@ -13,6 +13,7 @@
 
 #include "UI/UIUtils.hpp"
 
+using namespace vengine;
 
 WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(parent)
 {

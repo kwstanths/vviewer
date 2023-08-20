@@ -1,84 +1,79 @@
 #include "VulkanTextures.hpp"
 
-#include <utils/Console.hpp>
+#include <debug_tools/Console.hpp>
 
 #include "core/AssetManager.hpp"
 
-#include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/VulkanLimits.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/common/VulkanInitializers.hpp"
+#include "vulkan/common/VulkanLimits.hpp"
 
-VulkanTextures::VulkanTextures(VulkanContext& vkctx) : m_vkctx(vkctx), m_freeList(VULKAN_LIMITS_MAX_TEXTURES) 
+namespace vengine
 {
 
+VulkanTextures::VulkanTextures(VulkanContext &vkctx)
+    : m_vkctx(vkctx)
+    , m_freeList(VULKAN_LIMITS_MAX_TEXTURES)
+{
 }
 
-bool VulkanTextures::initResources()
+VkResult VulkanTextures::initResources()
 {
-    createDescriptorSetsLayout(VULKAN_LIMITS_MAX_TEXTURES);
+    VULKAN_CHECK_CRITICAL(createDescriptorSetsLayout(VULKAN_LIMITS_MAX_TEXTURES));
 
     createTexture("white", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
     createTexture("whiteColor", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_SRGB);
     createTexture("normalmapdefault", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanTextures::initSwapchainResources(uint32_t nImages)
+VkResult VulkanTextures::initSwapchainResources(uint32_t nImages)
 {
-    bool ret = createDescriptorPool(nImages, VULKAN_LIMITS_MAX_TEXTURES);
-    ret = ret && createDescriptorSets();
+    VULKAN_CHECK_CRITICAL(createDescriptorPool(nImages, VULKAN_LIMITS_MAX_TEXTURES));
+    VULKAN_CHECK_CRITICAL(createDescriptorSets());
 
     updateTextures();
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanTextures::releaseResources()
+VkResult VulkanTextures::releaseResources()
 {
     vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutTextures, nullptr);
 
     /* Destroy texture data */
     {
-        AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
+        AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             auto vkTexture = std::static_pointer_cast<VulkanTexture>(itr->second);
             vkTexture->destroy(m_vkctx.device());
         }
         instance.reset();
     }
-    
-    return true;
+
+    return VK_SUCCESS;
 }
 
-bool VulkanTextures::releaseSwapchainResources()
+VkResult VulkanTextures::releaseSwapchainResources()
 {
     vkDestroyDescriptorPool(m_vkctx.device(), m_descriptorPool, nullptr);
 
-    return true;
+    return VK_SUCCESS;
 }
 
 void VulkanTextures::updateTextures()
 {
     std::vector<VkDescriptorImageInfo> imageInfos(m_texturesToUpdate.size());
     std::vector<VkWriteDescriptorSet> writeSets(m_texturesToUpdate.size());
-    for(uint32_t i = 0; i < m_texturesToUpdate.size(); i++)
-    {
+    for (uint32_t i = 0; i < m_texturesToUpdate.size(); i++) {
         auto tex = m_texturesToUpdate[i];
 
-        VkWriteDescriptorSet& descriptorWrite = writeSets[i];
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.dstArrayElement = tex->getBindlessResourceIndex();
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrite.dstSet = m_descriptorSetBindlessTextures;
-        descriptorWrite.dstBinding = 0;
+        imageInfos[i] = vkinit::descriptorImageInfo(tex->getSampler(), tex->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        VkDescriptorImageInfo& imageInfo = imageInfos[i];
-        imageInfo.sampler = tex->getSampler();
-        imageInfo.imageView = tex->getImageView();
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        descriptorWrite.pImageInfo = &imageInfo;
+        writeSets[i] = vkinit::writeDescriptorSet(
+            m_descriptorSetBindlessTextures, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &imageInfos[i]);
+        writeSets[i].dstArrayElement = tex->getBindlessResourceIndex();
     }
 
     vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
@@ -89,13 +84,12 @@ void VulkanTextures::updateTextures()
 std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath, VkFormat format, bool keepImage, bool addDescriptor)
 {
     try {
-        AssetManager<std::string, Image<stbi_uc>>& instance = AssetManager<std::string, Image<stbi_uc>>::getInstance();
-        
+        AssetManager<std::string, Image<stbi_uc>> &instance = AssetManager<std::string, Image<stbi_uc>>::getInstance();
+
         std::shared_ptr<Image<stbi_uc>> image;
         if (instance.isPresent(imagePath)) {
             image = instance.get(imagePath);
-        }
-        else {
+        } else {
             image = std::make_shared<Image<stbi_uc>>(imagePath);
             instance.add(imagePath, image);
         }
@@ -107,46 +101,49 @@ std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath, Vk
         }
 
         return temp;
-    } catch (std::runtime_error& e) {
-        utils::ConsoleWarning("VulkanTextures::createTexture(): Can't create a vulkan texture: " + std::string(e.what()));
+    } catch (std::runtime_error &e) {
+        debug_tools::ConsoleWarning("VulkanTextures::createTexture(): Can't create a vulkan texture: " + std::string(e.what()));
         return nullptr;
     }
 
     return nullptr;
 }
 
-std::shared_ptr<Texture> VulkanTextures::createTexture(std::string id, std::shared_ptr<Image<stbi_uc>> image, VkFormat format, bool addDescriptor)
+std::shared_ptr<Texture> VulkanTextures::createTexture(std::string id,
+                                                       std::shared_ptr<Image<stbi_uc>> image,
+                                                       VkFormat format,
+                                                       bool addDescriptor)
 {
     try {
-        AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-        
+        AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
+
         if (instance.isPresent(id)) {
             return instance.get(id);
         }
 
         TextureType type = TextureType::NO_TYPE;
-        if (format == VK_FORMAT_R8G8B8A8_SRGB) type = TextureType::COLOR;
-        else if (format == VK_FORMAT_R8G8B8A8_UNORM) type = TextureType::LINEAR;
+        if (format == VK_FORMAT_R8G8B8A8_SRGB)
+            type = TextureType::COLOR;
+        else if (format == VK_FORMAT_R8G8B8A8_UNORM)
+            type = TextureType::LINEAR;
 
-        auto temp = std::make_shared<VulkanTexture>(id, 
-            image, 
-            type, 
-            m_vkctx.physicalDevice(), 
-            m_vkctx.device(), 
-            m_vkctx.graphicsQueue(), 
-            m_vkctx.graphicsCommandPool(), 
-            format, 
-            true);
+        auto temp = std::make_shared<VulkanTexture>(id,
+                                                    image,
+                                                    type,
+                                                    m_vkctx.physicalDevice(),
+                                                    m_vkctx.device(),
+                                                    m_vkctx.graphicsQueue(),
+                                                    m_vkctx.graphicsCommandPool(),
+                                                    format,
+                                                    true);
 
-        if (addDescriptor)
-        {
+        if (addDescriptor) {
             addTexture(temp);
         }
 
         return instance.add(id, temp);
-    }
-    catch (std::runtime_error& e) {
-        utils::ConsoleCritical("VulkanTextures::createTexture(): Failed to create a vulkan texture: " + std::string(e.what()));
+    } catch (std::runtime_error &e) {
+        debug_tools::ConsoleCritical("VulkanTextures::createTexture(): Failed to create a vulkan texture: " + std::string(e.what()));
         return nullptr;
     }
 
@@ -157,41 +154,40 @@ std::shared_ptr<Texture> VulkanTextures::createTextureHDR(std::string imagePath,
 {
     try {
         /* Check if an hdr texture has already been created for that image */
-        AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
+        AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
         if (instance.isPresent(imagePath)) {
             return instance.get(imagePath);
         }
-        
+
         /* Check if the image has already been imported, if not read it from disk  */
         std::shared_ptr<Image<float>> image;
-        AssetManager<std::string, Image<float>>& images = AssetManager<std::string, Image<float>>::getInstance();
+        AssetManager<std::string, Image<float>> &images = AssetManager<std::string, Image<float>>::getInstance();
         if (images.isPresent(imagePath)) {
             image = images.get(imagePath);
-        }
-        else {
+        } else {
             image = std::make_shared<Image<float>>(imagePath);
             images.add(imagePath, image);
         }
 
         /* Create texture for that image */
-        auto temp = std::make_shared<VulkanTexture>(imagePath, 
-            image, 
-            TextureType::HDR, 
-            m_vkctx.physicalDevice(), 
-            m_vkctx.device(), 
-            m_vkctx.graphicsQueue(), 
-            m_vkctx.graphicsCommandPool(),
-            false);
+        auto temp = std::make_shared<VulkanTexture>(imagePath,
+                                                    image,
+                                                    TextureType::HDR,
+                                                    m_vkctx.physicalDevice(),
+                                                    m_vkctx.device(),
+                                                    m_vkctx.graphicsQueue(),
+                                                    m_vkctx.graphicsCommandPool(),
+                                                    false);
 
         /* If you are not to keep the image in memory, remove from the assets */
         if (!keepImage) {
             images.remove(imagePath);
         }
-        
+
         return instance.add(imagePath, temp);
-    }
-    catch (std::runtime_error& e) {
-        utils::ConsoleCritical("VulkanTextures::createTextureHDR(): Failed to create a vulkan HDR texture: " + std::string(e.what()));
+    } catch (std::runtime_error &e) {
+        debug_tools::ConsoleCritical("VulkanTextures::createTextureHDR(): Failed to create a vulkan HDR texture: " +
+                                     std::string(e.what()));
         return nullptr;
     }
 
@@ -206,30 +202,23 @@ std::shared_ptr<Texture> VulkanTextures::addTexture(std::shared_ptr<Texture> tex
     return vktex;
 }
 
-bool VulkanTextures::createDescriptorSetsLayout(uint32_t nBindlessTextures)
+VkResult VulkanTextures::createDescriptorSetsLayout(uint32_t nBindlessTextures)
 {
-    VkDescriptorSetLayoutBinding bindlessSamplersLayoutBinding{};
-    bindlessSamplersLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    bindlessSamplersLayoutBinding.descriptorCount = nBindlessTextures;
-    bindlessSamplersLayoutBinding.binding = 0;
-    bindlessSamplersLayoutBinding.pImmutableSamplers = nullptr;
-    bindlessSamplersLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    VkDescriptorSetLayoutBinding bindlessSamplersLayoutBinding =
+        vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                           VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+                                           0,
+                                           nBindlessTextures);
+    VkDescriptorSetLayoutBinding bindlessStorageImagesLayoutBinding = vkinit::descriptorSetLayoutBinding(
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1, nBindlessTextures);
+    std::array<VkDescriptorSetLayoutBinding, 2> setBindings = {bindlessSamplersLayoutBinding, bindlessStorageImagesLayoutBinding};
 
-    VkDescriptorSetLayoutBinding bindlessStorageImagesLayoutBinding{};
-    bindlessStorageImagesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    bindlessStorageImagesLayoutBinding.descriptorCount = nBindlessTextures;
-    bindlessStorageImagesLayoutBinding.binding = 1;
-    bindlessStorageImagesLayoutBinding.pImmutableSamplers = nullptr;
-    bindlessStorageImagesLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-
-    std::array<VkDescriptorSetLayoutBinding, 2> setBindings = { bindlessSamplersLayoutBinding, bindlessStorageImagesLayoutBinding };
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
-    layoutInfo.pBindings = setBindings.data();
+    VkDescriptorSetLayoutCreateInfo layoutInfo =
+        vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(setBindings.size()), setBindings.data());
     layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
 
-    VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
+    VkDescriptorBindingFlags bindlessFlags =
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
     std::array<VkDescriptorBindingFlags, 2> binding_flags = {bindlessFlags, bindlessFlags};
     VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo = {};
     extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
@@ -239,52 +228,35 @@ bool VulkanTextures::createDescriptorSetsLayout(uint32_t nBindlessTextures)
 
     layoutInfo.pNext = &extendedInfo;
 
-    if (vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutTextures) != VK_SUCCESS) {
-        utils::ConsoleCritical("VulkanTextures::createDescriptorSetsLayout(): Failed to create the material descriptor set layout");
-        return false;
-    }
+    VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutTextures));
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanTextures::createDescriptorPool(uint32_t nImages, uint32_t nBindlessTextures)
+VkResult VulkanTextures::createDescriptorPool(uint32_t nImages, uint32_t nBindlessTextures)
 {
-    VkDescriptorPoolSize bindlessSamplersPoolSize{};
-    bindlessSamplersPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    bindlessSamplersPoolSize.descriptorCount = nBindlessTextures;
+    VkDescriptorPoolSize bindlessSamplersPoolSize =
+        vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nBindlessTextures);
+    VkDescriptorPoolSize bindlessStorageImagesPoolSize =
+        vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, nBindlessTextures);
+    std::array<VkDescriptorPoolSize, 2> poolSizes = {bindlessSamplersPoolSize, bindlessStorageImagesPoolSize};
 
-    VkDescriptorPoolSize bindlessStorageImagesPoolSize{};
-    bindlessStorageImagesPoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    bindlessStorageImagesPoolSize.descriptorCount = nBindlessTextures;
-
-    std::array<VkDescriptorPoolSize, 2> poolSizes = { bindlessSamplersPoolSize, bindlessStorageImagesPoolSize };
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    
+    VkDescriptorPoolCreateInfo poolInfo = vkinit::descriptorPoolCreateInfo(
+        static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), static_cast<uint32_t>(nImages + nBindlessTextures * 2));
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
-    
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
 
-    poolInfo.maxSets = static_cast<uint32_t>(nImages + nBindlessTextures * 2);
+    VULKAN_CHECK_CRITICAL(vkCreateDescriptorPool(m_vkctx.device(), &poolInfo, nullptr, &m_descriptorPool));
 
-    if (vkCreateDescriptorPool(m_vkctx.device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
-        utils::ConsoleCritical("VulkanTextures::createDescriptorPool(): Failed to create descriptor pool");
-        return false;
-    }
-
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanTextures::createDescriptorSets()
+VkResult VulkanTextures::createDescriptorSets()
 {
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_descriptorSetLayoutTextures;
+    VkDescriptorSetAllocateInfo allocInfo = vkinit::descriptorSetAllocateInfo(m_descriptorPool, 1, &m_descriptorSetLayoutTextures);
 
-    vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, &m_descriptorSetBindlessTextures);
+    VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, &m_descriptorSetBindlessTextures));
 
-    return true;
+    return VK_SUCCESS;
 }
+
+}  // namespace vengine

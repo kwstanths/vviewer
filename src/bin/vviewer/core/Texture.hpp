@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace vengine {
+
 enum class TextureType {
     NO_TYPE = 0,
     COLOR = 1,
@@ -23,5 +25,7 @@ public:
 private:
 
 };
+
+}
 
 #endif

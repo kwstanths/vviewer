@@ -3,6 +3,8 @@
 
 #include "SceneObject.hpp"
 
+namespace vengine {
+
 class Renderer {
 public:
 
@@ -17,5 +19,7 @@ protected:
 private:
 
 };
+
+}
 
 #endif

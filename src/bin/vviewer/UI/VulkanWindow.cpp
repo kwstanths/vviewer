@@ -4,7 +4,9 @@
 
 #include <zip.h>
 
-#include "vulkan/VulkanLimits.hpp"
+#include "vulkan/common/VulkanLimits.hpp"
+
+using namespace vengine;
 
 VulkanWindow::VulkanWindow() : QWindow()
 {
@@ -354,7 +356,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
         std::string id = filename + ":" + albedoZipPath;
         albedoTexture = m_engine->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_SRGB);
         if (albedoTexture == nullptr) {
-            utils::ConsoleWarning("Unable to load albedo from zip texture stack");
+            debug_tools::ConsoleWarning("Unable to load albedo from zip texture stack");
         }
         /* entry_close will delete the memory */
         zip_entry_close(zip);
@@ -373,7 +375,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
         std::string id = filename + ":" + roughnessZipPath;
         roughnessTexture = m_engine->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (roughnessTexture == nullptr) {
-            utils::ConsoleWarning("Unable to load roughness from zip texture stack");
+            debug_tools::ConsoleWarning("Unable to load roughness from zip texture stack");
         }
         /* entry_close will delete the memory */
         zip_entry_close(zip);
@@ -392,7 +394,7 @@ std::shared_ptr<Material> VulkanWindow::importZipMaterial(std::string name, std:
         std::string id = filename + ":" + normalZipPath;
         normalTexture = m_engine->textures().createTexture(id, image, VK_FORMAT_R8G8B8A8_UNORM);
         if (normalTexture == nullptr) {
-            utils::ConsoleWarning("Unable to load normal from zip texture stack");
+            debug_tools::ConsoleWarning("Unable to load normal from zip texture stack");
         }
         /* entry_close will delete the memory */
         zip_entry_close(zip);

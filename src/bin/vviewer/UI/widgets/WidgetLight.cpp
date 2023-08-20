@@ -10,7 +10,9 @@
 #include "UI/UIUtils.hpp"
 #include "core/Lights.hpp"
 
-WidgetLight::WidgetLight(QWidget * parent, ComponentLight& lightComponent) : QWidget(parent), m_lightComponent(lightComponent)
+using namespace vengine;
+
+WidgetLight::WidgetLight(QWidget * parent, vengine::ComponentLight& lightComponent) : QWidget(parent), m_lightComponent(lightComponent)
 {
     m_widgetLightMaterial = new WidgetLightMaterial(this, m_lightComponent.light);
 

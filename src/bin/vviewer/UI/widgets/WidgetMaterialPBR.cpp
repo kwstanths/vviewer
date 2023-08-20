@@ -14,6 +14,8 @@
 
 #include "UI/UIUtils.hpp"
 
+using namespace vengine;
+
 WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, std::shared_ptr<MaterialPBRStandard> material) : QWidget(parent)
 {
     m_material = material;

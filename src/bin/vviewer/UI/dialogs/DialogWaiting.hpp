@@ -16,12 +16,12 @@ class DialogWaiting : public QDialog
 {
     Q_OBJECT
 public:
-    DialogWaiting(QWidget *parent, QString text, Task * task);
+    DialogWaiting(QWidget *parent, QString text, vengine::Task * task);
 
 private:
     QTimer * m_timer;
     std::thread m_thread;
-    Task * m_task;
+    vengine::Task * m_task;
 
     QProgressBar * m_progressBar;
 

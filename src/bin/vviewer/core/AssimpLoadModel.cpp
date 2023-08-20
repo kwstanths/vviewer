@@ -10,11 +10,13 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "utils/Console.hpp"
+#include "debug_tools/Console.hpp"
 
 #include "math/Transform.hpp"
 
 #define SANITIZATION_CHECK
+
+namespace vengine {
 
 std::vector<Mesh> assimpLoadModel(std::string filename, bool applyTransformation)
 {
@@ -81,16 +83,16 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene, bool applyTransformati
         vertices[i].position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 
         #ifdef SANITIZATION_CHECK
-            if (!checkValid(vertices[i].position)) utils::ConsoleCritical("assimpLoadMesh(): Input vertex for mesh [" + meshName + "] is corrupted");
+            if (!checkValid(vertices[i].position)) debug_tools::ConsoleCritical("assimpLoadMesh(): Input vertex for mesh [" + meshName + "] is corrupted");
         #endif
 
         if (hasNormals) {
             vertices[i].normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
 
             #ifdef SANITIZATION_CHECK
-                if (!checkValid(vertices[i].normal)) utils::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is corrupted");
+                if (!checkValid(vertices[i].normal)) debug_tools::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is corrupted");
                 if (glm::length(vertices[i].normal) < 0.99) {
-                    utils::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is not normalized");
+                    debug_tools::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is not normalized");
                     vertices[i].normal = glm::normalize(vertices[i].normal);
                 }
             #endif
@@ -101,7 +103,7 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene, bool applyTransformati
             vertices[i].uv = { mesh->mTextureCoords[0][i].x, 1.f - mesh->mTextureCoords[0][i].y };
 
             #ifdef SANITIZATION_CHECK
-                if (!checkValid(vertices[i].uv)) utils::ConsoleCritical("assimpLoadMesh(): Input uv for mesh [" + meshName + "] is corrupted");
+                if (!checkValid(vertices[i].uv)) debug_tools::ConsoleCritical("assimpLoadMesh(): Input uv for mesh [" + meshName + "] is corrupted");
             #endif
 
         } else {
@@ -118,7 +120,7 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene, bool applyTransformati
                 if (!checkValid(vertices[i].tangent) || !checkValid(vertices[i].bitangent))
                 {
                     if (printErrorMessage) {
-                        utils::ConsoleWarning("assimpLoadMesh(): Input tangent or bitangent for mesh [" + meshName + "] is corrupted. Attempting reconstruction from normal...");
+                        debug_tools::ConsoleWarning("assimpLoadMesh(): Input tangent or bitangent for mesh [" + meshName + "] is corrupted. Attempting reconstruction from normal...");
                         printErrorMessage = false;
                     }
 
@@ -135,14 +137,14 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene, bool applyTransformati
                 }
                 if (glm::length(vertices[i].tangent) < 0.99) {
                     if (printErrorMessage) {
-                        utils::ConsoleWarning("assimpLoadMesh(): Input tangent for mesh [" + meshName + "] is not normalized");
+                        debug_tools::ConsoleWarning("assimpLoadMesh(): Input tangent for mesh [" + meshName + "] is not normalized");
                         printErrorMessage = false;
                     }
                     vertices[i].tangent = glm::normalize(vertices[i].tangent);
                 }
                 if (glm::length(vertices[i].bitangent) < 0.99) {
                     if (printErrorMessage) {
-                        utils::ConsoleWarning("assimpLoadMesh(): Input bitangent for mesh [" + meshName + "] is not normalized");
+                        debug_tools::ConsoleWarning("assimpLoadMesh(): Input bitangent for mesh [" + meshName + "] is not normalized");
                         printErrorMessage = false;
                     }
                     vertices[i].bitangent = glm::normalize(vertices[i].bitangent);
@@ -171,8 +173,10 @@ Mesh assimpLoadMesh(aiMesh * mesh, const aiScene * scene, bool applyTransformati
     
     if (!hasUVs)
     {
-        utils::ConsoleWarning("Mesh: [" + std::string(scene->mRootNode->mName.C_Str()) + " : " + std::string(temp.m_name) + "] doesn't have UV coordinates");
+        debug_tools::ConsoleWarning("Mesh: [" + std::string(scene->mRootNode->mName.C_Str()) + " : " + std::string(temp.m_name) + "] doesn't have UV coordinates");
     }
 
     return temp;
+}
+
 }

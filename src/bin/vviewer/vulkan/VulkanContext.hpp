@@ -3,13 +3,16 @@
 
 #include <vector>
 
-#include <qvulkaninstance.h>
-#include <qvulkanfunctions.h>
+#include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/common/VulkanStructs.hpp"
 
-#include "IncludeVulkan.hpp"
-#include "VulkanStructs.hpp"
+class QVulkanInstance;
+class QVulkanFunctions;
+class QVulkanDeviceFunctions;
 
-static const std::vector<const char*> VULKAN_CORE_VALIDATION_LAYERS = 
+namespace vengine {
+
+    static const std::vector<const char*> VULKAN_CORE_VALIDATION_LAYERS = 
 {
     "VK_LAYER_KHRONOS_validation"
 };
@@ -46,7 +49,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     }
     return VK_FALSE;
 }
-
 
 /* Encapsulates the vulkan instance, physical device and logical device creation */
 class VulkanContext {
@@ -114,5 +116,7 @@ private:
     bool createLogicalDevice();
     void createCommandPool();
 };
+
+}
 
 #endif

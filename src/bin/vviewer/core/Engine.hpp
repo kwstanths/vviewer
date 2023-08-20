@@ -4,6 +4,8 @@
 #include "Scene.hpp"
 #include "Renderer.hpp"
 
+namespace vengine {
+
 class Engine {
 public:
     enum class STATUS {
@@ -29,7 +31,8 @@ public:
 
 protected:
     STATUS m_status = STATUS::NOT_STARTED;
-
 };
+
+}
 
 #endif

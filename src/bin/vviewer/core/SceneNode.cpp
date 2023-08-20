@@ -6,6 +6,8 @@
 
 #include "SceneObject.hpp"
 
+namespace vengine {
+
 template<>
 glm::vec3 SceneNode<SceneObject>::getWorldPosition() const
 {
@@ -72,4 +74,6 @@ std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObject
 	}
 
 	return temp;
+}
+
 }

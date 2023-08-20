@@ -13,7 +13,7 @@ class WidgetMeshModel : public QWidget
 public:
     static const int HEIGHT = 90;
 
-    WidgetMeshModel(QWidget * parent, ComponentMesh& meshComponent);
+    WidgetMeshModel(QWidget * parent, vengine::ComponentMesh& meshComponent);
 
     std::string getSelectedModel() const;
     std::string getSelectedMesh() const;
@@ -21,12 +21,12 @@ public:
     uint32_t getHeight() const;
 
 private:
-    ComponentMesh& m_meshComponent;
-    const MeshModel * m_meshModel;
+    vengine::ComponentMesh& m_meshComponent;
+    const vengine::MeshModel * m_meshModel;
     QComboBox * m_models = nullptr;
     QComboBox * m_meshes = nullptr;
 
-    QStringList getModelMeshes(const MeshModel* model);
+    QStringList getModelMeshes(const vengine::MeshModel* model);
 
 private Q_SLOTS:
     void onMeshModelChangedSlot(int);

@@ -11,6 +11,8 @@
 
 #include "UI/UIUtils.hpp"
 
+using namespace vengine;
+
 WidgetLightMaterial::WidgetLightMaterial(QWidget * parent, std::shared_ptr<Light> light) : QWidget(parent)
 {
     m_light = light;
@@ -64,7 +66,7 @@ void WidgetLightMaterial::onLightMaterialChanged(int)
     auto lightMaterial = instance.get(newLightMaterial);
 
     if (lightMaterial == nullptr) {
-        utils::ConsoleWarning("Material: " + newLightMaterial + " doesn't exist");
+        debug_tools::ConsoleWarning("Material: " + newLightMaterial + " doesn't exist");
         return;
     }
 

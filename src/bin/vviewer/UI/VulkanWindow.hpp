@@ -18,10 +18,10 @@ public:
     VulkanWindow();
     ~VulkanWindow();
 
-    VulkanEngine * engine() const;
+    vengine::VulkanEngine * engine() const;
 
-    std::shared_ptr<Material> importMaterial(std::string name, std::string stackDirectory);
-    std::shared_ptr<Material> importZipMaterial(std::string name, std::string filename);
+    std::shared_ptr<vengine::Material> importMaterial(std::string name, std::string stackDirectory);
+    std::shared_ptr<vengine::Material> importZipMaterial(std::string name, std::string filename);
 
     void windowActicated(bool activated);
 
@@ -33,20 +33,20 @@ Q_SIGNALS:
     /* emitted when the vulkan initialization has finished */
     void initializationFinished();
     /* emitted when the user selected an object from the 3d scene with the mouse */
-    void sceneObjectSelected(std::shared_ptr<SceneObject> object);
+    void sceneObjectSelected(std::shared_ptr<vengine::SceneObject> object);
     /* emitted when the position of the selected object changes from the gizmo UI controls */
     void selectedObjectPositionChanged();
 
 private:
     bool m_initialized = false;
-    VulkanEngine * m_engine = nullptr;
+    vengine::VulkanEngine * m_engine = nullptr;
 
     std::unordered_map<int, bool> m_keysPressed;
     bool m_mousePosFirst = true;
     QPointF m_mousePos;
     QTimer * m_updateCameraTimer;
 
-    ID m_selectedPressed = 0;
+    vengine::ID m_selectedPressed = 0;
 
     void exposeEvent(QExposeEvent* event) override;
     bool event(QEvent* event) override;

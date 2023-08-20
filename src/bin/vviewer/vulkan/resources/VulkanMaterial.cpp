@@ -2,14 +2,18 @@
 
 #include <core/AssetManager.hpp>
 
+#include "vulkan/common/VulkanInitializers.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/resources/VulkanCubemap.hpp"
 
-#include <utils/Console.hpp>
+#include <debug_tools/Console.hpp>
 
-VulkanMaterialDescriptor::VulkanMaterialDescriptor(VkDescriptorSetLayout descriptorSetLayout) : m_descriptorSetLayout(descriptorSetLayout)
+namespace vengine
 {
 
+VulkanMaterialDescriptor::VulkanMaterialDescriptor(VkDescriptorSetLayout descriptorSetLayout)
+    : m_descriptorSetLayout(descriptorSetLayout)
+{
 }
 
 VkDescriptorSet VulkanMaterialDescriptor::getDescriptor(size_t index)
@@ -23,15 +27,16 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
 }
 
 VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
-    glm::vec4 a,
-    float m, 
-    float r, 
-    float ambient, 
-    float e,
-    VkDevice device,
-    VkDescriptorSetLayout descriptorLayout,
-    VulkanUBO<MaterialData>& materialsUBO)
-    : VulkanMaterialStorage<MaterialData>(materialsUBO), MaterialPBRStandard(name)
+                                                     glm::vec4 a,
+                                                     float m,
+                                                     float r,
+                                                     float ambient,
+                                                     float e,
+                                                     VkDevice device,
+                                                     VkDescriptorSetLayout descriptorLayout,
+                                                     VulkanUBO<MaterialData> &materialsUBO)
+    : VulkanMaterialStorage<MaterialData>(materialsUBO)
+    , MaterialPBRStandard(name)
 {
     albedo() = a;
     metallic() = m;
@@ -41,7 +46,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     uTiling() = 1.F;
     vTiling() = 1.F;
 
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
+    AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
     if (!instance.isPresent("white")) {
         throw std::runtime_error("White texture not present");
     }
@@ -75,7 +80,7 @@ MaterialIndex VulkanMaterialPBRStandard::getMaterialIndex() const
     return getUBOBlockIndex();
 }
 
-glm::vec4 & VulkanMaterialPBRStandard::albedo()
+glm::vec4 &VulkanMaterialPBRStandard::albedo()
 {
     return m_data->albedo;
 }
@@ -85,7 +90,7 @@ glm::vec4 VulkanMaterialPBRStandard::getAlbedo() const
     return m_data->albedo;
 }
 
-float & VulkanMaterialPBRStandard::metallic()
+float &VulkanMaterialPBRStandard::metallic()
 {
     return m_data->metallicRoughnessAOEmissive.r;
 }
@@ -95,7 +100,7 @@ float VulkanMaterialPBRStandard::getMetallic() const
     return m_data->metallicRoughnessAOEmissive.r;
 }
 
-float & VulkanMaterialPBRStandard::roughness()
+float &VulkanMaterialPBRStandard::roughness()
 {
     return m_data->metallicRoughnessAOEmissive.g;
 }
@@ -105,7 +110,7 @@ float VulkanMaterialPBRStandard::getRoughness() const
     return m_data->metallicRoughnessAOEmissive.g;
 }
 
-float & VulkanMaterialPBRStandard::ao()
+float &VulkanMaterialPBRStandard::ao()
 {
     return m_data->metallicRoughnessAOEmissive.b;
 }
@@ -115,7 +120,7 @@ float VulkanMaterialPBRStandard::getAO() const
     return m_data->metallicRoughnessAOEmissive.b;
 }
 
-float & VulkanMaterialPBRStandard::emissive()
+float &VulkanMaterialPBRStandard::emissive()
 {
     return m_data->metallicRoughnessAOEmissive.a;
 }
@@ -125,17 +130,17 @@ float VulkanMaterialPBRStandard::getEmissive() const
     return m_data->metallicRoughnessAOEmissive.a;
 }
 
-float& VulkanMaterialPBRStandard::uTiling()
+float &VulkanMaterialPBRStandard::uTiling()
 {
     return m_data->uvTiling.r;
 }
 
-float VulkanMaterialPBRStandard::getUTiling() const 
+float VulkanMaterialPBRStandard::getUTiling() const
 {
     return m_data->uvTiling.r;
 }
 
-float& VulkanMaterialPBRStandard::vTiling()
+float &VulkanMaterialPBRStandard::vTiling()
 {
     return m_data->uvTiling.g;
 }
@@ -148,7 +153,7 @@ float VulkanMaterialPBRStandard::getVTiling() const
 void VulkanMaterialPBRStandard::setAlbedoTexture(std::shared_ptr<Texture> texture)
 {
     MaterialPBRStandard::setAlbedoTexture(texture);
-    
+
     int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices1.r = static_cast<uint32_t>(textureIndex);
@@ -201,14 +206,15 @@ void VulkanMaterialPBRStandard::setNormalTexture(std::shared_ptr<Texture> textur
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialLambert::VulkanMaterialLambert(std::string name, 
-    glm::vec4 a, 
-    float ambient, 
-    float e, 
-    VkDevice device, 
-    VkDescriptorSetLayout descriptorLayout,
-    VulkanUBO<MaterialData>& materialsUBO)
-    :VulkanMaterialStorage<MaterialData>(materialsUBO), MaterialLambert(name)
+VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
+                                             glm::vec4 a,
+                                             float ambient,
+                                             float e,
+                                             VkDevice device,
+                                             VkDescriptorSetLayout descriptorLayout,
+                                             VulkanUBO<MaterialData> &materialsUBO)
+    : VulkanMaterialStorage<MaterialData>(materialsUBO)
+    , MaterialLambert(name)
 {
     albedo() = a;
     ao() = ambient;
@@ -216,7 +222,7 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     uTiling() = 1.F;
     vTiling() = 1.F;
 
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
+    AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
     if (!instance.isPresent("white")) {
         throw std::runtime_error("White texture not present");
     }
@@ -242,7 +248,7 @@ MaterialIndex VulkanMaterialLambert::getMaterialIndex() const
     return getUBOBlockIndex();
 }
 
-glm::vec4& VulkanMaterialLambert::albedo()
+glm::vec4 &VulkanMaterialLambert::albedo()
 {
     return m_data->albedo;
 }
@@ -252,7 +258,7 @@ glm::vec4 VulkanMaterialLambert::getAlbedo() const
     return m_data->albedo;
 }
 
-float& VulkanMaterialLambert::ao()
+float &VulkanMaterialLambert::ao()
 {
     return m_data->metallicRoughnessAOEmissive.b;
 }
@@ -262,7 +268,7 @@ float VulkanMaterialLambert::getAO() const
     return m_data->metallicRoughnessAOEmissive.b;
 }
 
-float& VulkanMaterialLambert::emissive()
+float &VulkanMaterialLambert::emissive()
 {
     return m_data->metallicRoughnessAOEmissive.a;
 }
@@ -272,17 +278,17 @@ float VulkanMaterialLambert::getEmissive() const
     return m_data->metallicRoughnessAOEmissive.a;
 }
 
-float& VulkanMaterialLambert::uTiling()
+float &VulkanMaterialLambert::uTiling()
 {
     return m_data->uvTiling.r;
 }
 
-float VulkanMaterialLambert::getUTiling() const 
+float VulkanMaterialLambert::getUTiling() const
 {
     return m_data->uvTiling.r;
 }
 
-float& VulkanMaterialLambert::vTiling()
+float &VulkanMaterialLambert::vTiling()
 {
     return m_data->uvTiling.g;
 }
@@ -330,8 +336,12 @@ void VulkanMaterialLambert::setNormalTexture(std::shared_ptr<Texture> texture)
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name, std::shared_ptr<EnvironmentMap> envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout) 
-    : VulkanMaterialDescriptor(descriptorLayout), MaterialSkybox(name)
+VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name,
+                                           std::shared_ptr<EnvironmentMap> envMap,
+                                           VkDevice device,
+                                           VkDescriptorSetLayout descriptorLayout)
+    : VulkanMaterialDescriptor(descriptorLayout)
+    , MaterialSkybox(name)
 {
     m_envMap = envMap;
 }
@@ -342,78 +352,52 @@ void VulkanMaterialSkybox::setMap(std::shared_ptr<EnvironmentMap> envMap)
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
 }
 
-bool VulkanMaterialSkybox::createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images)
+VkResult VulkanMaterialSkybox::createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images)
 {
     /* Create descriptor sets */
     m_descriptorSets.resize(images);
     m_descirptorsNeedUpdate.resize(images, false);
 
     std::vector<VkDescriptorSetLayout> layouts(images, m_descriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = pool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(images);
-    allocInfo.pSetLayouts = layouts.data();
-    if (vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to allocate descriptor sets for cubemap data");
-        return false;
-    }
+    VkDescriptorSetAllocateInfo allocInfo = vkinit::descriptorSetAllocateInfo(pool, static_cast<uint32_t>(images), layouts.data());
+    VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(device, &allocInfo, m_descriptorSets.data()));
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
+void VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
 {
     /* Write descriptor sets */
     for (size_t i = 0; i < images; i++) {
         updateDescriptorSet(device, i);
     }
-    return true;
 }
 
-bool VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
+void VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
 {
-    VkDescriptorImageInfo skyboxInfo;
-    skyboxInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    skyboxInfo.sampler = std::static_pointer_cast<VulkanCubemap>(m_envMap->getSkyboxMap())->getSampler();
-    skyboxInfo.imageView = std::static_pointer_cast<VulkanCubemap>(m_envMap->getSkyboxMap())->getImageView();
-    VkWriteDescriptorSet descriptorWriteSkybox{};
-    descriptorWriteSkybox.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWriteSkybox.dstSet = m_descriptorSets[index];
-    descriptorWriteSkybox.dstBinding = 0;
-    descriptorWriteSkybox.dstArrayElement = 0;
-    descriptorWriteSkybox.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWriteSkybox.descriptorCount = 1;
-    descriptorWriteSkybox.pImageInfo = &skyboxInfo;
+    VkDescriptorImageInfo skyboxInfo =
+        vkinit::descriptorImageInfo(std::static_pointer_cast<VulkanCubemap>(m_envMap->getSkyboxMap())->getSampler(),
+                                    std::static_pointer_cast<VulkanCubemap>(m_envMap->getSkyboxMap())->getImageView(),
+                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    VkWriteDescriptorSet descriptorWriteSkybox =
+        vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &skyboxInfo);
 
-    VkDescriptorImageInfo irradianceInfo;
-    irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    irradianceInfo.sampler = std::static_pointer_cast<VulkanCubemap>(m_envMap->getIrradianceMap())->getSampler();
-    irradianceInfo.imageView = std::static_pointer_cast<VulkanCubemap>(m_envMap->getIrradianceMap())->getImageView();
-    VkWriteDescriptorSet descriptorWriteIrradiance{};
-    descriptorWriteIrradiance.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWriteIrradiance.dstSet = m_descriptorSets[index];
-    descriptorWriteIrradiance.dstBinding = 1;
-    descriptorWriteIrradiance.dstArrayElement = 0;
-    descriptorWriteIrradiance.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWriteIrradiance.descriptorCount = 1;
-    descriptorWriteIrradiance.pImageInfo = &irradianceInfo;
+    VkDescriptorImageInfo irradianceInfo =
+        vkinit::descriptorImageInfo(std::static_pointer_cast<VulkanCubemap>(m_envMap->getIrradianceMap())->getSampler(),
+                                    std::static_pointer_cast<VulkanCubemap>(m_envMap->getIrradianceMap())->getImageView(),
+                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    VkWriteDescriptorSet descriptorWriteIrradiance =
+        vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, &irradianceInfo);
 
-    VkDescriptorImageInfo prefilteredMapInfo;
-    prefilteredMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    prefilteredMapInfo.sampler = std::static_pointer_cast<VulkanCubemap>(m_envMap->getPrefilteredMap())->getSampler();
-    prefilteredMapInfo.imageView = std::static_pointer_cast<VulkanCubemap>(m_envMap->getPrefilteredMap())->getImageView();
-    VkWriteDescriptorSet descriptorWritePrefiltered{};
-    descriptorWritePrefiltered.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWritePrefiltered.dstSet = m_descriptorSets[index];
-    descriptorWritePrefiltered.dstBinding = 2;
-    descriptorWritePrefiltered.dstArrayElement = 0;
-    descriptorWritePrefiltered.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWritePrefiltered.descriptorCount = 1;
-    descriptorWritePrefiltered.pImageInfo = &prefilteredMapInfo;
+    VkDescriptorImageInfo prefilteredMapInfo =
+        vkinit::descriptorImageInfo(std::static_pointer_cast<VulkanCubemap>(m_envMap->getPrefilteredMap())->getSampler(),
+                                    std::static_pointer_cast<VulkanCubemap>(m_envMap->getPrefilteredMap())->getImageView(),
+                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    VkWriteDescriptorSet descriptorWritePrefiltered =
+        vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1, &prefilteredMapInfo);
 
-    std::array<VkWriteDescriptorSet, 3> writeSets = { descriptorWriteSkybox, descriptorWriteIrradiance, descriptorWritePrefiltered };
+    std::array<VkWriteDescriptorSet, 3> writeSets = {descriptorWriteSkybox, descriptorWriteIrradiance, descriptorWritePrefiltered};
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
-
-    return true;
 }
+
+}  // namespace vengine

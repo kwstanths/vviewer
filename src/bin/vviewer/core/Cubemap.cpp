@@ -1,5 +1,7 @@
 #include "Cubemap.hpp"
 
+namespace vengine {
+
 Cubemap::Cubemap()
 {
 }
@@ -26,3 +28,4 @@ Cubemap::~Cubemap()
     delete m_image_left;
 }
 
+}

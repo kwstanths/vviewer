@@ -4,6 +4,7 @@
 #include <qgroupbox.h>
 #include <qlabel.h>
 
+using namespace vengine;
 
 DialogAddSceneObject::DialogAddSceneObject(QWidget *parent, const char *name, QStringList availableModels, QStringList availableMaterials) : QDialog(parent)
 {

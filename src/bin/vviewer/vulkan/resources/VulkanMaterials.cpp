@@ -2,55 +2,63 @@
 
 #include "core/AssetManager.hpp"
 
-#include "vulkan/VulkanLimits.hpp"
+#include "vulkan/common/VulkanInitializers.hpp"
+#include "vulkan/common/VulkanLimits.hpp"
 
-VulkanMaterials::VulkanMaterials(VulkanContext& ctx) : m_vkctx(ctx), m_materialsStorage(VULKAN_LIMITS_MAX_MATERIALS)
+namespace vengine
+{
+
+VulkanMaterials::VulkanMaterials(VulkanContext &ctx)
+    : m_vkctx(ctx)
+    , m_materialsStorage(VULKAN_LIMITS_MAX_MATERIALS)
 {
 }
 
-bool VulkanMaterials::initResources()
+VkResult VulkanMaterials::initResources()
 {
-    bool ret = m_materialsStorage.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
+    VULKAN_CHECK_CRITICAL(m_materialsStorage.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment));
 
-    if (m_materialsStorage.getBlockSizeAligned() != sizeof(MaterialData))
-    {
-        std::string error = "VulkanMaterials::initResources(): The Material GPU block size is different than the size of MaterialData. GPU Block Size = " + m_materialsStorage.getBlockSizeAligned();
-        utils::ConsoleCritical(error);
+    if (m_materialsStorage.blockSizeAligned() != sizeof(MaterialData)) {
+        std::string error =
+            "VulkanMaterials::initResources(): The Material GPU block size is different than the size of MaterialData. GPU Block Size "
+            "= " +
+            std::to_string(m_materialsStorage.blockSizeAligned());
+        debug_tools::ConsoleCritical(error);
         throw std::runtime_error(error);
     }
 
-    ret = ret && createDescriptorSetsLayout();
-    return ret;
+    VULKAN_CHECK_CRITICAL(createDescriptorSetsLayout());
+
+    return VK_SUCCESS;
 }
 
-bool VulkanMaterials::initSwapchainResources(uint32_t nImages)
+VkResult VulkanMaterials::initSwapchainResources(uint32_t nImages)
 {
     m_swapchainImages = nImages;
 
-    bool ret = m_materialsStorage.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
-    ret = ret && createDescriptorPool(nImages, 10);
-    ret = ret && createDescriptorSets(nImages);
+    VULKAN_CHECK_CRITICAL(m_materialsStorage.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages));
+    VULKAN_CHECK_CRITICAL(createDescriptorPool(nImages, 10));
+    VULKAN_CHECK_CRITICAL(createDescriptorSets(nImages));
 
     updateDescriptorSets();
 
     {
-        AssetManager<std::string, MaterialSkybox>& instance = AssetManager<std::string, MaterialSkybox>::getInstance();
+        AssetManager<std::string, MaterialSkybox> &instance = AssetManager<std::string, MaterialSkybox>::getInstance();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             auto material = std::static_pointer_cast<VulkanMaterialSkybox>(itr->second);
-            material->createDescriptors(m_vkctx.device(), m_descriptorPool, m_swapchainImages);
+            VULKAN_CHECK_CRITICAL(material->createDescriptors(m_vkctx.device(), m_descriptorPool, m_swapchainImages));
             material->updateDescriptorSets(m_vkctx.device(), m_swapchainImages);
         }
     }
 
-
-    return ret;
+    return VK_SUCCESS;
 }
 
-bool VulkanMaterials::releaseResources()
+VkResult VulkanMaterials::releaseResources()
 {
     /* Destroy material data */
     {
-        AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
+        AssetManager<std::string, Material> &instance = AssetManager<std::string, Material>::getInstance();
         instance.reset();
     }
 
@@ -58,16 +66,16 @@ bool VulkanMaterials::releaseResources()
 
     vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutMaterial, nullptr);
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanMaterials::releaseSwapchainResources()
+VkResult VulkanMaterials::releaseSwapchainResources()
 {
     m_materialsStorage.destroyGPUBuffers(m_vkctx.device());
 
     vkDestroyDescriptorPool(m_vkctx.device(), m_descriptorPool, nullptr);
 
-    return true;
+    return VK_SUCCESS;
 }
 
 void VulkanMaterials::updateBuffers(uint32_t index) const
@@ -77,136 +85,99 @@ void VulkanMaterials::updateBuffers(uint32_t index) const
 
 VkBuffer VulkanMaterials::getBuffer(uint32_t index)
 {
-    return m_materialsStorage.getBuffer(index);
+    return m_materialsStorage.buffer(index);
 }
 
 std::shared_ptr<Material> VulkanMaterials::createMaterial(std::string name, MaterialType type, bool createDescriptors)
 {
-    AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
+    AssetManager<std::string, Material> &instance = AssetManager<std::string, Material>::getInstance();
     if (instance.isPresent(name)) {
-        utils::ConsoleWarning("Material name already present");
+        debug_tools::ConsoleWarning("Material name already present");
         return nullptr;
     }
 
     std::shared_ptr<Material> temp;
-    switch (type)
-    {
-    case MaterialType::MATERIAL_PBR_STANDARD:
-    {
-        temp = std::make_shared<VulkanMaterialPBRStandard>(name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_vkctx.device(), m_descriptorSetLayoutMaterial, m_materialsStorage);
-        instance.add(name, temp);
-        break;
-    }
-    case MaterialType::MATERIAL_LAMBERT:
-    {
-        temp = std::make_shared<VulkanMaterialLambert>(name, glm::vec4(1, 1, 1, 1), 1, 0, m_vkctx.device(), m_descriptorSetLayoutMaterial, m_materialsStorage);
-        instance.add(name, temp);
-        break;
-    }
-    default:
-    {
-        throw std::runtime_error("VulkanMaterialSystem::createMaterial(): Unexpected material");
-        break;
-    }
+    switch (type) {
+        case MaterialType::MATERIAL_PBR_STANDARD: {
+            temp = std::make_shared<VulkanMaterialPBRStandard>(
+                name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_vkctx.device(), m_descriptorSetLayoutMaterial, m_materialsStorage);
+            instance.add(name, temp);
+            break;
+        }
+        case MaterialType::MATERIAL_LAMBERT: {
+            temp = std::make_shared<VulkanMaterialLambert>(
+                name, glm::vec4(1, 1, 1, 1), 1, 0, m_vkctx.device(), m_descriptorSetLayoutMaterial, m_materialsStorage);
+            instance.add(name, temp);
+            break;
+        }
+        default: {
+            throw std::runtime_error("VulkanMaterialSystem::createMaterial(): Unexpected material");
+            break;
+        }
     }
 
     return temp;
 }
 
-bool VulkanMaterials::createDescriptorSetsLayout()
+VkResult VulkanMaterials::createDescriptorSetsLayout()
 {
-    {
-        /* Create binding for material data */
-        VkDescriptorSetLayoutBinding materiaDatalLayoutBinding{};
-        materiaDatalLayoutBinding.binding = 0;
-        materiaDatalLayoutBinding.descriptorCount = 1;
-        materiaDatalLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        materiaDatalLayoutBinding.pImmutableSamplers = nullptr;
-        materiaDatalLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    /* Create binding for material data */
+    VkDescriptorSetLayoutBinding materiaDatalLayoutBinding = vkinit::descriptorSetLayoutBinding(
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, 1);
 
-        std::array<VkDescriptorSetLayoutBinding, 1> setBindings = { materiaDatalLayoutBinding };
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(setBindings.size());
-        layoutInfo.pBindings = setBindings.data();
+    std::array<VkDescriptorSetLayoutBinding, 1> setBindings = {materiaDatalLayoutBinding};
+    VkDescriptorSetLayoutCreateInfo layoutInfo =
+        vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(setBindings.size()), setBindings.data());
 
-        if (vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutMaterial) != VK_SUCCESS) {
-            utils::ConsoleCritical("VulkanMaterialSystem::createDescriptorSetsLayout(): Failed to create the material descriptor set layout");
-            return false;
-        }
-    }
+    VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutMaterial));
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanMaterials::createDescriptorPool(uint32_t nImages, uint32_t maxCubemaps)
+VkResult VulkanMaterials::createDescriptorPool(uint32_t nImages, uint32_t maxCubemaps)
 {
-    VkDescriptorPoolSize materialDataPoolSize{};
-    materialDataPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    materialDataPoolSize.descriptorCount = static_cast<uint32_t>(nImages);
+    VkDescriptorPoolSize materialDataPoolSize =
+        vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(nImages));
+    VkDescriptorPoolSize cubemapDataPoolSize =
+        vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(6 * maxCubemaps * nImages));
+    std::array<VkDescriptorPoolSize, 2> poolSizes = {materialDataPoolSize, cubemapDataPoolSize};
 
-    VkDescriptorPoolSize cubemapDataPoolSize{};
-    cubemapDataPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    cubemapDataPoolSize.descriptorCount = static_cast<uint32_t>(6 * maxCubemaps * nImages);
-
-    std::array<VkDescriptorPoolSize, 2> poolSizes = { materialDataPoolSize, cubemapDataPoolSize };
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;    
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
+    VkDescriptorPoolCreateInfo poolInfo = vkinit::descriptorPoolCreateInfo(
+        static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), static_cast<uint32_t>(nImages + maxCubemaps * nImages));
     poolInfo.maxSets = static_cast<uint32_t>(nImages + maxCubemaps * nImages);
 
-    if (vkCreateDescriptorPool(m_vkctx.device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
-        utils::ConsoleCritical("Failed to create material a descriptor pool");
-        return false;
-    }
+    VULKAN_CHECK_CRITICAL(vkCreateDescriptorPool(m_vkctx.device(), &poolInfo, nullptr, &m_descriptorPool));
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanMaterials::createDescriptorSets(uint32_t nImages)
+VkResult VulkanMaterials::createDescriptorSets(uint32_t nImages)
 {
     m_descriptorSets.resize(nImages);
 
     std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayoutMaterial);
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = nImages;
-    allocInfo.pSetLayouts = layouts.data();
+    VkDescriptorSetAllocateInfo allocInfo = vkinit::descriptorSetAllocateInfo(m_descriptorPool, nImages, layouts.data());
 
-    vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, m_descriptorSets.data());
+    VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, m_descriptorSets.data()));
 
-    return true;
+    return VK_SUCCESS;
 }
 
 void VulkanMaterials::updateDescriptor(uint32_t index)
 {
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_materialsStorage.getBuffer(index);
-    bufferInfo.offset = 0;
-    bufferInfo.range = VK_WHOLE_SIZE;
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = m_descriptorSets[index];
-    descriptorWrite.dstBinding = 0;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &bufferInfo;
-    descriptorWrite.pImageInfo = nullptr; // Optional
-    descriptorWrite.pTexelBufferView = nullptr; // Optional
+    VkDescriptorBufferInfo bufferInfo = vkinit::descriptorBufferInfo(m_materialsStorage.buffer(index), 0, VK_WHOLE_SIZE);
+    VkWriteDescriptorSet descriptorWrite =
+        vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, &bufferInfo);
 
-    std::array<VkWriteDescriptorSet, 1> writeSets = { descriptorWrite };
-    vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);  
+    std::array<VkWriteDescriptorSet, 1> writeSets = {descriptorWrite};
+    vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 }
 
-bool VulkanMaterials::updateDescriptorSets()
+void VulkanMaterials::updateDescriptorSets()
 {
-    for(uint32_t i = 0; i < m_descriptorSets.size(); i++)
-    {
+    for (uint32_t i = 0; i < m_descriptorSets.size(); i++) {
         updateDescriptor(i);
     }
-
-    return true;
 }
+
+}  // namespace vengine

@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <cassert>
 
+namespace vengine {
+
 FreeList::FreeList(size_t nElements)
 {
 	m_end = 0;
@@ -44,3 +46,4 @@ void FreeList::clear()
 	m_freeElements.clear();
 }
 
+}

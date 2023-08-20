@@ -1,5 +1,7 @@
 #include "EnvironmentMap.hpp"
 
+namespace vengine {
+
 std::shared_ptr<Cubemap> EnvironmentMap::getSkyboxMap() const
 {
     return m_skyboxMap;
@@ -13,4 +15,6 @@ std::shared_ptr<Cubemap> EnvironmentMap::getIrradianceMap() const
 std::shared_ptr<Cubemap> EnvironmentMap::getPrefilteredMap() const
 {
     return m_prefilteredMap;
+}
+
 }

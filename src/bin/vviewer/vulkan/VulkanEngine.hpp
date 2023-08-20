@@ -8,6 +8,8 @@
 #include "VulkanSwapchain.hpp"
 #include "renderers/VulkanRenderer.hpp"
 
+namespace vengine {
+
 class VulkanEngine : public Engine {
 public:
     VulkanEngine();
@@ -55,5 +57,7 @@ private:
     float m_deltaTime = 0.016F;
 
 };
+
+}
 
 #endif

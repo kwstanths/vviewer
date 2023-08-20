@@ -6,15 +6,19 @@
 #include "core/MeshModel.hpp"
 #include "core/Mesh.hpp"
 
-#include "vulkan/IncludeVulkan.hpp"
-#include "VulkanBuffer.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/resources/VulkanBuffer.hpp"
 
-class VulkanVertex {
+namespace vengine
+{
+
+class VulkanVertex
+{
 public:
     static VkVertexInputBindingDescription getBindingDescription()
     {
         VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
+        bindingDescription.binding = 0; /* The buffers index to the buffers specified in vkCmdBindVertexBuffers */
         bindingDescription.stride = sizeof(Vertex);
         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         return bindingDescription;
@@ -63,17 +67,18 @@ public:
     }
 };
 
-class VulkanMesh : public Mesh {
+class VulkanMesh : public Mesh
+{
 public:
-    VulkanMesh(const Mesh& mesh);
+    VulkanMesh(const Mesh &mesh);
 
     void destroy(VkDevice device);
 
-    inline VulkanBuffer& vertexBuffer() { return m_vertexBuffer; }
-    inline VulkanBuffer getVertexBuffer() const { return m_vertexBuffer; }
+    inline VulkanBuffer &vertexBuffer() { return m_vertexBuffer; }
+    inline const VulkanBuffer &vertexBuffer() const { return m_vertexBuffer; }
 
-    inline VulkanBuffer& indexBuffer() { return m_indexBuffer; }
-    inline VulkanBuffer getIndexBuffer() const { return m_indexBuffer; }
+    inline VulkanBuffer &indexBuffer() { return m_indexBuffer; }
+    inline const VulkanBuffer &indexBuffer() const { return m_indexBuffer; }
 
     inline VkIndexType indexType() const { return VK_INDEX_TYPE_UINT32; }
 
@@ -82,24 +87,31 @@ private:
     VulkanBuffer m_indexBuffer;
 };
 
-class VulkanMeshModel : public MeshModel {
+class VulkanMeshModel : public MeshModel
+{
 public:
-    VulkanMeshModel(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Mesh>& meshes, VkBufferUsageFlags extraUsageFlags);
-    
+    VulkanMeshModel(VkPhysicalDevice physicalDevice,
+                    VkDevice device,
+                    VkQueue transferQueue,
+                    VkCommandPool transferCommandPool,
+                    std::vector<Mesh> &meshes,
+                    VkBufferUsageFlags extraUsageFlags);
+
     void destroy(VkDevice device);
 
 private:
-
 };
 
 /* ---------- Some shapes ---------- */
 
-class VulkanCube : public MeshModel {
+class VulkanCube : public MeshModel
+{
 public:
     VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool);
-private:
 
+private:
 };
 
+}  // namespace vengine
 
 #endif

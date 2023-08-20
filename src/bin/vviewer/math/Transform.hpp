@@ -6,6 +6,8 @@
 
 #define EPSILON_EQUAL_GLM 0.0001
 
+namespace vengine {
+
 class Transform {
 public:
     Transform();
@@ -60,5 +62,7 @@ private:
     void computeBasisVectors();
 
 };
+
+}
 
 #endif

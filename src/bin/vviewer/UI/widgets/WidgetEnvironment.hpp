@@ -27,13 +27,13 @@
 class WidgetEnvironment : public QWidget {
     Q_OBJECT
 public:
-    WidgetEnvironment(QWidget* parent, Scene* scene);
+    WidgetEnvironment(QWidget* parent, vengine::Scene* scene);
 
     void updateMaps();
 
-    void setCamera(std::shared_ptr<Camera> c);
+    void setCamera(std::shared_ptr<vengine::Camera> c);
 
-    void setEnvironmentType(const EnvironmentType& type, bool updateUI = false);
+    void setEnvironmentType(const vengine::EnvironmentType& type, bool updateUI = false);
 
 private:
     QComboBox* m_environmentPicker;
@@ -45,8 +45,8 @@ private:
     QSlider* m_exposureSlider;
 
     /* Scene info */
-    Scene* m_scene;
-    std::shared_ptr<PerspectiveCamera> m_camera;
+    vengine::Scene* m_scene;
+    std::shared_ptr<vengine::PerspectiveCamera> m_camera;
 
     /* Camera widgets */
     WidgetTransform* m_cameraTransformWidget;

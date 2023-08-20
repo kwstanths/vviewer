@@ -7,29 +7,33 @@
 #include "core/Camera.hpp"
 #include "core/Lights.hpp"
 
-#include "VulkanMaterials.hpp"
-#include "VulkanSceneObject.hpp"
-#include "VulkanStructs.hpp"
-#include "VulkanContext.hpp"
+#include "vulkan/VulkanSceneObject.hpp"
+#include "vulkan/VulkanContext.hpp"
+#include "vulkan/common/VulkanStructs.hpp"
 #include "vulkan/resources/VulkanUBO.hpp"
 
-class VulkanScene : public Scene {
+namespace vengine
+{
+
+class VulkanScene : public Scene
+{
     friend class VulkanRenderer;
+
 public:
-    VulkanScene(VulkanContext& vkctx, uint32_t maxObjects);
+    VulkanScene(VulkanContext &vkctx, uint32_t maxObjects);
     ~VulkanScene();
 
-    bool initResources();
-    bool initSwapchainResources(uint32_t nImages);
+    VkResult initResources();
+    VkResult initSwapchainResources(uint32_t nImages);
 
-    bool releaseResources();
-    bool releaseSwapchainResources();
+    VkResult releaseResources();
+    VkResult releaseSwapchainResources();
 
-    VkDescriptorSetLayout& layoutSceneData() { return m_descriptorSetLayoutScene; }
-    VkDescriptorSetLayout& layoutModelData() { return m_descriptorSetLayoutModel; }
+    VkDescriptorSetLayout &layoutSceneData() { return m_descriptorSetLayoutScene; }
+    VkDescriptorSetLayout &layoutModelData() { return m_descriptorSetLayoutModel; }
 
-    VkDescriptorSet& descriptorSetSceneData(uint32_t imageIndex) { return m_descriptorSetsScene[imageIndex]; };
-    VkDescriptorSet& descriptorSetModelData(uint32_t imageIndex) { return m_descriptorSetsModel[imageIndex]; };
+    VkDescriptorSet &descriptorSetSceneData(uint32_t imageIndex) { return m_descriptorSetsScene[imageIndex]; };
+    VkDescriptorSet &descriptorSetModelData(uint32_t imageIndex) { return m_descriptorSetsModel[imageIndex]; };
 
     virtual SceneData getSceneData() const override;
 
@@ -37,7 +41,7 @@ public:
     void updateBuffers(uint32_t imageIndex) const;
 
 private:
-    VulkanContext& m_vkctx;
+    VulkanContext &m_vkctx;
 
     VkDescriptorPool m_descriptorPool;
 
@@ -53,12 +57,14 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
     std::vector<VkDescriptorSet> m_descriptorSetsModel;
 
-    bool createDescriptorSetsLayouts();
-    bool createDescriptorPool(uint32_t nImages);
-    bool createDescriptorSets(uint32_t nImages);
-    bool createBuffers(uint32_t nImages);
+    VkResult createDescriptorSetsLayouts();
+    VkResult createDescriptorPool(uint32_t nImages);
+    VkResult createDescriptorSets(uint32_t nImages);
+    VkResult createBuffers(uint32_t nImages);
 
     std::shared_ptr<SceneObject> createObject(std::string name) override;
 };
 
-#endif // !__VulkanScene_hpp__
+}  // namespace vengine
+
+#endif  // !__VulkanScene_hpp__

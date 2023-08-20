@@ -4,6 +4,8 @@
 #include <qnamespace.h>
 #include <qpushbutton.h>
 
+using namespace vengine;
+
 WidgetComponent::WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper, Engine * engine) : 
     QWidget(parent), 
     m_componentWrapper(componentWrapper), 

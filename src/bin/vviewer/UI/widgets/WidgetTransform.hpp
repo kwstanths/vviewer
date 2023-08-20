@@ -12,11 +12,11 @@ class WidgetTransform : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetTransform(QWidget * parent, std::shared_ptr<SceneObject> sceneObject, QString groupBoxName = "Transform", bool bold = false);
+    WidgetTransform(QWidget * parent, std::shared_ptr<vengine::SceneObject> sceneObject, QString groupBoxName = "Transform", bool bold = false);
 
-    Transform getTransform() const;
+    vengine::Transform getTransform() const;
 
-    void setTransform(const Transform& transform);
+    void setTransform(const vengine::Transform& transform);
 
     void updateTransformUI();
 
@@ -27,7 +27,7 @@ private:
 
     QWidget * createRow(QString name, QDoubleSpinBox ** X, QDoubleSpinBox ** Y, QDoubleSpinBox ** Z);
 
-    std::shared_ptr<SceneObject> m_sceneObject;
+    std::shared_ptr<vengine::SceneObject> m_sceneObject;
 
 private Q_SLOTS:
     void onTransformChangedSlot(double d);

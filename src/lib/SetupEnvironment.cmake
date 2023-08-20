@@ -45,9 +45,9 @@ macro(SetupEnvironment)
     set(TBB_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/external/oneTBB/include)
     set(TBB_LIBRARIES tbb)
 
-    # UTILS
-    set(UTILS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/utils/)
-    set(UTILS_LIBRARIES utils)
+    # DEBUG_TOOLS
+    set(DEBUG_TOOLS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/debug_tools/)
+    set(DEBUG_TOOLS_LIBRARIES debug_tools)
    
     if(MSVC)
         #ASSIMP
@@ -73,7 +73,7 @@ macro(SetupEnvironment)
         ${RAPIDJSON_INCLUDE_DIRS}
         ${ZIP_INCLUDE_DIRS}
         ${TBB_INCLUDE_DIRS}
-        ${UTILS_INCLUDE_DIRS}
+        ${DEBUG_TOOLS_INCLUDE_DIRS}
         ${ASSIMP_INCLUDE_DIRS}
 	)
 	
@@ -82,7 +82,7 @@ macro(SetupEnvironment)
 		${VULKAN_LIBRARIES}
 		${ZIP_LIBRARIES}
 		${TBB_LIBRARIES}
-		${UTILS_LIBRARIES}
+		${DEBUG_TOOLS_LIBRARIES}
 		${ASSIMP_LIBRARIES}
 	)
 

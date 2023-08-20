@@ -11,6 +11,8 @@
 #include <core/EnvironmentMap.hpp>
 #include <core/Lights.hpp>
 
+using namespace vengine;
+
 QStringList getImportedModels()
 {
     QStringList importedModels;

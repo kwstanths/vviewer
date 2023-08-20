@@ -1,8 +1,10 @@
 #ifndef __VulkanSwapchain_hpp__
 #define __VulkanSwapchain_hpp__
 
-#include "IncludeVulkan.hpp"
-#include "VulkanContext.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/VulkanContext.hpp"
+
+namespace vengine {
 
 /* Initializes a swapchain and a depth buffer */
 class VulkanSwapchain {
@@ -49,13 +51,15 @@ private:
     VkImageView m_depthImageView;
     VkFormat m_depthFormat;
 
-    void createImageViews();
-    void createDepthBuffer();
+    bool createImageViews();
+    bool createDepthBuffer();
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
     VkFormat findDepthFormat();
 };
+
+}
 
 #endif

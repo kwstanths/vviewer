@@ -40,7 +40,8 @@
 #endif
 
 
-namespace utils {
+namespace debug_tools {
+    
     /** TerminalColor of console output */
     enum TerminalColor {
         DARK_BLUE = COLOR_DARK_BLUE,

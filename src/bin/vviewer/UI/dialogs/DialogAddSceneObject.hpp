@@ -17,7 +17,7 @@ public:
     DialogAddSceneObject(QWidget *parent, const char *name, QStringList availableModels, QStringList availableMaterials);
 
     std::string getSelectedModel() const;
-    Transform getTransform() const;
+    vengine::Transform getTransform() const;
     std::string getSelectedMaterial() const;
 
 private:

@@ -5,7 +5,7 @@
 
 #include <glm/glm.hpp>
 
-#include <math/MathUtils.hpp>
+namespace vengine {
 
 /**
  * @brief Get the next power of 2
@@ -24,6 +24,8 @@ uint32_t roundPow2(uint32_t v);
 inline glm::vec3 getTranslation(const glm::mat4& m)
 {
     return glm::vec3(m[3][0], m[3][1], m[3][2]);
+}
+
 }
 
 #endif // !__MathUtils_hpp__

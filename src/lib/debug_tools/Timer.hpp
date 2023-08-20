@@ -5,7 +5,7 @@
 #include <string>
 #include <chrono>
 
-namespace utils {
+namespace debug_tools {
 
     class Timer {
         private:

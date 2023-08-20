@@ -3,12 +3,20 @@
 
 #include <core/Cubemap.hpp>
 
-#include "vulkan/IncludeVulkan.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
 
-class VulkanCubemap : public Cubemap {
+namespace vengine
+{
+
+class VulkanCubemap : public Cubemap
+{
 public:
     VulkanCubemap(std::string directory, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
-    VulkanCubemap(std::string name, VkImage cubemapImage, VkDeviceMemory m_cubemapMemory, VkImageView m_cubemapImageView, VkSampler m_cubemapSampler);
+    VulkanCubemap(std::string name,
+                  VkImage cubemapImage,
+                  VkDeviceMemory m_cubemapMemory,
+                  VkImageView m_cubemapImageView,
+                  VkSampler m_cubemapSampler);
 
     VkImage getImage() const;
     VkDeviceMemory getDeviceMemory() const;
@@ -23,7 +31,9 @@ private:
     VkImageView m_cubemapImageView;
     VkSampler m_cubemapSampler;
 
-    bool createCubemap(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
+    VkResult createCubemap(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
 };
+
+}  // namespace vengine
 
 #endif

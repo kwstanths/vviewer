@@ -3,36 +3,44 @@
 
 #include "core/Camera.hpp"
 
-#include "vulkan/IncludeVulkan.hpp"
-#include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
-#include "vulkan/VulkanMaterials.hpp"
 #include "vulkan/VulkanFramebuffer.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/resources/VulkanTexture.hpp"
+#include "vulkan/resources/VulkanMaterial.hpp"
 
-class VulkanRenderer3DUI {
+namespace vengine
+{
+
+class VulkanRenderer3DUI
+{
     friend class VulkanRenderer;
+
 public:
     VulkanRenderer3DUI();
 
-    void initResources(VkPhysicalDevice physicalDevice,
-        VkDevice device,
-        VkQueue queue,
-        VkCommandPool commandPool,
-        VkDescriptorSetLayout cameraDescriptorLayout);
-    void initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, uint32_t swapchainImages, VkSampleCountFlagBits msaaSamples);
+    VkResult initResources(VkPhysicalDevice physicalDevice,
+                           VkDevice device,
+                           VkQueue queue,
+                           VkCommandPool commandPool,
+                           VkDescriptorSetLayout cameraDescriptorLayout);
+    VkResult initSwapChainResources(VkExtent2D swapchainExtent,
+                                    VkRenderPass renderPass,
+                                    uint32_t swapchainImages,
+                                    VkSampleCountFlagBits msaaSamples);
 
-    void releaseSwapChainResources();
-    void releaseResources();
+    VkResult releaseSwapChainResources();
+    VkResult releaseResources();
 
     VkPipeline getPipeline() const;
     VkPipelineLayout getPipelineLayout() const;
 
     /* Draw a transform widget at a certain position */
-    void renderTransform(VkCommandBuffer& cmdBuf,
-        VkDescriptorSet& descriptorScene,
-        uint32_t imageIndex,
-        const glm::mat4& modelMatrix,
-        const std::shared_ptr<Camera>& camera) const;
+    VkResult renderTransform(VkCommandBuffer &cmdBuf,
+                             VkDescriptorSet &descriptorScene,
+                             uint32_t imageIndex,
+                             const glm::mat4 &modelMatrix,
+                             const std::shared_ptr<Camera> &camera) const;
 
 private:
     VkDevice m_device;
@@ -49,10 +57,12 @@ private:
     VkRenderPass m_renderPass;
     VkSampleCountFlagBits m_msaaSamples;
 
-    VulkanMeshModel* m_arrow = nullptr;
+    VulkanMeshModel *m_arrow = nullptr;
     glm::vec3 m_rightID, m_upID, m_forwardID;
 
-    bool createGraphicsPipeline();
+    VkResult createGraphicsPipeline();
 };
+
+}  // namespace vengine
 
 #endif

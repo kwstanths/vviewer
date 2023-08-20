@@ -1,7 +1,7 @@
 #include "DebugLevels.hpp"
 
 
-namespace utils {
+namespace debug_tools {
 
     std::pair<std::string, TerminalColor> GetLevelInfo(DebugLevel level){
         switch (level) {
