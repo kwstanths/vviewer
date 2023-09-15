@@ -39,7 +39,8 @@ VulkanRenderer::VulkanRenderer(VulkanContext &context,
     , m_textures(textures)
     , m_materials(materials)
     , m_scene(scene)
-    , m_rendererRayTracing(context, materials, textures)
+    , m_random(context)
+    , m_rendererRayTracing(context, materials, textures, m_random)
 {
 }
 
@@ -49,6 +50,8 @@ VkResult VulkanRenderer::initResources()
 
     VULKAN_CHECK_CRITICAL(createCommandBuffers());
     VULKAN_CHECK_CRITICAL(createSyncObjects());
+
+    VULKAN_CHECK_CRITICAL(m_random.initResources());
 
     /* Initialize renderers */
     VULKAN_CHECK_CRITICAL(m_rendererSkybox.initResources(m_vkctx.physicalDevice(),
@@ -63,8 +66,8 @@ VkResult VulkanRenderer::initResources()
                                                       m_vkctx.physicalDeviceProperties(),
                                                       m_scene->layoutSceneData(),
                                                       m_scene->layoutModelData(),
-                                                      m_rendererSkybox.getDescriptorSetLayout(),
-                                                      m_materials.layoutMaterial(),
+                                                      m_rendererSkybox.descriptorSetLayout(),
+                                                      m_materials.descriptorSetLayout(),
                                                       m_textures));
     VULKAN_CHECK_CRITICAL(m_rendererLambert.initResources(m_vkctx.physicalDevice(),
                                                           m_vkctx.device(),
@@ -73,9 +76,9 @@ VkResult VulkanRenderer::initResources()
                                                           m_vkctx.physicalDeviceProperties(),
                                                           m_scene->layoutSceneData(),
                                                           m_scene->layoutModelData(),
-                                                          m_rendererSkybox.getDescriptorSetLayout(),
-                                                          m_materials.layoutMaterial(),
-                                                          m_textures.layoutTextures()));
+                                                          m_rendererSkybox.descriptorSetLayout(),
+                                                          m_materials.descriptorSetLayout(),
+                                                          m_textures.descriptorSetLayout()));
     VULKAN_CHECK_CRITICAL(m_rendererPost.initResources(
         m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool()));
 
@@ -91,7 +94,7 @@ VkResult VulkanRenderer::initResources()
 
     try {
         VULKAN_CHECK_CRITICAL(
-            m_rendererRayTracing.initResources(VK_FORMAT_R32G32B32A32_SFLOAT, m_rendererSkybox.getDescriptorSetLayout()));
+            m_rendererRayTracing.initResources(VK_FORMAT_R32G32B32A32_SFLOAT, m_rendererSkybox.descriptorSetLayout()));
     } catch (std::exception &e) {
         debug_tools::ConsoleWarning("VulkanRenderer::initResources():Failed to initialize GPU ray tracing renderer: " +
                                     std::string(e.what()));
@@ -118,7 +121,7 @@ VkResult VulkanRenderer::initResources()
         AssetManager<std::string, MaterialSkybox> &instance = AssetManager<std::string, MaterialSkybox>::getInstance();
         auto skybox = instance.add(
             "skybox",
-            std::make_shared<VulkanMaterialSkybox>("skybox", envMap, m_vkctx.device(), m_rendererSkybox.getDescriptorSetLayout()));
+            std::make_shared<VulkanMaterialSkybox>("skybox", envMap, m_vkctx.device(), m_rendererSkybox.descriptorSetLayout()));
 
         m_scene->setSkybox(skybox);
     }
@@ -188,6 +191,8 @@ VkResult VulkanRenderer::releaseSwapChainResources()
 
 VkResult VulkanRenderer::releaseResources()
 {
+    m_random.releaseResources();
+
     for (uint32_t f = 0; f < MAX_FRAMES_IN_FLIGHT; f++) {
         vkDestroySemaphore(m_vkctx.device(), m_semaphoreImageAvailable[f], nullptr);
         vkDestroySemaphore(m_vkctx.device(), m_semaphoreRenderFinished[f], nullptr);
@@ -350,8 +355,8 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                             m_scene->descriptorSetSceneData(imageIndex),
                                             m_scene->descriptorSetModelData(imageIndex),
                                             skybox->getDescriptor(imageIndex),
-                                            m_materials.descriptor(imageIndex),
-                                            m_textures.descriptorTextures(),
+                                            m_materials.descriptorSet(imageIndex),
+                                            m_textures.descriptorSet(),
                                             imageIndex,
                                             m_scene->m_modelDataDynamicUBO,
                                             pbrStandardObjects);
@@ -360,8 +365,8 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                                 m_scene->descriptorSetSceneData(imageIndex),
                                                 m_scene->descriptorSetModelData(imageIndex),
                                                 skybox->getDescriptor(imageIndex),
-                                                m_materials.descriptor(imageIndex),
-                                                m_textures.descriptorTextures(),
+                                                m_materials.descriptorSet(imageIndex),
+                                                m_textures.descriptorSet(),
                                                 imageIndex,
                                                 m_scene->m_modelDataDynamicUBO,
                                                 lambertObjects);
@@ -386,8 +391,8 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                 m_rendererPBR.renderObjectsAddPass(commandBuffer,
                                                    m_scene->descriptorSetSceneData(imageIndex),
                                                    m_scene->descriptorSetModelData(imageIndex),
-                                                   m_materials.descriptor(imageIndex),
-                                                   m_textures.descriptorTextures(),
+                                                   m_materials.descriptorSet(imageIndex),
+                                                   m_textures.descriptorSet(),
                                                    imageIndex,
                                                    m_scene->m_modelDataDynamicUBO,
                                                    obj,
@@ -397,8 +402,8 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                 m_rendererLambert.renderObjectsAddPass(commandBuffer,
                                                        m_scene->descriptorSetSceneData(imageIndex),
                                                        m_scene->descriptorSetModelData(imageIndex),
-                                                       m_materials.descriptor(imageIndex),
-                                                       m_textures.descriptorTextures(),
+                                                       m_materials.descriptorSet(imageIndex),
+                                                       m_textures.descriptorSet(),
                                                        imageIndex,
                                                        m_scene->m_modelDataDynamicUBO,
                                                        obj,

@@ -33,6 +33,7 @@
 #include "vulkan/resources/VulkanMesh.hpp"
 #include "vulkan/resources/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
+#include "vulkan/resources/VulkanRandom.hpp"
 
 namespace vengine
 {
@@ -88,6 +89,7 @@ private:
     VulkanMaterials &m_materials;
     VulkanTextures &m_textures;
     VulkanScene *m_scene = nullptr;
+    VulkanRandom m_random;
 
     /* Render pass and framebuffers */
     VkRenderPass m_renderPassForward;

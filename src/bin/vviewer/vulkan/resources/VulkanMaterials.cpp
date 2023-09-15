@@ -64,7 +64,7 @@ VkResult VulkanMaterials::releaseResources()
 
     m_materialsStorage.destroyCPUMemory();
 
-    vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutMaterial, nullptr);
+    vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayout, nullptr);
 
     return VK_SUCCESS;
 }
@@ -100,13 +100,13 @@ std::shared_ptr<Material> VulkanMaterials::createMaterial(std::string name, Mate
     switch (type) {
         case MaterialType::MATERIAL_PBR_STANDARD: {
             temp = std::make_shared<VulkanMaterialPBRStandard>(
-                name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_vkctx.device(), m_descriptorSetLayoutMaterial, m_materialsStorage);
+                name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
             instance.add(name, temp);
             break;
         }
         case MaterialType::MATERIAL_LAMBERT: {
             temp = std::make_shared<VulkanMaterialLambert>(
-                name, glm::vec4(1, 1, 1, 1), 1, 0, m_vkctx.device(), m_descriptorSetLayoutMaterial, m_materialsStorage);
+                name, glm::vec4(1, 1, 1, 1), 1, 0, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
             instance.add(name, temp);
             break;
         }
@@ -129,7 +129,7 @@ VkResult VulkanMaterials::createDescriptorSetsLayout()
     VkDescriptorSetLayoutCreateInfo layoutInfo =
         vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(setBindings.size()), setBindings.data());
 
-    VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutMaterial));
+    VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayout));
 
     return VK_SUCCESS;
 }
@@ -155,7 +155,7 @@ VkResult VulkanMaterials::createDescriptorSets(uint32_t nImages)
 {
     m_descriptorSets.resize(nImages);
 
-    std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayoutMaterial);
+    std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = vkinit::descriptorSetAllocateInfo(m_descriptorPool, nImages, layouts.data());
 
     VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, m_descriptorSets.data()));

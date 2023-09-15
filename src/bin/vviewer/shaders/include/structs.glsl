@@ -28,11 +28,11 @@ struct Scene {
 /* Material struct. A mirror of the CPU struct */
 struct Material
 {
-    vec4 albedo; /* RGB: albedo, A: alpha */
-    vec4 metallicRoughnessAOEmissive;  /* R = metallic, G = roughness, B = AO, A = emissive */
-    vec4 uvTiling; /* R = u tiling, G = v tiling, B = unused, A = unused */
-    uvec4 gTexturesIndices1;    /* R = albedo texture index, G = metallic texture index, B = roughness texture index, A = AO texture index */   
-    uvec4 gTexturesIndices2;    /* R = emissive texture index, G = normal texture index, B = BRDF LUT texture index, A = unused */
+    vec4 albedo;                        /* RGB: albedo, A: alpha */
+    vec4 metallicRoughnessAOEmissive;   /* R = metallic, G = roughness, B = AO, A = emissive */
+    vec4 uvTiling;                      /* R = u tiling, G = v tiling, B = unused, A = unused */
+    uvec4 gTexturesIndices1;            /* R = albedo texture index, G = metallic texture index, B = roughness texture index, A = AO texture index */   
+    uvec4 gTexturesIndices2;            /* R = emissive texture index, G = normal texture index, B = BRDF LUT texture index, A = unused */
 
     uvec4 padding;
     uvec4 padding1;
@@ -52,16 +52,16 @@ struct ObjDesc
 
 /* Struct with ray payload for RT */
 struct RayPayload {
-    vec3 radiance;
-    vec3 beta;
-    uint depth;
+    vec3 radiance;          /* Ray radiance */
+    vec3 beta;              /* Current throughput */
+    uint depth;             /* Current depth */
 
-    vec3 origin;
-    vec3 direction;
-    float bsdfPdf;  /* The pdf of sampling that direction, valid only if depth > 0 */
-    bool stop;
+    vec3 origin;            /* Ray origin */
+    vec3 direction;         /* Ray direction */
+    float bsdfPdf;          /* The pdf of sampling that direction, valid only if depth > 0 */
+    bool stop;              /* If true stop tracing */
 
-    uint rngState;
+    uint rngState;          /* RNG state */
 };
 
 /* Struct to represent lights in RT */

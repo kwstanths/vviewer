@@ -8,7 +8,6 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
-#include "../include/rng.glsl"
 #include "../include/structs.glsl"
 #include "../include/frame.glsl"
 #include "../include/utils.glsl"
@@ -58,6 +57,7 @@ layout(set = 1, binding = 0) uniform readonly Materials
 layout (set = 2, binding = 0) uniform sampler2D global_textures[];
 layout (set = 2, binding = 0) uniform sampler3D global_textures_3d[];
 
+#include "../include/rng.glsl"
 #include "lightSampling.glsl"
 #include "MIS.glsl"
 
@@ -164,7 +164,7 @@ void main()
 	/* BSDF sampling */
 	float sampleDirectionPDF;
 	vec3 sampleDirectionLocal;
-	vec3 F = samplePBRStandard(sampleDirectionLocal, wo, sampleDirectionPDF, pbr, vec3(rand(rayPayload.rngState), rand(rayPayload.rngState), rand(rayPayload.rngState)));
+	vec3 F = samplePBRStandard(sampleDirectionLocal, wo, sampleDirectionPDF, pbr, rand2D(rayPayload), rand1D(rayPayload));
 	
 	vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
 	

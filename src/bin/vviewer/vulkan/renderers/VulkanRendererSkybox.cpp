@@ -72,17 +72,7 @@ VkResult VulkanRendererSkybox::releaseResources()
     return VK_SUCCESS;
 }
 
-VkPipeline VulkanRendererSkybox::getPipeline() const
-{
-    return m_graphicsPipeline;
-}
-
-VkPipelineLayout VulkanRendererSkybox::getPipelineLayout() const
-{
-    return m_pipelineLayout;
-}
-
-VkDescriptorSetLayout VulkanRendererSkybox::getDescriptorSetLayout() const
+VkDescriptorSetLayout &VulkanRendererSkybox::descriptorSetLayout()
 {
     return m_descriptorSetLayoutSkybox;
 }

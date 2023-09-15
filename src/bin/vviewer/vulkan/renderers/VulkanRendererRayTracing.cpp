@@ -29,10 +29,14 @@
 namespace vengine
 {
 
-VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext &vkctx, VulkanMaterials &materials, VulkanTextures &textures)
+VulkanRendererRayTracing::VulkanRendererRayTracing(VulkanContext &vkctx,
+                                                   VulkanMaterials &materials,
+                                                   VulkanTextures &textures,
+                                                   VulkanRandom &random)
     : m_vkctx(vkctx)
     , m_materials(materials)
     , m_textures(textures)
+    , m_random(random)
 {
 }
 
@@ -92,7 +96,7 @@ VkResult VulkanRendererRayTracing::initResources(VkFormat format, VkDescriptorSe
         vkGetPhysicalDeviceFeatures2(m_vkctx.physicalDevice(), &deviceFeatures2);
     }
 
-    VULKAN_CHECK_CRITICAL(createUniformBuffers());
+    VULKAN_CHECK_CRITICAL(createBuffers());
     VULKAN_CHECK_CRITICAL(createRayTracingPipeline());
     VULKAN_CHECK_CRITICAL(createShaderBindingTable());
     VULKAN_CHECK_CRITICAL(createDescriptorSets());
@@ -135,7 +139,7 @@ VkResult VulkanRendererRayTracing::releaseResources()
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMain, nullptr);
 
     m_uniformBufferScene.destroy(m_device);
-    m_uniformBufferObjectDescription.destroy(m_device);
+    m_storageBufferObjectDescription.destroy(m_device);
 
     m_tempImage.destroy(m_device);
     m_renderResult.destroy(m_device);
@@ -230,7 +234,7 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene *scene)
     /* Prepare scene lights */
     prepareSceneLights(scene, sceneLights);
     m_rayTracingData.lights.r = sceneLights.size();
-    updateUniformBuffers(sceneData, m_rayTracingData, sceneLights);
+    updateBuffers(sceneData, m_rayTracingData, sceneLights);
 
     /* We will use the materials from buffer index 0 for this renderer */
     m_materials.updateBuffers(0);
@@ -639,7 +643,7 @@ VkResult VulkanRendererRayTracing::createStorageImage()
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererRayTracing::createUniformBuffers()
+VkResult VulkanRendererRayTracing::createBuffers()
 {
     /* The scene buffer holds [SceneData | RayTracingData | VULKAN_LIMITS_MAX_LIGHTS * LightRT ] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
@@ -660,14 +664,14 @@ VkResult VulkanRendererRayTracing::createUniformBuffers()
                                        VULKAN_LIMITS_MAX_OBJECTS * sizeof(ObjectDescriptionRT),
                                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                       m_uniformBufferObjectDescription));
+                                       m_storageBufferObjectDescription));
 
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererRayTracing::updateUniformBuffers(const SceneData &sceneData,
-                                                        const RayTracingData &rtData,
-                                                        const std::vector<LightRT> &lights)
+VkResult VulkanRendererRayTracing::updateBuffers(const SceneData &sceneData,
+                                                 const RayTracingData &rtData,
+                                                 const std::vector<LightRT> &lights)
 {
     if (m_sceneObjectsDescription.size() > VULKAN_LIMITS_MAX_OBJECTS) {
         throw std::runtime_error("VulkanRendererRayTracing::updateUniformBuffers(): Number of objects exceeded");
@@ -695,15 +699,15 @@ VkResult VulkanRendererRayTracing::updateUniformBuffers(const SceneData &sceneDa
     /* Update description of geometry objects */
     {
         void *data;
-        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_uniformBufferObjectDescription.memory(), 0, VK_WHOLE_SIZE, 0, &data));
+        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_storageBufferObjectDescription.memory(), 0, VK_WHOLE_SIZE, 0, &data));
         memcpy(data, m_sceneObjectsDescription.data(), m_sceneObjectsDescription.size() * sizeof(ObjectDescriptionRT));
-        vkUnmapMemory(m_device, m_uniformBufferObjectDescription.memory());
+        vkUnmapMemory(m_device, m_storageBufferObjectDescription.memory());
     }
 
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererRayTracing::updateUniformBuffersRayTracingData(const RayTracingData &rtData)
+VkResult VulkanRendererRayTracing::updateBuffersRayTracingData(const RayTracingData &rtData)
 {
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
 
@@ -783,7 +787,7 @@ void VulkanRendererRayTracing::updateDescriptorSets()
 
     /* Update object description binding */
     VkDescriptorBufferInfo objectDescriptionDataDesriptor =
-        vkinit::descriptorBufferInfo(m_uniformBufferObjectDescription.buffer(), 0, VK_WHOLE_SIZE);
+        vkinit::descriptorBufferInfo(m_storageBufferObjectDescription.buffer(), 0, VK_WHOLE_SIZE);
     VkWriteDescriptorSet objectDescriptionWrite =
         vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, 1, &objectDescriptionDataDesriptor);
 
@@ -840,8 +844,10 @@ VkResult VulkanRendererRayTracing::createRayTracingPipeline()
 
     /* Create pipeline layout */
     {
-        std::array<VkDescriptorSetLayout, 4> setsLayouts = {
-            m_descriptorSetLayoutMain, m_materials.layoutMaterial(), m_textures.layoutTextures(), m_descriptorSetLayoutSkybox};
+        std::array<VkDescriptorSetLayout, 4> setsLayouts = {m_descriptorSetLayoutMain,
+                                                            m_materials.descriptorSetLayout(),
+                                                            m_textures.descriptorSetLayout(),
+                                                            m_descriptorSetLayoutSkybox};
         VkPipelineLayoutCreateInfo pipelineLayoutInfo =
             vkinit::pipelineLayoutCreateInfo(static_cast<uint32_t>(setsLayouts.size()), setsLayouts.data(), 0, nullptr);
         VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
@@ -1020,13 +1026,13 @@ VkResult VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
         batchData.samplesBatchesDepthIndex.r = batchSize;
         batchData.samplesBatchesDepthIndex.g = batches;
         batchData.samplesBatchesDepthIndex.a = batch;
-        VULKAN_CHECK_CRITICAL(updateUniformBuffersRayTracingData(batchData));
+        VULKAN_CHECK_CRITICAL(updateBuffersRayTracingData(batchData));
         updateDescriptorSets();
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
 
         std::array<VkDescriptorSet, 4> descriptorSets = {
-            m_descriptorSet, m_materials.descriptor(0), m_textures.descriptorTextures(), skyboxDescriptor};
+            m_descriptorSet, m_materials.descriptorSet(0), m_textures.descriptorSet(), skyboxDescriptor};
         vkCmdBindDescriptorSets(commandBuffer,
                                 VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                                 m_pipelineLayout,

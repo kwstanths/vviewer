@@ -37,7 +37,7 @@ VkResult VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
     m_descriptorSetLayoutModel = modelDescriptorLayout;
     m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
     m_descriptorSetLayoutMaterial = materialDescriptorLayout;
-    m_descriptorSetLayoutTextures = textures.layoutTextures();
+    m_descriptorSetLayoutTextures = textures.descriptorSetLayout();
 
     VULKAN_CHECK_CRITICAL(createBRDFLUT(textures));
 

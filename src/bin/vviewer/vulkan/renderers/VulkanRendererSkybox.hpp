@@ -29,9 +29,7 @@ public:
     VkResult releaseSwapChainResources();
     VkResult releaseResources();
 
-    VkPipeline getPipeline() const;
-    VkPipelineLayout getPipelineLayout() const;
-    VkDescriptorSetLayout getDescriptorSetLayout() const;
+    VkDescriptorSetLayout &descriptorSetLayout();
 
     /**
         Render a skybox

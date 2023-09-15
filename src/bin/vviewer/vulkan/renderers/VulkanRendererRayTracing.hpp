@@ -17,6 +17,7 @@
 #include "vulkan/resources/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanBuffer.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
+#include "vulkan/resources/VulkanRandom.hpp"
 
 namespace vengine
 {
@@ -37,7 +38,7 @@ class VulkanRendererRayTracing
     friend class VulkanRenderer;
 
 public:
-    VulkanRendererRayTracing(VulkanContext &vkctx, VulkanMaterials &materials, VulkanTextures &textures);
+    VulkanRendererRayTracing(VulkanContext &vkctx, VulkanMaterials &materials, VulkanTextures &textures, VulkanRandom &random);
 
     VkResult initResources(VkFormat colorFormat, VkDescriptorSetLayout skyboxDescriptorLayout);
 
@@ -86,11 +87,12 @@ private:
     } m_devF;
 
     VulkanContext &m_vkctx;
-    bool m_renderInProgress = false;
-    float m_renderProgress = 0.0F;
-
     VulkanMaterials &m_materials;
     VulkanTextures &m_textures;
+    VulkanRandom &m_random;
+
+    bool m_renderInProgress = false;
+    float m_renderProgress = 0.0F;
 
     /* Device data */
     bool m_isInitialized = false;
@@ -142,7 +144,7 @@ private:
 
     /* Descriptor sets */
     VulkanBuffer m_uniformBufferScene;             /* Holds scene data, ray tracing data and light data */
-    VulkanBuffer m_uniformBufferObjectDescription; /* Holds references to scene objects */
+    VulkanBuffer m_storageBufferObjectDescription; /* Holds references to scene objects */
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSet m_descriptorSet;
 
@@ -186,10 +188,10 @@ private:
     /* Create render target image */
     VkResult createStorageImage();
 
-    /* Uniform buffers */
-    VkResult createUniformBuffers();
-    VkResult updateUniformBuffers(const SceneData &sceneData, const RayTracingData &rtData, const std::vector<LightRT> &lights);
-    VkResult updateUniformBuffersRayTracingData(const RayTracingData &rtData);
+    /* Buffers */
+    VkResult createBuffers();
+    VkResult updateBuffers(const SceneData &sceneData, const RayTracingData &rtData, const std::vector<LightRT> &lights);
+    VkResult updateBuffersRayTracingData(const RayTracingData &rtData);
 
     /* Descriptor sets */
     VkResult createDescriptorSets();

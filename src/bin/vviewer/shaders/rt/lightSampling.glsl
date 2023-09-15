@@ -14,7 +14,7 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 
 	/* Uniformly pick a light */
 	float pdf = 1.0 / totalLights;
-	uint randomLight = uint(rand(rayPayload.rngState) * totalLights);
+	uint randomLight = uint(rand1D(rayPayload) * totalLights);
 	Light light = lights.i[randomLight];
 
 	float tmin = 0.001;
@@ -48,12 +48,12 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 		Material material = materials.i[objResource.materialIndex];
 		mat4 transform = mat4(vec4(light.position.xyz, 0), vec4(light.direction.xyz, 0), vec4(light.color.xyz, 0), vec4(light.transform.xyz, 1));
 		
-		uint randomTriangle = uint(rand(rayPayload.rngState) * objResource.numTriangles);
+		uint randomTriangle = uint(rand1D(rayPayload) * objResource.numTriangles);
 		ivec3 ind = indices.i[randomTriangle];
 		float trianglePdf = 1.0 / objResource.numTriangles;
 		
 		/* Sample triangle */
-		vec2 barycentricCoords = uniformSampleTriangle(vec2(rand(rayPayload.rngState), rand(rayPayload.rngState)));
+		vec2 barycentricCoords = uniformSampleTriangle(rand2D(rayPayload));
 		vec3 sampledBarycentricCoords = vec3(barycentricCoords, 1.F - barycentricCoords.x - barycentricCoords.y);
 
 		/* Sampled triangle info */

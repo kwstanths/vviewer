@@ -24,8 +24,8 @@ public:
     VkResult releaseResources();
     VkResult releaseSwapchainResources();
 
-    VkDescriptorSetLayout &layoutTextures() { return m_descriptorSetLayoutTextures; }
-    VkDescriptorSet &descriptorTextures() { return m_descriptorSetBindlessTextures; }
+    VkDescriptorSetLayout &descriptorSetLayout() { return m_descriptorSetLayout; }
+    VkDescriptorSet &descriptorSet() { return m_descriptorSet; }
 
     void updateTextures();
 
@@ -45,8 +45,8 @@ private:
     VulkanContext &m_vkctx;
 
     VkDescriptorPool m_descriptorPool;
-    VkDescriptorSetLayout m_descriptorSetLayoutTextures;
-    VkDescriptorSet m_descriptorSetBindlessTextures;
+    VkDescriptorSetLayout m_descriptorSetLayout;
+    VkDescriptorSet m_descriptorSet;
 
     std::vector<std::shared_ptr<VulkanTexture>> m_texturesToUpdate;
     vengine::FreeList m_freeList;

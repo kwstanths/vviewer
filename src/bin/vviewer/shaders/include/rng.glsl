@@ -12,8 +12,12 @@ uint xorshift(inout uint rngState) {
 	return rngState;
 }
 
-float rand(inout uint rngState) {
-	return uintToFloat(xorshift(rngState));
+float rand1D(inout RayPayload rayPayload) {
+	return uintToFloat(xorshift(rayPayload.rngState));
+}
+
+vec2 rand2D(inout RayPayload rayPayload) {
+	return vec2(rand1D(rayPayload), rand1D(rayPayload)); 
 }
 
 uint jenkinsHash(uint x) {

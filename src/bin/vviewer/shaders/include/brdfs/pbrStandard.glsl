@@ -32,7 +32,7 @@ vec3 evalDisneyMicrofacetIsotropic(float NdotL, float NdotV, float NdotH, float 
     float specularTint = 0.0;
     vec3 Cspec0 = mix(specular * 0.08 * mix(vec3(1.0), Ctint, specularTint), pbr.albedo, pbr.metallic);
     
-    float a = max(0.001, pbr.roughness * pbr.roughness);
+    float a = max(0.0001, pbr.roughness * pbr.roughness);
     float Ds = GTR2(NdotH, a);
     float FH = schlickWeight(LdotH);
     vec3 Fs = mix(Cspec0, vec3(1), FH);
@@ -120,13 +120,13 @@ float pdfPBRStandard(const in vec3 wi, const in vec3 wo, const in PBRStandard pb
     return pdfDiffuse * diffuseSamplingRatio + pdfMicrofacet * (1.0 - diffuseSamplingRatio);
 }
 
-vec3 samplePBRStandard(out vec3 wi, const in vec3 wo, out float pdf, const in PBRStandard pbr, vec3 randoms) {
+vec3 samplePBRStandard(out vec3 wi, const in vec3 wo, out float pdf, const in PBRStandard pbr, vec2 randoms2D, float randoms1D) {
     
     pdf = 0.0;
 	wi = vec3(0.0);
     
-    vec2 u = vec2(randoms.x, randoms.y);
-    float rnd = randoms.z;
+    vec2 u = randoms2D;
+    float rnd = randoms1D;
 
     float diffuseSamplingRatio = getDiffuseSamplingRatio(pbr);
 

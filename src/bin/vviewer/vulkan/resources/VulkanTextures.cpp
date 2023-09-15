@@ -40,7 +40,7 @@ VkResult VulkanTextures::initSwapchainResources(uint32_t nImages)
 
 VkResult VulkanTextures::releaseResources()
 {
-    vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutTextures, nullptr);
+    vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayout, nullptr);
 
     /* Destroy texture data */
     {
@@ -71,8 +71,7 @@ void VulkanTextures::updateTextures()
 
         imageInfos[i] = vkinit::descriptorImageInfo(tex->getSampler(), tex->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        writeSets[i] = vkinit::writeDescriptorSet(
-            m_descriptorSetBindlessTextures, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &imageInfos[i]);
+        writeSets[i] = vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &imageInfos[i]);
         writeSets[i].dstArrayElement = tex->getBindlessResourceIndex();
     }
 
@@ -228,7 +227,7 @@ VkResult VulkanTextures::createDescriptorSetsLayout(uint32_t nBindlessTextures)
 
     layoutInfo.pNext = &extendedInfo;
 
-    VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutTextures));
+    VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayout));
 
     return VK_SUCCESS;
 }
@@ -252,9 +251,9 @@ VkResult VulkanTextures::createDescriptorPool(uint32_t nImages, uint32_t nBindle
 
 VkResult VulkanTextures::createDescriptorSets()
 {
-    VkDescriptorSetAllocateInfo allocInfo = vkinit::descriptorSetAllocateInfo(m_descriptorPool, 1, &m_descriptorSetLayoutTextures);
+    VkDescriptorSetAllocateInfo allocInfo = vkinit::descriptorSetAllocateInfo(m_descriptorPool, 1, &m_descriptorSetLayout);
 
-    VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, &m_descriptorSetBindlessTextures));
+    VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, &m_descriptorSet));
 
     return VK_SUCCESS;
 }

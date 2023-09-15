@@ -1,8 +1,10 @@
 #version 460
 #extension GL_EXT_ray_tracing : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-#include "../include/rng.glsl"
+#include "../include/constants.glsl"
 #include "../include/structs.glsl"
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
@@ -16,28 +18,30 @@ layout(set = 0, binding = 3) uniform RayTracingData
     uvec4 lights;
 } rayTracingData;
 
+#include "../include/rng.glsl"
+
 layout(location = 0) rayPayloadEXT RayPayload rayPayload;
 
 void main() 
 {
-	uint samples = rayTracingData.samplesBatchesDepthIndex.r;
+	uint batchSize = rayTracingData.samplesBatchesDepthIndex.r;
 	uint batches = rayTracingData.samplesBatchesDepthIndex.g;
 	uint depth = rayTracingData.samplesBatchesDepthIndex.b;
-	uint index = rayTracingData.samplesBatchesDepthIndex.a;
-	uint totalSamples = samples * batches;
+	uint batchIndex = rayTracingData.samplesBatchesDepthIndex.a;
+	uint totalSamples = batchSize * batches;
 
 	/* Initialize a RNG */
-	uint rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, index);
+	uint rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, batchIndex);
 	rayPayload.rngState = rngState;
 
 	/* Calculate pixel uvs */
 	const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
 	
 	vec3 cumRadiance = vec3(0);
-	for(int s = 0; s < samples; s++) 
+	for(int s = 0; s < batchSize; s++) 
 	{
 		/* Calculate first ray target offset */
-		vec2 offset = vec2(rand(rngState), rand(rngState));
+		vec2 offset = rand2D(rayPayload);
 		const vec2 inUV = (pixelLeftCorner + offset) / vec2(gl_LaunchSizeEXT.xy);
 		vec2 d = inUV * 2.0 - 1.0;
 

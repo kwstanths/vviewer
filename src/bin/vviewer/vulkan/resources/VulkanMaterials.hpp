@@ -23,8 +23,8 @@ public:
     VkResult releaseResources();
     VkResult releaseSwapchainResources();
 
-    VkDescriptorSetLayout &layoutMaterial() { return m_descriptorSetLayoutMaterial; }
-    VkDescriptorSet &descriptor(uint32_t index) { return m_descriptorSets[index]; }
+    VkDescriptorSetLayout &descriptorSetLayout() { return m_descriptorSetLayout; }
+    VkDescriptorSet &descriptorSet(uint32_t index) { return m_descriptorSets[index]; }
     void updateDescriptor(uint32_t index);
 
     void updateBuffers(uint32_t index) const;
@@ -40,7 +40,7 @@ private:
 
     VulkanUBO<MaterialData> m_materialsStorage;
 
-    VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
+    VkDescriptorSetLayout m_descriptorSetLayout;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
     VkResult createDescriptorSetsLayout();
