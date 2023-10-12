@@ -24,39 +24,41 @@
 #include "utils/ECS.hpp"
 
 /* A UI widget to represent environment variables */
-class WidgetEnvironment : public QWidget {
+class WidgetEnvironment : public QWidget
+{
     Q_OBJECT
 public:
-    WidgetEnvironment(QWidget* parent, vengine::Scene* scene);
+    WidgetEnvironment(QWidget *parent, vengine::Scene *scene);
 
     void updateMaps();
 
     void setCamera(std::shared_ptr<vengine::Camera> c);
 
-    void setEnvironmentType(const vengine::EnvironmentType& type, bool updateUI = false);
+    void setEnvironmentType(const vengine::EnvironmentType &type, bool updateUI = false);
+    void setBackgroundColor(glm::vec3 backgroundColor);
 
 private:
-    QComboBox* m_environmentPicker;
-    QComboBox* m_comboMaps;
+    QComboBox *m_environmentPicker;
+    QComboBox *m_comboMaps;
 
-    WidgetColorButton * m_backgroundColorWidget;
-    QVBoxLayout* m_layoutEnvironmentGroupBox;
+    WidgetColorButton *m_backgroundColorWidget;
+    QVBoxLayout *m_layoutEnvironmentGroupBox;
 
-    QSlider* m_exposureSlider;
+    QSlider *m_exposureSlider;
 
     /* Scene info */
-    vengine::Scene* m_scene;
+    vengine::Scene *m_scene;
     std::shared_ptr<vengine::PerspectiveCamera> m_camera;
 
     /* Camera widgets */
-    WidgetTransform* m_cameraTransformWidget;
+    WidgetTransform *m_cameraTransformWidget;
     bool m_cameraTransformWidgetChanged = false;
-    QDoubleSpinBox * m_cameraFov = nullptr;
+    QDoubleSpinBox *m_cameraFov = nullptr;
 
     /* Update timer */
-    QTimer* m_updateTimer;
+    QTimer *m_updateTimer;
 
-    void showEvent(QShowEvent * event) override;
+    void showEvent(QShowEvent *event) override;
 
 private Q_SLOTS:
     void onEnvironmentChanged(int);

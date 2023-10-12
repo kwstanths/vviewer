@@ -14,19 +14,14 @@ namespace vengine
 class VulkanTexture : public Texture
 {
 public:
-    VulkanTexture(std::string name,
-                  std::shared_ptr<Image<stbi_uc>> image,
-                  TextureType type,
+    VulkanTexture(std::shared_ptr<Image<stbi_uc>> image,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
                   VkCommandPool commandPool,
-                  VkFormat format,
                   bool genMipMaps);
 
-    VulkanTexture(std::string name,
-                  std::shared_ptr<Image<float>> image,
-                  TextureType type,
+    VulkanTexture(std::shared_ptr<Image<float>> image,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
@@ -34,23 +29,25 @@ public:
                   bool genMipMaps);
 
     VulkanTexture(std::string name,
-                  TextureType type,
-                  VkFormat format,
+                  ColorSpace colorSpace,
+                  ColorDepth colorDepth,
                   size_t width,
                   size_t height,
+                  size_t channels,
                   VkImage &image,
                   VkDeviceMemory &imageMemory,
                   VkImageView &imageView,
                   VkSampler &sampler,
+                  VkFormat &format,
                   uint32_t numMips);
 
     void destroy(VkDevice device);
 
-    VkImage getImage() const;
-    VkImageView getImageView() const;
-    VkDeviceMemory getImageMemory() const;
-    VkFormat getFormat() const;
-    VkSampler getSampler() const;
+    const VkImage &image() const;
+    const VkImageView &imageView() const;
+    const VkDeviceMemory &imageMemory() const;
+    const VkFormat &format() const;
+    const VkSampler &sampler() const;
 
     void setBindlessResourceIndex(int32_t index);
     int32_t getBindlessResourceIndex() const;

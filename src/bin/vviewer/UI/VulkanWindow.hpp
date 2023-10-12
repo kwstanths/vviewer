@@ -20,9 +20,6 @@ public:
 
     vengine::VulkanEngine * engine() const;
 
-    std::shared_ptr<vengine::Material> importMaterial(std::string name, std::string stackDirectory);
-    std::shared_ptr<vengine::Material> importZipMaterial(std::string name, std::string filename);
-
     void windowActicated(bool activated);
 
 protected:

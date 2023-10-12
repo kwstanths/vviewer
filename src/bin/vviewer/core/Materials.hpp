@@ -7,11 +7,13 @@
 
 #include <glm/glm.hpp>
 
+#include "Asset.hpp"
 #include "Texture.hpp"
 #include "Cubemap.hpp"
 #include "EnvironmentMap.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 enum class MaterialType {
     MATERIAL_NOT_SET = -1,
@@ -23,54 +25,57 @@ enum class MaterialType {
 typedef uint32_t MaterialIndex;
 
 static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
-    { MaterialType::MATERIAL_PBR_STANDARD, "PBR standard" },
-    { MaterialType::MATERIAL_SKYBOX, "Skybox" },
-    { MaterialType::MATERIAL_LAMBERT, "Lambert" },
+    {MaterialType::MATERIAL_PBR_STANDARD, "PBR standard"},
+    {MaterialType::MATERIAL_SKYBOX, "Skybox"},
+    {MaterialType::MATERIAL_LAMBERT, "Lambert"},
 };
 
-class Material {
+class Material : public Asset
+{
 public:
-    Material() {};
-    Material(std::string name): m_name(name) {};
+    Material(std::string name)
+        : Asset(name){};
+    Material(std::string name, std::string filepath)
+        : Asset(name, filepath){};
 
-    std::string m_name;
-
-    /* If it's a zip stack material */
-    std::string m_path = "";
+    virtual ~Material(){};
 
     virtual MaterialType getType() const { return MaterialType::MATERIAL_NOT_SET; };
 
     virtual MaterialIndex getMaterialIndex() const { return 0; }
 
 private:
-
 };
 
-class MaterialPBRStandard : public Material {
+class MaterialPBRStandard : public Material
+{
 public:
-    MaterialPBRStandard() {};
-    MaterialPBRStandard(std::string name) : Material(name) {};
+    MaterialPBRStandard(std::string name)
+        : Material(name){};
+    MaterialPBRStandard(std::string name, std::string filepath)
+        : Material(name, filepath){};
 
-    MaterialType getType() const override {
-        return MaterialType::MATERIAL_PBR_STANDARD;
-    }
+    virtual ~MaterialPBRStandard() {}
 
-    virtual MaterialIndex getMaterialIndex() const = 0;
+    MaterialType getType() const override { return MaterialType::MATERIAL_PBR_STANDARD; }
 
-    virtual glm::vec4& albedo() = 0;
-    virtual glm::vec4 getAlbedo() const = 0;
-    virtual float& metallic() = 0;
-    virtual float getMetallic() const = 0;
-    virtual float& roughness() = 0;
-    virtual float getRoughness() const = 0;
-    virtual float& ao() = 0;
-    virtual float getAO() const = 0;
-    virtual float& emissive() = 0;
-    virtual float getEmissive() const = 0;
-    virtual float& uTiling() = 0;
-    virtual float getUTiling() const = 0;
-    virtual float& vTiling() = 0;
-    virtual float getVTiling() const = 0;
+    virtual glm::vec4 &albedo() = 0;
+    virtual const glm::vec4 &albedo() const = 0;
+    virtual float &metallic() = 0;
+    virtual const float &metallic() const = 0;
+    virtual float &roughness() = 0;
+    virtual const float &roughness() const = 0;
+    virtual float &ao() = 0;
+    virtual const float &ao() const = 0;
+    virtual glm::vec4 &emissive() = 0;
+    virtual const glm::vec4 &emissive() const = 0;
+    virtual float &emissiveIntensity() = 0;
+    virtual const float &emissiveIntensity() const = 0;
+    virtual glm::vec3 emissiveColor() const = 0;
+    virtual float &uTiling() = 0;
+    virtual const float &uTiling() const = 0;
+    virtual float &vTiling() = 0;
+    virtual const float &vTiling() const = 0;
 
     virtual void setAlbedoTexture(std::shared_ptr<Texture> texture);
     virtual void setMetallicTexture(std::shared_ptr<Texture> texture);
@@ -86,6 +91,9 @@ public:
     std::shared_ptr<Texture> getEmissiveTexture() const;
     std::shared_ptr<Texture> getNormalTexture() const;
 
+    bool &zipMaterial() { return m_zipMaterial; }
+    const bool &zipMaterial() const { return m_zipMaterial; }
+
 protected:
     std::shared_ptr<Texture> m_albedoTexture;
     std::shared_ptr<Texture> m_metallicTexture;
@@ -93,29 +101,36 @@ protected:
     std::shared_ptr<Texture> m_aoTexture;
     std::shared_ptr<Texture> m_emissiveTexture;
     std::shared_ptr<Texture> m_normalTexture;
+
+private:
+    bool m_zipMaterial = false;
 };
 
-class MaterialLambert : public Material {
+class MaterialLambert : public Material
+{
 public:
-    MaterialLambert() {};
-    MaterialLambert(std::string name) : Material(name) {};
+    MaterialLambert(std::string name)
+        : Material(name){};
+    MaterialLambert(std::string name, std::string filepath)
+        : Material(name, filepath){};
 
-    MaterialType getType() const override {
-        return MaterialType::MATERIAL_LAMBERT;
-    }
+    virtual ~MaterialLambert() {}
 
-    virtual MaterialIndex getMaterialIndex() const = 0;
+    MaterialType getType() const override { return MaterialType::MATERIAL_LAMBERT; }
 
-    virtual glm::vec4& albedo() = 0;
-    virtual glm::vec4 getAlbedo() const = 0;
-    virtual float& ao() = 0;
-    virtual float getAO() const = 0;
-    virtual float& emissive() = 0;
-    virtual float getEmissive() const = 0;
-    virtual float& uTiling() = 0;
-    virtual float getUTiling() const = 0;
-    virtual float& vTiling() = 0;
-    virtual float getVTiling() const = 0;
+    virtual glm::vec4 &albedo() = 0;
+    virtual const glm::vec4 &albedo() const = 0;
+    virtual float &ao() = 0;
+    virtual const float &ao() const = 0;
+    virtual glm::vec4 &emissive() = 0;
+    virtual const glm::vec4 &emissive() const = 0;
+    virtual float &emissiveIntensity() = 0;
+    virtual const float &emissiveIntensity() const = 0;
+    virtual glm::vec3 emissiveColor() const = 0;
+    virtual float &uTiling() = 0;
+    virtual const float &uTiling() const = 0;
+    virtual float &vTiling() = 0;
+    virtual const float &vTiling() const = 0;
 
     virtual void setAlbedoTexture(std::shared_ptr<Texture> texture);
     virtual void setAOTexture(std::shared_ptr<Texture> texture);
@@ -134,14 +149,15 @@ protected:
     std::shared_ptr<Texture> m_normalTexture;
 };
 
-class MaterialSkybox : public Material {
+class MaterialSkybox : public Material
+{
 public:
-    MaterialSkybox() {};
-    MaterialSkybox(std::string name) : Material(name) {};
+    MaterialSkybox(std::string name)
+        : Material(name){};
 
-    MaterialType getType() const override {
-        return MaterialType::MATERIAL_SKYBOX;
-    }
+    virtual ~MaterialSkybox() {}
+
+    MaterialType getType() const override { return MaterialType::MATERIAL_SKYBOX; }
 
     virtual void setMap(std::shared_ptr<EnvironmentMap> cubemap);
     std::shared_ptr<EnvironmentMap> getMap() const;
@@ -150,6 +166,6 @@ protected:
     std::shared_ptr<EnvironmentMap> m_envMap = nullptr;
 };
 
-}
+}  // namespace vengine
 
 #endif

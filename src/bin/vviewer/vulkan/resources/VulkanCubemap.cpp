@@ -13,7 +13,7 @@ VulkanCubemap::VulkanCubemap(std::string directory,
                              VkDevice device,
                              VkQueue queue,
                              VkCommandPool commandPool)
-    : Cubemap(directory)
+    : Cubemap(directory, directory) /* Use the directory as the name */
 {
     bool ret = createCubemap(physicalDevice, device, queue, commandPool);
     if (!ret)
@@ -25,12 +25,12 @@ VulkanCubemap::VulkanCubemap(std::string name,
                              VkDeviceMemory cubemapMemory,
                              VkImageView cubemapImageView,
                              VkSampler cubemapSampler)
-    : m_cubemapImage(cubemapImage)
+    : Cubemap(name)
+    , m_cubemapImage(cubemapImage)
     , m_cubemapMemory(cubemapMemory)
     , m_cubemapImageView(cubemapImageView)
     , m_cubemapSampler(cubemapSampler)
 {
-    m_name = name;
 }
 
 VkImage VulkanCubemap::getImage() const
@@ -63,9 +63,9 @@ void VulkanCubemap::destroy(VkDevice device)
 
 VkResult VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool)
 {
-    int width = m_image_top->getWidth();
-    int height = m_image_top->getHeight();
-    int channels = m_image_top->getChannels();
+    int width = m_image_top->width();
+    int height = m_image_top->height();
+    int channels = m_image_top->channels();
 
     const VkDeviceSize imageSize = width * height * channels * 6;
     const VkDeviceSize layerSize = imageSize / 6;
@@ -82,12 +82,12 @@ VkResult VulkanCubemap::createCubemap(VkPhysicalDevice physicalDevice, VkDevice 
     /* Copy data to staging buffer */
     void *data;
     VULKAN_CHECK_CRITICAL(vkMapMemory(device, stagingBuffer.memory(), 0, imageSize, 0, &data));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 0), m_image_front->getData(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 1), m_image_back->getData(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 2), m_image_top->getData(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 3), m_image_bottom->getData(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 4), m_image_right->getData(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 5), m_image_left->getData(), static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 0), m_image_front->data(), static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 1), m_image_back->data(), static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 2), m_image_top->data(), static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 3), m_image_bottom->data(), static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 4), m_image_right->data(), static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 5), m_image_left->data(), static_cast<size_t>(layerSize));
     vkUnmapMemory(device, stagingBuffer.memory());
 
     // Create optimal tiled target image

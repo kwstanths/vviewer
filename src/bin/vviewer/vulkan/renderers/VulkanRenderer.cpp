@@ -20,11 +20,12 @@
 
 #include "core/Image.hpp"
 #include "core/EnvironmentMap.hpp"
-#include "core/AssimpLoadModel.hpp"
+#include "core/io/AssimpLoadModel.hpp"
+#include "utils/Tree.hpp"
 #include "vulkan/common/VulkanInitializers.hpp"
 #include "vulkan/common/VulkanUtils.hpp"
 #include "vulkan/common/VulkanLimits.hpp"
-
+#include "vulkan/resources/VulkanModel3D.hpp"
 namespace vengine
 {
 
@@ -107,20 +108,19 @@ VkResult VulkanRenderer::initResources()
     defaultMaterial->metallic() = 0.5;
     defaultMaterial->roughness() = 0.5;
     defaultMaterial->ao() = 1.0f;
-    defaultMaterial->emissive() = 0.0f;
+    defaultMaterial->emissive() = glm::vec4(0.0, 0.0, 0.0, 1.0);
 
     /* Import some models */
-    auto uvsphereMeshModel = createVulkanMeshModel("assets/models/uvsphere.obj");
-    auto planeMeshModel = createVulkanMeshModel("assets/models/plane.obj");
-    auto cubeMeshModel = createVulkanMeshModel("assets/models/cube.obj");
+    auto uvsphereMeshModel = createVulkanModel("assets/models/uvsphere.obj");
+    auto planeMeshModel = createVulkanModel("assets/models/plane.obj");
+    auto cubeMeshModel = createVulkanModel("assets/models/cube.obj");
 
     /* Create a skybox material */
     {
         auto envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
 
-        AssetManager<std::string, MaterialSkybox> &instance = AssetManager<std::string, MaterialSkybox>::getInstance();
-        auto skybox = instance.add(
-            "skybox",
+        auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
+        auto skybox = materialsSkybox.add(
             std::make_shared<VulkanMaterialSkybox>("skybox", envMap, m_vkctx.device(), m_rendererSkybox.descriptorSetLayout()));
 
         m_scene->setSkybox(skybox);
@@ -201,8 +201,8 @@ VkResult VulkanRenderer::releaseResources()
 
     /* Destroy cubemaps */
     {
-        AssetManager<std::string, Cubemap> &instance = AssetManager<std::string, Cubemap>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        auto &cubemapsMap = AssetManager::getInstance().cubemapsMap();
+        for (auto itr = cubemapsMap.begin(); itr != cubemapsMap.end(); ++itr) {
             auto vkCubemap = std::static_pointer_cast<VulkanCubemap>(itr->second);
             vkCubemap->destroy(m_vkctx.device());
         }
@@ -218,12 +218,12 @@ VkResult VulkanRenderer::releaseResources()
 
     /* Destroy imported models */
     {
-        AssetManager<std::string, MeshModel> &instance = AssetManager<std::string, MeshModel>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            auto vkmeshmodel = std::static_pointer_cast<VulkanMeshModel>(itr->second);
-            vkmeshmodel->destroy(m_vkctx.device());
+        auto &meshModelsMap = AssetManager::getInstance().modelsMap();
+        for (auto itr = meshModelsMap.begin(); itr != meshModelsMap.end(); ++itr) {
+            auto vkmodel = std::static_pointer_cast<VulkanModel3D>(itr->second);
+            vkmodel->destroy(m_vkctx.device());
         }
-        instance.reset();
+        meshModelsMap.reset();
     }
 
     return VK_SUCCESS;
@@ -480,15 +480,24 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
     return VK_SUCCESS;
 }
 
-std::shared_ptr<MeshModel> VulkanRenderer::createVulkanMeshModel(std::string filename)
+std::shared_ptr<Model3D> VulkanRenderer::createVulkanModel(std::string filename, bool importMaterials)
 {
-    AssetManager<std::string, MeshModel> &instance = AssetManager<std::string, MeshModel>::getInstance();
+    auto &modelsMap = AssetManager::getInstance().modelsMap();
 
-    if (instance.isPresent(filename))
-        return instance.get(filename);
+    if (modelsMap.isPresent(filename))
+        return modelsMap.get(filename);
 
     try {
-        std::vector<Mesh> meshes = assimpLoadModel(filename);
+        Tree<ImportedModelNode> importedNode;
+        std::vector<std::shared_ptr<Material>> materials = {};
+        if (importMaterials) {
+            std::vector<ImportedMaterial> importedMaterials;
+            importedNode = assimpLoadModel(filename, importedMaterials);
+
+            materials = m_materials.createImportedMaterials(importedMaterials, m_textures);
+        } else {
+            importedNode = assimpLoadModel(filename);
+        }
 
         /* Check if ray tracing is enabled, and add extra buffer usage flags */
         VkBufferUsageFlags extraUsageFlags = {};
@@ -496,17 +505,18 @@ std::shared_ptr<MeshModel> VulkanRenderer::createVulkanMeshModel(std::string fil
             extraUsageFlags = m_rendererRayTracing.getBufferUsageFlags();
         }
 
-        auto vkmesh = std::make_shared<VulkanMeshModel>(m_vkctx.physicalDevice(),
-                                                        m_vkctx.device(),
-                                                        m_vkctx.graphicsQueue(),
-                                                        m_vkctx.graphicsCommandPool(),
-                                                        meshes,
-                                                        extraUsageFlags);
+        auto vkmodel = std::make_shared<VulkanModel3D>(filename,
+                                                       importedNode,
+                                                       materials,
+                                                       m_vkctx.physicalDevice(),
+                                                       m_vkctx.device(),
+                                                       m_vkctx.graphicsQueue(),
+                                                       m_vkctx.graphicsCommandPool(),
+                                                       extraUsageFlags);
 
-        vkmesh->setName(filename);
-        return instance.add(filename, vkmesh);
+        return modelsMap.add(vkmodel);
     } catch (std::runtime_error &e) {
-        debug_tools::ConsoleWarning("Failed to create a Vulkan Mesh Model: " + std::string(e.what()));
+        debug_tools::ConsoleWarning("Failed to create a Vulkan Model: " + std::string(e.what()));
         return nullptr;
     }
 
@@ -556,21 +566,21 @@ glm::vec3 VulkanRenderer::selectObject(float x, float y)
 
 std::shared_ptr<Cubemap> VulkanRenderer::createCubemap(std::string directory)
 {
-    AssetManager<std::string, Cubemap> &instance = AssetManager<std::string, Cubemap>::getInstance();
-    if (instance.isPresent(directory)) {
-        return instance.get(directory);
+    auto &cubemapsMap = AssetManager::getInstance().cubemapsMap();
+    if (cubemapsMap.isPresent(directory)) {
+        return cubemapsMap.get(directory);
     }
 
     auto cubemap = std::make_shared<VulkanCubemap>(
         directory, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool());
-    return instance.add(directory, cubemap);
+    return cubemapsMap.add(cubemap);
 }
 
 std::shared_ptr<EnvironmentMap> VulkanRenderer::createEnvironmentMap(std::string imagePath, bool keepTexture)
 {
     try {
         /* Check if an environment map for that imagePath already exists */
-        AssetManager<std::string, EnvironmentMap> &envMaps = AssetManager<std::string, EnvironmentMap>::getInstance();
+        auto &envMaps = AssetManager::getInstance().environmentsMapMap();
         if (envMaps.isPresent(imagePath)) {
             return envMaps.get(imagePath);
         }
@@ -591,13 +601,13 @@ std::shared_ptr<EnvironmentMap> VulkanRenderer::createEnvironmentMap(std::string
         assert(res == VK_SUCCESS);
 
         if (!keepTexture) {
-            AssetManager<std::string, Texture> &textures = AssetManager<std::string, Texture>::getInstance();
+            auto &textures = AssetManager::getInstance().texturesMap();
             textures.remove(imagePath);
             hdrImage->destroy(m_vkctx.device());
         }
 
         auto envMap = std::make_shared<EnvironmentMap>(imagePath, cubemap, irradiance, prefiltered);
-        return envMaps.add(imagePath, envMap);
+        return envMaps.add(envMap);
     } catch (std::runtime_error &e) {
         debug_tools::ConsoleCritical("Failed to create a vulkan environment map: " + std::string(e.what()));
         return nullptr;

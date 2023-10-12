@@ -103,13 +103,14 @@ void main()
 	/* Material information */
 	PBRStandard pbr;
 	pbr.albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
-	pbr.metallic = material.metallicRoughnessAOEmissive.r * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.g)], tiledUV).r;
-    pbr.roughness = material.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.b)], tiledUV).r;
+	pbr.metallic = material.metallicRoughnessAO.r * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.g)], tiledUV).r;
+    pbr.roughness = material.metallicRoughnessAO.g * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.b)], tiledUV).r;
+	pbr.roughness = max(pbr.roughness, 0.035); /* Cap low rougness because of sampling problems */
 
-    float ao = material.metallicRoughnessAOEmissive.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
-	vec3 emissive = pbr.albedo * material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], uvs * material.uvTiling.rg).r;
+    float ao = material.metallicRoughnessAO.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
+    vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
-	if (!isBlack(emissive) && !flipped) {
+	if (!isBlack(emissive, 0.1) && !flipped) {
 		if (rayPayload.depth == 0)
 		{
 			/* beta is 1 at depth 0 */

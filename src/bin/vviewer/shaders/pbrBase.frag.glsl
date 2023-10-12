@@ -60,19 +60,16 @@ void main() {
     /* Calculate PBR data */
     PBRStandard pbr;
     pbr.albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
-    pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.g)], tiledUV).r;
-    pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
-    float ao = materialData.metallicRoughnessAOEmissive.b * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.a)], tiledUV).r;
-    vec3 emissive = min(materialData.metallicRoughnessAOEmissive.a, 1.0) * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.r)], tiledUV).rgb;
+    pbr.metallic = materialData.metallicRoughnessAO.r * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.g)], tiledUV).r;
+    pbr.roughness = materialData.metallicRoughnessAO.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
+    float ao = materialData.metallicRoughnessAO.b * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.a)], tiledUV).r;
+    vec3 emissive = materialData.emissive.a * materialData.emissive.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices2.r)], tiledUV).rgb;
     
     /* Calculate ambient IBL */
     vec3 ambient = ao * calculateIBLContribution(pbr, frame.normal, V_world, skyboxIrradiance, skyboxPrefiltered, global_textures[nonuniformEXT(materialData.gTexturesIndices2.b)]);
 
-    /* Calculate emission */
-    vec3 emission = pbr.albedo * emissive;
-    
     /* Add all together */
-    vec3 color = scene.data.exposure.g * ambient + emission;
+    vec3 color = scene.data.exposure.g * ambient + emissive;
     
     color = tonemapDefault2(color, scene.data.exposure.r);
 	

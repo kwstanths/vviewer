@@ -13,33 +13,42 @@
 #include "core/SceneObject.hpp"
 
 /* A UI widget to represent a lambert material */
-class WidgetMaterialLambert: public QWidget
+class WidgetMaterialLambert : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMaterialLambert(QWidget* parent, std::shared_ptr<vengine::MaterialLambert> material);
+    static const int HEIGHT = 430;
 
-    QPushButton* m_colorButton;
-    QSlider* m_ao;
-    QDoubleSpinBox* m_emissive;
+    WidgetMaterialLambert(QWidget *parent, std::shared_ptr<vengine::MaterialLambert> material);
 
-    QComboBox* m_comboBoxAlbedo;
-    QComboBox* m_comboBoxAO;
-    QComboBox* m_comboBoxNormal;
+    QPushButton *m_colorAlbedo, *m_colorEmissive;
+    QSlider *m_ao;
+    QDoubleSpinBox *m_emissive;
+
+    QComboBox *m_comboBoxAlbedo;
+    QComboBox *m_comboBoxAO;
+    QComboBox *m_comboBoxNormal;
+    QComboBox *m_comboBoxEmissive;
+
+    QDoubleSpinBox *m_uTiling;
+    QDoubleSpinBox *m_vTiling;
 
 private:
     std::shared_ptr<vengine::MaterialLambert> m_material = nullptr;
 
-    void setColorButtonColor();
+    void setColorButton(QPushButton *button, const glm::vec4 &color);
 
 private Q_SLOTS:
-    void onColorButton();
-    void onColorChanged(QColor color);
-    void onColorTextureChanged(int);
+    void onAlbedoButton();
+    void onAlbedoTextureChanged(int);
     void onAOChanged();
     void onAOTextureChanged(int);
     void onEmissiveChanged(double);
+    void onEmissiveButton();
+    void onEmissiveTextureChanged(int);
     void onNormalTextureChanged(int);
+    void onUTilingChanged(double);
+    void onVTilingChanged(double);
 };
 
 #endif

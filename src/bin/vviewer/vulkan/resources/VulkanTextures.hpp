@@ -26,17 +26,15 @@ public:
 
     VkDescriptorSetLayout &descriptorSetLayout() { return m_descriptorSetLayout; }
     VkDescriptorSet &descriptorSet() { return m_descriptorSet; }
+    void createBaseTextures();
 
     void updateTextures();
 
     std::shared_ptr<Texture> createTexture(std::string imagePath,
-                                           VkFormat format = VK_FORMAT_R8G8B8A8_UNORM,
+                                           ColorSpace colorSpace = ColorSpace::sRGB,
                                            bool keepImage = false,
                                            bool addDescriptor = true);
-    std::shared_ptr<Texture> createTexture(std::string id,
-                                           std::shared_ptr<Image<stbi_uc>> image,
-                                           VkFormat format = VK_FORMAT_R8G8B8A8_UNORM,
-                                           bool addDescriptor = true);
+    std::shared_ptr<Texture> createTexture(std::shared_ptr<Image<stbi_uc>> image, bool addDescriptor = true);
     std::shared_ptr<Texture> createTextureHDR(std::string imagePath, bool keepImage = false);
 
     std::shared_ptr<Texture> addTexture(std::shared_ptr<Texture> tex);

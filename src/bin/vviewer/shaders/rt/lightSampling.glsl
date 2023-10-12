@@ -82,8 +82,8 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 		{
 		    /* Get material information */
 		    vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], sampledUV * material.uvTiling.rg).rgb;
-		    vec3 emissive = material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], sampledUV * material.uvTiling.rg).r * albedo;
-		    lsr.radiance = emissive;
+		    vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], sampledUV * material.uvTiling.rg).rgb;
+			lsr.radiance = emissive;
 			
             lsr.pdf = pdf * trianglePdf * sampledPointPdf * distanceSquared(originPosition, sampledPoint) / dotProduct;
 		} else {

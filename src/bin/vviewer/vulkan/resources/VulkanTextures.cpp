@@ -21,9 +21,7 @@ VkResult VulkanTextures::initResources()
 {
     VULKAN_CHECK_CRITICAL(createDescriptorSetsLayout(VULKAN_LIMITS_MAX_TEXTURES));
 
-    createTexture("white", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_UNORM);
-    createTexture("whiteColor", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::WHITE), VK_FORMAT_R8G8B8A8_SRGB);
-    createTexture("normalmapdefault", std::make_shared<Image<stbi_uc>>(Image<stbi_uc>::Color::NORMAL_MAP), VK_FORMAT_R8G8B8A8_UNORM);
+    createBaseTextures();
 
     return VK_SUCCESS;
 }
@@ -44,12 +42,12 @@ VkResult VulkanTextures::releaseResources()
 
     /* Destroy texture data */
     {
-        AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        auto &texturesMap = AssetManager::getInstance().texturesMap();
+        for (auto itr = texturesMap.begin(); itr != texturesMap.end(); ++itr) {
             auto vkTexture = std::static_pointer_cast<VulkanTexture>(itr->second);
             vkTexture->destroy(m_vkctx.device());
         }
-        instance.reset();
+        texturesMap.reset();
     }
 
     return VK_SUCCESS;
@@ -62,6 +60,13 @@ VkResult VulkanTextures::releaseSwapchainResources()
     return VK_SUCCESS;
 }
 
+void VulkanTextures::createBaseTextures()
+{
+    createTexture(std::make_shared<Image<stbi_uc>>("white", Color::WHITE, ColorSpace::LINEAR));
+    createTexture(std::make_shared<Image<stbi_uc>>("whiteColor", Color::WHITE, ColorSpace::sRGB));
+    createTexture(std::make_shared<Image<stbi_uc>>("normalmapdefault", Color::NORMAL_MAP, ColorSpace::LINEAR));
+}
+
 void VulkanTextures::updateTextures()
 {
     std::vector<VkDescriptorImageInfo> imageInfos(m_texturesToUpdate.size());
@@ -69,7 +74,7 @@ void VulkanTextures::updateTextures()
     for (uint32_t i = 0; i < m_texturesToUpdate.size(); i++) {
         auto tex = m_texturesToUpdate[i];
 
-        imageInfos[i] = vkinit::descriptorImageInfo(tex->getSampler(), tex->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        imageInfos[i] = vkinit::descriptorImageInfo(tex->sampler(), tex->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         writeSets[i] = vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &imageInfos[i]);
         writeSets[i].dstArrayElement = tex->getBindlessResourceIndex();
@@ -80,23 +85,26 @@ void VulkanTextures::updateTextures()
     m_texturesToUpdate.clear();
 }
 
-std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath, VkFormat format, bool keepImage, bool addDescriptor)
+std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath,
+                                                       ColorSpace colorSpace,
+                                                       bool keepImage,
+                                                       bool addDescriptor)
 {
     try {
-        AssetManager<std::string, Image<stbi_uc>> &instance = AssetManager<std::string, Image<stbi_uc>>::getInstance();
+        auto &imagesMap = AssetManager::getInstance().imagesCharMap();
 
         std::shared_ptr<Image<stbi_uc>> image;
-        if (instance.isPresent(imagePath)) {
-            image = instance.get(imagePath);
+        if (imagesMap.isPresent(imagePath)) {
+            image = imagesMap.get(imagePath);
         } else {
-            image = std::make_shared<Image<stbi_uc>>(imagePath);
-            instance.add(imagePath, image);
+            image = std::make_shared<Image<stbi_uc>>(imagePath, colorSpace);
+            imagesMap.add(image);
         }
 
-        auto temp = createTexture(imagePath, image, format, addDescriptor);
+        auto temp = createTexture(image, addDescriptor);
 
         if (!keepImage) {
-            instance.remove(imagePath);
+            imagesMap.remove(imagePath);
         }
 
         return temp;
@@ -108,39 +116,23 @@ std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath, Vk
     return nullptr;
 }
 
-std::shared_ptr<Texture> VulkanTextures::createTexture(std::string id,
-                                                       std::shared_ptr<Image<stbi_uc>> image,
-                                                       VkFormat format,
-                                                       bool addDescriptor)
+std::shared_ptr<Texture> VulkanTextures::createTexture(std::shared_ptr<Image<stbi_uc>> image, bool addDescriptor)
 {
     try {
-        AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
+        auto &texturesMap = AssetManager::getInstance().texturesMap();
 
-        if (instance.isPresent(id)) {
-            return instance.get(id);
+        if (texturesMap.isPresent(image->name())) {
+            return texturesMap.get(image->name());
         }
 
-        TextureType type = TextureType::NO_TYPE;
-        if (format == VK_FORMAT_R8G8B8A8_SRGB)
-            type = TextureType::COLOR;
-        else if (format == VK_FORMAT_R8G8B8A8_UNORM)
-            type = TextureType::LINEAR;
-
-        auto temp = std::make_shared<VulkanTexture>(id,
-                                                    image,
-                                                    type,
-                                                    m_vkctx.physicalDevice(),
-                                                    m_vkctx.device(),
-                                                    m_vkctx.graphicsQueue(),
-                                                    m_vkctx.graphicsCommandPool(),
-                                                    format,
-                                                    true);
+        auto temp = std::make_shared<VulkanTexture>(
+            image, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), true);
 
         if (addDescriptor) {
             addTexture(temp);
         }
 
-        return instance.add(id, temp);
+        return texturesMap.add(temp);
     } catch (std::runtime_error &e) {
         debug_tools::ConsoleCritical("VulkanTextures::createTexture(): Failed to create a vulkan texture: " + std::string(e.what()));
         return nullptr;
@@ -152,38 +144,32 @@ std::shared_ptr<Texture> VulkanTextures::createTexture(std::string id,
 std::shared_ptr<Texture> VulkanTextures::createTextureHDR(std::string imagePath, bool keepImage)
 {
     try {
-        /* Check if an hdr texture has already been created for that image */
-        AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
-        if (instance.isPresent(imagePath)) {
-            return instance.get(imagePath);
+        /* Check if a texture has already been created for that image */
+        auto &texturesMap = AssetManager::getInstance().texturesMap();
+        if (texturesMap.isPresent(imagePath)) {
+            return texturesMap.get(imagePath);
         }
 
         /* Check if the image has already been imported, if not read it from disk  */
         std::shared_ptr<Image<float>> image;
-        AssetManager<std::string, Image<float>> &images = AssetManager<std::string, Image<float>>::getInstance();
-        if (images.isPresent(imagePath)) {
-            image = images.get(imagePath);
+        auto &imagesMap = AssetManager::getInstance().imagesHDRMap();
+        if (imagesMap.isPresent(imagePath)) {
+            image = imagesMap.get(imagePath);
         } else {
-            image = std::make_shared<Image<float>>(imagePath);
-            images.add(imagePath, image);
+            image = std::make_shared<Image<float>>(imagePath, ColorSpace::LINEAR);
+            imagesMap.add(image);
         }
 
         /* Create texture for that image */
-        auto temp = std::make_shared<VulkanTexture>(imagePath,
-                                                    image,
-                                                    TextureType::HDR,
-                                                    m_vkctx.physicalDevice(),
-                                                    m_vkctx.device(),
-                                                    m_vkctx.graphicsQueue(),
-                                                    m_vkctx.graphicsCommandPool(),
-                                                    false);
+        auto temp = std::make_shared<VulkanTexture>(
+            image, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), false);
 
         /* If you are not to keep the image in memory, remove from the assets */
         if (!keepImage) {
-            images.remove(imagePath);
+            imagesMap.remove(imagePath);
         }
 
-        return instance.add(imagePath, temp);
+        return texturesMap.add(temp);
     } catch (std::runtime_error &e) {
         debug_tools::ConsoleCritical("VulkanTextures::createTextureHDR(): Failed to create a vulkan HDR texture: " +
                                      std::string(e.what()));

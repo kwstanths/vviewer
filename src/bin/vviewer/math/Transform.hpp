@@ -6,9 +6,11 @@
 
 #define EPSILON_EQUAL_GLM 0.0001
 
-namespace vengine {
+namespace vengine
+{
 
-class Transform {
+class Transform
+{
 public:
     Transform();
     Transform(glm::vec3 pos);
@@ -21,7 +23,7 @@ public:
     static constexpr glm::vec3 Y = glm::vec3(0, 1, 0);
     static constexpr glm::vec3 Z = glm::vec3(0, 0, 1);
 
-    void setPosition(const glm::vec3& newPosition);
+    void setPosition(const glm::vec3 &newPosition);
     void setPosition(float x, float y, float z);
     glm::vec3 getPosition() const;
 
@@ -44,11 +46,13 @@ public:
 
     glm::mat4 getModelMatrix() const;
 
-    void rotate(const glm::vec3& axis, const float angle);
+    void rotate(const glm::vec3 &axis, const float angle);
 
-    inline bool operator==(const Transform& o) {
+    inline bool operator==(const Transform &o)
+    {
         return (m_position == o.m_position) && (m_rotation == o.m_rotation) && (m_scale == o.m_scale);
     }
+
 private:
     glm::vec3 m_position;
     glm::quat m_rotation;
@@ -60,9 +64,8 @@ private:
     glm::vec3 m_y;
 
     void computeBasisVectors();
-
 };
 
-}
+}  // namespace vengine
 
 #endif

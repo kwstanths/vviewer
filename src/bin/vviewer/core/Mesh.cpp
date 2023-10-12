@@ -2,26 +2,32 @@
 
 #include <glm/glm.hpp>
 
-namespace vengine {
+namespace vengine
+{
 
-Mesh::Mesh()
+Mesh::Mesh(std::string name)
+    : Asset(name)
 {
 }
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool hasNormals, bool hasUVs)
+Mesh::Mesh(std::string name, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, bool hasNormals, bool hasUVs)
+    : Asset(name)
 {
     m_vertices = vertices;
     m_indices = indices;
     m_hasNormals = hasNormals;
-    m_hasUVs = hasNormals;
+    m_hasUVs = hasUVs;
+
+    if (!hasNormals)
+        computeNormals();
 }
 
-const std::vector<Vertex>& Mesh::getVertices() const
+const std::vector<Vertex> &Mesh::vertices() const
 {
     return m_vertices;
 }
 
-const std::vector<uint32_t>& Mesh::getIndices() const
+const std::vector<uint32_t> &Mesh::indices() const
 {
     return m_indices;
 }
@@ -51,9 +57,9 @@ void Mesh::computeNormals()
 
     /* Add contribution of each normal to the face's vertices */
     for (size_t i = 0; i < m_indices.size(); i += 3) {
-        Vertex& v1 = m_vertices[m_indices[i]];
-        Vertex& v2 = m_vertices[m_indices[i + 1]];
-        Vertex& v3 = m_vertices[m_indices[i + 2]];
+        Vertex &v1 = m_vertices[m_indices[i]];
+        Vertex &v2 = m_vertices[m_indices[i + 1]];
+        Vertex &v3 = m_vertices[m_indices[i + 2]];
 
         glm::vec3 U = v2.position - v1.position, V = v3.position - v1.position;
         glm::vec3 normal = glm::vec3(U.y * V.z - U.z * V.y, U.z * V.x - U.x * V.z, U.x * V.y - U.y * V.x);
@@ -68,4 +74,4 @@ void Mesh::computeNormals()
     };
 }
 
-}
+}  // namespace vengine

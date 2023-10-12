@@ -8,6 +8,7 @@
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/resources/VulkanMaterial.hpp"
+#include "vulkan/resources/VulkanModel3D.hpp"
 
 namespace vengine
 {
@@ -57,7 +58,7 @@ private:
     VkRenderPass m_renderPass;
     VkSampleCountFlagBits m_msaaSamples;
 
-    VulkanMeshModel *m_arrow = nullptr;
+    VulkanModel3D *m_arrow = nullptr;
     glm::vec3 m_rightID, m_upID, m_forwardID;
 
     VkResult createGraphicsPipeline();

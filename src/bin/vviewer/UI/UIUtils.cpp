@@ -6,7 +6,7 @@
 #include <string>
 
 #include <core/AssetManager.hpp>
-#include <core/MeshModel.hpp>
+#include <core/Model3D.hpp>
 #include <core/Materials.hpp>
 #include <core/EnvironmentMap.hpp>
 #include <core/Lights.hpp>
@@ -16,7 +16,7 @@ using namespace vengine;
 QStringList getImportedModels()
 {
     QStringList importedModels;
-    AssetManager<std::string, MeshModel>& instance = AssetManager<std::string, MeshModel>::getInstance();
+    auto &instance = AssetManager::getInstance().modelsMap();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
         importedModels.push_back(QString::fromStdString(itr->first));
     }
@@ -26,7 +26,7 @@ QStringList getImportedModels()
 QStringList getCreatedMaterials()
 {
     QStringList createdMaterials;
-    AssetManager<std::string, Material>& instance = AssetManager<std::string, Material>::getInstance();
+    auto &instance = AssetManager::getInstance().materialsMap();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
         createdMaterials.push_back(QString::fromStdString(itr->first));
     }
@@ -36,29 +36,33 @@ QStringList getCreatedMaterials()
 QStringList getCreatedLightMaterials()
 {
     QStringList createdLightMaterials;
-    AssetManager<std::string, LightMaterial>& instance = AssetManager<std::string, LightMaterial>::getInstance();
+    auto &instance = AssetManager::getInstance().lightMaterialsMap();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
         createdLightMaterials.push_back(QString::fromStdString(itr->first));
     }
     return createdLightMaterials;
 }
 
-QStringList getImportedTextures(TextureType type)
+QStringList getImportedTextures(ColorSpace colorSpace)
 {
     QStringList importedTextures;
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-        if (type == TextureType::NO_TYPE || itr->second->m_type == type) {
-            importedTextures.push_back(QString::fromStdString(itr->first));
+    {
+        auto &instance = AssetManager::getInstance().texturesMap();
+        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+            auto tex = std::static_pointer_cast<Texture>(itr->second);
+            if (tex->colorSpace() == colorSpace) {
+                importedTextures.push_back(QString::fromStdString(itr->first));
+            }
         }
     }
+
     return importedTextures;
 }
 
 QStringList getImportedCubemaps()
 {
     QStringList importedCubemaps;
-    AssetManager<std::string, Cubemap>& instance = AssetManager<std::string, Cubemap>::getInstance();
+    auto &instance = AssetManager::getInstance().cubemapsMap();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
         importedCubemaps.push_back(QString::fromStdString(itr->first));
     }
@@ -68,14 +72,14 @@ QStringList getImportedCubemaps()
 QStringList getImportedEnvironmentMaps()
 {
     QStringList importedEnvMaps;
-    AssetManager<std::string, EnvironmentMap>& instance = AssetManager<std::string, EnvironmentMap>::getInstance();
+    auto &instance = AssetManager::getInstance().environmentsMapMap();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
         importedEnvMaps.push_back(QString::fromStdString(itr->first));
     }
     return importedEnvMaps;
 }
 
-void setButtonColor(QPushButton* button, QColor color)
+void setButtonColor(QPushButton *button, QColor color)
 {
     QString qss = QString("background-color: %1").arg(color.name());
     button->setStyleSheet(qss);

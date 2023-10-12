@@ -6,8 +6,43 @@
 namespace vengine
 {
 
-VulkanMesh::VulkanMesh(const Mesh &mesh)
-    : Mesh(mesh)
+VulkanMesh::VulkanMesh(std::string name)
+    : Mesh(name)
+{
+}
+
+VulkanMesh::VulkanMesh(std::string name,
+                       const std::vector<Vertex> &vertices,
+                       const std::vector<uint32_t> &indices,
+                       bool hasNormals,
+                       bool hasUVs,
+                       VkPhysicalDevice physicalDevice,
+                       VkDevice device,
+                       VkQueue transferQueue,
+                       VkCommandPool transferCommandPool,
+                       VkBufferUsageFlags extraUsageFlags)
+    : Mesh(name, vertices, indices, hasNormals, hasUVs)
+{
+    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_vertices, extraUsageFlags, m_vertexBuffer);
+    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_indices, extraUsageFlags, m_indexBuffer);
+}
+
+VulkanMesh::VulkanMesh(const Mesh &mesh,
+                       VkPhysicalDevice physicalDevice,
+                       VkDevice device,
+                       VkQueue transferQueue,
+                       VkCommandPool transferCommandPool,
+                       VkBufferUsageFlags extraUsageFlags)
+    : VulkanMesh(mesh.name(),
+                 mesh.vertices(),
+                 mesh.indices(),
+                 mesh.hasNormals(),
+                 mesh.hasUVs(),
+                 physicalDevice,
+                 device,
+                 transferQueue,
+                 transferCommandPool,
+                 extraUsageFlags)
 {
 }
 
@@ -17,58 +52,24 @@ void VulkanMesh::destroy(VkDevice device)
     m_indexBuffer.destroy(device);
 }
 
-VulkanMeshModel::VulkanMeshModel(VkPhysicalDevice physicalDevice,
-                                 VkDevice device,
-                                 VkQueue transferQueue,
-                                 VkCommandPool transferCommandPool,
-                                 std::vector<Mesh> &meshes,
-                                 VkBufferUsageFlags extraUsageFlags)
-{
-    /* Create a VulkanMesh for every mesh, allocate gpu buffers for vertices and indices and push it back to the mesh vector */
-    for (size_t i = 0; i < meshes.size(); i++) {
-        Mesh &mesh = meshes[i];
-        if (!mesh.hasNormals())
-            mesh.computeNormals();
-
-        auto vkmesh = std::make_shared<VulkanMesh>(mesh);
-        createVertexBuffer(
-            physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), extraUsageFlags, vkmesh->vertexBuffer());
-        createIndexBuffer(
-            physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), extraUsageFlags, vkmesh->indexBuffer());
-
-        vkmesh->m_meshModel = this;
-        m_meshes.push_back(vkmesh);
-    }
-}
-
-void VulkanMeshModel::destroy(VkDevice device)
-{
-    for (size_t i = 0; i < m_meshes.size(); i++) {
-        auto vkmesh = std::static_pointer_cast<VulkanMesh>(m_meshes[i]);
-        vkmesh->destroy(device);
-    }
-}
-
 VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool)
+    : VulkanMesh("Cube")
 {
-    std::vector<Vertex> vertices = {{{-1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-                                    {{1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-                                    {{1.0, 1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-                                    {{-1.0, 1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-                                    {{-1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-                                    {{1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-                                    {{1.0, 1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
-                                    {{-1.0, 1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)}};
+    m_vertices = {{{-1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                  {{1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                  {{1.0, 1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                  {{-1.0, 1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                  {{-1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                  {{1.0, -1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                  {{1.0, 1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
+                  {{-1.0, 1.0, -1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)}};
 
-    std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 7, 6, 5, 5, 4, 7,
-                                     4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
+    m_indices = {0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 7, 6, 5, 5, 4, 7, 4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
 
-    Mesh mesh(vertices, indices, false, false);
-    auto vkmesh = std::make_shared<VulkanMesh>(mesh);
-    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getVertices(), {}, vkmesh->vertexBuffer());
-    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, mesh.getIndices(), {}, vkmesh->indexBuffer());
+    Mesh mesh("cube", m_vertices, m_indices, false, false);
 
-    m_meshes.push_back(vkmesh);
+    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_vertices, {}, m_vertexBuffer);
+    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_indices, {}, m_indexBuffer);
 }
 
 }  // namespace vengine

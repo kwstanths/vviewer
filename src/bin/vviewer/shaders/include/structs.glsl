@@ -28,13 +28,13 @@ struct Scene {
 /* Material struct. A mirror of the CPU struct */
 struct Material
 {
-    vec4 albedo;                        /* RGB: albedo, A: alpha */
-    vec4 metallicRoughnessAOEmissive;   /* R = metallic, G = roughness, B = AO, A = emissive */
-    vec4 uvTiling;                      /* R = u tiling, G = v tiling, B = unused, A = unused */
-    uvec4 gTexturesIndices1;            /* R = albedo texture index, G = metallic texture index, B = roughness texture index, A = AO texture index */   
-    uvec4 gTexturesIndices2;            /* R = emissive texture index, G = normal texture index, B = BRDF LUT texture index, A = unused */
-
-    uvec4 padding;
+    vec4 albedo;                /* RGB: albedo, A: unused */
+    vec4 metallicRoughnessAO;   /* R: metallic, G: roughness, B: AO, A = unused */
+    vec4 emissive;              /* RGB: emissive color, A = emissive intensity */
+    uvec4 gTexturesIndices1;    /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture index */   
+    uvec4 gTexturesIndices2;    /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: unused */
+    vec4 uvTiling;              /* R: u tiling, G: v tiling, B: unused, A: unused */
+    
     uvec4 padding1;
     uvec4 padding2;
 };

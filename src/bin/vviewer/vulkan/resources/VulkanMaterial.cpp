@@ -27,39 +27,35 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
 }
 
 VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
-                                                     glm::vec4 a,
-                                                     float m,
-                                                     float r,
-                                                     float ambient,
-                                                     float e,
+                                                     std::string filepath,
                                                      VkDevice device,
                                                      VkDescriptorSetLayout descriptorLayout,
                                                      VulkanUBO<MaterialData> &materialsUBO)
     : VulkanMaterialStorage<MaterialData>(materialsUBO)
-    , MaterialPBRStandard(name)
+    , MaterialPBRStandard(name, filepath)
 {
-    albedo() = a;
-    metallic() = m;
-    roughness() = r;
-    ao() = ambient;
-    emissive() = e;
-    uTiling() = 1.F;
-    vTiling() = 1.F;
+    albedo() = glm::vec4(1, 1, 1, 1);
+    metallic() = 0;
+    roughness() = 1;
+    ao() = 1;
+    emissive() = glm::vec4(0, 0, 0, 1);
+    uTiling() = 1;
+    vTiling() = 1;
 
-    AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
-    if (!instance.isPresent("white")) {
+    auto &textures = AssetManager::getInstance().texturesMap();
+    if (!textures.isPresent("white")) {
         throw std::runtime_error("White texture not present");
     }
-    if (!instance.isPresent("whiteColor")) {
+    if (!textures.isPresent("whiteColor")) {
         throw std::runtime_error("White color texture not present");
     }
-    if (!instance.isPresent("normalmapdefault")) {
+    if (!textures.isPresent("normalmapdefault")) {
         throw std::runtime_error("Normal default texture not present");
     }
 
-    auto white = instance.get("white");
-    auto whiteColor = instance.get("whiteColor");
-    auto normalmap = instance.get("normalmapdefault");
+    auto white = textures.get("white");
+    auto whiteColor = textures.get("whiteColor");
+    auto normalmap = textures.get("normalmapdefault");
 
     setAlbedoTexture(whiteColor);
     setMetallicTexture(white);
@@ -68,10 +64,10 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     setEmissiveTexture(whiteColor);
     setNormalTexture(normalmap);
 
-    if (!instance.isPresent("PBR_BRDF_LUT")) {
+    if (!textures.isPresent("PBR_BRDF_LUT")) {
         throw std::runtime_error("PBR_BRDF_LUT texture not present");
     }
-    auto BRDFLUT = std::static_pointer_cast<VulkanTexture>(instance.get("PBR_BRDF_LUT"));
+    auto BRDFLUT = std::static_pointer_cast<VulkanTexture>(textures.get("PBR_BRDF_LUT"));
     m_data->gTexturesIndices2.b = static_cast<uint32_t>(BRDFLUT->getBindlessResourceIndex());
 }
 
@@ -85,49 +81,64 @@ glm::vec4 &VulkanMaterialPBRStandard::albedo()
     return m_data->albedo;
 }
 
-glm::vec4 VulkanMaterialPBRStandard::getAlbedo() const
+const glm::vec4 &VulkanMaterialPBRStandard::albedo() const
 {
     return m_data->albedo;
 }
 
 float &VulkanMaterialPBRStandard::metallic()
 {
-    return m_data->metallicRoughnessAOEmissive.r;
+    return m_data->metallicRoughnessAO.r;
 }
 
-float VulkanMaterialPBRStandard::getMetallic() const
+const float &VulkanMaterialPBRStandard::metallic() const
 {
-    return m_data->metallicRoughnessAOEmissive.r;
+    return m_data->metallicRoughnessAO.r;
 }
 
 float &VulkanMaterialPBRStandard::roughness()
 {
-    return m_data->metallicRoughnessAOEmissive.g;
+    return m_data->metallicRoughnessAO.g;
 }
 
-float VulkanMaterialPBRStandard::getRoughness() const
+const float &VulkanMaterialPBRStandard::roughness() const
 {
-    return m_data->metallicRoughnessAOEmissive.g;
+    return m_data->metallicRoughnessAO.g;
 }
 
 float &VulkanMaterialPBRStandard::ao()
 {
-    return m_data->metallicRoughnessAOEmissive.b;
+    return m_data->metallicRoughnessAO.b;
 }
 
-float VulkanMaterialPBRStandard::getAO() const
+const float &VulkanMaterialPBRStandard::ao() const
 {
-    return m_data->metallicRoughnessAOEmissive.b;
+    return m_data->metallicRoughnessAO.b;
 }
 
-float &VulkanMaterialPBRStandard::emissive()
+glm::vec4 &VulkanMaterialPBRStandard::emissive()
 {
-    return m_data->metallicRoughnessAOEmissive.a;
+    return m_data->emissive;
 }
 
-float VulkanMaterialPBRStandard::getEmissive() const
+const glm::vec4 &VulkanMaterialPBRStandard::emissive() const
 {
-    return m_data->metallicRoughnessAOEmissive.a;
+    return m_data->emissive;
+}
+
+float &VulkanMaterialPBRStandard::emissiveIntensity()
+{
+    return m_data->emissive.a;
+}
+
+const float &VulkanMaterialPBRStandard::emissiveIntensity() const
+{
+    return m_data->emissive.a;
+}
+
+glm::vec3 VulkanMaterialPBRStandard::emissiveColor() const
+{
+    return glm::vec3(m_data->emissive.r, m_data->emissive.g, m_data->emissive.b) * m_data->emissive.a;
 }
 
 float &VulkanMaterialPBRStandard::uTiling()
@@ -135,7 +146,7 @@ float &VulkanMaterialPBRStandard::uTiling()
     return m_data->uvTiling.r;
 }
 
-float VulkanMaterialPBRStandard::getUTiling() const
+const float &VulkanMaterialPBRStandard::uTiling() const
 {
     return m_data->uvTiling.r;
 }
@@ -145,7 +156,7 @@ float &VulkanMaterialPBRStandard::vTiling()
     return m_data->uvTiling.g;
 }
 
-float VulkanMaterialPBRStandard::getVTiling() const
+const float &VulkanMaterialPBRStandard::vTiling() const
 {
     return m_data->uvTiling.g;
 }
@@ -207,35 +218,33 @@ void VulkanMaterialPBRStandard::setNormalTexture(std::shared_ptr<Texture> textur
 /* ------------------------------------------------------------------------------------------------------------------- */
 
 VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
-                                             glm::vec4 a,
-                                             float ambient,
-                                             float e,
+                                             std::string filepath,
                                              VkDevice device,
                                              VkDescriptorSetLayout descriptorLayout,
                                              VulkanUBO<MaterialData> &materialsUBO)
     : VulkanMaterialStorage<MaterialData>(materialsUBO)
-    , MaterialLambert(name)
+    , MaterialLambert(name, filepath)
 {
-    albedo() = a;
-    ao() = ambient;
-    emissive() = e;
+    albedo() = glm::vec4(1, 1, 1, 1);
+    ao() = 1;
+    emissive() = glm::vec4(0, 0, 0, 1);
     uTiling() = 1.F;
     vTiling() = 1.F;
 
-    AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
-    if (!instance.isPresent("white")) {
+    auto &textures = AssetManager::getInstance().texturesMap();
+    if (!textures.isPresent("white")) {
         throw std::runtime_error("White texture not present");
     }
-    if (!instance.isPresent("whiteColor")) {
+    if (!textures.isPresent("whiteColor")) {
         throw std::runtime_error("White color texture not present");
     }
-    if (!instance.isPresent("normalmapdefault")) {
+    if (!textures.isPresent("normalmapdefault")) {
         throw std::runtime_error("Normal default texture not present");
     }
 
-    auto white = instance.get("white");
-    auto whiteColor = instance.get("whiteColor");
-    auto normalmap = instance.get("normalmapdefault");
+    auto white = textures.get("white");
+    auto whiteColor = textures.get("whiteColor");
+    auto normalmap = textures.get("normalmapdefault");
 
     setAlbedoTexture(whiteColor);
     setAOTexture(white);
@@ -253,29 +262,44 @@ glm::vec4 &VulkanMaterialLambert::albedo()
     return m_data->albedo;
 }
 
-glm::vec4 VulkanMaterialLambert::getAlbedo() const
+const glm::vec4 &VulkanMaterialLambert::albedo() const
 {
     return m_data->albedo;
 }
 
 float &VulkanMaterialLambert::ao()
 {
-    return m_data->metallicRoughnessAOEmissive.b;
+    return m_data->metallicRoughnessAO.b;
 }
 
-float VulkanMaterialLambert::getAO() const
+const float &VulkanMaterialLambert::ao() const
 {
-    return m_data->metallicRoughnessAOEmissive.b;
+    return m_data->metallicRoughnessAO.b;
 }
 
-float &VulkanMaterialLambert::emissive()
+glm::vec4 &VulkanMaterialLambert::emissive()
 {
-    return m_data->metallicRoughnessAOEmissive.a;
+    return m_data->emissive;
 }
 
-float VulkanMaterialLambert::getEmissive() const
+const glm::vec4 &VulkanMaterialLambert::emissive() const
 {
-    return m_data->metallicRoughnessAOEmissive.a;
+    return m_data->emissive;
+}
+
+float &VulkanMaterialLambert::emissiveIntensity()
+{
+    return m_data->emissive.a;
+}
+
+const float &VulkanMaterialLambert::emissiveIntensity() const
+{
+    return m_data->emissive.a;
+}
+
+glm::vec3 VulkanMaterialLambert::emissiveColor() const
+{
+    return glm::vec3(m_data->emissive.r, m_data->emissive.g, m_data->emissive.b) * m_data->emissive.a;
 }
 
 float &VulkanMaterialLambert::uTiling()
@@ -283,7 +307,7 @@ float &VulkanMaterialLambert::uTiling()
     return m_data->uvTiling.r;
 }
 
-float VulkanMaterialLambert::getUTiling() const
+const float &VulkanMaterialLambert::uTiling() const
 {
     return m_data->uvTiling.r;
 }
@@ -293,7 +317,7 @@ float &VulkanMaterialLambert::vTiling()
     return m_data->uvTiling.g;
 }
 
-float VulkanMaterialLambert::getVTiling() const
+const float &VulkanMaterialLambert::vTiling() const
 {
     return m_data->uvTiling.g;
 }

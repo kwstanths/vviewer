@@ -16,113 +16,124 @@
 
 using namespace vengine;
 
-WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, std::shared_ptr<MaterialPBRStandard> material) : QWidget(parent)
+WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, std::shared_ptr<MaterialPBRStandard> material)
+    : QWidget(parent)
 {
     m_material = material;
 
-    QStringList availableColorTextures = getImportedTextures(TextureType::COLOR);
-    QStringList availableLinearTextures = getImportedTextures(TextureType::LINEAR);
+    QStringList availableColorTextures = getImportedTextures(ColorSpace::sRGB);
+    QStringList availableLinearTextures = getImportedTextures(ColorSpace::LINEAR);
 
     m_comboBoxAlbedo = new QComboBox();
     m_comboBoxAlbedo->addItems(availableColorTextures);
-    m_comboBoxAlbedo->setCurrentText(QString::fromStdString(material->getAlbedoTexture()->m_name));
-    connect(m_comboBoxAlbedo, SIGNAL(currentIndexChanged(int)), this, SLOT(onColorTextureChanged(int)));
-    m_colorButton = new QPushButton();
-    m_colorButton->setFixedWidth(25);
-    setColorButtonColor();
-    QGroupBox * groupBoxAlbedo = new QGroupBox(tr("Albedo"));
-    QHBoxLayout * layoutAlbedo = new QHBoxLayout();
-    layoutAlbedo->addWidget(m_colorButton);
+    m_comboBoxAlbedo->setCurrentText(QString::fromStdString(material->getAlbedoTexture()->name()));
+    connect(m_comboBoxAlbedo, SIGNAL(currentIndexChanged(int)), this, SLOT(onAlbedoTextureChanged(int)));
+    m_colorAlbedo = new QPushButton();
+    m_colorAlbedo->setFixedWidth(25);
+    setColorButton(m_colorAlbedo, material->albedo());
+    QGroupBox *groupBoxAlbedo = new QGroupBox(tr("Albedo"));
+    QHBoxLayout *layoutAlbedo = new QHBoxLayout();
+    layoutAlbedo->addWidget(m_colorAlbedo);
     layoutAlbedo->addWidget(m_comboBoxAlbedo);
     layoutAlbedo->setContentsMargins(5, 5, 5, 5);
     groupBoxAlbedo->setLayout(layoutAlbedo);
 
     m_comboBoxMetallic = new QComboBox();
     m_comboBoxMetallic->addItems(availableLinearTextures);
-    m_comboBoxMetallic->setCurrentText(QString::fromStdString(material->getMetallicTexture()->m_name));
+    m_comboBoxMetallic->setCurrentText(QString::fromStdString(material->getMetallicTexture()->name()));
     connect(m_comboBoxMetallic, SIGNAL(currentIndexChanged(int)), this, SLOT(onMetallicTextureChanged(int)));
     m_metallic = new QSlider(Qt::Horizontal);
     m_metallic->setMaximum(100);
     m_metallic->setMinimum(0);
     m_metallic->setSingleStep(1);
-    m_metallic->setValue(material->getMetallic() * 100);
-    QGroupBox * groupBoxMetallic = new QGroupBox(tr("Metallic"));
-    QVBoxLayout * layoutMetallic = new QVBoxLayout();
+    m_metallic->setValue(material->metallic() * 100);
+    QGroupBox *groupBoxMetallic = new QGroupBox(tr("Metallic"));
+    QVBoxLayout *layoutMetallic = new QVBoxLayout();
     layoutMetallic->addWidget(m_metallic);
     layoutMetallic->addWidget(m_comboBoxMetallic);
     layoutMetallic->setContentsMargins(5, 5, 5, 5);
     groupBoxMetallic->setLayout(layoutMetallic);
 
-
     m_comboBoxRoughness = new QComboBox();
     m_comboBoxRoughness->addItems(availableLinearTextures);
-    m_comboBoxRoughness->setCurrentText(QString::fromStdString(material->getRoughnessTexture()->m_name));
+    m_comboBoxRoughness->setCurrentText(QString::fromStdString(material->getRoughnessTexture()->name()));
     connect(m_comboBoxRoughness, SIGNAL(currentIndexChanged(int)), this, SLOT(onRoughnessTextureChanged(int)));
     m_roughness = new QSlider(Qt::Horizontal);
     m_roughness->setMaximum(100);
     m_roughness->setMinimum(0);
     m_roughness->setSingleStep(1);
-    m_roughness->setValue(material->getRoughness() * 100);
-    QGroupBox * groupBoxRoughness = new QGroupBox(tr("Roughness"));
-    QVBoxLayout * layoutRoughness = new QVBoxLayout();
+    m_roughness->setValue(material->roughness() * 100);
+    QGroupBox *groupBoxRoughness = new QGroupBox(tr("Roughness"));
+    QVBoxLayout *layoutRoughness = new QVBoxLayout();
     layoutRoughness->addWidget(m_roughness);
     layoutRoughness->addWidget(m_comboBoxRoughness);
     layoutRoughness->setContentsMargins(5, 5, 5, 5);
     groupBoxRoughness->setLayout(layoutRoughness);
 
-
     m_comboBoxAO = new QComboBox();
     m_comboBoxAO->addItems(availableLinearTextures);
-    m_comboBoxAO->setCurrentText(QString::fromStdString(material->getAOTexture()->m_name));
+    m_comboBoxAO->setCurrentText(QString::fromStdString(material->getAOTexture()->name()));
     connect(m_comboBoxAO, SIGNAL(currentIndexChanged(int)), this, SLOT(onAOTextureChanged(int)));
     m_ao = new QSlider(Qt::Horizontal);
     m_ao->setMaximum(100);
     m_ao->setMinimum(0);
     m_ao->setSingleStep(1);
-    m_ao->setValue(material->getAO() * 100);
-    QGroupBox * groupBoxAO = new QGroupBox(tr("Ambient"));
-    QVBoxLayout * layoutAO = new QVBoxLayout();
+    m_ao->setValue(material->ao() * 100);
+    QGroupBox *groupBoxAO = new QGroupBox(tr("Ambient"));
+    QVBoxLayout *layoutAO = new QVBoxLayout();
     layoutAO->addWidget(m_ao);
     layoutAO->addWidget(m_comboBoxAO);
     layoutAO->setContentsMargins(5, 5, 5, 5);
     groupBoxAO->setLayout(layoutAO);
 
+    m_comboBoxEmissive = new QComboBox();
+    m_comboBoxEmissive->addItems(availableColorTextures);
+    m_comboBoxEmissive->setCurrentText(QString::fromStdString(material->getEmissiveTexture()->name()));
+    connect(m_comboBoxEmissive, SIGNAL(currentIndexChanged(int)), this, SLOT(onEmissiveTextureChanged(int)));
+    m_colorEmissive = new QPushButton();
+    m_colorEmissive->setFixedWidth(25);
+    setColorButton(m_colorEmissive, material->emissive());
+    QHBoxLayout *layoutEmissiveColor = new QHBoxLayout();
+    layoutEmissiveColor->addWidget(m_colorEmissive);
+    layoutEmissiveColor->addWidget(m_comboBoxEmissive);
+    layoutEmissiveColor->setContentsMargins(5, 5, 5, 5);
+    QWidget *widgetEmissveColor = new QWidget();
+    widgetEmissveColor->setLayout(layoutEmissiveColor);
 
     m_emissive = new QDoubleSpinBox();
     m_emissive->setMaximum(10000);
     m_emissive->setMinimum(0);
     m_emissive->setSingleStep(1);
-    m_emissive->setValue(material->getEmissive());
-    QGroupBox * groupBoxEmssive = new QGroupBox(tr("Emissive"));
-    QHBoxLayout * layoutEmissive = new QHBoxLayout();
+    m_emissive->setValue(material->emissiveIntensity());
+    QGroupBox *groupBoxEmssive = new QGroupBox(tr("Emissive"));
+    QVBoxLayout *layoutEmissive = new QVBoxLayout();
+    layoutEmissive->addWidget(widgetEmissveColor);
     layoutEmissive->addWidget(m_emissive);
     layoutEmissive->setContentsMargins(5, 5, 5, 5);
     groupBoxEmssive->setLayout(layoutEmissive);
 
-
     m_comboBoxNormal = new QComboBox();
     m_comboBoxNormal->addItems(availableLinearTextures);
-    m_comboBoxNormal->setCurrentText(QString::fromStdString(material->getNormalTexture()->m_name));
+    m_comboBoxNormal->setCurrentText(QString::fromStdString(material->getNormalTexture()->name()));
     connect(m_comboBoxNormal, SIGNAL(currentIndexChanged(int)), this, SLOT(onNormalTextureChanged(int)));
-    QGroupBox * groupBoxNormal = new QGroupBox(tr("Normal"));
-    QVBoxLayout * layoutNormal = new QVBoxLayout();
+    QGroupBox *groupBoxNormal = new QGroupBox(tr("Normal"));
+    QVBoxLayout *layoutNormal = new QVBoxLayout();
     layoutNormal->addWidget(m_comboBoxNormal);
     layoutNormal->setContentsMargins(5, 5, 5, 5);
     groupBoxNormal->setLayout(layoutNormal);
 
-
     m_uTiling = new QDoubleSpinBox();
     m_uTiling->setMinimum(0);
     m_uTiling->setMaximum(65536);
-    m_uTiling->setValue(material->getUTiling());
+    m_uTiling->setValue(material->uTiling());
     connect(m_uTiling, SIGNAL(valueChanged(double)), this, SLOT(onUTilingChanged(double)));
     m_vTiling = new QDoubleSpinBox();
     m_vTiling->setMinimum(0);
     m_vTiling->setMaximum(65536);
-    m_vTiling->setValue(material->getVTiling());
+    m_vTiling->setValue(material->vTiling());
     connect(m_vTiling, SIGNAL(valueChanged(double)), this, SLOT(onVTilingChanged(double)));
-    QGroupBox * groupBoxUVTiling = new QGroupBox(tr("UV tiling"));
-    QHBoxLayout * layoutUVTiling = new QHBoxLayout();
+    QGroupBox *groupBoxUVTiling = new QGroupBox(tr("UV tiling"));
+    QHBoxLayout *layoutUVTiling = new QHBoxLayout();
     layoutUVTiling->addWidget(new QLabel("U:"));
     layoutUVTiling->addWidget(m_uTiling);
     layoutUVTiling->addWidget(new QLabel("V: "));
@@ -131,7 +142,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, std::shared_ptr<MaterialP
     groupBoxUVTiling->setLayout(layoutUVTiling);
 
     auto itr = materialTypeNames.find(MaterialType::MATERIAL_PBR_STANDARD);
-    QVBoxLayout * layoutMain = new QVBoxLayout();
+    QVBoxLayout *layoutMain = new QVBoxLayout();
     layoutMain->addWidget(new QLabel(QString::fromStdString("Type: " + itr->second)));
     layoutMain->addWidget(groupBoxAlbedo);
     layoutMain->addWidget(groupBoxMetallic);
@@ -145,54 +156,39 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget * parent, std::shared_ptr<MaterialP
     layoutMain->setContentsMargins(0, 0, 0, 0);
 
     setLayout(layoutMain);
-    setFixedHeight(550);
+    setFixedHeight(HEIGHT);
 
-    connect(m_colorButton, SIGNAL(pressed()), this, SLOT(onColorButton()));
+    connect(m_colorAlbedo, &QPushButton::pressed, this, &WidgetMaterialPBR::onAlbedoButton);
     connect(m_metallic, &QSlider::valueChanged, this, &WidgetMaterialPBR::onMetallicChanged);
     connect(m_roughness, &QSlider::valueChanged, this, &WidgetMaterialPBR::onRoughnessChanged);
     connect(m_ao, &QSlider::valueChanged, this, &WidgetMaterialPBR::onAOChanged);
     connect(m_emissive, &QDoubleSpinBox::valueChanged, this, &WidgetMaterialPBR::onEmissiveChanged);
-
-    /* If it'a material parsed from a zip file, disable the UI */
-    if (material->m_path != "")
-    {
-        m_colorButton->setEnabled(false);
-        m_metallic->setEnabled(false);
-        m_roughness->setEnabled(false);
-        m_ao->setEnabled(false);
-        m_emissive->setEnabled(false);
-        m_comboBoxAlbedo->setEnabled(false);
-        m_comboBoxMetallic->setEnabled(false);
-        m_comboBoxRoughness->setEnabled(false);
-        m_comboBoxAO->setEnabled(false);
-        m_comboBoxNormal->setEnabled(false);
-        m_uTiling->setEnabled(false);
-        m_vTiling->setEnabled(false);
-    }
+    connect(m_colorEmissive, &QPushButton::pressed, this, &WidgetMaterialPBR::onEmissiveButton);
 }
 
-void WidgetMaterialPBR::onColorButton()
+void WidgetMaterialPBR::onAlbedoButton()
 {
-    glm::vec4 currentColor = m_material->getAlbedo();
+    glm::vec4 currentColor = m_material->albedo();
     QColor col = QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255);
 
-    QColorDialog * dialog = new QColorDialog(nullptr);
+    QColorDialog *dialog = new QColorDialog(nullptr);
     dialog->adjustSize();
     dialog->setCurrentColor(col);
-
-    connect(dialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(onColorChanged(QColor)));
     dialog->exec();
 
-    /* When the window exits, change the color of the UI button */
-    setColorButtonColor();
+    QColor color = dialog->currentColor();
+    m_material->albedo() = glm::vec4(color.red(), color.green(), color.blue(), color.alpha()) / glm::vec4(255.0f);
+
+    setColorButton(m_colorAlbedo, m_material->albedo());
+
+    delete dialog;
 }
 
-void WidgetMaterialPBR::setColorButtonColor()
+void WidgetMaterialPBR::setColorButton(QPushButton *button, const glm::vec4 &color)
 {
-    glm::vec4 currentColor = m_material->getAlbedo();
-    QColor col = QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255);
+    QColor col = QColor(color.r * 255, color.g * 255, color.b * 255);
     QString qss = QString("background-color: %1").arg(col.name());
-    m_colorButton->setStyleSheet(qss);
+    button->setStyleSheet(qss);
 
     /*QPalette pal = m_colorButton->palette();
     pal.setColor(QPalette::Button, QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255));
@@ -201,16 +197,12 @@ void WidgetMaterialPBR::setColorButtonColor()
     m_colorButton->update();*/
 }
 
-void WidgetMaterialPBR::onColorChanged(QColor color) {
-    m_material->albedo() = glm::vec4(color.red(), color.green(), color.blue(), color.alpha()) / glm::vec4(255.0f);
-}
-
-void WidgetMaterialPBR::onColorTextureChanged(int)
+void WidgetMaterialPBR::onAlbedoTextureChanged(int)
 {
     std::string newTexture = m_comboBoxAlbedo->currentText().toStdString();
 
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-    m_material->setAlbedoTexture(instance.get(newTexture));
+    auto &textures = AssetManager::getInstance().texturesMap();
+    m_material->setAlbedoTexture(textures.get(newTexture));
 }
 
 void WidgetMaterialPBR::onMetallicChanged()
@@ -222,8 +214,8 @@ void WidgetMaterialPBR::onMetallicTextureChanged(int)
 {
     std::string newTexture = m_comboBoxMetallic->currentText().toStdString();
 
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-    m_material->setMetallicTexture(instance.get(newTexture));
+    auto &textures = AssetManager::getInstance().texturesMap();
+    m_material->setMetallicTexture(textures.get(newTexture));
 }
 
 void WidgetMaterialPBR::onRoughnessChanged()
@@ -235,8 +227,8 @@ void WidgetMaterialPBR::onRoughnessTextureChanged(int)
 {
     std::string newTexture = m_comboBoxRoughness->currentText().toStdString();
 
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-    m_material->setRoughnessTexture(instance.get(newTexture));
+    auto &textures = AssetManager::getInstance().texturesMap();
+    m_material->setRoughnessTexture(textures.get(newTexture));
 }
 
 void WidgetMaterialPBR::onAOChanged()
@@ -248,31 +240,55 @@ void WidgetMaterialPBR::onAOTextureChanged(int)
 {
     std::string newTexture = m_comboBoxAO->currentText().toStdString();
 
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-    m_material->setAOTexture(instance.get(newTexture));
+    auto &textures = AssetManager::getInstance().texturesMap();
+    m_material->setAOTexture(textures.get(newTexture));
 }
 
 void WidgetMaterialPBR::onEmissiveChanged(double)
 {
-    m_material->emissive() = static_cast<float>(m_emissive->value());
+    m_material->emissiveIntensity() = static_cast<float>(m_emissive->value());
+}
+
+void WidgetMaterialPBR::onEmissiveButton()
+{
+    glm::vec4 currentColor = m_material->emissive();
+    QColor col = QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255);
+
+    QColorDialog *dialog = new QColorDialog(nullptr);
+    dialog->adjustSize();
+    dialog->setCurrentColor(col);
+    dialog->exec();
+
+    QColor color = dialog->currentColor();
+    m_material->emissive() = glm::vec4(color.red(), color.green(), color.blue(), 255.0F) / glm::vec4(255.0f);
+
+    setColorButton(m_colorEmissive, m_material->emissive());
+
+    delete dialog;
+}
+
+void WidgetMaterialPBR::onEmissiveTextureChanged(int)
+{
+    std::string newTexture = m_comboBoxEmissive->currentText().toStdString();
+
+    auto &textures = AssetManager::getInstance().texturesMap();
+    m_material->setEmissiveTexture(textures.get(newTexture));
 }
 
 void WidgetMaterialPBR::onNormalTextureChanged(int)
 {
     std::string newTexture = m_comboBoxNormal->currentText().toStdString();
 
-    AssetManager<std::string, Texture>& instance = AssetManager<std::string, Texture>::getInstance();
-    m_material->setNormalTexture(instance.get(newTexture));
+    auto &textures = AssetManager::getInstance().texturesMap();
+    m_material->setNormalTexture(textures.get(newTexture));
 }
 
-void WidgetMaterialPBR::onUTilingChanged(double) 
+void WidgetMaterialPBR::onUTilingChanged(double)
 {
     m_material->uTiling() = m_uTiling->value();
 }
 
-void WidgetMaterialPBR::onVTilingChanged(double) 
+void WidgetMaterialPBR::onVTilingChanged(double)
 {
     m_material->vTiling() = m_vTiling->value();
 }
-
-

@@ -3,7 +3,6 @@
 
 #include <array>
 
-#include "core/MeshModel.hpp"
 #include "core/Mesh.hpp"
 
 #include "vulkan/common/IncludeVulkan.hpp"
@@ -70,7 +69,23 @@ public:
 class VulkanMesh : public Mesh
 {
 public:
-    VulkanMesh(const Mesh &mesh);
+    VulkanMesh(std::string name);
+    VulkanMesh(std::string name,
+               const std::vector<Vertex> &vertices,
+               const std::vector<uint32_t> &indices,
+               bool hasNormals,
+               bool hasUVs,
+               VkPhysicalDevice physicalDevice,
+               VkDevice device,
+               VkQueue transferQueue,
+               VkCommandPool transferCommandPool,
+               VkBufferUsageFlags extraUsageFlags);
+    VulkanMesh(const Mesh &mesh,
+               VkPhysicalDevice physicalDevice,
+               VkDevice device,
+               VkQueue transferQueue,
+               VkCommandPool transferCommandPool,
+               VkBufferUsageFlags extraUsageFlags);
 
     void destroy(VkDevice device);
 
@@ -82,29 +97,14 @@ public:
 
     inline VkIndexType indexType() const { return VK_INDEX_TYPE_UINT32; }
 
-private:
+protected:
     VulkanBuffer m_vertexBuffer;
     VulkanBuffer m_indexBuffer;
 };
 
-class VulkanMeshModel : public MeshModel
-{
-public:
-    VulkanMeshModel(VkPhysicalDevice physicalDevice,
-                    VkDevice device,
-                    VkQueue transferQueue,
-                    VkCommandPool transferCommandPool,
-                    std::vector<Mesh> &meshes,
-                    VkBufferUsageFlags extraUsageFlags);
-
-    void destroy(VkDevice device);
-
-private:
-};
-
 /* ---------- Some shapes ---------- */
 
-class VulkanCube : public MeshModel
+class VulkanCube : public VulkanMesh
 {
 public:
     VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool);

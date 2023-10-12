@@ -4,20 +4,21 @@
 #include <math/Transform.hpp>
 #include <utils/IDGeneration.hpp>
 #include <utils/ECS.hpp>
-#include "MeshModel.hpp"
 #include "Materials.hpp"
 #include "SceneNode.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
-class SceneObject : public SceneNode<SceneObject> , public vengine::Entity {
+class SceneObject : public SceneNode<SceneObject>, public Entity
+{
 public:
-    SceneObject(const Transform& t);
+    SceneObject(const Transform &t);
     virtual ~SceneObject();
 
     std::string m_name = "";
 
-    virtual void setModelMatrix(const glm::mat4& modelMatrix) override;
+    virtual void setModelMatrix(const glm::mat4 &modelMatrix) override;
 
     bool m_isSelected = false;
 
@@ -27,6 +28,6 @@ protected:
     glm::vec3 m_idRGB;
 };
 
-}
+}  // namespace vengine
 
 #endif

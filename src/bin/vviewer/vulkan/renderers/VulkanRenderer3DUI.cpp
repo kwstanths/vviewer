@@ -5,7 +5,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <core/AssimpLoadModel.hpp>
+#include <core/io/AssimpLoadModel.hpp>
 #include <vulkan/common/VulkanInitializers.hpp>
 #include <vulkan/common/VulkanShader.hpp>
 
@@ -28,8 +28,8 @@ VkResult VulkanRenderer3DUI::initResources(VkPhysicalDevice physicalDevice,
     m_queue = queue;
     m_descriptorSetLayoutCamera = cameraDescriptorLayout;
 
-    std::vector<Mesh> meshes = assimpLoadModel("assets/models/arrow.obj");
-    m_arrow = new VulkanMeshModel(m_physicalDevice, m_device, queue, commandPool, meshes, {});
+    Tree<ImportedModelNode> modelData = assimpLoadModel("assets/models/arrow.obj");
+    m_arrow = new VulkanModel3D("assets/models/arrow.obj", modelData, m_physicalDevice, m_device, queue, commandPool);
 
     ID rightID = static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW);
     m_rightID = IDGeneration::toRGB(rightID);
@@ -100,7 +100,7 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-    const auto &vkmesh = std::static_pointer_cast<VulkanMesh>(m_arrow->getMeshes()[0]);
+    const auto &vkmesh = std::static_pointer_cast<VulkanMesh>(m_arrow->mesh("Cone"));
 
     VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
     VkDeviceSize offsets[] = {0};
@@ -135,7 +135,7 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
                        0,
                        sizeof(PushBlockForward3DUI),
                        &pushConstants);
-    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
     /* Render X arrow */
     pushConstants.modelMatrix = glm::scale(glm::rotate(modelMatrixUnscaled, glm::radians(90.F), {0, 1, 0}), {scale, scale, scale});
     pushConstants.color = glm::vec4(1, 0, 0, 1);
@@ -146,7 +146,7 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
                        0,
                        sizeof(PushBlockForward3DUI),
                        &pushConstants);
-    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
     /* Render Y arrow */
     pushConstants.modelMatrix = glm::scale(glm::rotate(modelMatrixUnscaled, glm::radians(-90.F), {1, 0, 0}), {scale, scale, scale});
     pushConstants.color = glm::vec4(0, 1, 0, 1);
@@ -157,7 +157,7 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
                        0,
                        sizeof(PushBlockForward3DUI),
                        &pushConstants);
-    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
 
     return VK_SUCCESS;
 }

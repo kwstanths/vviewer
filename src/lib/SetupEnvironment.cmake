@@ -56,12 +56,8 @@ macro(SetupEnvironment)
         set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib64)
         set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc143-mt.lib)
     elseif(UNIX)
-        #ASSIMP
-        # assimp inlude dirs are installed in /usr/include
-        #set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP_LIBS)
-        #set(ASSIMP_INCLUDE_DIRS ${ASSIMP_DIR}/include)
-        
-        set(ASSIMP_LIBRARIES /usr/lib/x86_64-linux-gnu/libassimp.so)
+        #UNIX
+        set(ASSIMP_LIBRARIES /usr/local/lib/libassimp.so)
     endif()
 
     set(ENGINE_INCLUDE_DIRS 

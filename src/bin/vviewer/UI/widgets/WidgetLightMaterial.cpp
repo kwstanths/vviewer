@@ -13,14 +13,15 @@
 
 using namespace vengine;
 
-WidgetLightMaterial::WidgetLightMaterial(QWidget * parent, std::shared_ptr<Light> light) : QWidget(parent)
+WidgetLightMaterial::WidgetLightMaterial(QWidget *parent, std::shared_ptr<Light> light)
+    : QWidget(parent)
 {
     m_light = light;
 
     /* Create available light materials widget */
     m_widgetLightMaterials = new QComboBox();
     m_widgetLightMaterials->addItems(getCreatedLightMaterials());
-    m_widgetLightMaterials->setCurrentText(QString::fromStdString(light->lightMaterial->name));
+    m_widgetLightMaterials->setCurrentText(QString::fromStdString(light->lightMaterial->name()));
     connect(m_widgetLightMaterials, SIGNAL(currentIndexChanged(int)), this, SLOT(onLightMaterialChanged(int)));
 
     /* Create color button */
@@ -30,19 +31,19 @@ WidgetLightMaterial::WidgetLightMaterial(QWidget * parent, std::shared_ptr<Light
     /* Create intensity slider */
     m_lightIntensityWidget = new WidgetSliderValue(this, 0, 100, light->lightMaterial->intensity, 1);
     connect(m_lightIntensityWidget, SIGNAL(valueChanged(double)), this, SLOT(onLightIntensityChanged(double)));
-    QHBoxLayout* lightIntensityLayout = new QHBoxLayout();
+    QHBoxLayout *lightIntensityLayout = new QHBoxLayout();
     lightIntensityLayout->addWidget(new QLabel("Intensity:"));
     lightIntensityLayout->addWidget(m_lightIntensityWidget);
     lightIntensityLayout->setContentsMargins(0, 0, 0, 0);
-    QWidget* widgetLightIntensity = new QWidget();
+    QWidget *widgetLightIntensity = new QWidget();
     widgetLightIntensity->setLayout(lightIntensityLayout);
 
     /* Create create new material widget*/
     m_buttonCreate = new QPushButton("Create new");
     connect(m_buttonCreate, &QPushButton::released, this, &WidgetLightMaterial::onCreateNewMaterial);
 
-    QGroupBox* lightGroupBox = new QGroupBox("Light material");
-    QVBoxLayout* layoutLight = new QVBoxLayout();
+    QGroupBox *lightGroupBox = new QGroupBox("Light material");
+    QVBoxLayout *layoutLight = new QVBoxLayout();
     layoutLight->addWidget(m_widgetLightMaterials);
     layoutLight->addWidget(m_lightColorWidget);
     layoutLight->addWidget(widgetLightIntensity);
@@ -50,7 +51,7 @@ WidgetLightMaterial::WidgetLightMaterial(QWidget * parent, std::shared_ptr<Light
     lightGroupBox->setLayout(layoutLight);
 
     /* Complete layout */
-    QVBoxLayout* layoutMain = new QVBoxLayout();
+    QVBoxLayout *layoutMain = new QVBoxLayout();
     layoutMain->addWidget(lightGroupBox);
     layoutMain->setAlignment(Qt::AlignTop);
     layoutMain->setContentsMargins(0, 0, 0, 0);
@@ -62,8 +63,8 @@ void WidgetLightMaterial::onLightMaterialChanged(int)
 {
     std::string newLightMaterial = m_widgetLightMaterials->currentText().toStdString();
 
-    AssetManager<std::string, LightMaterial>& instance = AssetManager<std::string, LightMaterial>::getInstance();
-    auto lightMaterial = instance.get(newLightMaterial);
+    auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
+    auto lightMaterial = lightMaterials.get(newLightMaterial);
 
     if (lightMaterial == nullptr) {
         debug_tools::ConsoleWarning("Material: " + newLightMaterial + " doesn't exist");
@@ -91,8 +92,8 @@ void WidgetLightMaterial::onCreateNewMaterial()
     static uint32_t newLightMaterialNameIndex = 0;
     std::string name = "LightMaterial" + std::to_string(newLightMaterialNameIndex);
 
-    AssetManager<std::string, LightMaterial>& instance = AssetManager<std::string, LightMaterial>::getInstance();
-    auto newLightMaterial = instance.add(name, std::make_shared<LightMaterial>(name, glm::vec3(1, 1, 1), 1.F));
+    auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
+    auto newLightMaterial = lightMaterials.add(std::make_shared<LightMaterial>(name, glm::vec3(1, 1, 1), 1.F));
 
     m_widgetLightMaterials->blockSignals(true);
 

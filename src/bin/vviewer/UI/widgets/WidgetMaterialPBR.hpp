@@ -15,29 +15,32 @@ class WidgetMaterialPBR : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetMaterialPBR(QWidget * parent, std::shared_ptr<vengine::MaterialPBRStandard> material);
+    static const int HEIGHT = 620;
 
-    QPushButton * m_colorButton;
+    WidgetMaterialPBR(QWidget *parent, std::shared_ptr<vengine::MaterialPBRStandard> material);
+
+    QPushButton *m_colorAlbedo, *m_colorEmissive;
     QSlider *m_metallic, *m_roughness, *m_ao;
     QDoubleSpinBox *m_emissive;
 
-    QComboBox * m_comboBoxAlbedo;
-    QComboBox * m_comboBoxMetallic;
-    QComboBox * m_comboBoxRoughness;
-    QComboBox * m_comboBoxAO;
-    QComboBox * m_comboBoxNormal;
-    
-    QDoubleSpinBox * m_uTiling;
-    QDoubleSpinBox * m_vTiling;
+    QComboBox *m_comboBoxAlbedo;
+    QComboBox *m_comboBoxMetallic;
+    QComboBox *m_comboBoxRoughness;
+    QComboBox *m_comboBoxAO;
+    QComboBox *m_comboBoxEmissive;
+    QComboBox *m_comboBoxNormal;
+
+    QDoubleSpinBox *m_uTiling;
+    QDoubleSpinBox *m_vTiling;
+
 private:
     std::shared_ptr<vengine::MaterialPBRStandard> m_material = nullptr;
 
-    void setColorButtonColor();
+    void setColorButton(QPushButton *button, const glm::vec4 &color);
 
 private Q_SLOTS:
-    void onColorButton();
-    void onColorChanged(QColor color);
-    void onColorTextureChanged(int);
+    void onAlbedoButton();
+    void onAlbedoTextureChanged(int);
     void onMetallicChanged();
     void onMetallicTextureChanged(int);
     void onRoughnessChanged();
@@ -45,6 +48,8 @@ private Q_SLOTS:
     void onAOChanged();
     void onAOTextureChanged(int);
     void onEmissiveChanged(double);
+    void onEmissiveButton();
+    void onEmissiveTextureChanged(int);
     void onNormalTextureChanged(int);
     void onUTilingChanged(double);
     void onVTilingChanged(double);

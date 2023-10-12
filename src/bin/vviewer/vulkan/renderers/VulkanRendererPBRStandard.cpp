@@ -262,11 +262,23 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
     vkDestroyDescriptorSetLayout(m_device, descriptorSetlayout, nullptr);
 
     /* Create texture resource */
-    auto vktex = std::make_shared<VulkanTexture>(
-        "PBR_BRDF_LUT", TextureType::HDR, format, imageWidth, imageHeight, image, imageMemory, imageView, imageSampler, 0);
+    auto vktex = std::make_shared<VulkanTexture>("PBR_BRDF_LUT",
+                                                 ColorSpace::LINEAR,
+                                                 ColorDepth::BITS16,
+                                                 imageWidth,
+                                                 imageHeight,
+                                                 2U,
+                                                 image,
+                                                 imageMemory,
+                                                 imageView,
+                                                 imageSampler,
+                                                 format,
+                                                 0);
+
     /* Add to resources */
-    AssetManager<std::string, Texture> &instance = AssetManager<std::string, Texture>::getInstance();
-    instance.add("PBR_BRDF_LUT", vktex);
+    auto &texturesMap = AssetManager::getInstance().texturesMap();
+    texturesMap.add(vktex);
+
     /* Add texture to textures descriptor managemenet */
     textures.addTexture(vktex);
 
@@ -319,7 +331,7 @@ VkResult VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer &cmdBuf,
                                 static_cast<uint32_t>(dynamicOffsets.size()),
                                 &dynamicOffsets[0]);
 
-        vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
     }
 
     return VK_SUCCESS;
@@ -365,7 +377,7 @@ VkResult VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer &cmdBuf,
                             static_cast<uint32_t>(dynamicOffsets.size()),
                             &dynamicOffsets[0]);
 
-    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
 
     return VK_SUCCESS;
 }

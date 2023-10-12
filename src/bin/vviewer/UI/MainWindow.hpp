@@ -10,20 +10,21 @@
 
 #include "widgets/WidgetName.hpp"
 #include "widgets/WidgetTransform.hpp"
-#include "widgets/WidgetMeshModel.hpp"
+#include "widgets/WidgetModel3D.hpp"
 #include "widgets/WidgetMaterial.hpp"
 #include "widgets/WidgetEnvironment.hpp"
 #include "widgets/WidgetLight.hpp"
-#include "widgets/WidgetMeshModel.hpp"
 #include "widgets/WidgetComponent.hpp"
 #include "widgets/WidgetRightPanel.hpp"
 #include "widgets/WidgetSceneGraph.hpp"
 
 #include "core/Scene.hpp"
-#include "core/Import.hpp"
+#include "core/io/Import.hpp"
+#include "utils/Tree.hpp"
 #include "VulkanWindow.hpp"
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 public:
     MainWindow(QWidget *parent);
@@ -31,61 +32,52 @@ public:
 
 private:
     /* UI vulkan */
-    VulkanWindow * m_vulkanWindow;
+    VulkanWindow *m_vulkanWindow;
 
     /* For naming new objects */
     int m_nObjects = 0;
 
-    vengine::Scene* m_scene = nullptr;
+    vengine::Scene *m_scene = nullptr;
 
-    WidgetSceneGraph * m_sceneGraphWidget = nullptr;
-    WidgetRightPanel * m_widgetRightPanel = nullptr;
+    WidgetSceneGraph *m_sceneGraphWidget = nullptr;
+    WidgetRightPanel *m_widgetRightPanel = nullptr;
 
-    QWidget * initLeftPanel();
-    QWidget * initVulkanWindowWidget();
-    QWidget * initRightPanel();
+    QWidget *initLeftPanel();
+    QWidget *initVulkanWindowWidget();
+    QWidget *initRightPanel();
     void createMenu();
 
     /**
      * @brief Create an Empty Scene Object with name and transform under a parent. If parent is null add at root
-     * 
-     * @param name 
-     * @param transform 
-     * @param parent 
+     *
+     * @param name
+     * @param transform
+     * @param parent
      * @return The UI tree widget item, and the actual scene object
      */
-    std::pair<QTreeWidgetItem*, std::shared_ptr<vengine::SceneObject>> createEmptySceneObject(std::string name, const vengine::Transform& transform, QTreeWidgetItem* parent);
+    std::pair<QTreeWidgetItem *, std::shared_ptr<vengine::SceneObject>> createEmptySceneObject(std::string name,
+                                                                                               const vengine::Transform &transform,
+                                                                                               QTreeWidgetItem *parent);
 
     /**
-     * @brief Change UI selection to the selectedItem 
-     * 
-     * @param selectedItem 
+     * @brief Change UI selection to the selectedItem
+     *
+     * @param selectedItem
      */
-    void selectObject(QTreeWidgetItem* selectedItem);
+    void selectObject(QTreeWidgetItem *selectedItem);
 
     /**
      * @brief Remove an item from the scene
-     * 
-     * @param treeItem 
+     *
+     * @param treeItem
      */
-    void removeObjectFromScene(QTreeWidgetItem* treeItem);
+    void removeObjectFromScene(QTreeWidgetItem *treeItem);
 
-    /**
-     * @brief Add all the meshes of the modelName under the parentItem as new scene objects with the requested material
-     * 
-     * @param parentItem 
-     * @param modelName 
-     * @param material 
-     */
-    void addSceneObjectMeshes(QTreeWidgetItem * parentItem, std::string modelName, std::string material);
+    void addSceneObjectModel(QTreeWidgetItem *parentItem, std::string modelName, std::optional<std::string> overrideMaterial);
 
-    void addImportedSceneObject(const vengine::ImportedSceneObject& object, 
-            const std::unordered_map<std::string, vengine::ImportedSceneMaterial>& materials,
-            const std::unordered_map<std::string, vengine::ImportedSceneLightMaterial>& lights,
-            QTreeWidgetItem * parentItem, std::string sceneFolder);
+    void addImportedSceneObject(const vengine::Tree<vengine::ImportedSceneObject> &object, QTreeWidgetItem *parentItem);
 
-
-    bool event(QEvent* event) override;
+    bool event(QEvent *event) override;
 
 private Q_SLOTS:
     /* Import a model */
@@ -130,7 +122,7 @@ private Q_SLOTS:
     void onSelectedSceneObjectNameChangedSlot(QString newName);
 
     /* Show context menu for scene graph */
-    void onContextMenuSceneGraph(const QPoint& pos);
+    void onContextMenuSceneGraph(const QPoint &pos);
 
     /* Start up scene initialization */
     void onStartUpInitialization();

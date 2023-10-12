@@ -10,13 +10,14 @@
 #include "math/Transform.hpp"
 #include "utils/ECS.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 Scene::Scene()
 {
-    auto& lightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
-    auto directionalLightMaterial = lightMaterials.add("DirectionalLightMaterial", std::make_shared<LightMaterial>("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F));
-    auto defaultPointLightMaterial = lightMaterials.add("DefaultPointLightMaterial", std::make_shared<LightMaterial>("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1.F));
+    auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
+    lightMaterials.add(std::make_shared<LightMaterial>("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F));
+    lightMaterials.add(std::make_shared<LightMaterial>("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1.F));
 }
 
 Scene::~Scene()
@@ -101,9 +102,9 @@ std::shared_ptr<SceneObject> Scene::addSceneObject(std::string name, Transform t
     std::shared_ptr<SceneObject> object = createObject(name);
     object->m_localTransform = transform;
     m_sceneGraph.push_back(object);
-    
-    m_objectsMap.insert({ object->getID(), object });
-    
+
+    m_objectsMap.insert({object->getID(), object});
+
     return object;
 }
 
@@ -112,9 +113,9 @@ std::shared_ptr<SceneObject> Scene::addSceneObject(std::string name, std::shared
     std::shared_ptr<SceneObject> object = createObject(name);
     object->m_localTransform = transform;
     node->addChild(object);
-    
-    m_objectsMap.insert({ object->getID(), object });
-    
+
+    m_objectsMap.insert({object->getID(), object});
+
     return object;
 }
 
@@ -124,22 +125,19 @@ void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)
     if (node->m_parent == nullptr) {
         /* Remove scene node from root */
         m_sceneGraph.erase(std::remove(m_sceneGraph.begin(), m_sceneGraph.end(), node), m_sceneGraph.end());
-    }
-    else {
+    } else {
         /* Remove from parent */
-        node->m_parent->m_children.erase(
-            std::remove(node->m_parent->m_children.begin(), node->m_parent->m_children.end(), node), 
-            node->m_parent->m_children.end()
-        );
+        node->m_parent->m_children.erase(std::remove(node->m_parent->m_children.begin(), node->m_parent->m_children.end(), node),
+                                         node->m_parent->m_children.end());
     }
 
     /* Remove from m_objectsMap recusrively */
-    std::function<void(std::vector<std::shared_ptr<SceneObject>>&)> removeChildren;
-    removeChildren = [&](std::vector<std::shared_ptr<SceneObject>>& children) { 
-        for(auto c : children){
+    std::function<void(std::vector<std::shared_ptr<SceneObject>> &)> removeChildren;
+    removeChildren = [&](std::vector<std::shared_ptr<SceneObject>> &children) {
+        for (auto c : children) {
             m_objectsMap.erase(c->getID());
             removeChildren(c->m_children);
-        }    
+        }
     };
     m_objectsMap.erase(node->getID());
     removeChildren(node->m_children);
@@ -147,7 +145,7 @@ void Scene::removeSceneObject(std::shared_ptr<SceneObject> node)
 
 void Scene::updateSceneGraph()
 {
-    for (auto& node : m_sceneGraph) {
+    for (auto &node : m_sceneGraph) {
         node->update();
     }
 }
@@ -156,8 +154,7 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray() const
 {
     std::vector<std::shared_ptr<SceneObject>> temp;
 
-    for (auto&& rootNode : m_sceneGraph)
-    {
+    for (auto &&rootNode : m_sceneGraph) {
         temp.push_back(rootNode);
         auto rootNodeObjects = rootNode->getSceneObjectsArray();
 
@@ -167,13 +164,12 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray() const
     return temp;
 }
 
-std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray(std::vector<glm::mat4>& modelMatrices) const
+std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices) const
 {
     std::vector<std::shared_ptr<SceneObject>> temp;
     modelMatrices.clear();
-    
-    for (auto&& rootNode : m_sceneGraph)
-    {
+
+    for (auto &&rootNode : m_sceneGraph) {
         temp.push_back(rootNode);
         modelMatrices.push_back(rootNode->m_modelMatrix);
         std::vector<glm::mat4> rootNodeMatrices;
@@ -189,19 +185,19 @@ std::vector<std::shared_ptr<SceneObject>> Scene::getSceneObjectsArray(std::vecto
 std::shared_ptr<SceneObject> Scene::getSceneObject(vengine::ID id) const
 {
     auto itr = m_objectsMap.find(id);
-    if (itr == m_objectsMap.end()) return std::shared_ptr<SceneObject>(nullptr);
+    if (itr == m_objectsMap.end())
+        return std::shared_ptr<SceneObject>(nullptr);
     return itr->second;
 }
 
-void Scene::exportScene(const ExportRenderParams& renderParams) const
+void Scene::exportScene(const ExportRenderParams &renderParams) const
 {
-    std::shared_ptr<EnvironmentMap> temp = nullptr;
-    if (m_skybox != nullptr && getEnvironmentType() == EnvironmentType::HDRI)
-    {
-        temp = m_skybox->getMap();
+    std::shared_ptr<EnvironmentMap> envMap = nullptr;
+    if (m_skybox != nullptr && getEnvironmentType() == EnvironmentType::HDRI) {
+        envMap = m_skybox->getMap();
     }
 
-    exportJson(renderParams, m_camera, m_sceneGraph, temp);
+    exportJson(renderParams, m_camera, m_sceneGraph, envMap);
 }
 
-}
+}  // namespace vengine

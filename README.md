@@ -13,7 +13,7 @@ A model viewer and scene editor written in Qt and Vulkan
 * Install Qt. Make sure the Qt6_DIR points to the installation folder. Version tested 6.2.4
 * Install vulkan. Makre sure the VULKAN_SDK environment variable points to the installation folder. Version tested 1.3.204.1
 * Install GLM
-* Install assimp. Look into src/lib/SetupEnvironment.cmake and edit the assimp paths based on your installation. Version tested 5.0.0
+* Install assimp. Look into src/lib/SetupEnvironment.cmake and edit the assimp paths based on your installation. Version tested 5.2.5
 * Create build folder, run cmake and build
 * Make sure that runtime dependencies can be found. If the paths are set up correctly, cmake will compile the shaders and paste assets and the shader binaries
 

@@ -3,29 +3,43 @@
 
 #include <string>
 
-namespace vengine {
+#include "Asset.hpp"
+#include "Color.hpp"
 
-enum class TextureType {
-    NO_TYPE = 0,
-    COLOR = 1,
-    LINEAR = 2,
-    HDR = 3,
-};
+namespace vengine
+{
 
-class Texture {
+class Texture : public Asset
+{
 public:
-    Texture(std::string name, TextureType type, size_t width, size_t height) : 
-        m_name(name), m_type(type), m_width(width), m_height(height) {};
+    Texture(std::string name,
+            std::string filepath,
+            ColorSpace colorSpace,
+            ColorDepth colorDepth,
+            size_t width,
+            size_t height,
+            size_t channels)
+        : Asset(name, filepath)
+        , m_colorSpace(colorSpace)
+        , m_colorDepth(colorDepth)
+        , m_width(width)
+        , m_height(height)
+        , m_channels(channels){};
 
-    TextureType m_type;
-    std::string m_name = "";
-    size_t m_width;
-    size_t m_height;
+    const uint32_t width() const { return m_width; }
+    const uint32_t height() const { return m_height; }
+    const uint32_t channels() const { return m_channels; }
+    const ColorSpace colorSpace() const { return m_colorSpace; }
+    const ColorDepth colorDepth() const { return m_colorDepth; }
 
 private:
-
+    ColorSpace m_colorSpace;
+    ColorDepth m_colorDepth;
+    size_t m_width;
+    size_t m_height;
+    size_t m_channels;
 };
 
-}
+}  // namespace vengine
 
 #endif

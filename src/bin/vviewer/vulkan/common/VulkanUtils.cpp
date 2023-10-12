@@ -1,6 +1,8 @@
 #include "VulkanUtils.hpp"
 
 #include <cstdint>
+#include <unordered_map>
+
 #include <debug_tools/Console.hpp>
 
 #include "VulkanInitializers.hpp"
@@ -582,6 +584,27 @@ VkResult createAccelerationStructureBuffer(VkPhysicalDevice physicalDevice,
     VULKAN_CHECK_CRITICAL(vkBindBufferMemory(device, buffer, memory, 0));
 
     return VK_SUCCESS;
+}
+
+VkFormat autoChooseFormat(ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels)
+{
+    auto uid = [&](ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels) {
+        return channels * 10000 + static_cast<int>(colorDepth) * 1000 + static_cast<int>(colorSpace);
+    };
+    static std::unordered_map<int, VkFormat> autoformats{
+        {uid(ColorSpace::LINEAR, ColorDepth::BITS8, 1), VK_FORMAT_R8_UNORM},
+        {uid(ColorSpace::LINEAR, ColorDepth::BITS8, 4), VK_FORMAT_R8G8B8A8_UNORM},
+        {uid(ColorSpace::LINEAR, ColorDepth::BITS32, 4), VK_FORMAT_R32G32B32A32_SFLOAT},
+        {uid(ColorSpace::sRGB, ColorDepth::BITS8, 4), VK_FORMAT_R8G8B8A8_SRGB},
+    };
+
+    auto itr = autoformats.find(uid(colorSpace, colorDepth, channels));
+    if (itr == autoformats.end()) {
+        debug_tools::ConsoleCritical("Unable to automatically determine the Vulkan format");
+        return VK_FORMAT_UNDEFINED;
+    }
+
+    return static_cast<VkFormat>(itr->second);
 }
 
 }  // namespace vengine

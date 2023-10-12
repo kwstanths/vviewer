@@ -119,7 +119,7 @@ VkResult VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer &cmdBuf,
                                 static_cast<uint32_t>(dynamicOffsets.size()),
                                 &dynamicOffsets[0]);
 
-        vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
     }
 
     return VK_SUCCESS;
@@ -171,7 +171,7 @@ VkResult VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer &cmdBuf,
                             &descriptorSets[0],
                             static_cast<uint32_t>(dynamicOffsets.size()),
                             &dynamicOffsets[0]);
-    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->getIndices().size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
 
     return VK_SUCCESS;
 }

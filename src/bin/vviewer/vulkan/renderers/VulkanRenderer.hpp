@@ -8,7 +8,7 @@
 
 #include <debug_tools/Console.hpp>
 
-#include "core/MeshModel.hpp"
+#include "core/Model3D.hpp"
 #include "core/Camera.hpp"
 #include "core/AssetManager.hpp"
 #include "core/Materials.hpp"
@@ -61,7 +61,7 @@ public:
 
     VulkanRendererRayTracing &getRayTracingRenderer() { return m_rendererRayTracing; }
 
-    std::shared_ptr<MeshModel> createVulkanMeshModel(std::string filename);
+    std::shared_ptr<Model3D> createVulkanModel(std::string filename, bool importMaterials = false);
     std::shared_ptr<Cubemap> createCubemap(std::string directory);
     std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
 

@@ -14,7 +14,7 @@
 #include "WidgetTransform.hpp"
 #include "WidgetComponent.hpp"
 #include "WidgetEnvironment.hpp"
-#include "WidgetMeshModel.hpp"
+#include "WidgetModel3D.hpp"
 #include "WidgetMaterial.hpp"
 #include "WidgetLight.hpp"
 
@@ -22,30 +22,30 @@ class WidgetRightPanel : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetRightPanel(QWidget * parent, vengine::Engine * engine);
+    WidgetRightPanel(QWidget *parent, vengine::Engine *engine);
 
     void setSelectedObject(std::shared_ptr<vengine::SceneObject> object);
 
-    WidgetEnvironment * getEnvironmentWidget();
+    WidgetEnvironment *getEnvironmentWidget();
 
     void updateAvailableMaterials();
 
 private:
-    QVBoxLayout * m_layoutControls;
-    QWidget * m_widgetControls;
-    QScrollArea * m_widgetScroll;
-    WidgetEnvironment * m_widgetEnvironment;
+    QVBoxLayout *m_layoutControls;
+    QWidget *m_widgetControls;
+    QScrollArea *m_widgetScroll;
+    WidgetEnvironment *m_widgetEnvironment;
 
-    WidgetName * m_selectedObjectWidgetName = nullptr;
-    WidgetTransform * m_selectedObjectWidgetTransform = nullptr;
-    WidgetComponent * m_selectedObjectWidgetMaterial = nullptr;
-    WidgetComponent * m_selectedObjectWidgetLight = nullptr;
-    WidgetComponent * m_selectedObjectWidgetMeshModel = nullptr;
+    WidgetName *m_selectedObjectWidgetName = nullptr;
+    WidgetTransform *m_selectedObjectWidgetTransform = nullptr;
+    WidgetComponent *m_selectedObjectWidgetMaterial = nullptr;
+    WidgetComponent *m_selectedObjectWidgetLight = nullptr;
+    WidgetComponent *m_selectedObjectWidgetMeshModel = nullptr;
 
     /* Update timer */
-    QTimer* m_updateTimer;
+    QTimer *m_updateTimer;
 
-    vengine::Engine * m_engine;
+    vengine::Engine *m_engine;
     std::shared_ptr<vengine::SceneObject> m_object;
 
     void deleteWidgets();

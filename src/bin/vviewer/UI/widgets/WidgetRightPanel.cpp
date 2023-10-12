@@ -18,7 +18,9 @@
 
 using namespace vengine;
 
-WidgetRightPanel::WidgetRightPanel(QWidget * parent, Engine * engine): QWidget(parent), m_engine(engine)
+WidgetRightPanel::WidgetRightPanel(QWidget *parent, Engine *engine)
+    : QWidget(parent)
+    , m_engine(engine)
 {
     m_layoutControls = new QVBoxLayout();
     m_layoutControls->setAlignment(Qt::AlignTop);
@@ -28,14 +30,14 @@ WidgetRightPanel::WidgetRightPanel(QWidget * parent, Engine * engine): QWidget(p
 
     m_widgetScroll = new QScrollArea();
     m_widgetScroll->setWidget(m_widgetControls);
-    
+
     m_widgetEnvironment = new WidgetEnvironment(nullptr, m_engine->scene());
 
-    QTabWidget* widgetTab = new QTabWidget();
+    QTabWidget *widgetTab = new QTabWidget();
     widgetTab->insertTab(0, m_widgetScroll, "Scene object");
     widgetTab->insertTab(1, m_widgetEnvironment, "Environment");
 
-    QHBoxLayout * layoutMain = new QHBoxLayout();
+    QHBoxLayout *layoutMain = new QHBoxLayout();
     layoutMain->addWidget(widgetTab);
 
     setLayout(layoutMain);
@@ -54,7 +56,7 @@ void WidgetRightPanel::setSelectedObject(std::shared_ptr<SceneObject> object)
     createUI(object);
 }
 
-WidgetEnvironment* WidgetRightPanel::getEnvironmentWidget()
+WidgetEnvironment *WidgetRightPanel::getEnvironmentWidget()
 {
     return m_widgetEnvironment;
 }
@@ -98,22 +100,19 @@ void WidgetRightPanel::createUI(std::shared_ptr<SceneObject> object)
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, object, "Transform", true);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
 
-    if (object->has<ComponentMesh>())
-    {
+    if (object->has<ComponentMesh>()) {
         m_selectedObjectWidgetMeshModel = new WidgetComponent(nullptr, new UIComponentMesh(object, "Mesh Model"), m_engine);
         connect(m_selectedObjectWidgetMeshModel, &WidgetComponent::componentRemoved, this, &WidgetRightPanel::onComponentRemoved);
         m_layoutControls->addWidget(m_selectedObjectWidgetMeshModel);
     }
-    
-    if (object->has<ComponentMaterial>()) 
-    {
+
+    if (object->has<ComponentMaterial>()) {
         m_selectedObjectWidgetMaterial = new WidgetComponent(nullptr, new UIComponentMaterial(object, "Material"), m_engine);
         connect(m_selectedObjectWidgetMaterial, &WidgetComponent::componentRemoved, this, &WidgetRightPanel::onComponentRemoved);
         m_layoutControls->addWidget(m_selectedObjectWidgetMaterial);
     }
 
-    if (object->has<ComponentLight>()) 
-    {
+    if (object->has<ComponentLight>()) {
         m_selectedObjectWidgetLight = new WidgetComponent(nullptr, new UIComponentLight(object, "Light"), m_engine);
         connect(m_selectedObjectWidgetLight, &WidgetComponent::componentRemoved, this, &WidgetRightPanel::onComponentRemoved);
         m_layoutControls->addWidget(m_selectedObjectWidgetLight);
@@ -121,21 +120,21 @@ void WidgetRightPanel::createUI(std::shared_ptr<SceneObject> object)
 
     QMenu *menu = new QMenu();
     if (!object->has<ComponentMesh>()) {
-        QAction * actionAddMeshComponent = new QAction("Mesh", this);
+        QAction *actionAddMeshComponent = new QAction("Mesh", this);
         connect(actionAddMeshComponent, SIGNAL(triggered()), this, SLOT(onAddComponentMesh()));
         menu->addAction(actionAddMeshComponent);
     }
     if (!object->has<ComponentMaterial>()) {
-        QAction * actionAddMaterialComponent = new QAction("Material", this);
+        QAction *actionAddMaterialComponent = new QAction("Material", this);
         connect(actionAddMaterialComponent, SIGNAL(triggered()), this, SLOT(onAddComponentMaterial()));
         menu->addAction(actionAddMaterialComponent);
     }
     if (!object->has<ComponentLight>()) {
-        QAction * actionAddLightComponent = new QAction("Light", this);
+        QAction *actionAddLightComponent = new QAction("Light", this);
         connect(actionAddLightComponent, SIGNAL(triggered()), this, SLOT(onAddComponentLight()));
         menu->addAction(actionAddLightComponent);
     }
-    QPushButton * buttonAddComponent = new QPushButton(tr("Add component"));
+    QPushButton *buttonAddComponent = new QPushButton(tr("Add component"));
     buttonAddComponent->setMenu(menu);
     m_layoutControls->addWidget(buttonAddComponent);
 
@@ -143,6 +142,7 @@ void WidgetRightPanel::createUI(std::shared_ptr<SceneObject> object)
     m_widgetControls->setLayout(m_layoutControls);
     m_widgetScroll->setWidget(m_widgetControls);
     m_widgetControls->setFixedWidth(340);
+    m_widgetControls->setMinimumHeight(1300);
 }
 
 void WidgetRightPanel::onTransformChanged()
@@ -164,13 +164,13 @@ void WidgetRightPanel::onComponentRemoved()
 
 void WidgetRightPanel::onAddComponentMesh()
 {
-    AssetManager<std::string, MeshModel>& instanceModels = AssetManager<std::string, MeshModel>::getInstance();
+    auto &instanceModels = AssetManager::getInstance().modelsMap();
     auto sphere = instanceModels.get("assets/models/uvsphere.obj");
 
     m_engine->stop();
     m_engine->waitIdle();
 
-    m_object->add<ComponentMesh>().mesh = sphere->getMeshes()[0];
+    m_object->add<ComponentMesh>().mesh = sphere->meshes()[0];
 
     m_engine->start();
 
@@ -180,7 +180,7 @@ void WidgetRightPanel::onAddComponentMesh()
 
 void WidgetRightPanel::onAddComponentMaterial()
 {
-    AssetManager<std::string, Material>& instanceMaterials = AssetManager<std::string, Material>::getInstance();
+    auto &instanceMaterials = AssetManager::getInstance().materialsMap();
     auto matDef = instanceMaterials.get("defaultMaterial");
 
     m_engine->stop();
@@ -196,7 +196,7 @@ void WidgetRightPanel::onAddComponentMaterial()
 
 void WidgetRightPanel::onAddComponentLight()
 {
-    AssetManager<std::string, LightMaterial>& instanceLightMaterials = AssetManager<std::string, LightMaterial>::getInstance();
+    auto &instanceLightMaterials = AssetManager::getInstance().lightMaterialsMap();
     auto pointLightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
 
     m_engine->stop();
@@ -209,4 +209,3 @@ void WidgetRightPanel::onAddComponentLight()
     deleteWidgets();
     createUI(m_object);
 }
-

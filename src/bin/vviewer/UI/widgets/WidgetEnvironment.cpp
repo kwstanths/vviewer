@@ -15,7 +15,8 @@
 
 using namespace vengine;
 
-WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(parent)
+WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
+    : QWidget(parent)
 {
     m_scene = scene;
     m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(m_scene->getCamera());
@@ -36,21 +37,21 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     m_cameraFov->setMaximum(179);
     m_cameraFov->setValue(m_camera->getFoV());
     connect(m_cameraFov, SIGNAL(valueChanged(double)), this, SLOT(onCameraFovChanged(double)));
-    QHBoxLayout * layoutCameraFoV = new QHBoxLayout();
+    QHBoxLayout *layoutCameraFoV = new QHBoxLayout();
     layoutCameraFoV->addWidget(new QLabel("Field of view: "));
     layoutCameraFoV->addWidget(m_cameraFov);
     layoutCameraFoV->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetCameraFoV = new QWidget();
+    QWidget *widgetCameraFoV = new QWidget();
     widgetCameraFoV->setLayout(layoutCameraFoV);
     /* Prepate group box */
-    QGroupBox* cameraGroupBox = new QGroupBox("Camera:");
-    QVBoxLayout * cameraLayout = new QVBoxLayout();
+    QGroupBox *cameraGroupBox = new QGroupBox("Camera:");
+    QVBoxLayout *cameraLayout = new QVBoxLayout();
     cameraLayout->addWidget(m_cameraTransformWidget);
     cameraLayout->addWidget(widgetCameraFoV);
     cameraGroupBox->setLayout(cameraLayout);
 
     /* Initialize environment maps dropdown list widget */
-    QGroupBox* envGroupBox = new QGroupBox("Environment:");
+    QGroupBox *envGroupBox = new QGroupBox("Environment:");
     {
         /* Order must be the same as EnvironmentType */
         m_environmentPicker = new QComboBox();
@@ -82,23 +83,23 @@ WidgetEnvironment::WidgetEnvironment(QWidget* parent, Scene* scene) : QWidget(pa
     m_exposureSlider->setMaximum(100);
     m_exposureSlider->setValue(50);
     connect(m_exposureSlider, SIGNAL(valueChanged(int)), this, SLOT(onExposureChanged(int)));
-    QVBoxLayout* layoutExposure = new QVBoxLayout();
+    QVBoxLayout *layoutExposure = new QVBoxLayout();
     layoutExposure->addWidget(new QLabel("Exposure:"));
     layoutExposure->addWidget(m_exposureSlider);
     layoutExposure->setContentsMargins(0, 0, 0, 0);
     layoutExposure->setAlignment(Qt::AlignTop);
-    QWidget* widgetExposure = new QWidget();
+    QWidget *widgetExposure = new QWidget();
     widgetExposure->setLayout(layoutExposure);
 
     /* Complete layout */
-    QVBoxLayout* layoutMain = new QVBoxLayout();
+    QVBoxLayout *layoutMain = new QVBoxLayout();
     layoutMain->addWidget(cameraGroupBox);
     layoutMain->addWidget(envGroupBox);
     layoutMain->addWidget(widgetExposure);
     layoutMain->setAlignment(Qt::AlignTop);
 
     setLayout(layoutMain);
-    //setFixedHeight(300);
+    // setFixedHeight(300);
 
     /* Set an update timer for the camera transform widget */
     m_updateTimer = new QTimer();
@@ -112,7 +113,7 @@ void WidgetEnvironment::updateMaps()
     m_comboMaps->blockSignals(true);
     m_comboMaps->clear();
     m_comboMaps->addItems(getImportedEnvironmentMaps());
-    m_comboMaps->setCurrentText(QString::fromStdString(m_scene->getSkybox()->getMap()->m_name));
+    m_comboMaps->setCurrentText(QString::fromStdString(m_scene->getSkybox()->getMap()->name()));
     m_comboMaps->blockSignals(false);
 }
 
@@ -122,36 +123,41 @@ void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
     m_cameraFov->setValue(m_camera->getFoV());
 }
 
-void WidgetEnvironment::setEnvironmentType(const EnvironmentType& type, bool updateUI)
+void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool updateUI)
 {
-    if (updateUI){
+    if (updateUI) {
         m_environmentPicker->setCurrentIndex(static_cast<int>(type));
     }
 
-    switch (type)
-    {
-    case EnvironmentType::SOLID_COLOR:
-        m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR);
-        /* Set the contribution of IBL lighting to 0 */
-        m_scene->setAmbientIBL(0);
-        m_comboMaps->hide();
-        m_backgroundColorWidget->show();
-        break;
-    case EnvironmentType::HDRI:
-        m_scene->setEnvironmentType(EnvironmentType::HDRI);
-        m_scene->setAmbientIBL(1);
-        m_comboMaps->show();
-        m_backgroundColorWidget->hide();
-        break;
-    case EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING:
-        m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING);
-        m_scene->setAmbientIBL(1);
-        m_comboMaps->show();
-        m_backgroundColorWidget->show();
-        break;
-    default:
-        break;
+    switch (type) {
+        case EnvironmentType::SOLID_COLOR:
+            m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR);
+            /* Set the contribution of IBL lighting to 0 */
+            m_scene->setAmbientIBL(0);
+            m_comboMaps->hide();
+            m_backgroundColorWidget->show();
+            break;
+        case EnvironmentType::HDRI:
+            m_scene->setEnvironmentType(EnvironmentType::HDRI);
+            m_scene->setAmbientIBL(1);
+            m_comboMaps->show();
+            m_backgroundColorWidget->hide();
+            break;
+        case EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING:
+            m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING);
+            m_scene->setAmbientIBL(1);
+            m_comboMaps->show();
+            m_backgroundColorWidget->show();
+            break;
+        default:
+            break;
     }
+}
+
+void WidgetEnvironment::setBackgroundColor(glm::vec3 backgroundColor)
+{
+    m_backgroundColorWidget->setColor(backgroundColor);
+    m_scene->setBackgroundColor(backgroundColor);
 }
 
 void WidgetEnvironment::updateCamera()
@@ -163,12 +169,11 @@ void WidgetEnvironment::updateCamera()
         return;
     }
 
-    /* 
+    /*
         Else, check if the scene camera changed and update the UI with blocked signals, so as to not trigger
         another widget signal
     */
-    if (!(m_cameraTransformWidget->getTransform() == m_camera->getTransform()))
-    {
+    if (!(m_cameraTransformWidget->getTransform() == m_camera->getTransform())) {
         m_cameraTransformWidget->blockSignals(true);
         m_cameraTransformWidget->setTransform(m_camera->getTransform());
         m_cameraTransformWidget->blockSignals(false);
@@ -188,19 +193,17 @@ void WidgetEnvironment::onExposureChanged(int)
 
 void WidgetEnvironment::onCameraWidgetChanged(double)
 {
-    /* 
-        If this is called with the signals blocked, it means that the camera signal change was triggered 
+    /*
+        If this is called with the signals blocked, it means that the camera signal change was triggered
         because we updated the UI manually in updateCamera(), don't register another update
     */
-    if (!m_cameraTransformWidget->signalsBlocked())
-    {
+    if (!m_cameraTransformWidget->signalsBlocked()) {
         m_cameraTransformWidgetChanged = true;
     }
 }
 
-void WidgetEnvironment::showEvent(QShowEvent * event)
+void WidgetEnvironment::showEvent(QShowEvent *event)
 {
-
 }
 
 void WidgetEnvironment::onEnvironmentChanged(int)
@@ -217,8 +220,8 @@ void WidgetEnvironment::onCameraFovChanged(double)
 void WidgetEnvironment::onEnvironmentMapChanged(int)
 {
     std::string newEnvMapName = m_comboMaps->currentText().toStdString();
-    
-    AssetManager<std::string, EnvironmentMap>& envMaps = AssetManager<std::string, EnvironmentMap>::getInstance();
+
+    auto &envMaps = AssetManager::getInstance().environmentsMapMap();
     auto newEnvMap = envMaps.get(newEnvMapName);
 
     auto materialSkybox = m_scene->getSkybox();

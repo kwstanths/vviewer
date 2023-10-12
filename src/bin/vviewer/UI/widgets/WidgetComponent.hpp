@@ -15,60 +15,63 @@
 #include "core/Engine.hpp"
 #include "utils/ECS.hpp"
 
-#include "WidgetMeshModel.hpp"
+#include "WidgetModel3D.hpp"
 #include "WidgetMaterial.hpp"
 
 /* UI classes that represent each available component, QT doesn't support templated Q_OBJECT */
-class UIComponentWrapper {
+class UIComponentWrapper
+{
 public:
-    UIComponentWrapper(std::shared_ptr<vengine::SceneObject> object, QString name) : m_object(object), m_name(name) {};
+    UIComponentWrapper(std::shared_ptr<vengine::SceneObject> object, QString name)
+        : m_object(object)
+        , m_name(name){};
     virtual ~UIComponentWrapper(){};
 
-    virtual QWidget * generateWidget() = 0;
+    virtual QWidget *generateWidget() = 0;
     virtual void removeComponent() = 0;
     virtual int getWidgetHeight() = 0;
 
     QString m_name;
+
 protected:
     std::shared_ptr<vengine::SceneObject> m_object;
 };
 
 /* A UI widget to represent a specific component */
-class WidgetComponent : public QWidget {
+class WidgetComponent : public QWidget
+{
     Q_OBJECT
 public:
-    WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper, vengine::Engine * engine);
+    WidgetComponent(QWidget *parent, UIComponentWrapper *componentWrapper, vengine::Engine *engine);
     ~WidgetComponent();
 
-    template<typename T>
-    T * getWidget()
+    template <typename T>
+    T *getWidget()
     {
-        return static_cast<T*>(m_widgetEncapsulated);
+        return static_cast<T *>(m_widgetEncapsulated);
     }
 
     void updateHeight();
 
 private:
-    QWidget * m_widgetEncapsulated;
-    UIComponentWrapper * m_componentWrapper;
-    vengine::Engine * m_engine;
+    QWidget *m_widgetEncapsulated;
+    UIComponentWrapper *m_componentWrapper;
+    vengine::Engine *m_engine;
 
 private Q_SLOTS:
     void onRemoved();
 
 Q_SIGNALS:
     void componentRemoved();
-
 };
 
-class UIComponentMesh : public UIComponentWrapper {
+class UIComponentMesh : public UIComponentWrapper
+{
 public:
-    UIComponentMesh(std::shared_ptr<vengine::SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
+    UIComponentMesh(std::shared_ptr<vengine::SceneObject> object, QString name)
+        : UIComponentWrapper(object, name){};
 
-    QWidget * generateWidget()
-    {
-        return new WidgetMeshModel(nullptr, m_object->get<vengine::ComponentMesh>());
-    }
+    QWidget *generateWidget() { return new WidgetModel3D(nullptr, m_object->get<vengine::ComponentMesh>()); }
 
     void removeComponent()
     {
@@ -76,22 +79,18 @@ public:
         return;
     }
 
-    int getWidgetHeight()
-    {
-        return WidgetMeshModel::HEIGHT;
-    }
+    int getWidgetHeight() { return WidgetModel3D::HEIGHT; }
 
 private:
 };
 
-class UIComponentMaterial : public UIComponentWrapper {
+class UIComponentMaterial : public UIComponentWrapper
+{
 public:
-    UIComponentMaterial(std::shared_ptr<vengine::SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
+    UIComponentMaterial(std::shared_ptr<vengine::SceneObject> object, QString name)
+        : UIComponentWrapper(object, name){};
 
-    QWidget * generateWidget()
-    {
-        return new WidgetMaterial(nullptr, m_object->get<vengine::ComponentMaterial>());
-    }
+    QWidget *generateWidget() { return new WidgetMaterial(nullptr, m_object->get<vengine::ComponentMaterial>()); }
 
     void removeComponent()
     {
@@ -101,8 +100,7 @@ public:
 
     int getWidgetHeight()
     {
-        if (m_object->get<vengine::ComponentMaterial>().material->getType() == vengine::MaterialType::MATERIAL_PBR_STANDARD)
-        {
+        if (m_object->get<vengine::ComponentMaterial>().material->getType() == vengine::MaterialType::MATERIAL_PBR_STANDARD) {
             return WidgetMaterial::HEIGHT_PBR;
         } else if (m_object->get<vengine::ComponentMaterial>().material->getType() == vengine::MaterialType::MATERIAL_LAMBERT) {
             return WidgetMaterial::HEIGHT_LAMBERT;
@@ -114,14 +112,13 @@ public:
 private:
 };
 
-class UIComponentLight : public UIComponentWrapper {
+class UIComponentLight : public UIComponentWrapper
+{
 public:
-    UIComponentLight(std::shared_ptr<vengine::SceneObject> object, QString name) : UIComponentWrapper(object, name) {};
+    UIComponentLight(std::shared_ptr<vengine::SceneObject> object, QString name)
+        : UIComponentWrapper(object, name){};
 
-    QWidget * generateWidget()
-    {
-        return new WidgetLight(nullptr, m_object->get<vengine::ComponentLight>());
-    }
+    QWidget *generateWidget() { return new WidgetLight(nullptr, m_object->get<vengine::ComponentLight>()); }
 
     void removeComponent()
     {
@@ -129,10 +126,7 @@ public:
         return;
     }
 
-    int getWidgetHeight()
-    {
-        return WidgetLight::HEIGHT;
-    }
+    int getWidgetHeight() { return WidgetLight::HEIGHT; }
 
 private:
 };

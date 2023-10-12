@@ -10,11 +10,10 @@
 QStringList getImportedModels();
 QStringList getCreatedMaterials();
 QStringList getCreatedLightMaterials();
-QStringList getImportedTextures(vengine::TextureType type);
+QStringList getImportedTextures(vengine::ColorSpace colorSpace);
 QStringList getImportedCubemaps();
 QStringList getImportedEnvironmentMaps();
 
-void setButtonColor(QPushButton* button, QColor color);
-
+void setButtonColor(QPushButton *button, QColor color);
 
 #endif

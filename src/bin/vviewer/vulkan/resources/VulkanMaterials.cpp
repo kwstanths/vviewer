@@ -1,5 +1,7 @@
 #include "VulkanMaterials.hpp"
 
+#include <zip.h>
+
 #include "core/AssetManager.hpp"
 
 #include "vulkan/common/VulkanInitializers.hpp"
@@ -43,8 +45,8 @@ VkResult VulkanMaterials::initSwapchainResources(uint32_t nImages)
     updateDescriptorSets();
 
     {
-        AssetManager<std::string, MaterialSkybox> &instance = AssetManager<std::string, MaterialSkybox>::getInstance();
-        for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
+        for (auto itr = materialsSkybox.begin(); itr != materialsSkybox.end(); ++itr) {
             auto material = std::static_pointer_cast<VulkanMaterialSkybox>(itr->second);
             VULKAN_CHECK_CRITICAL(material->createDescriptors(m_vkctx.device(), m_descriptorPool, m_swapchainImages));
             material->updateDescriptorSets(m_vkctx.device(), m_swapchainImages);
@@ -58,8 +60,7 @@ VkResult VulkanMaterials::releaseResources()
 {
     /* Destroy material data */
     {
-        AssetManager<std::string, Material> &instance = AssetManager<std::string, Material>::getInstance();
-        instance.reset();
+        AssetManager::getInstance().materialsMap().reset();
     }
 
     m_materialsStorage.destroyCPUMemory();
@@ -88,26 +89,28 @@ VkBuffer VulkanMaterials::getBuffer(uint32_t index)
     return m_materialsStorage.buffer(index);
 }
 
-std::shared_ptr<Material> VulkanMaterials::createMaterial(std::string name, MaterialType type, bool createDescriptors)
+std::shared_ptr<Material> VulkanMaterials::createMaterial(const std::string &name,
+                                                          const std::string &filepath,
+                                                          MaterialType type,
+                                                          bool createDescriptors)
 {
-    AssetManager<std::string, Material> &instance = AssetManager<std::string, Material>::getInstance();
-    if (instance.isPresent(name)) {
-        debug_tools::ConsoleWarning("Material name already present");
-        return nullptr;
+    auto &materials = AssetManager::getInstance().materialsMap();
+    if (materials.isPresent(name)) {
+        return materials.get(name);
     }
 
     std::shared_ptr<Material> temp;
     switch (type) {
         case MaterialType::MATERIAL_PBR_STANDARD: {
             temp = std::make_shared<VulkanMaterialPBRStandard>(
-                name, glm::vec4(1, 1, 1, 1), 0, 1, 1, 0, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
-            instance.add(name, temp);
+                name, filepath, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
+            materials.add(temp);
             break;
         }
         case MaterialType::MATERIAL_LAMBERT: {
-            temp = std::make_shared<VulkanMaterialLambert>(
-                name, glm::vec4(1, 1, 1, 1), 1, 0, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
-            instance.add(name, temp);
+            temp =
+                std::make_shared<VulkanMaterialLambert>(name, filepath, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
+            materials.add(temp);
             break;
         }
         default: {
@@ -117,6 +120,235 @@ std::shared_ptr<Material> VulkanMaterials::createMaterial(std::string name, Mate
     }
 
     return temp;
+}
+
+std::shared_ptr<Material> VulkanMaterials::createMaterial(const std::string &name, MaterialType type, bool createDescriptors)
+{
+    return createMaterial(name, name, type, createDescriptors);
+}
+
+std::shared_ptr<Material> VulkanMaterials::createMaterialFromDisk(std::string name,
+                                                                  std::string stackDirectory,
+                                                                  VulkanTextures &textures)
+{
+    auto material = createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
+    if (material == nullptr)
+        return nullptr;
+
+    auto albedo = textures.createTexture(stackDirectory + "/albedo.png", ColorSpace::sRGB);
+    auto ao = textures.createTexture(stackDirectory + "/ao.png", ColorSpace::LINEAR);
+    auto metallic = textures.createTexture(stackDirectory + "/metallic.png", ColorSpace::LINEAR);
+    auto normal = textures.createTexture(stackDirectory + "/normal.png", ColorSpace::LINEAR);
+    auto roughness = textures.createTexture(stackDirectory + "/roughness.png", ColorSpace::LINEAR);
+
+    if (albedo != nullptr)
+        std::static_pointer_cast<MaterialPBRStandard>(material)->setAlbedoTexture(albedo);
+    if (ao != nullptr)
+        std::static_pointer_cast<MaterialPBRStandard>(material)->setAOTexture(ao);
+    if (metallic != nullptr)
+        std::static_pointer_cast<MaterialPBRStandard>(material)->setMetallicTexture(metallic);
+    if (normal != nullptr)
+        std::static_pointer_cast<MaterialPBRStandard>(material)->setNormalTexture(normal);
+    if (roughness != nullptr)
+        std::static_pointer_cast<MaterialPBRStandard>(material)->setRoughnessTexture(roughness);
+
+    return material;
+}
+
+std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, std::string filename, VulkanTextures &textures)
+{
+    struct zip_t *zip = zip_open(filename.c_str(), 0, 'r');
+    if (zip == nullptr) {
+        debug_tools::ConsoleWarning("VulkanMaterials()::createZipMaterial: Unable to open: " + filename);
+    }
+
+    /* Get .xtex file name */
+    std::string xtexName;
+    std::string texturesFolder = "";
+    int i, n = zip_entries_total(zip);
+    for (i = 0; i < n; ++i) {
+        zip_entry_openbyindex(zip, i);
+        {
+            const std::string name = std::string(zip_entry_name(zip));
+            auto pointPos = name.find(".");
+            if (pointPos != std::string::npos && name.substr(pointPos) == ".xtex") {
+                xtexName = name;
+
+                auto internalFolderIndex = name.rfind("/");
+                if (internalFolderIndex != std::string::npos) {
+                    texturesFolder = name.substr(0, internalFolderIndex) + "/";
+                }
+                break;
+            }
+        }
+        zip_entry_close(zip);
+    }
+
+    void *buf = NULL;
+    size_t bufsize;
+
+    /* Parse .xtex file paremeters */
+    glm::vec2 uv(1.F);
+    if (zip_entry_open(zip, xtexName.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        std::string testT((char *)buf);
+
+        const std::string X = testT.substr(0, testT.find("</width>")).substr(testT.find("<width>") + std::string("<width>").length());
+        const std::string Y =
+            testT.substr(0, testT.find("</height>")).substr(testT.find("<height>") + std::string("<height>").length());
+
+        uv *= glm::vec2(100.F / std::stof(X), 100.F / std::stof(Y));
+        zip_entry_close(zip);
+    }
+
+    /* Parse albedo */
+    std::shared_ptr<Texture> albedoTexture = nullptr;
+    std::string albedoZipPath = texturesFolder + "textures/albedo.png";
+    if (zip_entry_open(zip, albedoZipPath.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        int32_t x, y;
+        stbi_uc *rawImgBuffer =
+            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, STBI_rgb_alpha);
+
+        std::string id = filename + ":" + albedoZipPath;
+        auto image = std::make_shared<Image<stbi_uc>>(id, filename, rawImgBuffer, x, y, STBI_rgb_alpha, ColorSpace::sRGB, false);
+        albedoTexture = textures.createTexture(image);
+        if (albedoTexture == nullptr) {
+            debug_tools::ConsoleWarning("Unable to load albedo from zip texture stack");
+        }
+        /* entry_close will delete the memory */
+        zip_entry_close(zip);
+    }
+
+    /* Parse roughness */
+    std::shared_ptr<Texture> roughnessTexture = nullptr;
+    std::string roughnessZipPath = texturesFolder + "textures/roughness.png";
+    if (zip_entry_open(zip, roughnessZipPath.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        int32_t x, y, channels;
+        stbi_uc *rawImgBuffer =
+            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, &channels, STBI_default);
+
+        std::string id = filename + ":" + roughnessZipPath;
+        auto image = std::make_shared<Image<stbi_uc>>(id, filename, rawImgBuffer, x, y, channels, ColorSpace::LINEAR, false);
+        roughnessTexture = textures.createTexture(image);
+        if (roughnessTexture == nullptr) {
+            debug_tools::ConsoleWarning("Unable to load roughness from zip texture stack");
+        }
+        /* entry_close will delete the memory */
+        zip_entry_close(zip);
+    }
+
+    /* Parse normal */
+    std::shared_ptr<Texture> normalTexture = nullptr;
+    std::string normalZipPath = texturesFolder + "textures/normal.png";
+    if (zip_entry_open(zip, normalZipPath.c_str()) == 0) {
+        zip_entry_read(zip, &buf, &bufsize);
+
+        int32_t x, y;
+        stbi_uc *rawImgBuffer =
+            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, STBI_rgb_alpha);
+
+        std::string id = filename + ":" + normalZipPath;
+        auto image = std::make_shared<Image<stbi_uc>>(id, filename, rawImgBuffer, x, y, STBI_rgb_alpha, ColorSpace::LINEAR, false);
+        normalTexture = textures.createTexture(image);
+        if (normalTexture == nullptr) {
+            debug_tools::ConsoleWarning("Unable to load normal from zip texture stack");
+        }
+        /* entry_close will delete the memory */
+        zip_entry_close(zip);
+    }
+
+    auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(createMaterial(name, filename, MaterialType::MATERIAL_PBR_STANDARD));
+    mat->setAlbedoTexture(albedoTexture);
+    mat->setRoughnessTexture(roughnessTexture);
+    mat->roughness() = 1.0F;
+    mat->setNormalTexture(normalTexture);
+    mat->metallic() = 0.0F;
+    mat->uTiling() = uv.x;
+    mat->vTiling() = uv.y;
+    mat->zipMaterial() = true;
+
+    return mat;
+}
+
+std::vector<std::shared_ptr<Material>> VulkanMaterials::createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
+                                                                                VulkanTextures &textures)
+{
+    auto getTexture = [&](ImportedTexture tex) {
+        if (tex.image != nullptr) {
+            auto texture = textures.createTexture(tex.image);
+            return texture;
+        }
+
+        auto texture = AssetManager::getInstance().texturesMap().get(tex.name);
+        return texture;
+    };
+
+    std::vector<std::shared_ptr<Material>> materials;
+    for (uint32_t i = 0; i < importedMaterials.size(); i++) {
+        const ImportedMaterial &mat = importedMaterials[i];
+
+        if (mat.type == ImportedMaterialType::EMBEDDED) {
+            materials.push_back(nullptr);
+        } else if (mat.type == ImportedMaterialType::STACK) {
+            auto material = createZipMaterial(mat.name, mat.filepath, textures);
+            materials.push_back(nullptr);
+        } else if (mat.type == ImportedMaterialType::LAMBERT) {
+            auto material = std::static_pointer_cast<VulkanMaterialLambert>(
+                createMaterial(mat.name, mat.filepath, MaterialType::MATERIAL_PBR_STANDARD));
+            materials.push_back(material);
+
+            material->albedo() = mat.albedo;
+            if (mat.albedoTexture.has_value()) {
+                material->setAlbedoTexture(getTexture(mat.albedoTexture.value()));
+            }
+            material->ao() = mat.ao;
+            if (mat.aoTexture.has_value()) {
+                material->setAOTexture(getTexture(mat.aoTexture.value()));
+            }
+            material->emissive() = glm::vec4(mat.emissiveColor, mat.emissiveStrength);
+            if (mat.emissiveTexture.has_value()) {
+                material->setEmissiveTexture(getTexture(mat.emissiveTexture.value()));
+            }
+            if (mat.normalTexture.has_value()) {
+                material->setNormalTexture(getTexture(mat.normalTexture.value()));
+            }
+        } else if (mat.type == ImportedMaterialType::PBR_STANDARD) {
+            auto material = std::static_pointer_cast<VulkanMaterialPBRStandard>(
+                createMaterial(mat.name, mat.filepath, MaterialType::MATERIAL_PBR_STANDARD));
+            materials.push_back(material);
+
+            material->albedo() = mat.albedo;
+            if (mat.albedoTexture.has_value()) {
+                material->setAlbedoTexture(getTexture(mat.albedoTexture.value()));
+            }
+            material->roughness() = mat.roughness;
+            if (mat.roughnessTexture.has_value()) {
+                material->setRoughnessTexture(getTexture(mat.roughnessTexture.value()));
+            }
+            material->metallic() = mat.metallic;
+            if (mat.metallicTexture.has_value()) {
+                material->setMetallicTexture(getTexture(mat.metallicTexture.value()));
+            }
+            material->ao() = mat.ao;
+            if (mat.aoTexture.has_value()) {
+                material->setAOTexture(getTexture(mat.aoTexture.value()));
+            }
+            material->emissive() = glm::vec4(mat.emissiveColor, mat.emissiveStrength);
+            if (mat.emissiveTexture.has_value()) {
+                material->setEmissiveTexture(getTexture(mat.emissiveTexture.value()));
+            }
+            if (mat.normalTexture.has_value()) {
+                material->setNormalTexture(getTexture(mat.normalTexture.value()));
+            }
+        }
+    }
+
+    return materials;
 }
 
 VkResult VulkanMaterials::createDescriptorSetsLayout()

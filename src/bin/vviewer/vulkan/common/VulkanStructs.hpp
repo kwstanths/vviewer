@@ -9,7 +9,8 @@
 
 #include "IncludeVulkan.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 /* Stores supported queue family indices */
 struct QueueFamilyIndices {
@@ -31,26 +32,27 @@ struct ModelData {
 };
 
 struct MaterialData {
-    glm::vec4 albedo; /* RGB: albedo, A: alpha */
-    glm::vec4 metallicRoughnessAOEmissive;  /* R = metallic, G = roughness, B = AO, A = emissive */
-    glm::vec4 uvTiling; /* R = u tiling, G = v tiling, B = unused, A = unused */
-    glm::uvec4 gTexturesIndices1;    /* R = albedo texture index, G = metallic texture index, B = roughness texture index, A = AO texture index */   
-    glm::uvec4 gTexturesIndices2;    /* R = emissive texture index, G = normal texture index, B = BRDF LUT texture index, A = unused */
+    glm::vec4 albedo;              /* RGB: albedo, A: unused */
+    glm::vec4 metallicRoughnessAO; /* R: metallic, G: roughness, B: AO, A: unused */
+    glm::vec4 emissive;            /* RGB: emissive color, A: emissive intensity */
+    glm::uvec4 gTexturesIndices1;  /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture
+                            index */
+    glm::uvec4 gTexturesIndices2;  /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: unused */
+    glm::vec4 uvTiling;            /* R: u tiling, G: v tiling, B: unused, A: unused */
 
-    glm::uvec4 padding;
     glm::uvec4 padding1;
     glm::uvec4 padding2;
-};  /* sizeof(MaterialData) = 128 */
+}; /* sizeof(MaterialData) = 128 */
 
 struct PushBlockForwardBasePass {
-    glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
+    glm::vec4 selected;  /* RGB = ID of object, A = if object is selected */
     glm::uvec4 material; /* R = Material index, GBA = unused */
 };
 
 struct PushBlockForwardAddPass {
     glm::vec4 lightPosition; /* RGB = World space light position or direction,  A = light type */
-    glm::vec4 lightColor;   /* RGB = light color, A = unused */
-    glm::uvec4 material; /* R = Material index, GBA = unused */
+    glm::vec4 lightColor;    /* RGB = light color, A = unused */
+    glm::uvec4 material;     /* R = Material index, GBA = unused */
 };
 
 struct PushBlockForward3DUI {
@@ -62,8 +64,7 @@ struct PushBlockForward3DUI {
 /* ------------------ Ray Tracing structs ------------------------- */
 
 /* Objects description data for meshes in the scene */
-struct ObjectDescriptionRT
-{
+struct ObjectDescriptionRT {
     /* A pointer to a buffer holding mesh vertex data */
     uint64_t vertexAddress;
     /* A pointer to a buffer holding mesh index data*/
@@ -74,8 +75,7 @@ struct ObjectDescriptionRT
     uint32_t numTriangles;
 };
 
-struct StorageImage
-{
+struct StorageImage {
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkImage image = VK_NULL_HANDLE;
     VkImageView view = VK_NULL_HANDLE;
@@ -97,6 +97,6 @@ struct LightRT {
     glm::vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
 
-}
+}  // namespace vengine
 
 #endif

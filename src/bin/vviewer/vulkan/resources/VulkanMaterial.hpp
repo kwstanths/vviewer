@@ -66,11 +66,7 @@ class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanMater
 {
 public:
     VulkanMaterialPBRStandard(std::string name,
-                              glm::vec4 albedo,
-                              float metallic,
-                              float roughness,
-                              float ao,
-                              float emissive,
+                              std::string filepath,
                               VkDevice device,
                               VkDescriptorSetLayout descriptorLayout,
                               VulkanUBO<MaterialData> &materialsUBO);
@@ -78,19 +74,22 @@ public:
     MaterialIndex getMaterialIndex() const override;
 
     glm::vec4 &albedo() override;
-    glm::vec4 getAlbedo() const override;
+    const glm::vec4 &albedo() const override;
     float &metallic() override;
-    float getMetallic() const override;
+    const float &metallic() const override;
     float &roughness() override;
-    float getRoughness() const override;
+    const float &roughness() const override;
     float &ao() override;
-    float getAO() const override;
-    float &emissive() override;
-    float getEmissive() const override;
+    const float &ao() const override;
+    glm::vec4 &emissive() override;
+    const glm::vec4 &emissive() const override;
+    float &emissiveIntensity() override;
+    const float &emissiveIntensity() const override;
+    glm::vec3 emissiveColor() const override;
     float &uTiling() override;
-    float getUTiling() const override;
+    const float &uTiling() const override;
     float &vTiling() override;
-    float getVTiling() const override;
+    const float &vTiling() const override;
 
     void setAlbedoTexture(std::shared_ptr<Texture> texture) override;
     void setMetallicTexture(std::shared_ptr<Texture> texture) override;
@@ -107,9 +106,7 @@ class VulkanMaterialLambert : public MaterialLambert, public VulkanMaterialStora
 {
 public:
     VulkanMaterialLambert(std::string name,
-                          glm::vec4 albedo,
-                          float ao,
-                          float emissive,
+                          std::string filepath,
                           VkDevice device,
                           VkDescriptorSetLayout descriptorLayout,
                           VulkanUBO<MaterialData> &materialsUBO);
@@ -117,15 +114,18 @@ public:
     MaterialIndex getMaterialIndex() const override;
 
     glm::vec4 &albedo() override;
-    glm::vec4 getAlbedo() const override;
+    const glm::vec4 &albedo() const override;
     float &ao() override;
-    float getAO() const override;
-    float &emissive() override;
-    float getEmissive() const override;
+    const float &ao() const override;
+    glm::vec4 &emissive() override;
+    const glm::vec4 &emissive() const override;
+    float &emissiveIntensity() override;
+    const float &emissiveIntensity() const override;
+    glm::vec3 emissiveColor() const override;
     float &uTiling() override;
-    float getUTiling() const override;
+    const float &uTiling() const override;
     float &vTiling() override;
-    float getVTiling() const override;
+    const float &vTiling() const override;
 
     void setAlbedoTexture(std::shared_ptr<Texture> texture) override;
     void setAOTexture(std::shared_ptr<Texture> texture) override;

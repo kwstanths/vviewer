@@ -32,7 +32,7 @@ vec3 evalDisneyMicrofacetIsotropic(float NdotL, float NdotV, float NdotH, float 
     float specularTint = 0.0;
     vec3 Cspec0 = mix(specular * 0.08 * mix(vec3(1.0), Ctint, specularTint), pbr.albedo, pbr.metallic);
     
-    float a = max(0.0001, pbr.roughness * pbr.roughness);
+    float a = max(0.001, pbr.roughness * pbr.roughness);
     float Ds = GTR2(NdotH, a);
     float FH = schlickWeight(LdotH);
     vec3 Fs = mix(Cspec0, vec3(1), FH);
@@ -50,12 +50,12 @@ float pdfDisneyMicrofacetIsotropic(const in vec3 wi, const in vec3 wo, const in 
     
     vec3 wh = normalize(wo + wi);
     
-    float NdotH = max(wh.y, 0.0);
+    float NdotH = max(wh.y, EPSILON);
     float alpha2 = pbr.roughness * pbr.roughness;
     alpha2 *= alpha2;
     
     float cos2Theta = NdotH * NdotH;
-    float denom = cos2Theta * ( alpha2 - 1.0) + 10.;
+    float denom = cos2Theta * ( alpha2 - 1.0) + 1.;
     if( denom == 0.0 ) return 0.0;
 
     float pdfDistribution = alpha2 * NdotH / (PI * denom * denom);

@@ -102,7 +102,7 @@ void main()
 
 	/* Material information */
 	vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
-	vec3 emissive = albedo * material.metallicRoughnessAOEmissive.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).r;
+    vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
 	if (!isBlack(emissive) && !flipped) {
 		if (rayPayload.depth == 0)

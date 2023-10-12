@@ -6,41 +6,41 @@
 
 using namespace vengine;
 
-WidgetComponent::WidgetComponent(QWidget* parent, UIComponentWrapper * componentWrapper, Engine * engine) : 
-    QWidget(parent), 
-    m_componentWrapper(componentWrapper), 
-    m_engine(engine)
+WidgetComponent::WidgetComponent(QWidget *parent, UIComponentWrapper *componentWrapper, Engine *engine)
+    : QWidget(parent)
+    , m_componentWrapper(componentWrapper)
+    , m_engine(engine)
 {
     m_widgetEncapsulated = m_componentWrapper->generateWidget();
 
-    QLabel * label = new QLabel(m_componentWrapper->m_name);
+    QLabel *label = new QLabel(m_componentWrapper->m_name);
     label->setStyleSheet("font-weight: bold");
 
-    QHBoxLayout * layoutLeftHeadline = new QHBoxLayout();
+    QHBoxLayout *layoutLeftHeadline = new QHBoxLayout();
     layoutLeftHeadline->addWidget(label);
     layoutLeftHeadline->setContentsMargins(0, 0, 0, 0);
     layoutLeftHeadline->setAlignment(Qt::AlignLeft);
-    QWidget * widgetLeftHeadline = new QWidget();
+    QWidget *widgetLeftHeadline = new QWidget();
     widgetLeftHeadline->setLayout(layoutLeftHeadline);
 
-    QPushButton * buttonRemove = new QPushButton(tr("Remove"));
+    QPushButton *buttonRemove = new QPushButton(tr("Remove"));
     connect(buttonRemove, &QPushButton::released, this, &WidgetComponent::onRemoved);
 
-    QHBoxLayout * layoutRightHeadline = new QHBoxLayout();
+    QHBoxLayout *layoutRightHeadline = new QHBoxLayout();
     layoutRightHeadline->addWidget(buttonRemove);
     layoutRightHeadline->setContentsMargins(0, 0, 0, 0);
     layoutRightHeadline->setAlignment(Qt::AlignRight);
-    QWidget * widgetRightHeadline = new QWidget();
+    QWidget *widgetRightHeadline = new QWidget();
     widgetRightHeadline->setLayout(layoutRightHeadline);
 
-    QHBoxLayout * layoutHeadline = new QHBoxLayout();
+    QHBoxLayout *layoutHeadline = new QHBoxLayout();
     layoutHeadline->addWidget(widgetLeftHeadline);
     layoutHeadline->addWidget(widgetRightHeadline);
     layoutHeadline->setContentsMargins(0, 0, 0, 0);
-    QWidget * widgetHeadline = new QWidget();
+    QWidget *widgetHeadline = new QWidget();
     widgetHeadline->setLayout(layoutHeadline);
 
-    QVBoxLayout * layoutMain = new QVBoxLayout();
+    QVBoxLayout *layoutMain = new QVBoxLayout();
     layoutMain->addWidget(widgetHeadline);
     layoutMain->addWidget(m_widgetEncapsulated);
     layoutMain->setContentsMargins(0, 0, 0, 0);
@@ -68,6 +68,6 @@ void WidgetComponent::onRemoved()
     m_engine->waitIdle();
     m_componentWrapper->removeComponent();
     m_engine->start();
-    
+
     Q_EMIT componentRemoved();
 }

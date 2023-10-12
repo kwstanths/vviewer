@@ -324,8 +324,8 @@ VulkanRendererRayTracing::AccelerationStructure VulkanRendererRayTracing::create
     const glm::mat4 &t,
     const uint32_t materialIndex)
 {
-    const std::vector<Vertex> &vertices = mesh.getVertices();
-    const std::vector<uint32_t> indices = mesh.getIndices();
+    const std::vector<Vertex> &vertices = mesh.vertices();
+    const std::vector<uint32_t> indices = mesh.indices();
     uint32_t indexCount = static_cast<uint32_t>(indices.size());
 
     VkTransformMatrixKHR transformMatrix = {
@@ -1065,7 +1065,7 @@ VkResult VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
         VkSubmitInfo submitInfo = vkinit::submitInfo(1, &commandBuffer);
         VULKAN_CHECK_CRITICAL(vkQueueSubmit(m_queue, 1, &submitInfo, fence));
 
-        /* Wait for the fence to signal that command buffer has finished executing */
+        /* Wait for the fence to signal that the command buffer has finished executing */
         VkResult res = vkWaitForFences(m_device, 1, &fence, VK_TRUE, VULKAN_TIMEOUT_1S);
         if (res == VK_SUCCESS) {
             vkDestroyFence(m_device, fence, nullptr);
@@ -1217,14 +1217,14 @@ bool VulkanRendererRayTracing::isMeshLight(const std::shared_ptr<SceneObject> so
         switch (material->getType()) {
             case MaterialType::MATERIAL_PBR_STANDARD: {
                 auto pbrStandard = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
-                if (pbrStandard->getEmissive() > 0.0001F) {
+                if (!isBlack(pbrStandard->emissiveColor(), 0.01F)) {
                     return true;
                 }
                 break;
             }
             case MaterialType::MATERIAL_LAMBERT: {
                 auto lambert = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
-                if (lambert->getEmissive() > 0.0001F) {
+                if (!isBlack(lambert->emissiveColor(), 0.01F)) {
                     return true;
                 }
                 break;

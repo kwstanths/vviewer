@@ -58,9 +58,9 @@ void main() {
     /* Calculate PBR data */
     PBRStandard pbr;
     pbr.albedo = materialData.albedo.rgb * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.r)], tiledUV).rgb;
-    pbr.metallic = materialData.metallicRoughnessAOEmissive.r * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.g)], tiledUV).r;
-    pbr.roughness = materialData.metallicRoughnessAOEmissive.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
-
+    pbr.metallic = materialData.metallicRoughnessAO.r * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.g)], tiledUV).r;
+    pbr.roughness = materialData.metallicRoughnessAO.g * texture(global_textures[nonuniformEXT(materialData.gTexturesIndices1.b)], tiledUV).r;
+    
     vec3 Lo = vec3(0, 0, 0);
     if (!isBlack(L_color))
     {

@@ -9,10 +9,11 @@
 #include "Camera.hpp"
 #include "Lights.hpp"
 #include "SceneObject.hpp"
-#include "Export.hpp"
+#include "io/Export.hpp"
 #include "utils/ECS.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 enum class EnvironmentType {
     /* Order matters for the UI */
@@ -30,9 +31,9 @@ struct SceneData {
 };
 
 typedef std::vector<std::shared_ptr<SceneObject>> SceneGraph;
- 
 
-class Scene {
+class Scene
+{
 public:
     Scene();
     ~Scene();
@@ -55,7 +56,7 @@ public:
 
     glm::vec3 getBackgroundColor() const;
     void setBackgroundColor(glm::vec3 color);
-    
+
     virtual SceneData getSceneData() const;
 
     /* Add a new scene object at the root of the scene graph */
@@ -69,29 +70,29 @@ public:
 
     /* Get all scene objects in a flat array */
     SceneGraph getSceneObjectsArray() const;
-    SceneGraph getSceneObjectsArray(std::vector<glm::mat4>& modelMatrices) const;
+    SceneGraph getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices) const;
 
     std::shared_ptr<SceneObject> getSceneObject(vengine::ID id) const;
-    
-    void exportScene(const ExportRenderParams& renderParams) const;
+
+    void exportScene(const ExportRenderParams &renderParams) const;
 
 protected:
     float m_exposure = 0.0f;
     float m_ambientIBL = 1.0f;
-    
+
     std::shared_ptr<Camera> m_camera = nullptr;
-    
+
     std::unordered_map<vengine::ID, std::shared_ptr<SceneObject>> m_objectsMap;
 
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
     std::shared_ptr<MaterialSkybox> m_skybox;
-    glm::vec3 m_backgroundColor = { 0, 0.5, 0.5 };
+    glm::vec3 m_backgroundColor = {0, 0.5, 0.5};
 
     virtual std::shared_ptr<SceneObject> createObject(std::string name) = 0;
 
     SceneGraph m_sceneGraph;
 };
 
-}
+}  // namespace vengine
 
 #endif

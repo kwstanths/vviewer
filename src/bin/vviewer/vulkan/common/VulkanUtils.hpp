@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 
 #include "core/Mesh.hpp"
+#include "core/Color.hpp"
 #include "IncludeVulkan.hpp"
 #include "VulkanStructs.hpp"
 #include "vulkan/resources/VulkanBuffer.hpp"
@@ -169,6 +170,8 @@ VkResult createAccelerationStructureBuffer(VkPhysicalDevice physicalDevice,
                                            uint64_t &deviceAddress,
                                            VkDeviceMemory &memory,
                                            VkBuffer &buffer);
+
+VkFormat autoChooseFormat(ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels);
 
 }  // namespace vengine
 

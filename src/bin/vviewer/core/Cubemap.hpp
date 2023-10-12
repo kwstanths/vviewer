@@ -1,27 +1,28 @@
 #ifndef __Cubemap_hpp__
 #define __Cubemap_hpp__
 
+#include "Asset.hpp"
 #include "Image.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
-class Cubemap {
+class Cubemap : public Asset
+{
 public:
-    Cubemap();
-    Cubemap(std::string directory);
+    Cubemap(std::string name);
+    Cubemap(std::string name, std::string directory);
     ~Cubemap();
 
-    std::string m_name;
-
 protected:
-    Image<stbi_uc> * m_image_back = nullptr;
-    Image<stbi_uc> * m_image_bottom = nullptr;
-    Image<stbi_uc> * m_image_front = nullptr;
-    Image<stbi_uc> * m_image_left = nullptr;
-    Image<stbi_uc> * m_image_right = nullptr;
-    Image<stbi_uc> * m_image_top = nullptr;
+    Image<stbi_uc> *m_image_back = nullptr;
+    Image<stbi_uc> *m_image_bottom = nullptr;
+    Image<stbi_uc> *m_image_front = nullptr;
+    Image<stbi_uc> *m_image_left = nullptr;
+    Image<stbi_uc> *m_image_right = nullptr;
+    Image<stbi_uc> *m_image_top = nullptr;
 };
 
-}
+}  // namespace vengine
 
 #endif
