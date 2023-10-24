@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 
+#include "core/Materials.hpp"
 #include "core/io/AssimpLoadModel.hpp"
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/resources/VulkanUBO.hpp"
@@ -14,7 +15,7 @@
 namespace vengine
 {
 
-class VulkanMaterials
+class VulkanMaterials : public Materials
 {
 public:
     VulkanMaterials(VulkanContext &ctx);
@@ -35,12 +36,12 @@ public:
     std::shared_ptr<Material> createMaterial(const std::string &name,
                                              const std::string &filepath,
                                              MaterialType type,
-                                             bool createDescriptors = true);
-    std::shared_ptr<Material> createMaterial(const std::string &name, MaterialType type, bool createDescriptors = true);
-    std::shared_ptr<Material> createMaterialFromDisk(std::string name, std::string stackDirectory, VulkanTextures &textures);
-    std::shared_ptr<Material> createZipMaterial(std::string name, std::string filename, VulkanTextures &textures);
+                                             bool createDescriptors = true) override;
+    std::shared_ptr<Material> createMaterial(const std::string &name, MaterialType type, bool createDescriptors = true) override;
+    std::shared_ptr<Material> createMaterialFromDisk(std::string name, std::string stackDirectory, Textures &textures) override;
+    std::shared_ptr<Material> createZipMaterial(std::string name, std::string filename, Textures &textures) override;
     std::vector<std::shared_ptr<Material>> createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
-                                                                   VulkanTextures &textures);
+                                                                   Textures &textures) override;
 
 private:
     VulkanContext &m_vkctx;

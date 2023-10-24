@@ -101,14 +101,6 @@ VkResult VulkanRendererRayTracing::initResources(VkFormat format, VkDescriptorSe
     VULKAN_CHECK_CRITICAL(createShaderBindingTable());
     VULKAN_CHECK_CRITICAL(createDescriptorSets());
 
-    /* Default resolution */
-    m_width = 1024;
-    m_height = 1024;
-    VULKAN_CHECK_CRITICAL(createStorageImage());
-
-    m_renderResultOutputFileName = "test";
-    m_renderResultOutputFileType = OutputFileType::HDR;
-
     m_isInitialized = true;
     return VK_SUCCESS;
 }
@@ -147,12 +139,12 @@ VkResult VulkanRendererRayTracing::releaseResources()
     return VK_SUCCESS;
 }
 
-bool VulkanRendererRayTracing::isInitialized() const
+bool VulkanRendererRayTracing::isRTEnabled() const
 {
     return m_isInitialized;
 }
 
-void VulkanRendererRayTracing::renderScene(const VulkanScene *scene)
+void VulkanRendererRayTracing::render(const Scene &scene)
 {
     if (m_renderInProgress)
         return;
@@ -164,7 +156,7 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene *scene)
 
     /* Get the scene objects */
     std::vector<glm::mat4> sceneObjectMatrices;
-    SceneGraph sceneObjects = scene->getSceneObjectsArray(sceneObjectMatrices);
+    SceneGraph sceneObjects = scene.getSceneObjectsArray(sceneObjectMatrices);
     if (sceneObjects.size() == 0) {
         debug_tools::ConsoleWarning("Trying to render an empty scene");
         return;
@@ -173,23 +165,26 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene *scene)
     m_renderInProgress = true;
 
     /* Prepare sceneData */
-    SceneData sceneData = scene->getSceneData();
+    SceneData sceneData = scene.getSceneData();
     {
+        uint32_t width = renderInfo().width;
+        uint32_t height = renderInfo().height;
+
         /* Change to requested resolution */
-        auto camera = scene->getCamera();
-        switch (camera->getType()) {
+        auto camera = scene.getCamera();
+        switch (camera->type()) {
             case CameraType::PERSPECTIVE: {
                 auto perspectiveCamera = std::static_pointer_cast<PerspectiveCamera>(camera);
                 sceneData.m_projection =
-                    glm::perspective(glm::radians(perspectiveCamera->getFoV()), static_cast<float>(m_width) / m_height, 0.01f, 200.0f);
+                    glm::perspective(glm::radians(perspectiveCamera->fov()), static_cast<float>(width) / height, 0.01f, 200.0f);
                 sceneData.m_projection[1][1] *= -1;
                 sceneData.m_projectionInverse = glm::inverse(sceneData.m_projection);
                 break;
             }
             case CameraType::ORTHOGRAPHIC: {
                 auto orthoCamera = std::static_pointer_cast<OrthographicCamera>(camera);
-                auto owidth = static_cast<float>(m_width);
-                auto oheight = static_cast<float>(m_height);
+                auto owidth = static_cast<float>(width);
+                auto oheight = static_cast<float>(height);
                 sceneData.m_projection = glm::ortho(-owidth / 2, owidth / 2, -oheight / 2, oheight / 2, -100.0f, 100.0f);
                 sceneData.m_projection[1][1] *= -1;
                 sceneData.m_projectionInverse = glm::inverse(sceneData.m_projection);
@@ -240,35 +235,34 @@ void VulkanRendererRayTracing::renderScene(const VulkanScene *scene)
     m_materials.updateBuffers(0);
 
     /* Get skybox descriptor */
-    auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(scene->getSkybox());
+    auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(scene.getSkybox());
     assert(skybox != nullptr);
+
+    setResolution();
     render(skybox->getDescriptor(0));
 
     releaseRenderResources();
 
     timer.Stop();
 
-    std::string fileExtension = (getRenderOutputFileType() == OutputFileType::PNG) ? "png" : "hdr";
-    std::string filename = getRenderOutputFileName() + "." + fileExtension;
+    std::string fileExtension = (renderInfo().fileType == FileType::PNG) ? "png" : "hdr";
+    std::string filename = renderInfo().filename + "." + fileExtension;
     debug_tools::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(timer.ToInt()) + "ms");
 
     m_renderInProgress = false;
 }
 
-void VulkanRendererRayTracing::setRenderResolution(uint32_t width, uint32_t height)
+float VulkanRendererRayTracing::renderProgress()
+{
+    return m_renderProgress;
+}
+
+void VulkanRendererRayTracing::setResolution()
 {
     m_renderResult.destroy(m_device);
     m_tempImage.destroy(m_device);
 
-    m_width = width;
-    m_height = height;
-    createStorageImage();
-}
-
-void VulkanRendererRayTracing::getRenderResolution(uint32_t &width, uint32_t &height) const
-{
-    width = m_width;
-    height = m_height;
+    createStorageImage(renderInfo().width, renderInfo().height);
 }
 
 std::vector<const char *> VulkanRendererRayTracing::getRequiredExtensions()
@@ -595,11 +589,11 @@ void VulkanRendererRayTracing::destroyAccellerationStructures()
     vkFreeMemory(m_device, m_tlas.memory, nullptr);
 }
 
-VkResult VulkanRendererRayTracing::createStorageImage()
+VkResult VulkanRendererRayTracing::createStorageImage(uint32_t width, uint32_t height)
 {
     /* Create render target used during ray tracing */
     VkImageCreateInfo imageInfo1 =
-        vkinit::imageCreateInfo({m_width, m_height, 1},
+        vkinit::imageCreateInfo({width, height, 1},
                                 m_format,
                                 1,
                                 VK_SAMPLE_COUNT_1_BIT,
@@ -613,11 +607,11 @@ VkResult VulkanRendererRayTracing::createStorageImage()
                                       m_renderResult.memory));
 
     VkImageViewCreateInfo imageInfo1View = vkinit::imageViewCreateInfo(m_renderResult.image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-    vkCreateImageView(m_device, &imageInfo1View, nullptr, &m_renderResult.view);
+    VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageInfo1View, nullptr, &m_renderResult.view));
 
     /* Create temp image used to copy render result from gpu memory to cpu memory */
     VkImageCreateInfo imageInfo2 = vkinit::imageCreateInfo(
-        {m_width, m_height, 1}, m_format, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+        {width, height, 1}, m_format, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     VULKAN_CHECK_CRITICAL(createImage(m_vkctx.physicalDevice(),
                                       m_device,
                                       imageInfo2,
@@ -1004,10 +998,14 @@ VkResult VulkanRendererRayTracing::createShaderBindingTable()
 
 VkResult VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
 {
+    RayTracingData rtData;
+    rtData.samplesBatchesDepthIndex.r = renderInfo().samples;
+    rtData.samplesBatchesDepthIndex.b = renderInfo().depth;
+
     VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-    uint32_t batchSize = 16U;
-    uint32_t batches = getSamples() / batchSize;
+    uint32_t batchSize = renderInfo().batchSize;
+    uint32_t batches = renderInfo().samples / batchSize;
 
     VkCommandBuffer commandBuffer;
     {
@@ -1050,8 +1048,8 @@ VkResult VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
                                  &m_sbt.raymissSbtEntry,
                                  &m_sbt.raychitSbtEntry,
                                  &m_sbt.callableSbtEntry,
-                                 m_width,
-                                 m_height,
+                                 renderInfo().width,
+                                 renderInfo().height,
                                  1);
 
         vkEndCommandBuffer(commandBuffer);
@@ -1091,7 +1089,7 @@ VkResult VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
     copyRegion.srcOffset = {0, 0, 0};
     copyRegion.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
     copyRegion.dstOffset = {0, 0, 0};
-    copyRegion.extent = {m_width, m_height, 1};
+    copyRegion.extent = {renderInfo().width, renderInfo().height, 1};
     vkCmdCopyImage(cmdBuf,
                    m_renderResult.image,
                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -1108,7 +1106,7 @@ VkResult VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
     if (res != VK_SUCCESS) {
         debug_tools::ConsoleCritical("VulkanRendererRayTracing::render(): Storing failed: " + std::to_string(res));
     } else {
-        storeToDisk(m_renderResultOutputFileName, m_renderResultOutputFileType);
+        storeToDisk(renderInfo().filename, renderInfo().fileType);
     }
 
     VULKAN_CHECK_CRITICAL(vkQueueWaitIdle(m_queue));
@@ -1116,7 +1114,7 @@ VkResult VulkanRendererRayTracing::render(VkDescriptorSet skyboxDescriptor)
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererRayTracing::storeToDisk(std::string filename, OutputFileType type) const
+VkResult VulkanRendererRayTracing::storeToDisk(std::string filename, FileType type) const
 {
     /* Store result from temp image to the disk */
     if (m_format != VK_FORMAT_R32G32B32A32_SFLOAT) {
@@ -1133,28 +1131,30 @@ VkResult VulkanRendererRayTracing::storeToDisk(std::string filename, OutputFileT
     vkGetImageSubresourceLayout(m_device, m_tempImage.image, &subResource, &subResourceLayout);
     uint32_t rowPitchFloats = subResourceLayout.rowPitch / sizeof(float);
 
-    std::vector<float> imageDataFloat(m_width * m_height * 4);
+    uint32_t width = renderInfo().width;
+    uint32_t height = renderInfo().height;
+    std::vector<float> imageDataFloat(width * height * 4);
     uint32_t indexGPUIMage = subResourceLayout.offset;
     uint32_t indexOutputImage = 0;
-    for (uint32_t i = 0; i < m_height; i++) {
-        memcpy(&imageDataFloat[0] + indexOutputImage, &input[0] + indexGPUIMage, 4 * m_width * sizeof(float));
+    for (uint32_t i = 0; i < height; i++) {
+        memcpy(&imageDataFloat[0] + indexOutputImage, &input[0] + indexGPUIMage, 4 * width * sizeof(float));
         indexGPUIMage += rowPitchFloats;
-        indexOutputImage += 4 * m_width;
+        indexOutputImage += 4 * width;
     }
     vkUnmapMemory(m_device, m_tempImage.memory);
 
     switch (type) {
-        case OutputFileType::PNG: {
+        case FileType::PNG: {
             /* TODO apply exposure */
-            std::vector<unsigned char> imageDataInt(m_width * m_height * 4, 255);
-            for (size_t i = 0; i < m_width * m_height * 4; i++) {
-                imageDataInt[i] = linearToSRGB(imageDataFloat[i]);
+            std::vector<unsigned char> imageDataInt(width * height * 4, 255);
+            for (size_t i = 0; i < width * height * 4; i++) {
+                imageDataInt[i] = 255.F * linearToSRGB(std::clamp(imageDataFloat[i], 0.0F, 1.0F));
             }
-            stbi_write_png((filename + ".png").c_str(), m_width, m_height, 4, imageDataInt.data(), m_width * 4 * sizeof(char));
+            stbi_write_png((filename + ".png").c_str(), width, height, 4, imageDataInt.data(), width * 4 * sizeof(char));
             break;
         }
-        case OutputFileType::HDR: {
-            stbi_write_hdr((filename + ".hdr").c_str(), m_width, m_height, 4, imageDataFloat.data());
+        case FileType::HDR: {
+            stbi_write_hdr((filename + ".hdr").c_str(), width, height, 4, imageDataFloat.data());
             break;
         }
         default:
@@ -1237,12 +1237,12 @@ bool VulkanRendererRayTracing::isMeshLight(const std::shared_ptr<SceneObject> so
     return false;
 }
 
-void VulkanRendererRayTracing::prepareSceneLights(const VulkanScene *scene, std::vector<LightRT> &sceneLights)
+void VulkanRendererRayTracing::prepareSceneLights(const Scene &scene, std::vector<LightRT> &sceneLights)
 {
-    const SceneData &sceneData = scene->getSceneData();
+    const SceneData &sceneData = scene.getSceneData();
 
     /* Environment map */
-    if (scene->getAmbientIBL() > 0.0001F && scene->getSkybox() != nullptr) {
+    if (scene.getAmbientIBL() > 0.0001F && scene.getSkybox() != nullptr) {
         sceneLights.push_back(LightRT());
         sceneLights.back().position.a = 3.F;
     }
@@ -1261,7 +1261,7 @@ void VulkanRendererRayTracing::prepareSceneObjectLight(const std::shared_ptr<Sce
             sceneLights.back().color = glm::vec4(cl->lightMaterial->color * cl->lightMaterial->intensity, 0.F);
         } else if (cl->type == LightType::DIRECTIONAL_LIGHT) {
             sceneLights.back().position = glm::vec4(0, 0, 0, 1.F);
-            sceneLights.back().direction = glm::vec4(so->m_modelMatrix * glm::vec4(Transform::Z, 0));
+            sceneLights.back().direction = glm::vec4(so->m_modelMatrix * glm::vec4(Transform::WORLD_Z, 0));
             sceneLights.back().color = glm::vec4(cl->lightMaterial->color * cl->lightMaterial->intensity, 0.F);
         }
     }

@@ -6,7 +6,7 @@
 
 #include "Asset.hpp"
 #include "Mesh.hpp"
-#include "Materials.hpp"
+#include "Material.hpp"
 #include "math/Transform.hpp"
 #include "utils/Tree.hpp"
 

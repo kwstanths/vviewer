@@ -92,18 +92,18 @@ void addVec4(rapidjson::Document &d, rapidjson::Value &v, std::string name, glm:
 
 void addTransform(rapidjson::Document &d, rapidjson::Value &v, const Transform &t)
 {
-    glm::vec3 transformRotation = glm::degrees(glm::eulerAngles(t.getRotation()));
-    bool transformIsDefault = (t.getPosition().x == 0.0F && t.getPosition().y == 0.0F && t.getPosition().z == 0.0F &&
-                               t.getScale().x == 1.0F && t.getScale().y == 1.0F && t.getScale().z == 1.0F &&
-                               transformRotation.x == 0.0F && transformRotation.y == 0.0F && transformRotation.z == 0.0F);
+    glm::vec3 transformRotation = glm::degrees(glm::eulerAngles(t.rotation()));
+    bool transformIsDefault =
+        (t.position().x == 0.0F && t.position().y == 0.0F && t.position().z == 0.0F && t.scale().x == 1.0F && t.scale().y == 1.0F &&
+         t.scale().z == 1.0F && transformRotation.x == 0.0F && transformRotation.y == 0.0F && transformRotation.z == 0.0F);
     if (transformIsDefault)
         return;
 
     Value transform;
     transform.SetObject();
 
-    addVec3(d, transform, "position", t.getPosition());
-    addVec3(d, transform, "scale", t.getScale());
+    addVec3(d, transform, "position", t.position());
+    addVec3(d, transform, "scale", t.scale());
     addVec3(d, transform, "rotation", transformRotation);
 
     v.AddMember("transform", transform, d.GetAllocator());
@@ -573,22 +573,22 @@ void exportJson(const ExportRenderParams &renderParams,
     {
         camera.SetObject();
 
-        Transform &cameraTransform = sceneCamera->getTransform();
+        Transform &cameraTransform = sceneCamera->transform();
         {
-            glm::vec3 cameraPosition = cameraTransform.getPosition();
+            glm::vec3 cameraPosition = cameraTransform.position();
             addVec3(d, camera, "position", cameraPosition);
 
-            glm::vec3 cameraTarget = cameraPosition + cameraTransform.getForward();
+            glm::vec3 cameraTarget = cameraPosition + cameraTransform.forward();
             addVec3(d, camera, "target", cameraTarget);
 
-            glm::vec3 cameraUp = cameraTransform.getUp();
+            glm::vec3 cameraUp = cameraTransform.up();
             addVec3(d, camera, "up", cameraUp);
         }
         {
-            if (sceneCamera->getType() != CameraType::PERSPECTIVE) {
+            if (sceneCamera->type() != CameraType::PERSPECTIVE) {
                 throw std::runtime_error("SceneExport: Only perspective camera supported");
             }
-            float cameraFoV = dynamic_cast<PerspectiveCamera *>(sceneCamera.get())->getFoV();
+            float cameraFoV = dynamic_cast<PerspectiveCamera *>(sceneCamera.get())->fov();
 
             Value fov;
             fov.SetFloat(cameraFoV);

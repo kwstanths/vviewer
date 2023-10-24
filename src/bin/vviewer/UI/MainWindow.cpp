@@ -5,7 +5,6 @@
 #include <qaction.h>
 #include <qdebug.h>
 #include <qtreewidget.h>
-#include <qvulkaninstance.h>
 #include <qlayout.h>
 #include <qlabel.h>
 #include <qmenubar.h>
@@ -18,16 +17,16 @@
 #include <string>
 #include <debug_tools/Console.hpp>
 
+#include "UIUtils.hpp"
+#include "VulkanViewportWindow.hpp"
 #include "UI/widgets/WidgetRightPanel.hpp"
 #include "UI/widgets/WidgetSceneGraph.hpp"
-#include "core/SceneObject.hpp"
 #include "dialogs/DialogAddSceneObject.hpp"
 #include "dialogs/DialogCreateMaterial.hpp"
 #include "dialogs/DialogSceneExport.hpp"
 #include "dialogs/DialogSceneRender.hpp"
 #include "dialogs/DialogWaiting.hpp"
-#include "UIUtils.hpp"
-
+#include "core/SceneObject.hpp"
 #include "core/AssetManager.hpp"
 #include "core/io/Import.hpp"
 #include "core/Lights.hpp"
@@ -35,24 +34,23 @@
 #include "math/Transform.hpp"
 #include "utils/ECS.hpp"
 #include "utils/Tasks.hpp"
-#include "vulkan/renderers/VulkanRendererRayTracing.hpp"
 
 using namespace vengine;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    QWidget *widgetVulkan = initVulkanWindowWidget();
+    QWidget *widgetViewport = initViewport();
 
     QHBoxLayout *layout_main = new QHBoxLayout();
     layout_main->addWidget(initLeftPanel());
-    layout_main->addWidget(widgetVulkan);
+    layout_main->addWidget(widgetViewport);
     layout_main->addWidget(initRightPanel());
 
     QWidget *widget_main = new QWidget();
     widget_main->setLayout(layout_main);
 
-    m_scene = m_vulkanWindow->engine()->scene();
+    m_scene = &m_engine->scene();
 
     createMenu();
 
@@ -79,23 +77,25 @@ QWidget *MainWindow::initLeftPanel()
     return m_sceneGraphWidget;
 }
 
-QWidget *MainWindow::initVulkanWindowWidget()
+QWidget *MainWindow::initViewport()
 {
-    m_vulkanWindow = new VulkanWindow();
-    connect(m_vulkanWindow, &VulkanWindow::sceneObjectSelected, this, &MainWindow::onSelectedSceneObjectChangedSlot3DScene);
-    connect(m_vulkanWindow, &VulkanWindow::initializationFinished, this, &MainWindow::onStartUpInitialization);
+    m_viewport = new VulkanViewportWindow();
+    m_engine = m_viewport->engine();
 
-    return QWidget::createWindowContainer(m_vulkanWindow);
+    connect(m_viewport, &ViewportWindow::sceneObjectSelected, this, &MainWindow::onSelectedSceneObjectChangedSlot3DScene);
+    connect(m_viewport, &ViewportWindow::initializationFinished, this, &MainWindow::onStartUpInitialization);
+
+    return QWidget::createWindowContainer(m_viewport);
 }
 
 QWidget *MainWindow::initRightPanel()
 {
-    m_widgetRightPanel = new WidgetRightPanel(this, m_vulkanWindow->engine());
+    m_widgetRightPanel = new WidgetRightPanel(this, m_engine);
     connect(m_widgetRightPanel,
             &WidgetRightPanel::selectedSceneObjectNameChanged,
             this,
             &MainWindow::onSelectedSceneObjectNameChangedSlot);
-    connect(m_vulkanWindow, &VulkanWindow::selectedObjectPositionChanged, m_widgetRightPanel, &WidgetRightPanel::onTransformChanged);
+    connect(m_viewport, &ViewportWindow::selectedObjectPositionChanged, m_widgetRightPanel, &WidgetRightPanel::onTransformChanged);
 
     m_widgetRightPanel->setFixedWidth(380);
     return m_widgetRightPanel;
@@ -106,15 +106,12 @@ void MainWindow::createMenu()
     QAction *actionImportModel = new QAction(tr("&Import a model"), this);
     actionImportModel->setStatusTip(tr("Import a model"));
     connect(actionImportModel, &QAction::triggered, this, &MainWindow::onImportModelSlot);
-    QAction *actionImportColorTexture = new QAction(tr("&Import color textures"), this);
-    actionImportColorTexture->setStatusTip(tr("Import color textures"));
-    connect(actionImportColorTexture, &QAction::triggered, this, &MainWindow::onImportTextureColorSlot);
-    QAction *actionImportOtherTexture = new QAction(tr("&Import other textures"), this);
-    actionImportOtherTexture->setStatusTip(tr("Import other textures"));
-    connect(actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportTextureOtherSlot);
-    QAction *actionImportHDRTexture = new QAction(tr("&Import HDR texture"), this);
-    actionImportHDRTexture->setStatusTip(tr("Import HDR texture"));
-    connect(actionImportHDRTexture, &QAction::triggered, this, &MainWindow::onImportTextureHDRSlot);
+    QAction *actionImportColorTexture = new QAction(tr("&Import sRGB textures"), this);
+    actionImportColorTexture->setStatusTip(tr("Import sRGB textures"));
+    connect(actionImportColorTexture, &QAction::triggered, this, &MainWindow::onImportTextureSRGBSlot);
+    QAction *actionImportOtherTexture = new QAction(tr("&Import linear textures"), this);
+    actionImportOtherTexture->setStatusTip(tr("Import linear textures"));
+    connect(actionImportOtherTexture, &QAction::triggered, this, &MainWindow::onImportTextureLinearSlot);
     QAction *actionImportEnvironmentMap = new QAction(tr("&Import environment map"), this);
     actionImportEnvironmentMap->setStatusTip(tr("Import environment map"));
     connect(actionImportEnvironmentMap, &QAction::triggered, this, &MainWindow::onImportEnvironmentMap);
@@ -144,7 +141,6 @@ void MainWindow::createMenu()
     m_menuImport->addAction(actionImportModel);
     m_menuImport->addAction(actionImportColorTexture);
     m_menuImport->addAction(actionImportOtherTexture);
-    m_menuImport->addAction(actionImportHDRTexture);
     m_menuImport->addAction(actionImportEnvironmentMap);
     m_menuImport->addAction(actionImportMaterial);
     m_menuImport->addAction(actionImportMaterialZipStack);
@@ -208,7 +204,7 @@ void MainWindow::selectObject(QTreeWidgetItem *selectedItem)
     /* Set selection to new item */
     m_sceneGraphWidget->setPreviouslySelectedItem(selectedItem);
     sceneObject->m_isSelected = true;
-    m_vulkanWindow->engine()->renderer()->setSelectedObject(sceneObject);
+    m_engine->renderer().setSelectedObject(sceneObject);
 
     m_widgetRightPanel->setSelectedObject(sceneObject);
 
@@ -224,7 +220,7 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem *treeItem)
     m_scene->removeSceneObject(selectedObject);
 
     /* Set selected to null */
-    m_vulkanWindow->engine()->renderer()->setSelectedObject(nullptr);
+    m_engine->renderer().setSelectedObject(nullptr);
 
     /* Remove from scene graph UI */
     m_sceneGraphWidget->removeItem(treeItem);
@@ -234,7 +230,7 @@ void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem, std::string mo
 {
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     if (!instanceModels.isPresent(modelName)) {
-        debug_tools::ConsoleWarning("VulkanScene::addSceneObjectMeshes(): Model " + modelName + " is not imported");
+        debug_tools::ConsoleWarning("MainWindow::addSceneObjectModel(): Model " + modelName + " is not imported");
         return;
     }
     auto model = instanceModels.get(modelName);
@@ -285,8 +281,6 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
     /* Create new scene object */
     auto newSceneObject = createEmptySceneObject(object.name, object.transform, parentItem);
 
-    VulkanEngine *engine = m_vulkanWindow->engine();
-
     /* Add mesh component */
     if (object.mesh.has_value()) {
         if (object.mesh->submesh.empty()) {
@@ -324,10 +318,10 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
 bool MainWindow::event(QEvent *event)
 {
     if (event->type() == QEvent::WindowActivate) {
-        m_vulkanWindow->windowActicated(true);
+        m_viewport->windowActicated(true);
     }
     if (event->type() == QEvent::WindowDeactivate) {
-        m_vulkanWindow->windowActicated(false);
+        m_viewport->windowActicated(false);
     }
 
     return QMainWindow::event(event);
@@ -342,22 +336,21 @@ void MainWindow::onImportModelSlot()
         return;
 
     struct ImportFunct {
-        ImportFunct(VulkanRenderer *r, std::string f)
-            : renderer(r)
+        ImportFunct(Engine *e, std::string f)
+            : engine(e)
             , filename(f){};
-        VulkanRenderer *renderer;
+        Engine *engine;
         std::string filename;
         bool operator()(float &)
         {
-            bool ret = renderer->createVulkanModel(filename, true) != nullptr;
+            bool ret = engine->importModel(filename, true) != nullptr;
             if (ret) {
                 debug_tools::ConsoleInfo("Model imported");
             }
             return ret;
         }
     };
-    Task task;
-    task.f = ImportFunct(static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer()), filename.toStdString());
+    Task task(ImportFunct(m_engine, filename.toStdString()));
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -365,7 +358,7 @@ void MainWindow::onImportModelSlot()
     delete waiting;
 }
 
-void MainWindow::onImportTextureColorSlot()
+void MainWindow::onImportTextureSRGBSlot()
 {
     QStringList filenames =
         QFileDialog::getOpenFileNames(this, tr("Import textures"), "./assets", tr("Textures (*.tga, *.png);;All Files (*)"));
@@ -374,10 +367,10 @@ void MainWindow::onImportTextureColorSlot()
         return;
 
     struct ImportFunct {
-        ImportFunct(VulkanTextures &t, QStringList &fs)
+        ImportFunct(Textures &t, QStringList &fs)
             : textures(t)
             , filenames(fs){};
-        VulkanTextures &textures;
+        Textures &textures;
         QStringList filenames;
 
         bool operator()(float &progress)
@@ -396,8 +389,7 @@ void MainWindow::onImportTextureColorSlot()
             return success;
         }
     };
-    Task task;
-    task.f = ImportFunct(m_vulkanWindow->engine()->textures(), filenames);
+    Task task(ImportFunct(m_engine->textures(), filenames));
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -405,7 +397,7 @@ void MainWindow::onImportTextureColorSlot()
     delete waiting;
 }
 
-void MainWindow::onImportTextureOtherSlot()
+void MainWindow::onImportTextureLinearSlot()
 {
     QStringList filenames =
         QFileDialog::getOpenFileNames(this, tr("Import textures"), "./assets", tr("Textures (*.tga, *.png);;All Files (*)"));
@@ -414,10 +406,10 @@ void MainWindow::onImportTextureOtherSlot()
         return;
 
     struct ImportFunct {
-        ImportFunct(VulkanTextures &t, QStringList &fs)
+        ImportFunct(Textures &t, QStringList &fs)
             : textures(t)
             , filenames(fs){};
-        VulkanTextures &textures;
+        Textures &textures;
         QStringList filenames;
 
         bool operator()(float &progress)
@@ -436,41 +428,7 @@ void MainWindow::onImportTextureOtherSlot()
             return success;
         }
     };
-    Task task;
-    task.f = ImportFunct(m_vulkanWindow->engine()->textures(), filenames);
-
-    DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
-    waiting->exec();
-
-    delete waiting;
-}
-
-void MainWindow::onImportTextureHDRSlot()
-{
-    QString filename =
-        QFileDialog::getOpenFileName(this, tr("Import HDR texture"), "./assets/HDR/", tr("Model (*.hdr);;All Files (*)"));
-
-    if (filename == "")
-        return;
-
-    struct ImportFunct {
-        ImportFunct(VulkanTextures &t, std::string f)
-            : textures(t)
-            , filename(f){};
-        VulkanTextures &textures;
-        std::string filename;
-        bool operator()(float &)
-        {
-            auto tex = textures.createTextureHDR(filename);
-            if (tex) {
-                debug_tools::ConsoleInfo("Texture: " + filename + " imported");
-                return true;
-            }
-            return false;
-        }
-    };
-    Task task;
-    task.f = ImportFunct(m_vulkanWindow->engine()->textures(), filename.toStdString());
+    Task task(ImportFunct(m_engine->textures(), filenames));
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -487,14 +445,14 @@ void MainWindow::onImportEnvironmentMap()
         return;
 
     struct ImportFunct {
-        ImportFunct(VulkanRenderer *r, std::string f)
-            : renderer(r)
+        ImportFunct(Engine *e, std::string f)
+            : engine(e)
             , filename(f){};
-        VulkanRenderer *renderer;
+        Engine *engine;
         std::string filename;
         bool operator()(float &)
         {
-            auto envMap = renderer->createEnvironmentMap(filename);
+            auto envMap = engine->importEnvironmentMap(filename);
             if (envMap) {
                 debug_tools::ConsoleInfo("Environment map: " + filename + " imported");
                 return true;
@@ -502,8 +460,7 @@ void MainWindow::onImportEnvironmentMap()
             return false;
         }
     };
-    Task task;
-    task.f = ImportFunct(static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer()), filename.toStdString());
+    Task task(ImportFunct(m_engine, filename.toStdString()));
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -523,16 +480,16 @@ void MainWindow::onImportMaterial()
     std::string dirStd = dir.toStdString();
 
     struct ImportFunct {
-        ImportFunct(VulkanEngine *vke, std::string d, std::string n)
-            : vkengine(vke)
+        ImportFunct(Engine *e, std::string d, std::string n)
+            : engine(e)
             , dir(d)
             , materialName(n){};
-        VulkanEngine *vkengine;
+        Engine *engine;
         std::string dir;
         std::string materialName;
         bool operator()(float &)
         {
-            auto material = vkengine->materials().createMaterialFromDisk(materialName, dir, vkengine->textures());
+            auto material = engine->materials().createMaterialFromDisk(materialName, dir, engine->textures());
             if (material) {
                 debug_tools::ConsoleInfo("Material: " + materialName + " has been created");
                 return true;
@@ -541,8 +498,7 @@ void MainWindow::onImportMaterial()
             }
         }
     };
-    Task task;
-    task.f = ImportFunct(m_vulkanWindow->engine(), dirStd, materialName);
+    Task task(ImportFunct(m_engine, dirStd, materialName));
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -565,16 +521,16 @@ void MainWindow::onImportMaterialZipStackSlot()
     std::string materialName = filename.split('/').back().toStdString();
 
     struct ImportFunct {
-        ImportFunct(VulkanEngine *vke, std::string f, std::string n)
-            : vkengine(vke)
+        ImportFunct(Engine *e, std::string f, std::string n)
+            : engine(e)
             , filename(f)
             , materialName(n){};
-        VulkanEngine *vkengine;
+        Engine *engine;
         std::string filename;
         std::string materialName;
         bool operator()(float &)
         {
-            auto material = vkengine->materials().createZipMaterial(materialName, filename, vkengine->textures());
+            auto material = engine->materials().createZipMaterial(materialName, filename, engine->textures());
             if (material) {
                 debug_tools::ConsoleInfo("Material: " + materialName + " has been created");
                 return true;
@@ -583,8 +539,7 @@ void MainWindow::onImportMaterialZipStackSlot()
             }
         }
     };
-    Task task;
-    task.f = ImportFunct(m_vulkanWindow->engine(), filename.toStdString(), materialName);
+    Task task(ImportFunct(m_engine, filename.toStdString(), materialName));
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -620,18 +575,18 @@ void MainWindow::onImportScene()
         return;
     }
 
-    m_vulkanWindow->engine()->stop();
-    m_vulkanWindow->engine()->waitIdle();
+    m_engine->stop();
+    m_engine->waitIdle();
 
     /* Set camera */
     {
         auto newCamera = std::make_shared<PerspectiveCamera>();
-        Transform &cameraTransform = newCamera->getTransform();
-        cameraTransform.setPosition(camera.position);
+        Transform &cameraTransform = newCamera->transform();
+        cameraTransform.position() = camera.position;
         cameraTransform.setRotation(glm::normalize(camera.target - camera.position), camera.up);
 
-        newCamera->setFoV(camera.fov);
-        newCamera->setWindowSize(m_vulkanWindow->size().width(), m_vulkanWindow->size().height());
+        newCamera->fov() = camera.fov;
+        newCamera->setWindowSize(m_viewport->size().width(), m_viewport->size().height());
 
         m_scene->setCamera(newCamera);
         m_widgetRightPanel->getEnvironmentWidget()->setCamera(newCamera);
@@ -653,12 +608,12 @@ void MainWindow::onImportScene()
     /* Import models */
     debug_tools::ConsoleInfo("Importing models...");
     for (auto &itr : models) {
-        static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer())->createVulkanModel(itr, true);
+        m_engine->importModel(itr, true);
     }
 
     /* Import materials */
     debug_tools::ConsoleInfo("Importing materials...");
-    m_vulkanWindow->engine()->materials().createImportedMaterials(materials, m_vulkanWindow->engine()->textures());
+    m_engine->materials().createImportedMaterials(materials, m_engine->textures());
 
     /* Import light materials */
     for (auto &itr : lightMaterials) {
@@ -671,11 +626,9 @@ void MainWindow::onImportScene()
         addImportedSceneObject(scene.child(c), nullptr);
     }
 
-    VulkanRenderer *renderer = static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer());
-
     /* Create and set the environment */
     if (!env.path.empty()) {
-        auto envMap = renderer->createEnvironmentMap(sceneFolder + env.path);
+        auto envMap = m_engine->importEnvironmentMap(sceneFolder + env.path);
         if (envMap) {
             debug_tools::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
 
@@ -688,7 +641,7 @@ void MainWindow::onImportScene()
     m_widgetRightPanel->getEnvironmentWidget()->updateMaps();
     m_widgetRightPanel->getEnvironmentWidget()->setEnvironmentType(env.environmentType);
 
-    m_vulkanWindow->engine()->start();
+    m_engine->start();
     debug_tools::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
 
@@ -697,14 +650,14 @@ void MainWindow::onAddEmptyObjectSlot()
     /* Get currently selected tree item */
     QTreeWidgetItem *selectedItem = m_sceneGraphWidget->currentItem();
 
-    m_vulkanWindow->engine()->stop();
-    m_vulkanWindow->engine()->waitIdle();
+    m_engine->stop();
+    m_engine->waitIdle();
 
     /* Create parent a oject for the mesh model */
     /* TODO set the name in some other way */
     auto parent = createEmptySceneObject("New object (" + std::to_string(m_nObjects++) + ")", Transform(), selectedItem);
 
-    m_vulkanWindow->engine()->start();
+    m_engine->start();
 }
 
 void MainWindow::onAddSceneObjectSlot()
@@ -720,12 +673,12 @@ void MainWindow::onAddSceneObjectSlot()
         return;
     }
 
-    m_vulkanWindow->engine()->stop();
-    m_vulkanWindow->engine()->waitIdle();
+    m_engine->stop();
+    m_engine->waitIdle();
 
     addSceneObjectModel(selectedItem, selectedModel, dialog->getSelectedOverrideMaterial());
 
-    m_vulkanWindow->engine()->start();
+    m_engine->start();
 }
 
 void MainWindow::onRemoveSceneObjectSlot()
@@ -736,12 +689,12 @@ void MainWindow::onRemoveSceneObjectSlot()
     if (selectedItem == nullptr)
         return;
 
-    m_vulkanWindow->engine()->stop();
-    m_vulkanWindow->engine()->waitIdle();
+    m_engine->stop();
+    m_engine->waitIdle();
 
     removeObjectFromScene(selectedItem);
 
-    m_vulkanWindow->engine()->start();
+    m_engine->start();
 }
 
 void MainWindow::onAddMaterialSlot()
@@ -758,7 +711,7 @@ void MainWindow::onAddMaterialSlot()
         return;
     }
 
-    auto material = m_vulkanWindow->engine()->materials().createMaterial(materialName, dialog->m_selectedMaterialType);
+    auto material = m_engine->materials().createMaterial(materialName, dialog->m_selectedMaterialType);
     if (material == nullptr) {
         debug_tools::ConsoleWarning("Failed to create material");
     } else {
@@ -771,8 +724,8 @@ void MainWindow::onAddPointLightSlot()
     /* Get currently selected tree item */
     QTreeWidgetItem *selectedItem = m_sceneGraphWidget->currentItem();
 
-    m_vulkanWindow->engine()->stop();
-    m_vulkanWindow->engine()->waitIdle();
+    m_engine->stop();
+    m_engine->waitIdle();
 
     /* Create new empty item under the selected item */
     auto newObject = createEmptySceneObject("Point light", Transform(), selectedItem);
@@ -787,15 +740,14 @@ void MainWindow::onAddPointLightSlot()
     newObject.second->add<ComponentLight>().light =
         std::make_shared<Light>(newObject.second->m_name, LightType::POINT_LIGHT, lightMat);
 
-    m_vulkanWindow->engine()->start();
+    m_engine->start();
 }
 
 void MainWindow::onRenderSceneSlot()
 {
-    VulkanRenderer *renderer = static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer());
-    auto &RTrenderer = renderer->getRayTracingRenderer();
+    auto &RTrenderer = m_engine->renderer().rendererRayTracing();
 
-    if (!RTrenderer.isInitialized()) {
+    if (!RTrenderer.isRTEnabled()) {
         int ret = QMessageBox::warning(
             this,
             tr("Error"),
@@ -805,55 +757,59 @@ void MainWindow::onRenderSceneSlot()
         return;
     }
 
-    m_vulkanWindow->engine()->stop();
-
-    DialogSceneRender *dialog = new DialogSceneRender(nullptr, RTrenderer);
+    DialogSceneRender *dialog = new DialogSceneRender(nullptr, RTrenderer.renderInfo());
     dialog->exec();
 
     std::string filename = dialog->getRenderOutputFileName();
     if (filename == "") {
-        m_vulkanWindow->engine()->start();
         return;
     }
 
-    RTrenderer.setSamples(dialog->getSamples());
-    RTrenderer.setMaxDepth(dialog->getDepth());
-    RTrenderer.setRenderOutputFileName(dialog->getRenderOutputFileName());
-    RTrenderer.setRenderOutputFileType(dialog->getRenderOutputFileType());
-    RTrenderer.setRenderResolution(dialog->getResolutionWidth(), dialog->getResolutionHeight());
+    RTrenderer.renderInfo().samples = dialog->getSamples();
+    RTrenderer.renderInfo().depth = dialog->getDepth();
+    RTrenderer.renderInfo().batchSize = dialog->getBatchSize();
+    RTrenderer.renderInfo().filename = dialog->getRenderOutputFileName();
+    RTrenderer.renderInfo().fileType = dialog->getRenderOutputFileType();
+    RTrenderer.renderInfo().width = dialog->getResolutionWidth();
+    RTrenderer.renderInfo().height = dialog->getResolutionHeight();
     delete dialog;
 
     struct RTRenderTask : public Task {
-        VulkanRenderer *renderer;
-        RTRenderTask(VulkanRenderer *r)
+        RendererRayTracing &renderer;
+
+        RTRenderTask(RendererRayTracing &r, Scene &s)
             : renderer(r)
         {
-            f = Funct(renderer);
+            function = Funct(renderer, s);
         };
 
         struct Funct {
-            Funct(VulkanRenderer *r)
-                : renderer(r){};
-            VulkanRenderer *renderer;
+            RendererRayTracing &renderer;
+            Scene &scene;
+
+            Funct(RendererRayTracing &r, Scene &s)
+                : renderer(r)
+                , scene(s){};
             bool operator()(float &)
             {
-                renderer->renderRT();
+                renderer.render(scene);
                 return true;
             }
         };
 
-        float getProgress() const override { return renderer->getRayTracingRenderer().getRenderProgress(); }
+        float getProgress() const override { return renderer.renderProgress(); }
     };
-    auto task = RTRenderTask(renderer);
+    auto task = RTRenderTask(RTrenderer, *m_scene);
 
     /* Wait for the render loop to idle */
-    m_vulkanWindow->engine()->waitIdle();
+    m_engine->stop();
+    m_engine->waitIdle();
 
-    /* Spawn rendering RTRenderTask */
+    /* Spawn rendering task */
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Rendering...", &task);
     waiting->exec();
 
-    m_vulkanWindow->engine()->start();
+    m_engine->start();
 
     delete waiting;
 }
@@ -906,12 +862,12 @@ void MainWindow::onDuplicateSceneObjectSlot()
         }
     };
 
-    m_vulkanWindow->engine()->stop();
-    m_vulkanWindow->engine()->waitIdle();
+    m_engine->stop();
+    m_engine->waitIdle();
 
     duplicate(selectedItem, selectedItem->parent());
 
-    m_vulkanWindow->engine()->start();
+    m_engine->start();
 }
 
 void MainWindow::onSelectedSceneObjectChangedSlotUI()
@@ -978,29 +934,23 @@ void MainWindow::onContextMenuSceneGraph(const QPoint &pos)
 
 void MainWindow::onStartUpInitialization()
 {
-    static_cast<VulkanRenderer *>(m_vulkanWindow->engine()->renderer())->createVulkanModel("assets/models/DamagedHelmet.gltf", true);
+    std::string assetName = "assets/models/DamagedHelmet.gltf";
+    m_engine->importModel(assetName, true);
 
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
     auto &instanceLightMaterials = AssetManager::getInstance().lightMaterialsMap();
 
-    /* Create a ball on plane scene */
+    /* Create a plane scene with the assetName on top */
     try {
         auto matDef = instanceMaterials.get("defaultMaterial");
-        auto sphere = instanceModels.get("assets/models/uvsphere.obj");
         auto plane = instanceModels.get("assets/models/plane.obj");
 
-        std::static_pointer_cast<MaterialPBRStandard>(matDef)->metallic() = 0.5;
-        std::static_pointer_cast<MaterialPBRStandard>(matDef)->roughness() = 0.5;
-
-        // auto o1 = createEmptySceneObject("sphere", Transform({0, 0, 0}, {1, 1, 1}), nullptr);
-        // o1.second->add<ComponentMesh>().mesh = sphere->mesh("defaultobject");
-        // o1.second->add<ComponentMaterial>().material = matDef;
-        addSceneObjectModel(NULL, "assets/models/DamagedHelmet.gltf", std::nullopt);
-
-        auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0}, {3, 3, 3}), nullptr);
+        auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
         o2.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
         o2.second->add<ComponentMaterial>().material = matDef;
+
+        addSceneObjectModel(NULL, assetName, std::nullopt);
 
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));

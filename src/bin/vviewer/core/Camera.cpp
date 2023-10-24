@@ -2,17 +2,43 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-namespace vengine {
-
-glm::mat4 Camera::getViewMatrix() const
+namespace vengine
 {
-    return glm::lookAt(m_transform.getPosition(), m_transform.getPosition() + m_transform.getForward(), m_transform.getUp());
+
+const float &Camera::aspectRatio() const
+{
+    return m_aspectRatio;
 }
 
-glm::mat4 Camera::getViewMatrixInverse() const
+const Transform &Camera::transform() const
+{
+    return m_transform;
+}
+
+Transform &Camera::transform()
+{
+    return m_transform;
+}
+
+const int &Camera::width() const
+{
+    return m_width;
+}
+
+const int &Camera::height() const
+{
+    return m_height;
+}
+
+glm::mat4 Camera::viewMatrix() const
+{
+    return glm::lookAt(m_transform.position(), m_transform.position() + m_transform.forward(), m_transform.up());
+}
+
+glm::mat4 Camera::viewMatrixInverse() const
 {
     /* TODO optimise this */
-    return glm::inverse(getViewMatrix());
+    return glm::inverse(viewMatrix());
 }
 
 void Camera::setWindowSize(int width, int height)
@@ -22,87 +48,65 @@ void Camera::setWindowSize(int width, int height)
     m_aspectRatio = (float)m_width / (float)m_height;
 }
 
-float Camera::getAspectRatio() const
-{
-    return m_aspectRatio;
-}
+/* ------------- PerspectiveCamera ------------- */
 
-Transform & Camera::getTransform()
-{
-    return m_transform;
-}
-
-int Camera::getWidth() const
-{
-    return m_width;
-}
-
-int Camera::getHeight() const
-{
-    return m_height;
-}
-
-
-
-CameraType PerspectiveCamera::getType() const
+CameraType PerspectiveCamera::type() const
 {
     return CameraType::PERSPECTIVE;
 }
 
-glm::mat4 PerspectiveCamera::getProjectionMatrix() const
+glm::mat4 PerspectiveCamera::projectionMatrix() const
 {
     assert(m_aspectRatio != 0);
     return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.01f, 200.0f);
 }
 
-glm::mat4 PerspectiveCamera::getProjectionMatrixInverse() const
+glm::mat4 PerspectiveCamera::projectionMatrixInverse() const
 {
     /* TODO optimize this */
-    return glm::inverse(getProjectionMatrix());
+    return glm::inverse(projectionMatrix());
 }
 
-void PerspectiveCamera::setFoV(float fov)
-{
-    m_fov = fov;
-}
-
-float PerspectiveCamera::getFoV() const
+const float &PerspectiveCamera::fov() const
 {
     return m_fov;
 }
 
+float &PerspectiveCamera::fov()
+{
+    return m_fov;
+}
 
-
-CameraType OrthographicCamera::getType() const
+CameraType OrthographicCamera::type() const
 {
     return CameraType::ORTHOGRAPHIC;
 }
 
-glm::mat4 OrthographicCamera::getProjectionMatrix() const
+glm::mat4 OrthographicCamera::projectionMatrix() const
 {
-    return glm::ortho(-m_orthoWidth /2, m_orthoWidth /2, -m_orthoHeight /2, m_orthoHeight / 2, -100.0f, 100.0f);
+    return glm::ortho(-m_orthoWidth / 2, m_orthoWidth / 2, -m_orthoHeight / 2, m_orthoHeight / 2, -100.0f, 100.0f);
 }
 
-glm::mat4 OrthographicCamera::getProjectionMatrixInverse() const
+glm::mat4 OrthographicCamera::projectionMatrixInverse() const
 {
     /* TODO optimize this */
-    return glm::inverse(getProjectionMatrix());
+    return glm::inverse(projectionMatrix());
 }
 
 void OrthographicCamera::setOrthoWidth(float orthoWidth)
 {
     m_orthoWidth = orthoWidth;
-    
+
     assert(m_aspectRatio != 0);
     m_orthoHeight = m_orthoWidth / m_aspectRatio;
 }
 
-float OrthographicCamera::getOrthoWidth() const
+const float &OrthographicCamera::orthoWidth() const
 {
     return m_orthoWidth;
 }
 
-float OrthographicCamera::getOrthoHeight() const
+const float &OrthographicCamera::orthoHeight() const
 {
     return m_orthoHeight;
 }
@@ -115,4 +119,4 @@ void OrthographicCamera::setWindowSize(int width, int height)
     m_orthoHeight = m_orthoWidth / m_aspectRatio;
 }
 
-}
+}  // namespace vengine

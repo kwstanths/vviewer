@@ -21,7 +21,7 @@
 #include "core/Scene.hpp"
 #include "core/io/Import.hpp"
 #include "utils/Tree.hpp"
-#include "VulkanWindow.hpp"
+#include "ViewportWindow.hpp"
 
 class MainWindow : public QMainWindow
 {
@@ -31,19 +31,18 @@ public:
     virtual ~MainWindow();
 
 private:
-    /* UI vulkan */
-    VulkanWindow *m_vulkanWindow;
-
     /* For naming new objects */
     int m_nObjects = 0;
 
     vengine::Scene *m_scene = nullptr;
+    vengine::Engine *m_engine = nullptr;
 
     WidgetSceneGraph *m_sceneGraphWidget = nullptr;
     WidgetRightPanel *m_widgetRightPanel = nullptr;
+    ViewportWindow *m_viewport = nullptr;
 
     QWidget *initLeftPanel();
-    QWidget *initVulkanWindowWidget();
+    QWidget *initViewport();
     QWidget *initRightPanel();
     void createMenu();
 
@@ -83,11 +82,9 @@ private Q_SLOTS:
     /* Import a model */
     void onImportModelSlot();
     /* Import a color texture */
-    void onImportTextureColorSlot();
+    void onImportTextureSRGBSlot();
     /* Import a texture */
-    void onImportTextureOtherSlot();
-    /* Import an hdr texture */
-    void onImportTextureHDRSlot();
+    void onImportTextureLinearSlot();
     /* Import an environment map */
     void onImportEnvironmentMap();
     /* Import a material */

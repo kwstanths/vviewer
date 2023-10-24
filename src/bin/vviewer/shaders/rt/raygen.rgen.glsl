@@ -82,8 +82,8 @@ void main()
 	
 	/* Store results */
 	ivec2 uv = ivec2(gl_LaunchIDEXT.xy);
-	vec4 storedRadiance = imageLoad(image, uv);
+	vec4 storedValue = imageLoad(image, uv);
 
-	vec4 newRadiance = storedRadiance + vec4(cumRadiance, 1.F);
-	imageStore(image, uv, newRadiance);
+	vec4 newValue = vec4(storedValue.rgb + cumRadiance, 1.F);
+	imageStore(image, uv, newValue);
 }

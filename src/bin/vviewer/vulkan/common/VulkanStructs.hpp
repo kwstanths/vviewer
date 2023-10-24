@@ -12,6 +12,7 @@
 namespace vengine
 {
 
+/* --------------- CPU only structs --------------- */
 /* Stores supported queue family indices */
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -27,6 +28,16 @@ struct SwapChainDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct StorageImage {
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    VkImage image = VK_NULL_HANDLE;
+    VkImageView view = VK_NULL_HANDLE;
+    VkFormat format;
+
+    void destroy(VkDevice device);
+};
+
+/* --------------- GPU + CPU structs --------------- */
 struct ModelData {
     glm::mat4 m_modelMatrix;
 };
@@ -61,8 +72,6 @@ struct PushBlockForward3DUI {
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
 };
 
-/* ------------------ Ray Tracing structs ------------------------- */
-
 /* Objects description data for meshes in the scene */
 struct ObjectDescriptionRT {
     /* A pointer to a buffer holding mesh vertex data */
@@ -73,15 +82,6 @@ struct ObjectDescriptionRT {
     uint32_t materialIndex;
     /* The number of triangles in the buffer */
     uint32_t numTriangles;
-};
-
-struct StorageImage {
-    VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkImage image = VK_NULL_HANDLE;
-    VkImageView view = VK_NULL_HANDLE;
-    VkFormat format;
-
-    void destroy(VkDevice device);
 };
 
 /* Types of lights:

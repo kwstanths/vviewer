@@ -33,7 +33,7 @@ VulkanRenderer::VulkanRenderer(VulkanContext &context,
                                VulkanSwapchain &swapchain,
                                VulkanTextures &textures,
                                VulkanMaterials &materials,
-                               VulkanScene *scene)
+                               VulkanScene &scene)
     : Renderer()
     , m_vkctx(context)
     , m_swapchain(swapchain)
@@ -59,14 +59,14 @@ VkResult VulkanRenderer::initResources()
                                                          m_vkctx.device(),
                                                          m_vkctx.graphicsQueue(),
                                                          m_vkctx.graphicsCommandPool(),
-                                                         m_scene->layoutSceneData()));
+                                                         m_scene.layoutSceneData()));
     VULKAN_CHECK_CRITICAL(m_rendererPBR.initResources(m_vkctx.physicalDevice(),
                                                       m_vkctx.device(),
                                                       m_vkctx.graphicsQueue(),
                                                       m_vkctx.graphicsCommandPool(),
                                                       m_vkctx.physicalDeviceProperties(),
-                                                      m_scene->layoutSceneData(),
-                                                      m_scene->layoutModelData(),
+                                                      m_scene.layoutSceneData(),
+                                                      m_scene.layoutModelData(),
                                                       m_rendererSkybox.descriptorSetLayout(),
                                                       m_materials.descriptorSetLayout(),
                                                       m_textures));
@@ -75,8 +75,8 @@ VkResult VulkanRenderer::initResources()
                                                           m_vkctx.graphicsQueue(),
                                                           m_vkctx.graphicsCommandPool(),
                                                           m_vkctx.physicalDeviceProperties(),
-                                                          m_scene->layoutSceneData(),
-                                                          m_scene->layoutModelData(),
+                                                          m_scene.layoutSceneData(),
+                                                          m_scene.layoutModelData(),
                                                           m_rendererSkybox.descriptorSetLayout(),
                                                           m_materials.descriptorSetLayout(),
                                                           m_textures.descriptorSetLayout()));
@@ -88,7 +88,7 @@ VkResult VulkanRenderer::initResources()
                                                            m_vkctx.device(),
                                                            m_vkctx.graphicsQueue(),
                                                            m_vkctx.graphicsCommandPool(),
-                                                           m_scene->layoutSceneData()));
+                                                           m_scene.layoutSceneData()));
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("VulkanRenderer::initResources(): Failed to initialize UI renderer: " + std::string(e.what()));
     }
@@ -99,31 +99,6 @@ VkResult VulkanRenderer::initResources()
     } catch (std::exception &e) {
         debug_tools::ConsoleWarning("VulkanRenderer::initResources():Failed to initialize GPU ray tracing renderer: " +
                                     std::string(e.what()));
-    }
-
-    /* Create a default material */
-    auto defaultMaterial = std::static_pointer_cast<VulkanMaterialPBRStandard>(
-        m_materials.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD, false));
-    defaultMaterial->albedo() = glm::vec4(0.8, 0.8, 0.8, 1);
-    defaultMaterial->metallic() = 0.5;
-    defaultMaterial->roughness() = 0.5;
-    defaultMaterial->ao() = 1.0f;
-    defaultMaterial->emissive() = glm::vec4(0.0, 0.0, 0.0, 1.0);
-
-    /* Import some models */
-    auto uvsphereMeshModel = createVulkanModel("assets/models/uvsphere.obj");
-    auto planeMeshModel = createVulkanModel("assets/models/plane.obj");
-    auto cubeMeshModel = createVulkanModel("assets/models/cube.obj");
-
-    /* Create a skybox material */
-    {
-        auto envMap = createEnvironmentMap("assets/HDR/harbor.hdr");
-
-        auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
-        auto skybox = materialsSkybox.add(
-            std::make_shared<VulkanMaterialSkybox>("skybox", envMap, m_vkctx.device(), m_rendererSkybox.descriptorSetLayout()));
-
-        m_scene->setSkybox(skybox);
     }
 
     return VK_SUCCESS;
@@ -213,7 +188,7 @@ VkResult VulkanRenderer::releaseResources()
     m_rendererLambert.releaseResources();
     m_rendererPost.releaseResources();
     m_renderer3DUI.releaseResources();
-    if (isRTEnabled())
+    if (m_rendererRayTracing.isRTEnabled())
         m_rendererRayTracing.releaseResources();
 
     /* Destroy imported models */
@@ -286,7 +261,7 @@ VkResult VulkanRenderer::renderFrame(SceneGraph &sceneGraphArray)
 VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {
     /* Update scene data changes to GPU */
-    m_scene->updateBuffers(static_cast<uint32_t>(imageIndex));
+    m_scene.updateBuffers(static_cast<uint32_t>(imageIndex));
 
     /* Update material data changes to GPU */
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
@@ -300,7 +275,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
 
     /* Forward pass */
     {
-        glm::vec3 clearColor = m_scene->getBackgroundColor();
+        glm::vec3 clearColor = m_scene.getBackgroundColor();
         std::array<VkClearValue, 5> clearValues{};
         VkClearColorValue cl = {{clearColor.r, clearColor.g, clearColor.b, 1.0F}};
         clearValues[0].color = cl;
@@ -315,7 +290,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         /* Get skybox material and check if its parameters have changed */
-        auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(m_scene->getSkybox());
+        auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(m_scene.getSkybox());
         assert(skybox != nullptr);
         /* If material parameters have changed, update descriptor */
         if (skybox->needsUpdate(imageIndex)) {
@@ -323,8 +298,8 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         }
 
         /* Draw skybox if needed */
-        if (m_scene->getEnvironmentType() == EnvironmentType::HDRI) {
-            m_rendererSkybox.renderSkybox(commandBuffer, m_scene->descriptorSetSceneData(imageIndex), imageIndex, skybox);
+        if (m_scene.getEnvironmentType() == EnvironmentType::HDRI) {
+            m_rendererSkybox.renderSkybox(commandBuffer, m_scene.descriptorSetSceneData(imageIndex), imageIndex, skybox);
         }
 
         /* Batch objects into materials */
@@ -352,23 +327,23 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
 
         /* Draw PBR material objects, base pass */
         m_rendererPBR.renderObjectsBasePass(commandBuffer,
-                                            m_scene->descriptorSetSceneData(imageIndex),
-                                            m_scene->descriptorSetModelData(imageIndex),
+                                            m_scene.descriptorSetSceneData(imageIndex),
+                                            m_scene.descriptorSetModelData(imageIndex),
                                             skybox->getDescriptor(imageIndex),
                                             m_materials.descriptorSet(imageIndex),
                                             m_textures.descriptorSet(),
                                             imageIndex,
-                                            m_scene->m_modelDataDynamicUBO,
+                                            m_scene.m_modelDataDynamicUBO,
                                             pbrStandardObjects);
         /* Draw lambert material objects, base pass */
         m_rendererLambert.renderObjectsBasePass(commandBuffer,
-                                                m_scene->descriptorSetSceneData(imageIndex),
-                                                m_scene->descriptorSetModelData(imageIndex),
+                                                m_scene.descriptorSetSceneData(imageIndex),
+                                                m_scene.descriptorSetModelData(imageIndex),
                                                 skybox->getDescriptor(imageIndex),
                                                 m_materials.descriptorSet(imageIndex),
                                                 m_textures.descriptorSet(),
                                                 imageIndex,
-                                                m_scene->m_modelDataDynamicUBO,
+                                                m_scene.m_modelDataDynamicUBO,
                                                 lambertObjects);
 
         /* Draw additive pass for all lights in the scene */
@@ -382,30 +357,30 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                 t.lightPosition = glm::vec4(l->getWorldPosition(), 0);
                 t.lightPosition.a = static_cast<float>(LightType::POINT_LIGHT);
             } else if (light->type == LightType::DIRECTIONAL_LIGHT) {
-                t.lightPosition = l->m_modelMatrix * glm::vec4(Transform::Z, 0);
+                t.lightPosition = l->m_modelMatrix * glm::vec4(Transform::WORLD_Z, 0);
                 t.lightPosition.a = static_cast<float>(LightType::DIRECTIONAL_LIGHT);
             }
             t.lightColor = light->lightMaterial->intensity * glm::vec4(light->lightMaterial->color, 0);
 
             for (auto &obj : pbrStandardObjects) {
                 m_rendererPBR.renderObjectsAddPass(commandBuffer,
-                                                   m_scene->descriptorSetSceneData(imageIndex),
-                                                   m_scene->descriptorSetModelData(imageIndex),
+                                                   m_scene.descriptorSetSceneData(imageIndex),
+                                                   m_scene.descriptorSetModelData(imageIndex),
                                                    m_materials.descriptorSet(imageIndex),
                                                    m_textures.descriptorSet(),
                                                    imageIndex,
-                                                   m_scene->m_modelDataDynamicUBO,
+                                                   m_scene.m_modelDataDynamicUBO,
                                                    obj,
                                                    t);
             }
             for (auto &obj : lambertObjects) {
                 m_rendererLambert.renderObjectsAddPass(commandBuffer,
-                                                       m_scene->descriptorSetSceneData(imageIndex),
-                                                       m_scene->descriptorSetModelData(imageIndex),
+                                                       m_scene.descriptorSetSceneData(imageIndex),
+                                                       m_scene.descriptorSetModelData(imageIndex),
                                                        m_materials.descriptorSet(imageIndex),
                                                        m_textures.descriptorSet(),
                                                        imageIndex,
-                                                       m_scene->m_modelDataDynamicUBO,
+                                                       m_scene.m_modelDataDynamicUBO,
                                                        obj,
                                                        t);
             }
@@ -439,10 +414,10 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
 
             glm::vec3 transformPosition = m_selectedObject->getWorldPosition();
             m_renderer3DUI.renderTransform(commandBuffer,
-                                           m_scene->descriptorSetSceneData(imageIndex),
+                                           m_scene.descriptorSetSceneData(imageIndex),
                                            imageIndex,
                                            m_selectedObject->m_modelMatrix,
-                                           m_scene->getCamera());
+                                           m_scene.getCamera());
 
             vkCmdEndRenderPass(commandBuffer);
         }
@@ -480,59 +455,9 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
     return VK_SUCCESS;
 }
 
-std::shared_ptr<Model3D> VulkanRenderer::createVulkanModel(std::string filename, bool importMaterials)
+RendererRayTracing &VulkanRenderer::rendererRayTracing()
 {
-    auto &modelsMap = AssetManager::getInstance().modelsMap();
-
-    if (modelsMap.isPresent(filename))
-        return modelsMap.get(filename);
-
-    try {
-        Tree<ImportedModelNode> importedNode;
-        std::vector<std::shared_ptr<Material>> materials = {};
-        if (importMaterials) {
-            std::vector<ImportedMaterial> importedMaterials;
-            importedNode = assimpLoadModel(filename, importedMaterials);
-
-            materials = m_materials.createImportedMaterials(importedMaterials, m_textures);
-        } else {
-            importedNode = assimpLoadModel(filename);
-        }
-
-        /* Check if ray tracing is enabled, and add extra buffer usage flags */
-        VkBufferUsageFlags extraUsageFlags = {};
-        if (isRTEnabled()) {
-            extraUsageFlags = m_rendererRayTracing.getBufferUsageFlags();
-        }
-
-        auto vkmodel = std::make_shared<VulkanModel3D>(filename,
-                                                       importedNode,
-                                                       materials,
-                                                       m_vkctx.physicalDevice(),
-                                                       m_vkctx.device(),
-                                                       m_vkctx.graphicsQueue(),
-                                                       m_vkctx.graphicsCommandPool(),
-                                                       extraUsageFlags);
-
-        return modelsMap.add(vkmodel);
-    } catch (std::runtime_error &e) {
-        debug_tools::ConsoleWarning("Failed to create a Vulkan Model: " + std::string(e.what()));
-        return nullptr;
-    }
-
-    return nullptr;
-}
-
-bool VulkanRenderer::isRTEnabled() const
-{
-    return m_rendererRayTracing.isInitialized();
-}
-
-void VulkanRenderer::renderRT()
-{
-    if (m_rendererRayTracing.isInitialized()) {
-        m_rendererRayTracing.renderScene(m_scene);
-    }
+    return m_rendererRayTracing;
 }
 
 glm::vec3 VulkanRenderer::selectObject(float x, float y)
@@ -574,46 +499,6 @@ std::shared_ptr<Cubemap> VulkanRenderer::createCubemap(std::string directory)
     auto cubemap = std::make_shared<VulkanCubemap>(
         directory, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool());
     return cubemapsMap.add(cubemap);
-}
-
-std::shared_ptr<EnvironmentMap> VulkanRenderer::createEnvironmentMap(std::string imagePath, bool keepTexture)
-{
-    try {
-        /* Check if an environment map for that imagePath already exists */
-        auto &envMaps = AssetManager::getInstance().environmentsMapMap();
-        if (envMaps.isPresent(imagePath)) {
-            return envMaps.get(imagePath);
-        }
-
-        /* Read HDR image */
-        std::shared_ptr<VulkanTexture> hdrImage = std::static_pointer_cast<VulkanTexture>(m_textures.createTextureHDR(imagePath));
-
-        VkResult res;
-        /* Transform input texture into a cubemap */
-        std::shared_ptr<VulkanCubemap> cubemap, irradiance, prefiltered;
-        res = m_rendererSkybox.createCubemap(hdrImage, cubemap);
-        assert(res == VK_SUCCESS);
-        /* Compute irradiance map */
-        res = m_rendererSkybox.createIrradianceMap(cubemap, irradiance);
-        assert(res == VK_SUCCESS);
-        /* Compute prefiltered map */
-        res = m_rendererSkybox.createPrefilteredCubemap(cubemap, prefiltered);
-        assert(res == VK_SUCCESS);
-
-        if (!keepTexture) {
-            auto &textures = AssetManager::getInstance().texturesMap();
-            textures.remove(imagePath);
-            hdrImage->destroy(m_vkctx.device());
-        }
-
-        auto envMap = std::make_shared<EnvironmentMap>(imagePath, cubemap, irradiance, prefiltered);
-        return envMaps.add(envMap);
-    } catch (std::runtime_error &e) {
-        debug_tools::ConsoleCritical("Failed to create a vulkan environment map: " + std::string(e.what()));
-        return nullptr;
-    }
-
-    return nullptr;
 }
 
 VkResult VulkanRenderer::createRenderPasses()

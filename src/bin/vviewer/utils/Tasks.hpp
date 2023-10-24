@@ -3,27 +3,35 @@
 
 #include <functional>
 
-namespace vengine {
+namespace vengine
+{
 
 struct Task {
-    std::function<bool(float&)> f;
+    std::function<bool(float &)> function;
 
     bool started = false;
     bool finished = false;
     bool success = false;
-    
+
     float progress = 0.0F;
 
-    bool operator () () {
+    bool operator()()
+    {
         started = true;
-        success = f(progress);
+        success = function(progress);
         finished = true;
         return success;
     }
 
     virtual float getProgress() const { return progress; }
+
+    Task(){};
+    Task(std::function<bool(float &)> &funct)
+        : function(funct){};
+    Task(std::function<bool(float &)> funct)
+        : function(funct){};
 };
 
-}
+}  // namespace vengine
 
 #endif

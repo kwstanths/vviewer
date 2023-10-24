@@ -10,7 +10,8 @@
 #include <qlineedit.h>
 #include <qspinbox.h>
 
-#include "vulkan/renderers/VulkanRendererRayTracing.hpp"
+#include "core/io/FileTypes.hpp"
+#include "core/Renderer.hpp"
 
 using namespace vengine;
 
@@ -19,32 +20,34 @@ class DialogSceneRender : public QDialog
 {
     Q_OBJECT
 public:
-    DialogSceneRender(QWidget* parent, const VulkanRendererRayTracing& renderer);
+    DialogSceneRender(QWidget *parent, const RendererRayTracing::RenderInfo &renderInfo);
 
     std::string getRenderOutputFileName() const;
-    OutputFileType getRenderOutputFileType() const;
-    
+    FileType getRenderOutputFileType() const;
+
     uint32_t getResolutionWidth() const;
     uint32_t getResolutionHeight() const;
 
     uint32_t getSamples() const;
     uint32_t getDepth() const;
+    uint32_t getBatchSize() const;
 
 private:
-    QLineEdit * m_renderOutputFileWidget = nullptr;
-    QPushButton* m_renderOutputFileChangeButton = nullptr;
+    QLineEdit *m_renderOutputFileWidget = nullptr;
+    QPushButton *m_renderOutputFileChangeButton = nullptr;
     std::string m_renderOutputFileName = "";
 
-    QComboBox * m_renderOutputFileTypeWidget = nullptr;
+    QComboBox *m_renderOutputFileTypeWidget = nullptr;
 
-    QSpinBox* m_resolutionWidth = nullptr;
-    QSpinBox* m_resolutionHeight = nullptr;
+    QSpinBox *m_resolutionWidth = nullptr;
+    QSpinBox *m_resolutionHeight = nullptr;
 
-    QSpinBox* m_samples = nullptr;
-    QSpinBox* m_depth = nullptr;
+    QSpinBox *m_samples = nullptr;
+    QSpinBox *m_depth = nullptr;
+    QSpinBox *m_batchSize = nullptr;
 
-    QPushButton* m_buttonRender = nullptr;
-    QPushButton* m_buttonCancel = nullptr;
+    QPushButton *m_buttonRender = nullptr;
+    QPushButton *m_buttonCancel = nullptr;
 
 private Q_SLOTS:
     void onButtonSetRenderOutputFile();

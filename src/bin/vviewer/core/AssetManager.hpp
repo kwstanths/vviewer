@@ -8,7 +8,7 @@
 #include "Asset.hpp"
 #include "Texture.hpp"
 #include "Image.hpp"
-#include "Materials.hpp"
+#include "Material.hpp"
 #include "Cubemap.hpp"
 #include "Model3D.hpp"
 #include "EnvironmentMap.hpp"

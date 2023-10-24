@@ -298,9 +298,9 @@ Tree<ImportedSceneObject> parseSceneObject(const rapidjson::Value &o, const std:
     object.name = o["name"].GetString();
 
     if (o.HasMember("transform")) {
-        glm::vec3 position = parseVec3(o["transform"], "position", object.transform.getPosition());
-        glm::vec3 scale = parseVec3(o["transform"], "scale", object.transform.getScale());
-        glm::quat rotation = parseRotation(o["transform"], "rotation", object.transform.getRotation());
+        glm::vec3 position = parseVec3(o["transform"], "position", object.transform.position());
+        glm::vec3 scale = parseVec3(o["transform"], "scale", object.transform.scale());
+        glm::quat rotation = parseRotation(o["transform"], "rotation", object.transform.rotation());
 
         object.transform = Transform(position, scale, rotation);
     } else {

@@ -1,10 +1,11 @@
 #ifndef __VulkanTextures_hpp__
 #define __VulkanTextures_hpp__
 
+#include "core/Textures.hpp"
+#include "utils/FreeList.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
-#include "utils/FreeList.hpp"
 
 namespace vengine
 {
@@ -13,7 +14,7 @@ namespace vengine
  * @brief A class to manage bindless textures
  *
  */
-class VulkanTextures
+class VulkanTextures : public Textures
 {
 public:
     VulkanTextures(VulkanContext &vkctx);
@@ -32,10 +33,9 @@ public:
 
     std::shared_ptr<Texture> createTexture(std::string imagePath,
                                            ColorSpace colorSpace = ColorSpace::sRGB,
-                                           bool keepImage = false,
-                                           bool addDescriptor = true);
-    std::shared_ptr<Texture> createTexture(std::shared_ptr<Image<stbi_uc>> image, bool addDescriptor = true);
-    std::shared_ptr<Texture> createTextureHDR(std::string imagePath, bool keepImage = false);
+                                           bool keepImage = false) override;
+    std::shared_ptr<Texture> createTexture(std::shared_ptr<Image<stbi_uc>> image) override;
+    std::shared_ptr<Texture> createTextureHDR(std::string imagePath, bool keepImage = false) override;
 
     std::shared_ptr<Texture> addTexture(std::shared_ptr<Texture> tex);
 

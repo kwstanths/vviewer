@@ -9,7 +9,7 @@
 
 #include <core/Camera.hpp>
 #include <core/SceneObject.hpp>
-#include <core/Materials.hpp>
+#include <core/Material.hpp>
 #include <core/Lights.hpp>
 
 namespace vengine

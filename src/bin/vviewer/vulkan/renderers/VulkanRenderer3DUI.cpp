@@ -88,13 +88,13 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
 {
     /* Get global transform position */
     auto worldPos = getTranslation(modelMatrix);
-    auto cameraDistance = glm::distance(camera->getTransform().getPosition(), worldPos);
+    auto cameraDistance = glm::distance(camera->transform().position(), worldPos);
 
     /* Keep the same size for the transform on screen at all times */
     float scale = 0.0155f;
     scale *= cameraDistance;
-    if (camera->getType() == CameraType::PERSPECTIVE) {
-        float fov = reinterpret_cast<PerspectiveCamera *>(camera.get())->getFoV();
+    if (camera->type() == CameraType::PERSPECTIVE) {
+        float fov = reinterpret_cast<PerspectiveCamera *>(camera.get())->fov();
         scale *= fov / 60.0F;
     }
 

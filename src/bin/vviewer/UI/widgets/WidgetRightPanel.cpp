@@ -31,7 +31,7 @@ WidgetRightPanel::WidgetRightPanel(QWidget *parent, Engine *engine)
     m_widgetScroll = new QScrollArea();
     m_widgetScroll->setWidget(m_widgetControls);
 
-    m_widgetEnvironment = new WidgetEnvironment(nullptr, m_engine->scene());
+    m_widgetEnvironment = new WidgetEnvironment(nullptr, &m_engine->scene());
 
     QTabWidget *widgetTab = new QTabWidget();
     widgetTab->insertTab(0, m_widgetScroll, "Scene object");

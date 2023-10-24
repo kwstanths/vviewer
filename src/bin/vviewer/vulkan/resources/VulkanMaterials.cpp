@@ -127,9 +127,7 @@ std::shared_ptr<Material> VulkanMaterials::createMaterial(const std::string &nam
     return createMaterial(name, name, type, createDescriptors);
 }
 
-std::shared_ptr<Material> VulkanMaterials::createMaterialFromDisk(std::string name,
-                                                                  std::string stackDirectory,
-                                                                  VulkanTextures &textures)
+std::shared_ptr<Material> VulkanMaterials::createMaterialFromDisk(std::string name, std::string stackDirectory, Textures &textures)
 {
     auto material = createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
     if (material == nullptr)
@@ -155,7 +153,7 @@ std::shared_ptr<Material> VulkanMaterials::createMaterialFromDisk(std::string na
     return material;
 }
 
-std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, std::string filename, VulkanTextures &textures)
+std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, std::string filename, Textures &textures)
 {
     struct zip_t *zip = zip_open(filename.c_str(), 0, 'r');
     if (zip == nullptr) {
@@ -276,7 +274,7 @@ std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, s
 }
 
 std::vector<std::shared_ptr<Material>> VulkanMaterials::createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
-                                                                                VulkanTextures &textures)
+                                                                                Textures &textures)
 {
     auto getTexture = [&](ImportedTexture tex) {
         if (tex.image != nullptr) {

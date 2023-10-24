@@ -85,10 +85,7 @@ void VulkanTextures::updateTextures()
     m_texturesToUpdate.clear();
 }
 
-std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath,
-                                                       ColorSpace colorSpace,
-                                                       bool keepImage,
-                                                       bool addDescriptor)
+std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath, ColorSpace colorSpace, bool keepImage)
 {
     try {
         auto &imagesMap = AssetManager::getInstance().imagesCharMap();
@@ -101,7 +98,7 @@ std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath,
             imagesMap.add(image);
         }
 
-        auto temp = createTexture(image, addDescriptor);
+        auto temp = createTexture(image);
 
         if (!keepImage) {
             imagesMap.remove(imagePath);
@@ -116,7 +113,7 @@ std::shared_ptr<Texture> VulkanTextures::createTexture(std::string imagePath,
     return nullptr;
 }
 
-std::shared_ptr<Texture> VulkanTextures::createTexture(std::shared_ptr<Image<stbi_uc>> image, bool addDescriptor)
+std::shared_ptr<Texture> VulkanTextures::createTexture(std::shared_ptr<Image<stbi_uc>> image)
 {
     try {
         auto &texturesMap = AssetManager::getInstance().texturesMap();
@@ -128,9 +125,7 @@ std::shared_ptr<Texture> VulkanTextures::createTexture(std::shared_ptr<Image<stb
         auto temp = std::make_shared<VulkanTexture>(
             image, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), true);
 
-        if (addDescriptor) {
-            addTexture(temp);
-        }
+        addTexture(temp);
 
         return texturesMap.add(temp);
     } catch (std::runtime_error &e) {

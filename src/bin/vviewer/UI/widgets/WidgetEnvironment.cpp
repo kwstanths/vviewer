@@ -24,7 +24,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
     /* Initialize camera widget */
     /* Initialize camera trasform */
     m_cameraTransformWidget = new WidgetTransform(nullptr, nullptr, "Transform:");
-    m_cameraTransformWidget->setTransform(m_camera->getTransform());
+    m_cameraTransformWidget->setTransform(m_camera->transform());
     connect(m_cameraTransformWidget->m_rotationX, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
     connect(m_cameraTransformWidget->m_rotationY, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
     connect(m_cameraTransformWidget->m_rotationZ, SIGNAL(valueChanged(double)), this, SLOT(onCameraWidgetChanged(double)));
@@ -35,7 +35,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
     m_cameraFov = new QDoubleSpinBox(nullptr);
     m_cameraFov->setMinimum(1);
     m_cameraFov->setMaximum(179);
-    m_cameraFov->setValue(m_camera->getFoV());
+    m_cameraFov->setValue(m_camera->fov());
     connect(m_cameraFov, SIGNAL(valueChanged(double)), this, SLOT(onCameraFovChanged(double)));
     QHBoxLayout *layoutCameraFoV = new QHBoxLayout();
     layoutCameraFoV->addWidget(new QLabel("Field of view: "));
@@ -120,7 +120,7 @@ void WidgetEnvironment::updateMaps()
 void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
 {
     m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(c);
-    m_cameraFov->setValue(m_camera->getFoV());
+    m_cameraFov->setValue(m_camera->fov());
 }
 
 void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool updateUI)
@@ -164,7 +164,7 @@ void WidgetEnvironment::updateCamera()
 {
     /* If the transform was changed from the UI, update camera and return */
     if (m_cameraTransformWidgetChanged) {
-        m_camera->getTransform() = m_cameraTransformWidget->getTransform();
+        m_camera->transform() = m_cameraTransformWidget->getTransform();
         m_cameraTransformWidgetChanged = false;
         return;
     }
@@ -173,9 +173,9 @@ void WidgetEnvironment::updateCamera()
         Else, check if the scene camera changed and update the UI with blocked signals, so as to not trigger
         another widget signal
     */
-    if (!(m_cameraTransformWidget->getTransform() == m_camera->getTransform())) {
+    if (!(m_cameraTransformWidget->getTransform() == m_camera->transform())) {
         m_cameraTransformWidget->blockSignals(true);
-        m_cameraTransformWidget->setTransform(m_camera->getTransform());
+        m_cameraTransformWidget->setTransform(m_camera->transform());
         m_cameraTransformWidget->blockSignals(false);
     }
 }
@@ -214,7 +214,7 @@ void WidgetEnvironment::onEnvironmentChanged(int)
 
 void WidgetEnvironment::onCameraFovChanged(double)
 {
-    m_camera->setFoV(m_cameraFov->value());
+    m_camera->fov() = m_cameraFov->value();
 }
 
 void WidgetEnvironment::onEnvironmentMapChanged(int)

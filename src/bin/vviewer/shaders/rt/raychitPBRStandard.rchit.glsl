@@ -127,6 +127,9 @@ void main()
 
             const float dotProduct = dot(-gl_WorldRayDirectionEXT, worldNormal);
             float lightDirectPdf = sampledPointPdf * distanceSquared(gl_ObjectRayOriginEXT, worldPosition) / dotProduct;
+			
+			uint totalLights = rayTracingData.lights.r;
+			lightDirectPdf *= (1.0 / totalLights);
 
 			float weightMIS = PowerHeuristic(1, rayPayload.bsdfPdf, 1, lightDirectPdf);
 			rayPayload.radiance += weightMIS * emissive * rayPayload.beta;

@@ -19,30 +19,29 @@ public:
     Transform(glm::vec3 pos, glm::vec3 scale, glm::quat rotation);
     Transform(glm::vec3 pos, glm::vec3 scale, glm::vec3 eulerAngles);
 
-    static constexpr glm::vec3 X = glm::vec3(1, 0, 0);
-    static constexpr glm::vec3 Y = glm::vec3(0, 1, 0);
-    static constexpr glm::vec3 Z = glm::vec3(0, 0, 1);
+    static constexpr glm::vec3 WORLD_X = glm::vec3(1, 0, 0);
+    static constexpr glm::vec3 WORLD_Y = glm::vec3(0, 1, 0);
+    static constexpr glm::vec3 WORLD_Z = glm::vec3(0, 0, 1);
 
-    void setPosition(const glm::vec3 &newPosition);
-    void setPosition(float x, float y, float z);
-    glm::vec3 getPosition() const;
+    const glm::vec3 &position() const;
+    glm::vec3 &position();
 
+    const glm::quat &rotation() const;
     void setRotation(const glm::quat &newRotation);
     /* Values in radians */
     void setRotationEuler(float x, float y, float z);
     void setRotation(glm::vec3 forward, glm::vec3 up);
-    glm::quat getRotation() const;
 
-    void setScale(const glm::vec3 &newScale);
-    void setScale(float x, float y, float z);
-    glm::vec3 getScale() const;
+    const glm::vec3 &scale() const;
+    glm::vec3 &scale();
 
-    inline glm::vec3 getX() const { return m_x; }
-    inline glm::vec3 getY() const { return m_y; }
-    inline glm::vec3 getZ() const { return m_z; }
-    inline glm::vec3 getForward() const { return -m_z; }
-    inline glm::vec3 getUp() const { return m_y; }
-    inline glm::vec3 getRight() const { return m_x; }
+    inline const glm::vec3 &X() const { return m_x; }
+    inline const glm::vec3 &Y() const { return m_y; }
+    inline const glm::vec3 &Z() const { return m_z; }
+
+    inline glm::vec3 forward() const { return -m_z; }
+    inline glm::vec3 up() const { return m_y; }
+    inline glm::vec3 right() const { return m_x; }
 
     glm::mat4 getModelMatrix() const;
 

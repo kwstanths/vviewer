@@ -10,197 +10,202 @@
 #include <debug_tools/Console.hpp>
 
 #include "core/Mesh.hpp"
-#include "core/Materials.hpp"
+#include "core/Material.hpp"
 #include "core/Lights.hpp"
 
 #include "IDGeneration.hpp"
 #include "FreeList.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 static const uint32_t MAX_COMPONENTS = 1000;
 
-class Component {
+class Component
+{
 public:
     virtual ~Component() = default;
     ID m_entity = 0;
     bool removed = false;
+
 private:
 };
 
-class ComponentMesh : public Component {
+class ComponentMesh : public Component
+{
 public:
-    ComponentMesh() {};
+    ComponentMesh(){};
     std::shared_ptr<Mesh> mesh;
 };
-class ComponentMaterial : public Component {
+class ComponentMaterial : public Component
+{
 public:
-    ComponentMaterial() {};
+    ComponentMaterial(){};
     std::shared_ptr<Material> material;
 };
-class ComponentLight : public Component {
+class ComponentLight : public Component
+{
 public:
-    ComponentLight() {};
+    ComponentLight(){};
     std::shared_ptr<Light> light;
 };
 
 /* Component buffers */
-class IComponentBuffer {
+class IComponentBuffer
+{
 public:
-
     virtual void clear() = 0;
 
 private:
-
 };
-template<typename T>
+template <typename T>
 class ComponentBuffer : public IComponentBuffer, public FreeBlockList<T>
 {
 public:
-    ComponentBuffer(uint32_t nComponents) : FreeBlockList<T>(nComponents){};
+    ComponentBuffer(uint32_t nComponents)
+        : FreeBlockList<T>(nComponents){};
 
-    void clear() override 
-    {
-        FreeBlockList<T>::clear();
-    }
+    void clear() override { FreeBlockList<T>::clear(); }
 
 private:
 };
 
 /* Component manager */
-class ComponentManager {
+class ComponentManager
+{
     friend class Entity;
+
 public:
-    static ComponentManager& getInstance()
+    static ComponentManager &getInstance()
     {
         static ComponentManager instance;
         return instance;
     }
-    ComponentManager(ComponentManager const&) = delete;
-    void operator=(ComponentManager const&) = delete;
-
+    ComponentManager(ComponentManager const &) = delete;
+    void operator=(ComponentManager const &) = delete;
 
     void clear();
 
 private:
-    ComponentManager() 
+    ComponentManager()
     {
         {
-            const char * name = typeid(ComponentMesh).name();
+            const char *name = typeid(ComponentMesh).name();
             m_componentBuffers.insert({name, new ComponentBuffer<ComponentMesh>(MAX_COMPONENTS)});
         }
         {
-            const char * name = typeid(ComponentMaterial).name();
+            const char *name = typeid(ComponentMaterial).name();
             m_componentBuffers.insert({name, new ComponentBuffer<ComponentMaterial>(MAX_COMPONENTS)});
         }
         {
-            const char * name = typeid(ComponentLight).name();
+            const char *name = typeid(ComponentLight).name();
             m_componentBuffers.insert({name, new ComponentBuffer<ComponentLight>(MAX_COMPONENTS)});
         }
-
     }
-    std::unordered_map<const char *, IComponentBuffer*> m_componentBuffers;
+    std::unordered_map<const char *, IComponentBuffer *> m_componentBuffers;
 
-    template<typename T>
-    T* create()
+    template <typename T>
+    T *create()
     {
         auto componentBuffer = getComponentBuffer<T>();
-        auto * component = componentBuffer->add(T());
+        auto *component = componentBuffer->add(T());
         return component;
     }
 
-    template<typename T>
-    void remove(T * t)
+    template <typename T>
+    void remove(T *t)
     {
         auto componentBuffer = getComponentBuffer<T>();
         size_t index = componentBuffer->getIndex(t);
         componentBuffer->remove(index);
     }
 
-    template<typename T>
-	ComponentBuffer<T>* getComponentBuffer()
-	{
-		const char* name = typeid(T).name();
-		return static_cast<ComponentBuffer<T>*>(m_componentBuffers[name]);
-	}
+    template <typename T>
+    ComponentBuffer<T> *getComponentBuffer()
+    {
+        const char *name = typeid(T).name();
+        return static_cast<ComponentBuffer<T> *>(m_componentBuffers[name]);
+    }
 };
 
 /* Entity */
-class Entity {
+class Entity
+{
 public:
     Entity();
-    
+
     virtual ~Entity()
     {
-        // TODO optimise this 
+        // TODO optimise this
         remove<ComponentMesh>();
         remove<ComponentMaterial>();
         remove<ComponentLight>();
     }
 
-    template<typename T>
-    T& add()
+    template <typename T>
+    T &add()
     {
         static_assert(std::is_base_of<Component, T>::value);
 
-        if (has<T>()) return get<T>();
+        if (has<T>())
+            return get<T>();
 
-        auto& cm = ComponentManager::getInstance();
-        T * c = cm.create<T>();
+        auto &cm = ComponentManager::getInstance();
+        T *c = cm.create<T>();
         c->m_entity = m_id;
         c->removed = true;
 
-        const char * name = typeid(T).name();
+        const char *name = typeid(T).name();
         m_components[name] = c;
         return *c;
     }
 
-    template<typename T>
-    T& get() const
+    template <typename T>
+    T &get() const
     {
         static_assert(std::is_base_of<Component, T>::value);
 
-        const char * name = typeid(T).name();
+        const char *name = typeid(T).name();
         auto itr = m_components.find(name);
-        if (itr == m_components.end() || itr->second->removed == false)
-        {
+        if (itr == m_components.end() || itr->second->removed == false) {
             throw std::runtime_error("Entity::get(): Component doesn't exist");
-        }
-        else return *static_cast<T*>(itr->second);
+        } else
+            return *static_cast<T *>(itr->second);
     }
 
-    template<typename T>
+    template <typename T>
     bool has() const
     {
         static_assert(std::is_base_of<Component, T>::value);
 
-        const char * name = typeid(T).name();
+        const char *name = typeid(T).name();
         auto itr = m_components.find(name);
         return (itr != m_components.end()) && (itr->second->removed != false);
     }
 
     ID getID() const;
 
-    template<typename T>
+    template <typename T>
     void remove()
     {
         static_assert(std::is_base_of<Component, T>::value);
 
-        if (!has<T>()) return;
-        
-        const char * name = typeid(T).name();
-        T * t = static_cast<T*>(m_components[name]);
+        if (!has<T>())
+            return;
+
+        const char *name = typeid(T).name();
+        T *t = static_cast<T *>(m_components[name]);
         m_components.erase(name);
 
-        auto& cm = ComponentManager::getInstance();
+        auto &cm = ComponentManager::getInstance();
         cm.remove<T>(t);
     }
 
 private:
     ID m_id;
-    std::unordered_map<const char *, Component*> m_components;
+    std::unordered_map<const char *, Component *> m_components;
 };
 
-}
+}  // namespace vengine
 
 #endif

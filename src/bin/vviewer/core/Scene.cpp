@@ -59,10 +59,10 @@ SceneData Scene::getSceneData() const
     assert(m_camera != nullptr);
 
     SceneData sceneData;
-    sceneData.m_view = m_camera->getViewMatrix();
-    sceneData.m_viewInverse = m_camera->getViewMatrixInverse();
-    sceneData.m_projection = m_camera->getProjectionMatrix();
-    sceneData.m_projectionInverse = m_camera->getProjectionMatrixInverse();
+    sceneData.m_view = m_camera->viewMatrix();
+    sceneData.m_viewInverse = m_camera->viewMatrixInverse();
+    sceneData.m_projection = m_camera->projectionMatrix();
+    sceneData.m_projectionInverse = m_camera->projectionMatrixInverse();
     sceneData.m_exposure = glm::vec4(getExposure(), getAmbientIBL(), 0, 0);
     return sceneData;
 }

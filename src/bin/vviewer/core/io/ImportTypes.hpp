@@ -61,7 +61,7 @@ struct ImportedMaterial {
     float ao = 1.0F;
     std::optional<ImportedTexture> aoTexture = std::nullopt;
 
-    glm::vec3 emissiveColor = {1, 1, 1};
+    glm::vec3 emissiveColor = {0, 0, 0};
     std::optional<ImportedTexture> emissiveTexture = std::nullopt;
     float emissiveStrength = 1.0F;
 

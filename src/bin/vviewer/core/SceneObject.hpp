@@ -4,7 +4,6 @@
 #include <math/Transform.hpp>
 #include <utils/IDGeneration.hpp>
 #include <utils/ECS.hpp>
-#include "Materials.hpp"
 #include "SceneNode.hpp"
 
 namespace vengine

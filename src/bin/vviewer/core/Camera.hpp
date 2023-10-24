@@ -8,30 +8,34 @@
 
 #include "math/Transform.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 enum class CameraType {
     PERSPECTIVE = 0,
     ORTHOGRAPHIC = 1,
 };
 
-class Camera {
+class Camera
+{
 public:
+    virtual CameraType type() const = 0;
 
-    virtual CameraType getType() const = 0;
+    Transform &transform();
+    const Transform &transform() const;
 
-    glm::mat4 getViewMatrix() const;
-    glm::mat4 getViewMatrixInverse() const;
-    virtual glm::mat4 getProjectionMatrix() const = 0;
-    virtual glm::mat4 getProjectionMatrixInverse() const = 0;
+    const int &width() const;
+    const int &height() const;
+
+    const float &aspectRatio() const;
+
+    glm::mat4 viewMatrix() const;
+    glm::mat4 viewMatrixInverse() const;
+
+    virtual glm::mat4 projectionMatrix() const = 0;
+    virtual glm::mat4 projectionMatrixInverse() const = 0;
 
     virtual void setWindowSize(int width, int height);
-
-    int getWidth() const;
-    int getHeight() const;
-    float getAspectRatio() const;
-
-    Transform& getTransform();
 
 protected:
     int m_width{};
@@ -42,30 +46,33 @@ private:
     Transform m_transform;
 };
 
-class PerspectiveCamera : public Camera {
+class PerspectiveCamera : public Camera
+{
 public:
-    CameraType getType() const;
+    CameraType type() const override;
 
-    glm::mat4 getProjectionMatrix() const;
-    glm::mat4 getProjectionMatrixInverse() const;
+    glm::mat4 projectionMatrix() const override;
+    glm::mat4 projectionMatrixInverse() const override;
 
     /* In degrees */
-    void setFoV(float fov);
-    float getFoV() const;
+    const float &fov() const;
+    float &fov();
+
 private:
     float m_fov = 60.0f;
 };
 
-class OrthographicCamera : public Camera {
+class OrthographicCamera : public Camera
+{
 public:
-    CameraType getType() const;
+    CameraType type() const override;
 
-    glm::mat4 getProjectionMatrix() const;
-    glm::mat4 getProjectionMatrixInverse() const;
+    glm::mat4 projectionMatrix() const override;
+    glm::mat4 projectionMatrixInverse() const override;
 
     void setOrthoWidth(float orthoWidth);
-    float getOrthoWidth() const;
-    float getOrthoHeight() const;
+    const float &orthoWidth() const;
+    const float &orthoHeight() const;
 
 protected:
     virtual void setWindowSize(int width, int height) override;
@@ -73,9 +80,8 @@ protected:
 private:
     float m_orthoWidth = 10.F;
     float m_orthoHeight = 10.F;
-
 };
 
-}
+}  // namespace vengine
 
 #endif

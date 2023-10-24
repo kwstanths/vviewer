@@ -17,6 +17,8 @@
 
 #include "debug_tools/Console.hpp"
 
+#include "core/io/FileTypes.hpp"
+#include "core/StringUtils.hpp"
 #include "math/Transform.hpp"
 #include "math/MathUtils.hpp"
 
@@ -27,28 +29,10 @@
 namespace vengine
 {
 
-enum class FileType {
-    UNKNOWN = -1,
-    OBJ = 0,
-    GLTF = 1,
-    FBX = 2,
-};
-std::unordered_map<std::string, FileType> fileTypes = {
-    {"obj", FileType::OBJ},
-    {"OBJ", FileType::OBJ},
-    {"gltf", FileType::GLTF},
-    {"gltf2", FileType::GLTF},
-    {"GLTF", FileType::GLTF},
-    {"glb", FileType::GLTF},
-    {"GLB", FileType::GLTF},
-    {"fbx", FileType::FBX},
-    {"FBX", FileType::FBX},
-};
-
 FileType detectFileType(std::string extension)
 {
-    auto itr = fileTypes.find(extension);
-    if (itr == fileTypes.end()) {
+    auto itr = fileTypesFromExtensions.find(extension);
+    if (itr == fileTypesFromExtensions.end()) {
         return FileType::UNKNOWN;
     }
     return itr->second;
@@ -124,8 +108,8 @@ Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene)
                     printErrorMessage = false;
                 }
 
-                auto t1 = glm::cross(vertices[i].normal, Transform::Z);
-                auto t2 = glm::cross(vertices[i].normal, Transform::X);
+                auto t1 = glm::cross(vertices[i].normal, Transform::WORLD_Z);
+                auto t2 = glm::cross(vertices[i].normal, Transform::WORLD_X);
                 if (glm::length(t1) > glm::length(t2)) {
                     vertices[i].tangent = t1;
                 } else {
@@ -234,6 +218,13 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
         } else {
             /* Parse from disk */
             std::string fullPath = relativePath + std::string(texturePath.C_Str());
+
+#ifdef _WIN32
+            // TODO
+            assert(0 == 1);
+#endif
+            replaceAll(fullPath, "\\", "/");
+
             unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, nullptr, STBI_rgb_alpha);
             channels = 4;
             if (textureData == nullptr) {
@@ -277,7 +268,7 @@ std::shared_ptr<Image<uint8_t>> assimpCreateImage(std::string name,
 std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                                                       std::string filename,
                                                       std::string folderPath,
-                                                      std::string textureNamePrefix = "")
+                                                      std::string materialNamePrefix = "")
 {
     std::vector<ImportedMaterial> materials;
 
@@ -289,7 +280,7 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
         {
             aiString name;
             mat->Get(AI_MATKEY_NAME, name);
-            importedMaterial.name = textureNamePrefix + ":" + std::string(name.C_Str());
+            importedMaterial.name = materialNamePrefix + ":" + std::string(name.C_Str());
             importedMaterial.filepath = filename;
         }
 
@@ -440,30 +431,36 @@ Tree<ImportedModelNode> assimpLoadModel(std::string filename, std::vector<Import
 
     FileType fileType;
     std::string folderPath;
-    std::string filenamePure;
+    std::string filenameWithoutExtension;
     {
         auto extensionPointPosition = filename.find_last_of(".");
         auto lastDashPosition = filename.find_last_of("/");
 
+        /*
+            e.g. filename:              /whatever/models/test.obj
+            folderPath is:              /whatever/models/
+            filenameWithoutExtension:   test
+        */
+
         fileType = detectFileType(filename.substr(extensionPointPosition + 1));
         folderPath = filename.substr(0, lastDashPosition) + "/";
-        filenamePure = filename.substr(lastDashPosition + 1, extensionPointPosition - lastDashPosition - 1);
+        filenameWithoutExtension = filename.substr(lastDashPosition + 1, extensionPointPosition - lastDashPosition - 1);
     }
 
     switch (fileType) {
         case FileType::GLTF: {
-            materials = assimpLoadMaterialsGLTF(scene, filename, folderPath, filenamePure);
+            materials = assimpLoadMaterialsGLTF(scene, filename, folderPath, filenameWithoutExtension);
             break;
         }
         case FileType::OBJ: {
-            debug_tools::ConsoleCritical("AssimpLoadMaterials(): .obj materials not implemented");
+            debug_tools::ConsoleWarning("AssimpLoadMaterials(): .obj materials not implemented");
             break;
         }
         case FileType::FBX: {
-            debug_tools::ConsoleCritical("AssimpLoadMaterials(): .fbx materials not implemented");
+            debug_tools::ConsoleWarning("AssimpLoadMaterials(): .fbx materials not implemented");
             break;
         }
-        case FileType::UNKNOWN: {
+        default: {
             debug_tools::ConsoleWarning("AssimpLoadMaterials(): Unknown model type");
             break;
         }

@@ -46,7 +46,7 @@ public:
                    VulkanSwapchain &swapchain,
                    VulkanTextures &textures,
                    VulkanMaterials &materials,
-                   VulkanScene *scene);
+                   VulkanScene &scene);
 
     VkResult initResources();
     VkResult initSwapChainResources();
@@ -54,16 +54,13 @@ public:
     VkResult releaseSwapChainResources();
     VkResult releaseResources();
 
-    bool isRTEnabled() const;
-    void renderRT();
+    RendererRayTracing &rendererRayTracing() override;
 
     glm::vec3 selectObject(float x, float y);
 
-    VulkanRendererRayTracing &getRayTracingRenderer() { return m_rendererRayTracing; }
+    VulkanRendererSkybox &getRendererSkybox() { return m_rendererSkybox; }
 
-    std::shared_ptr<Model3D> createVulkanModel(std::string filename, bool importMaterials = false);
     std::shared_ptr<Cubemap> createCubemap(std::string directory);
-    std::shared_ptr<EnvironmentMap> createEnvironmentMap(std::string imagePath, bool keepTexture = false);
 
     VkResult renderFrame(SceneGraph &sceneGraphArray);
 
@@ -88,7 +85,7 @@ private:
     VulkanSwapchain &m_swapchain;
     VulkanMaterials &m_materials;
     VulkanTextures &m_textures;
-    VulkanScene *m_scene = nullptr;
+    VulkanScene &m_scene;
     VulkanRandom m_random;
 
     /* Render pass and framebuffers */
