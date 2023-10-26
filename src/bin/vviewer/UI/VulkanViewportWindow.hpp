@@ -7,10 +7,10 @@
 
 #include "ViewportWindow.hpp"
 
-#include "vulkan/VulkanEngine.hpp"
-#include "vulkan/VulkanScene.hpp"
-#include "vulkan/VulkanSwapchain.hpp"
-#include "vulkan/renderers/VulkanRenderer.hpp"
+#include "vengine/vulkan/VulkanEngine.hpp"
+#include "vengine/vulkan/VulkanScene.hpp"
+#include "vengine/vulkan/VulkanSwapchain.hpp"
+#include "vengine/vulkan/renderers/VulkanRenderer.hpp"
 
 class VulkanViewportWindow : public ViewportWindow
 {

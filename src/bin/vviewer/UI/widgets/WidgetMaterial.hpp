@@ -6,8 +6,8 @@
 #include <qgroupbox.h>
 #include <qlayout.h>
 
-#include "core/Materials.hpp"
-#include "core/SceneObject.hpp"
+#include "vengine/core/Materials.hpp"
+#include "vengine/core/SceneObject.hpp"
 
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetMaterialLambert.hpp"

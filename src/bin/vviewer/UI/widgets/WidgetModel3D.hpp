@@ -4,7 +4,7 @@
 #include <qwidget.h>
 #include <qcombobox.h>
 
-#include "core/SceneObject.hpp"
+#include "vengine/core/SceneObject.hpp"
 
 /* A UI widget to represent a mesh model */
 class WidgetModel3D : public QWidget

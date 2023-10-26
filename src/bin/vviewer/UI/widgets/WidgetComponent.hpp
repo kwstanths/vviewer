@@ -10,10 +10,10 @@
 #include <stdexcept>
 
 #include "UI/widgets/WidgetLight.hpp"
-#include "core/Materials.hpp"
-#include "core/SceneObject.hpp"
-#include "core/Engine.hpp"
-#include "utils/ECS.hpp"
+#include "vengine/core/Materials.hpp"
+#include "vengine/core/SceneObject.hpp"
+#include "vengine/core/Engine.hpp"
+#include "vengine/utils/ECS.hpp"
 
 #include "WidgetModel3D.hpp"
 #include "WidgetMaterial.hpp"

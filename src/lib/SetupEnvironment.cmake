@@ -12,13 +12,7 @@ macro(SetupEnvironment)
     endif()
 	
     set(INTERNAL_LIBRARIES_ROOT ${PROJECT_ROOT}/src/lib)
-    
-    # QT
-    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{Qt6_DIR})
-    find_package(Qt6 COMPONENTS Widgets Concurrent REQUIRED)
-    set(QT_INCLUDE_DIRS ${Qt6Widgets_INCLUDE_DIRS})
-    set(QT_LIBRARIES Qt6::Widgets)
-    
+        
     # VULKAN
     find_package(Vulkan COMPONENTS glslc REQUIRED)
     set(VULKAN_INCLUDE_DIRS ${Vulkan_INCLUDE_DIRS})
@@ -48,6 +42,10 @@ macro(SetupEnvironment)
     # DEBUG_TOOLS
     set(DEBUG_TOOLS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/debug_tools/)
     set(DEBUG_TOOLS_LIBRARIES debug_tools)
+    
+    # VENGINE
+    set(VENGINE_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/vengine/)
+    set(VENGINE_LIBRARIES vengine)
    
     if(MSVC)
         #ASSIMP
@@ -61,8 +59,7 @@ macro(SetupEnvironment)
     endif()
 
     set(ENGINE_INCLUDE_DIRS 
-        ${INTERNAL_LIBRARIES_ROOT}
-        ${QT_INCLUDE_DIRS} 
+        ${INTERNAL_LIBRARIES_ROOT}        
         ${VULKAN_INCLUDE_DIRS}
         ${GLM_INCLUDE_DIRS}
         ${STB_INCLUDE_DIRS}
@@ -70,15 +67,16 @@ macro(SetupEnvironment)
         ${ZIP_INCLUDE_DIRS}
         ${TBB_INCLUDE_DIRS}
         ${DEBUG_TOOLS_INCLUDE_DIRS}
+        ${VENGINE_INCLUDE_DIRS}
         ${ASSIMP_INCLUDE_DIRS}
 	)
 	
 	set(ENGINE_LIBS
-		${QT_LIBRARIES}
 		${VULKAN_LIBRARIES}
 		${ZIP_LIBRARIES}
 		${TBB_LIBRARIES}
 		${DEBUG_TOOLS_LIBRARIES}
+		${VENGINE_LIBRARIES}
 		${ASSIMP_LIBRARIES}
 	)
 

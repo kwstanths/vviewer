@@ -7,9 +7,9 @@
 #include <qgroupbox.h>
 #include <qcolordialog.h>
 
-#include <core/AssetManager.hpp>
-#include <core/Materials.hpp>
-#include "core/SceneObject.hpp"
+#include <vengine/core/AssetManager.hpp>
+#include <vengine/core/Materials.hpp>
+#include "vengine/core/SceneObject.hpp"
 
 #include "UI/UIUtils.hpp"
 
@@ -19,7 +19,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
     : QWidget(parent)
 {
     m_scene = scene;
-    m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(m_scene->getCamera());
+    m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(m_scene->camera());
 
     /* Initialize camera widget */
     /* Initialize camera trasform */
@@ -65,7 +65,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
         m_comboMaps->addItems(getImportedEnvironmentMaps());
         connect(m_comboMaps, SIGNAL(currentIndexChanged(int)), this, SLOT(onEnvironmentMapChanged(int)));
 
-        m_backgroundColorWidget = new WidgetColorButton(this, m_scene->getBackgroundColor());
+        m_backgroundColorWidget = new WidgetColorButton(this, m_scene->backgroundColor());
         connect(m_backgroundColorWidget, SIGNAL(colorChanged(glm::vec3)), this, SLOT(onBackgroundColorChanged(glm::vec3)));
 
         m_layoutEnvironmentGroupBox = new QVBoxLayout();
@@ -113,7 +113,7 @@ void WidgetEnvironment::updateMaps()
     m_comboMaps->blockSignals(true);
     m_comboMaps->clear();
     m_comboMaps->addItems(getImportedEnvironmentMaps());
-    m_comboMaps->setCurrentText(QString::fromStdString(m_scene->getSkybox()->getMap()->name()));
+    m_comboMaps->setCurrentText(QString::fromStdString(m_scene->skyboxMaterial()->getMap()->name()));
     m_comboMaps->blockSignals(false);
 }
 
@@ -131,21 +131,21 @@ void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool upd
 
     switch (type) {
         case EnvironmentType::SOLID_COLOR:
-            m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR);
+            m_scene->environmentType() = EnvironmentType::SOLID_COLOR;
             /* Set the contribution of IBL lighting to 0 */
-            m_scene->setAmbientIBL(0);
+            m_scene->ambientIBLFactor() = 0;
             m_comboMaps->hide();
             m_backgroundColorWidget->show();
             break;
         case EnvironmentType::HDRI:
-            m_scene->setEnvironmentType(EnvironmentType::HDRI);
-            m_scene->setAmbientIBL(1);
+            m_scene->environmentType() = EnvironmentType::HDRI;
+            m_scene->ambientIBLFactor() = 1;
             m_comboMaps->show();
             m_backgroundColorWidget->hide();
             break;
         case EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING:
-            m_scene->setEnvironmentType(EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING);
-            m_scene->setAmbientIBL(1);
+            m_scene->environmentType() = EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING;
+            m_scene->ambientIBLFactor() = 1;
             m_comboMaps->show();
             m_backgroundColorWidget->show();
             break;
@@ -157,7 +157,7 @@ void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool upd
 void WidgetEnvironment::setBackgroundColor(glm::vec3 backgroundColor)
 {
     m_backgroundColorWidget->setColor(backgroundColor);
-    m_scene->setBackgroundColor(backgroundColor);
+    m_scene->backgroundColor() = backgroundColor;
 }
 
 void WidgetEnvironment::updateCamera()
@@ -182,13 +182,13 @@ void WidgetEnvironment::updateCamera()
 
 void WidgetEnvironment::onBackgroundColorChanged(glm::vec3 color)
 {
-    m_scene->setBackgroundColor(color);
+    m_scene->backgroundColor() = color;
 }
 
 void WidgetEnvironment::onExposureChanged(int)
 {
     float exposure = m_exposureSlider->value() / 10.0f - 5.0f;
-    m_scene->setExposure(exposure);
+    m_scene->exposure() = exposure;
 }
 
 void WidgetEnvironment::onCameraWidgetChanged(double)
@@ -224,6 +224,5 @@ void WidgetEnvironment::onEnvironmentMapChanged(int)
     auto &envMaps = AssetManager::getInstance().environmentsMapMap();
     auto newEnvMap = envMaps.get(newEnvMapName);
 
-    auto materialSkybox = m_scene->getSkybox();
-    materialSkybox->setMap(newEnvMap);
+    m_scene->skyboxMaterial()->setMap(newEnvMap);
 }

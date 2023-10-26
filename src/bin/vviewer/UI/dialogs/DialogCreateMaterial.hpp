@@ -7,7 +7,7 @@
 #include <qpushbutton.h>
 #include <qtextedit.h>
 
-#include "core/Materials.hpp"
+#include "vengine/core/Materials.hpp"
 
 /* A dialog to add an object in a scene */
 class DialogCreateMaterial : public QDialog
@@ -20,10 +20,10 @@ public:
     QString m_selectedName = "";
 
 private:
-    QTextEdit * m_name;
-    QComboBox * m_materialType;
-    QPushButton * m_buttonOk = nullptr;
-    QPushButton * m_buttonCancel = nullptr;
+    QTextEdit *m_name;
+    QComboBox *m_materialType;
+    QPushButton *m_buttonOk = nullptr;
+    QPushButton *m_buttonCancel = nullptr;
 
 private Q_SLOTS:
     void onButtonOk();

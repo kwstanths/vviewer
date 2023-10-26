@@ -10,8 +10,8 @@
 #include <qlineedit.h>
 #include <qspinbox.h>
 
-#include "core/io/FileTypes.hpp"
-#include "core/Renderer.hpp"
+#include "vengine/core/io/FileTypes.hpp"
+#include "vengine/core/Renderer.hpp"
 
 using namespace vengine;
 

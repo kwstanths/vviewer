@@ -8,13 +8,12 @@
 #include <qwidget.h>
 #include <qmenu.h>
 
-#include <vulkan/vulkan_core.h>
+#include "vengine/utils/ECS.hpp"
+#include "vengine/core/AssetManager.hpp"
 
 #include "UI/widgets/WidgetComponent.hpp"
 #include "UI/widgets/WidgetEnvironment.hpp"
 #include "UI/widgets/WidgetMaterial.hpp"
-#include "utils/ECS.hpp"
-#include "core/AssetManager.hpp"
 
 using namespace vengine;
 

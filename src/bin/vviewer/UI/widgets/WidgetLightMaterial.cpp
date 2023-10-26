@@ -6,7 +6,7 @@
 #include <qlayout.h>
 #include <qgroupbox.h>
 
-#include <core/AssetManager.hpp>
+#include <vengine/core/AssetManager.hpp>
 #include <Console.hpp>
 
 #include "UI/UIUtils.hpp"

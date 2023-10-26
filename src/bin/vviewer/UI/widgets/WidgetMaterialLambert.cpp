@@ -9,8 +9,8 @@
 
 #include <glm/glm.hpp>
 
-#include "core/AssetManager.hpp"
-#include "core/Materials.hpp"
+#include "vengine/core/AssetManager.hpp"
+#include "vengine/core/Materials.hpp"
 
 #include "UI/UIUtils.hpp"
 

@@ -5,7 +5,7 @@
 #include <qwidget.h>
 #include <qpushbutton.h>
 
-#include <core/Texture.hpp>
+#include <vengine/core/Texture.hpp>
 
 QStringList getImportedModels();
 QStringList getCreatedMaterials();

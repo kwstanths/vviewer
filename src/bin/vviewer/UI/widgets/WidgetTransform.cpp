@@ -36,7 +36,7 @@ WidgetTransform::WidgetTransform(QWidget *parent, std::shared_ptr<SceneObject> s
     setFixedHeight(130);
 
     if (m_sceneObject != nullptr)
-        setTransform(m_sceneObject->m_localTransform);
+        setTransform(m_sceneObject->localTransform());
 
     connect(m_positionX, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
     connect(m_positionY, SIGNAL(valueChanged(double)), this, SLOT(onTransformChangedSlot(double)));
@@ -137,7 +137,7 @@ void WidgetTransform::updateTransformUI()
 {
     this->blockSignals(true);
     if (m_sceneObject != nullptr) {
-        glm::vec3 position = m_sceneObject->m_localTransform.position();
+        glm::vec3 position = m_sceneObject->localTransform().position();
         m_positionX->setValue(position.x);
         m_positionY->setValue(position.y);
         m_positionZ->setValue(position.z);
@@ -148,5 +148,5 @@ void WidgetTransform::updateTransformUI()
 void WidgetTransform::onTransformChangedSlot(double d)
 {
     if (m_sceneObject != nullptr)
-        m_sceneObject->m_localTransform = getTransform();
+        m_sceneObject->localTransform() = getTransform();
 }

@@ -11,7 +11,7 @@ VulkanViewportWindow::VulkanViewportWindow()
 {
     setSurfaceType(QSurface::SurfaceType::VulkanSurface);
 
-    m_engine = new VulkanEngine("veditor");
+    m_engine = new VulkanEngine("vviewer");
 
     m_vkinstance = new QVulkanInstance();
     m_vkinstance->setVkInstance(m_engine->context().instance());
@@ -25,7 +25,7 @@ VulkanViewportWindow::VulkanViewportWindow()
     camera->transform().position() = glm::vec3(0, 3, 10);
     camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(-15.F), 0, 0)));
 
-    m_engine->scene().setCamera(camera);
+    m_engine->scene().camera() = camera;
 
     m_updateCameraTimer = new QTimer();
     m_updateCameraTimer->setInterval(16);
@@ -61,9 +61,8 @@ void VulkanViewportWindow::exposeEvent(QExposeEvent *event)
     if (isExposed() && !m_initialized) {
         /* Perform first time initialization the first time the surface window becomes available */
         VkSurfaceKHR surface = m_vkinstance->surfaceForWindow(this);
-        m_engine->setSurface(surface);
 
-        m_engine->initResources();
+        m_engine->initResources(surface);
         m_engine->initSwapChainResources(static_cast<uint32_t>(size().width()), static_cast<uint32_t>(size().height()));
 
         Q_EMIT initializationFinished();
@@ -92,7 +91,7 @@ bool VulkanViewportWindow::event(QEvent *event)
 
 void VulkanViewportWindow::resizeEvent(QResizeEvent *ev)
 {
-    m_engine->scene().getCamera()->setWindowSize(ev->size().width(), ev->size().height());
+    m_engine->scene().camera()->setWindowSize(ev->size().width(), ev->size().height());
 
     VulkanSwapchain &swapchain = m_engine->swapchain();
 
@@ -163,7 +162,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
     /* Perform camera movement if right button is pressed */
     float delta = m_engine->delta();
     Qt::MouseButtons buttons = ev->buttons();
-    Transform &cameraTransform = m_engine->scene().getCamera()->transform();
+    Transform &cameraTransform = m_engine->scene().camera()->transform();
     if (buttons & Qt::RightButton) {
         float mouseSensitivity = 0.125f * delta;
 
@@ -183,13 +182,13 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
         if (selectedObject.get() == nullptr)
             return;
 
-        Transform &selectedObjectTransform = selectedObject->m_localTransform;
+        Transform &selectedObjectTransform = selectedObject->localTransform();
         glm::vec3 position = selectedObjectTransform.position();
 
         /* Get the basis vectors of the selected object */
-        glm::vec3 objectX = selectedObject->m_modelMatrix * glm::vec4(Transform::WORLD_X, 0);
-        glm::vec3 objectY = selectedObject->m_modelMatrix * glm::vec4(Transform::WORLD_Y, 0);
-        glm::vec3 objectZ = selectedObject->m_modelMatrix * glm::vec4(Transform::WORLD_Z, 0);
+        glm::vec3 objectX = selectedObject->modelMatrix() * glm::vec4(Transform::WORLD_X, 0);
+        glm::vec3 objectY = selectedObject->modelMatrix() * glm::vec4(Transform::WORLD_Y, 0);
+        glm::vec3 objectZ = selectedObject->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0);
 
         switch (m_selectedPressed) {
             case static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW): {
@@ -257,7 +256,7 @@ void VulkanViewportWindow::onUpdateCamera()
         speed = cameraFastSpeed;
 
     float finalSpeed = speed * m_engine->delta();
-    Transform &cameraTransform = m_engine->scene().getCamera()->transform();
+    Transform &cameraTransform = m_engine->scene().camera()->transform();
     cameraTransform.position() =
         cameraTransform.position() + static_cast<float>(m_keysPressed[Qt::Key_W]) * cameraTransform.forward() * finalSpeed;
     cameraTransform.position() =

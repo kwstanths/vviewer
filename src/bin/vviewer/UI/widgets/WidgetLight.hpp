@@ -7,8 +7,8 @@
 #include <qslider.h>
 #include <qlabel.h>
 
-#include <core/Lights.hpp>
-#include <utils/ECS.hpp>
+#include <vengine/core/Lights.hpp>
+#include <vengine/utils/ECS.hpp>
 
 #include "WidgetLightMaterial.hpp"
 
@@ -18,14 +18,14 @@ class WidgetLight : public QWidget
     Q_OBJECT
 public:
     static const int HEIGHT = 210;
-    WidgetLight(QWidget * parent, vengine::ComponentLight& lightComponent);
+    WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponent);
 
 private:
-    vengine::ComponentLight& m_lightComponent;
+    vengine::ComponentLight &m_lightComponent;
 
-    QComboBox * m_lightTypeComboBox;
+    QComboBox *m_lightTypeComboBox;
 
-    WidgetLightMaterial * m_widgetLightMaterial;
+    WidgetLightMaterial *m_widgetLightMaterial;
 
 private Q_SLOTS:
     void onLightTypeChanged(int);

@@ -5,7 +5,7 @@
 #include <qvulkaninstance.h>
 #include <qtimer.h>
 
-#include "core/Engine.hpp"
+#include "vengine/core/Engine.hpp"
 
 class ViewportWindow : public QWindow
 {

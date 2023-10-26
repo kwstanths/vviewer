@@ -18,9 +18,10 @@
 #include "widgets/WidgetRightPanel.hpp"
 #include "widgets/WidgetSceneGraph.hpp"
 
-#include "core/Scene.hpp"
-#include "core/io/Import.hpp"
-#include "utils/Tree.hpp"
+#include "vengine/core/Scene.hpp"
+#include "vengine/core/io/Import.hpp"
+#include "vengine/utils/Tree.hpp"
+
 #include "ViewportWindow.hpp"
 
 class MainWindow : public QMainWindow

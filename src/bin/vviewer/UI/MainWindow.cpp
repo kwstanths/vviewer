@@ -588,7 +588,7 @@ void MainWindow::onImportScene()
         newCamera->fov() = camera.fov;
         newCamera->setWindowSize(m_viewport->size().width(), m_viewport->size().height());
 
-        m_scene->setCamera(newCamera);
+        m_scene->camera() = newCamera;
         m_widgetRightPanel->getEnvironmentWidget()->setCamera(newCamera);
     }
 
@@ -825,8 +825,8 @@ void MainWindow::onExportSceneSlot()
 
     ExportRenderParams params;
     params.name = dialog->getDestinationFolderName();
-    params.backgroundColor = m_scene->getBackgroundColor();
-    params.environmentType = static_cast<int>(m_scene->getEnvironmentType());
+    params.backgroundColor = m_scene->backgroundColor();
+    params.environmentType = static_cast<int>(m_scene->environmentType());
 
     m_scene->exportScene(params);
 
@@ -843,7 +843,7 @@ void MainWindow::onDuplicateSceneObjectSlot()
     std::function<void(QTreeWidgetItem *, QTreeWidgetItem *)> duplicate;
     duplicate = [&](QTreeWidgetItem *duplicatedItem, QTreeWidgetItem *parent) {
         std::shared_ptr<SceneObject> so = m_sceneGraphWidget->getSceneObject(duplicatedItem);
-        auto newObject = createEmptySceneObject(so->m_name + " (D)", so->m_localTransform, parent);
+        auto newObject = createEmptySceneObject(so->m_name + " (D)", so->localTransform(), parent);
 
         if (so->has<ComponentLight>()) {
             auto l = so->get<ComponentLight>().light;

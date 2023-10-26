@@ -7,7 +7,7 @@
 #include <qlabel.h>
 #include <qcombobox.h>
 
-#include <core/Lights.hpp>
+#include <vengine/core/Lights.hpp>
 
 #include "WidgetSliderValue.hpp"
 #include "WidgetColorButton.hpp"
@@ -17,17 +17,17 @@ class WidgetLightMaterial : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetLightMaterial(QWidget * parent, std::shared_ptr<vengine::Light> light);
+    WidgetLightMaterial(QWidget *parent, std::shared_ptr<vengine::Light> light);
 
 private:
     std::shared_ptr<vengine::Light> m_light;
 
-    QComboBox * m_widgetLightMaterials;
+    QComboBox *m_widgetLightMaterials;
 
-    WidgetColorButton * m_lightColorWidget;
-    WidgetSliderValue * m_lightIntensityWidget;
+    WidgetColorButton *m_lightColorWidget;
+    WidgetSliderValue *m_lightIntensityWidget;
 
-    QPushButton * m_buttonCreate;
+    QPushButton *m_buttonCreate;
 private Q_SLOTS:
     void onLightMaterialChanged(int);
     void onLightColorChanged(glm::vec3);

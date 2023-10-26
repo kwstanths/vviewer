@@ -1,7 +1,7 @@
 #include "DialogCreateMaterial.hpp"
 
-#include "core/Materials.hpp"
-#include "core/AssetManager.hpp"
+#include "vengine/core/Materials.hpp"
+#include "vengine/core/AssetManager.hpp"
 
 #include <qlayout.h>
 #include <qlabel.h>

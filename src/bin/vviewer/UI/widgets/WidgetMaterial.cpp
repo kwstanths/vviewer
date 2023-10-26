@@ -4,7 +4,7 @@
 #include <qlayout.h>
 #include <qlabel.h>
 
-#include <core/AssetManager.hpp>
+#include <vengine/core/AssetManager.hpp>
 #include <Console.hpp>
 #include <qnamespace.h>
 

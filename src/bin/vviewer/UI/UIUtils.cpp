@@ -5,11 +5,11 @@
 
 #include <string>
 
-#include <core/AssetManager.hpp>
-#include <core/Model3D.hpp>
-#include <core/Materials.hpp>
-#include <core/EnvironmentMap.hpp>
-#include <core/Lights.hpp>
+#include <vengine/core/AssetManager.hpp>
+#include <vengine/core/Model3D.hpp>
+#include <vengine/core/Materials.hpp>
+#include <vengine/core/EnvironmentMap.hpp>
+#include <vengine/core/Lights.hpp>
 
 using namespace vengine;
 

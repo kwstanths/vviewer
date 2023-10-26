@@ -12,16 +12,16 @@
 #include <qlayout.h>
 #include <qgroupbox.h>
 
-#include "core/Materials.hpp"
-#include "core/Lights.hpp"
-#include "core/Scene.hpp"
-#include "core/SceneObject.hpp"
-#include "math/Transform.hpp"
+#include "vengine/core/Materials.hpp"
+#include "vengine/core/Lights.hpp"
+#include "vengine/core/Scene.hpp"
+#include "vengine/core/SceneObject.hpp"
+#include "vengine/math/Transform.hpp"
+#include "vengine/utils/ECS.hpp"
 
 #include "WidgetTransform.hpp"
 #include "WidgetSliderValue.hpp"
 #include "WidgetColorButton.hpp"
-#include "utils/ECS.hpp"
 
 /* A UI widget to represent environment variables */
 class WidgetEnvironment : public QWidget

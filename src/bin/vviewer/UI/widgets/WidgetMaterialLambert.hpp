@@ -9,8 +9,8 @@
 #include <qslider.h>
 #include <qcombobox.h>
 
-#include "core/Materials.hpp"
-#include "core/SceneObject.hpp"
+#include "vengine/core/Materials.hpp"
+#include "vengine/core/SceneObject.hpp"
 
 /* A UI widget to represent a lambert material */
 class WidgetMaterialLambert : public QWidget

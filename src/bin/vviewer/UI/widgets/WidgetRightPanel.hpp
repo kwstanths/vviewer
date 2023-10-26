@@ -6,9 +6,9 @@
 #include <qscrollarea.h>
 #include <qwidget.h>
 
-#include "core/Scene.hpp"
-#include "core/SceneObject.hpp"
-#include "core/Engine.hpp"
+#include "vengine/core/Scene.hpp"
+#include "vengine/core/SceneObject.hpp"
+#include "vengine/core/Engine.hpp"
 
 #include "WidgetName.hpp"
 #include "WidgetTransform.hpp"

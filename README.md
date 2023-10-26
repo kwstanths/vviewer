@@ -1,8 +1,8 @@
 # vviewer 
-A model viewer and scene editor written in Qt and Vulkan
+A 3D model viewer and scene editor written in Qt and Vulkan
 
 ## Features
-* Import models, textures and equirectangular HDRI maps
+* Import 3D models, textures and equirectangular HDRI maps
 * Create Physically Based or Lambert materials
 * Add Point/Directional/Area lights
 * Export/Import scenes
