@@ -78,14 +78,12 @@ public:
                VkPhysicalDevice physicalDevice,
                VkDevice device,
                VkQueue transferQueue,
-               VkCommandPool transferCommandPool,
-               VkBufferUsageFlags extraUsageFlags);
+               VkCommandPool transferCommandPool);
     VulkanMesh(const Mesh &mesh,
                VkPhysicalDevice physicalDevice,
                VkDevice device,
                VkQueue transferQueue,
-               VkCommandPool transferCommandPool,
-               VkBufferUsageFlags extraUsageFlags);
+               VkCommandPool transferCommandPool);
 
     void destroy(VkDevice device);
 

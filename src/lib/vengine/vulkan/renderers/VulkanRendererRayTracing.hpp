@@ -40,7 +40,7 @@ public:
     void render(const Scene &scene) override;
     float renderProgress() override;
 
-    VkBufferUsageFlags getBufferUsageFlags()
+    static VkBufferUsageFlags getBufferUsageFlags()
     {
         return VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;

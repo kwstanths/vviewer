@@ -4,7 +4,7 @@
 
 using namespace vengine;
 
-void createBallOnPlanceScene(Scene &scene)
+void createSceneBallOnPlance(Scene &scene)
 {
     auto camera = std::make_shared<PerspectiveCamera>();
     camera->fov() = 60.0f;
@@ -29,18 +29,37 @@ void createBallOnPlanceScene(Scene &scene)
     sphereObject->add<ComponentMaterial>().material = matDef;
 }
 
+void performVideoRender(VulkanEngine &engine, Scene &scene)
+{
+    engine.renderer().rendererRayTracing().renderInfo().samples = 512;
+    engine.renderer().rendererRayTracing().renderInfo().batchSize = 256;
+    engine.renderer().rendererRayTracing().renderInfo().fileType = FileType::PNG;
+
+    uint32_t i = 0;
+    float height = 1.0F;
+    float radius = 10.0F;
+    float angleStep = glm::radians(45.0F);
+    for (float a = 0; a < 2 * M_PI; a += angleStep) {
+        engine.renderer().rendererRayTracing().renderInfo().filename = std::to_string(i++);
+
+        scene.camera()->transform().position() = glm::vec3(radius * sin(a), height, radius * cos(a));
+        scene.camera()->transform().setRotationEuler(0, a, 0);
+
+        engine.renderer().rendererRayTracing().render(scene);
+    }
+}
+
 int main(int argc, char **argv)
 {
     VulkanEngine engine("offlinerender");
     engine.initResources();
 
     Scene &scene = engine.scene();
-    createBallOnPlanceScene(scene);
+    createSceneBallOnPlance(scene);
 
     scene.updateSceneGraph();
 
-    engine.renderer().rendererRayTracing().renderInfo().samples = 256;
-    engine.renderer().rendererRayTracing().render(scene);
+    performVideoRender(engine, scene);
 
     engine.releaseResources();
 

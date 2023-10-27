@@ -17,16 +17,14 @@ public:
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
-                  VkCommandPool commandPool,
-                  VkBufferUsageFlags extraUsageFlags = {});
+                  VkCommandPool commandPool);
     VulkanModel3D(const std::string &name,
                   const Tree<ImportedModelNode> &importedData,
                   const std::vector<std::shared_ptr<Material>> &materials,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
-                  VkCommandPool commandPool,
-                  VkBufferUsageFlags extraUsageFlags = {});
+                  VkCommandPool commandPool);
 
     void destroy(VkDevice device);
 
@@ -48,7 +46,6 @@ private:
                     VkDevice device,
                     VkQueue queue,
                     VkCommandPool commandPool,
-                    VkBufferUsageFlags extraUsageFlags,
                     const std::vector<std::shared_ptr<Material>> &materials);
 };
 

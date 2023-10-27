@@ -16,11 +16,10 @@ VulkanModel3D::VulkanModel3D(const std::string &name,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
-                             VkCommandPool commandPool,
-                             VkBufferUsageFlags extraUsageFlags)
+                             VkCommandPool commandPool)
     : Model3D(name)
 {
-    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, extraUsageFlags, materials);
+    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, materials);
 }
 
 VulkanModel3D::VulkanModel3D(const std::string &name,
@@ -28,11 +27,10 @@ VulkanModel3D::VulkanModel3D(const std::string &name,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
-                             VkCommandPool commandPool,
-                             VkBufferUsageFlags extraUsageFlags)
+                             VkCommandPool commandPool)
     : Model3D(name)
 {
-    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, extraUsageFlags, {});
+    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, {});
 }
 
 void VulkanModel3D::destroy(VkDevice device)
@@ -56,7 +54,6 @@ void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
                                VkDevice device,
                                VkQueue queue,
                                VkCommandPool commandPool,
-                               VkBufferUsageFlags extraUsageFlags,
                                const std::vector<std::shared_ptr<Material>> &materials)
 {
     Model3DNode model3DNode;
@@ -65,7 +62,7 @@ void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
         auto &mesh = node.data().meshes[i];
         auto &mat = (materials.size() > 0 ? materials[node.data().materialIndices[i]] : nullptr);
 
-        auto vkmesh = std::make_shared<VulkanMesh>(mesh, physicalDevice, device, queue, commandPool, extraUsageFlags);
+        auto vkmesh = std::make_shared<VulkanMesh>(mesh, physicalDevice, device, queue, commandPool);
         vkmesh->m_model = this;
 
         model3DNode.meshes.emplace_back(vkmesh);
@@ -77,7 +74,7 @@ void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
     data.data() = model3DNode;
 
     for (uint32_t i = 0; i < node.size(); i++) {
-        importNode(node.child(i), m_data.add(), physicalDevice, device, queue, commandPool, extraUsageFlags, materials);
+        importNode(node.child(i), m_data.add(), physicalDevice, device, queue, commandPool, materials);
     }
 }
 

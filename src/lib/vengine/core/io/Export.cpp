@@ -36,7 +36,14 @@ std::string copyFileToDirectoryAndGetFileName(std::string file, std::string dire
     }
     std::string destination = directory + copiedFilename;
 
-    std::filesystem::copy(file, destination);
+    std::error_code err;
+    try {
+        std::filesystem::copy(file, destination, err);
+    } catch (std::exception &e) {
+        if (err != std::errc::file_exists) {
+            debug_tools::ConsoleWarning("Export copy error: " + std::string(e.what()));
+        }
+    }
 
     return copiedFilename;
 }

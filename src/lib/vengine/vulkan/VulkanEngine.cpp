@@ -152,20 +152,13 @@ std::shared_ptr<Model3D> VulkanEngine::importModel(std::string filename, bool im
             importedNode = assimpLoadModel(filename);
         }
 
-        /* Check if ray tracing is enabled, and add extra buffer usage flags */
-        VkBufferUsageFlags extraUsageFlags = {};
-        if (m_renderer.rendererRayTracing().isRTEnabled()) {
-            extraUsageFlags = static_cast<VulkanRendererRayTracing &>(m_renderer.rendererRayTracing()).getBufferUsageFlags();
-        }
-
         auto vkmodel = std::make_shared<VulkanModel3D>(filename,
                                                        importedNode,
                                                        materials,
                                                        m_context.physicalDevice(),
                                                        m_context.device(),
                                                        m_context.graphicsQueue(),
-                                                       m_context.graphicsCommandPool(),
-                                                       extraUsageFlags);
+                                                       m_context.graphicsCommandPool());
 
         return modelsMap.add(vkmodel);
     } catch (std::runtime_error &e) {
