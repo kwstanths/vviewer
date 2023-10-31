@@ -22,7 +22,7 @@
 class UIComponentWrapper
 {
 public:
-    UIComponentWrapper(std::shared_ptr<vengine::SceneObject> object, QString name)
+    UIComponentWrapper(vengine::SceneObject *object, QString name)
         : m_object(object)
         , m_name(name){};
     virtual ~UIComponentWrapper(){};
@@ -34,7 +34,7 @@ public:
     QString m_name;
 
 protected:
-    std::shared_ptr<vengine::SceneObject> m_object;
+    vengine::SceneObject *m_object;
 };
 
 /* A UI widget to represent a specific component */
@@ -68,7 +68,7 @@ Q_SIGNALS:
 class UIComponentMesh : public UIComponentWrapper
 {
 public:
-    UIComponentMesh(std::shared_ptr<vengine::SceneObject> object, QString name)
+    UIComponentMesh(vengine::SceneObject *object, QString name)
         : UIComponentWrapper(object, name){};
 
     QWidget *generateWidget() { return new WidgetModel3D(nullptr, m_object->get<vengine::ComponentMesh>()); }
@@ -87,7 +87,7 @@ private:
 class UIComponentMaterial : public UIComponentWrapper
 {
 public:
-    UIComponentMaterial(std::shared_ptr<vengine::SceneObject> object, QString name)
+    UIComponentMaterial(vengine::SceneObject *object, QString name)
         : UIComponentWrapper(object, name){};
 
     QWidget *generateWidget() { return new WidgetMaterial(nullptr, m_object->get<vengine::ComponentMaterial>()); }
@@ -115,7 +115,7 @@ private:
 class UIComponentLight : public UIComponentWrapper
 {
 public:
-    UIComponentLight(std::shared_ptr<vengine::SceneObject> object, QString name)
+    UIComponentLight(vengine::SceneObject *object, QString name)
         : UIComponentWrapper(object, name){};
 
     QWidget *generateWidget() { return new WidgetLight(nullptr, m_object->get<vengine::ComponentLight>()); }

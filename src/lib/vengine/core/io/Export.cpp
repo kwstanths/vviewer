@@ -106,16 +106,13 @@ void addTransform(rapidjson::Document &d, rapidjson::Value &v, const Transform &
     v.AddMember("transform", transform, d.GetAllocator());
 }
 
-void addMeshComponent(rapidjson::Document &d,
-                      rapidjson::Value &v,
-                      const std::shared_ptr<SceneObject> &sceneObject,
-                      std::string assetDirectoryPrefix)
+void addMeshComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject, std::string assetDirectoryPrefix)
 {
     Value meshObject;
     meshObject.SetObject();
 
     /* Get the mesh component */
-    const Mesh *mesh = sceneObject->get<ComponentMesh>().mesh.get();
+    const Mesh *mesh = sceneObject->get<ComponentMesh>().mesh;
 
     /* Copy the mesh model file to the mesh folder, and get a file path relative to the scene file */
     std::string relativePathName = assetDirectoryPrefix + getFilename(mesh->m_model->name());
@@ -132,13 +129,13 @@ void addMeshComponent(rapidjson::Document &d,
     v.AddMember("mesh", meshObject, d.GetAllocator());
 }
 
-void addMaterialComponent(rapidjson::Document &d, rapidjson::Value &v, const std::shared_ptr<SceneObject> &sceneObject)
+void addMaterialComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject)
 {
     Value materialObject;
     materialObject.SetObject();
 
     /* Get the mesh component */
-    const Material *material = sceneObject->get<ComponentMaterial>().material.get();
+    const Material *material = sceneObject->get<ComponentMaterial>().material;
 
     /* Set the path to the copied file */
     Value path;
@@ -148,12 +145,12 @@ void addMaterialComponent(rapidjson::Document &d, rapidjson::Value &v, const std
     v.AddMember("material", materialObject, d.GetAllocator());
 }
 
-void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const std::shared_ptr<SceneObject> &sceneObject)
+void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject)
 {
     Value lightObject;
     lightObject.SetObject();
 
-    Light *light = sceneObject->get<ComponentLight>().light.get();
+    Light *light = sceneObject->get<ComponentLight>().light;
 
     Value type;
     if (light->type == LightType::POINT_LIGHT) {
@@ -172,7 +169,7 @@ void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const std::s
 
 void addModel(rapidjson::Document &d,
               rapidjson::Value &v,
-              const std::shared_ptr<Model3D> &model,
+              const Model3D *model,
               std::string assetDirectoryPrefix,
               std::string assetDirectory)
 {
@@ -185,7 +182,7 @@ void addModel(rapidjson::Document &d,
 
 void addTexture(rapidjson::Document &d,
                 rapidjson::Value &v,
-                const std::shared_ptr<Texture> &tex,
+                const Texture *tex,
                 std::string assetDirectoryPrefix,
                 std::string assetDirectory,
                 std::string finalName)
@@ -222,7 +219,7 @@ void addTexture(rapidjson::Document &d,
 
 void addMaterial(rapidjson::Document &d,
                  rapidjson::Value &v,
-                 const std::shared_ptr<Material> &material,
+                 const Material *material,
                  std::string assetDirectoryPrefix,
                  std::string assetDirectory)
 {
@@ -240,7 +237,7 @@ void addMaterial(rapidjson::Document &d,
 
     switch (material->getType()) {
         case MaterialType::MATERIAL_LAMBERT: {
-            auto m = std::dynamic_pointer_cast<MaterialLambert>(material);
+            auto m = dynamic_cast<const MaterialLambert *>(material);
 
             Value filepath;
             filepath.SetString(material->filepath().c_str(), d.GetAllocator());
@@ -307,7 +304,7 @@ void addMaterial(rapidjson::Document &d,
             break;
         }
         case MaterialType::MATERIAL_PBR_STANDARD: {
-            auto m = std::dynamic_pointer_cast<MaterialPBRStandard>(material);
+            auto m = dynamic_cast<const MaterialPBRStandard *>(material);
 
             /* If it's a zip material */
             if (m->zipMaterial()) {
@@ -451,7 +448,7 @@ void addMaterial(rapidjson::Document &d,
     v.PushBack(mat, d.GetAllocator());
 }
 
-void addLightMaterial(rapidjson::Document &d, rapidjson::Value &v, const std::shared_ptr<LightMaterial> &material)
+void addLightMaterial(rapidjson::Document &d, rapidjson::Value &v, const LightMaterial *material)
 {
     Value light;
     light.SetObject();
@@ -492,10 +489,7 @@ bool isMaterialEmissive(const Material *material)
     }
 }
 
-void parseSceneObject(rapidjson::Document &d,
-                      rapidjson::Value &v,
-                      const std::shared_ptr<SceneObject> &sceneObject,
-                      std::string assetDirectoryPrefix)
+void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject, std::string assetDirectoryPrefix)
 {
     Value sceneObjectEntry;
     sceneObjectEntry.SetObject();
@@ -539,8 +533,8 @@ void parseSceneObject(rapidjson::Document &d,
 
 void exportJson(const ExportRenderParams &renderParams,
                 std::shared_ptr<Camera> sceneCamera,
-                const std::vector<std::shared_ptr<SceneObject>> &sceneGraph,
-                std::shared_ptr<EnvironmentMap> envMap)
+                const SceneGraph &sceneGraph,
+                EnvironmentMap *envMap)
 {
     /* Create folder with scene */
     std::string sceneFolderName = renderParams.name + "/"; /* Make sure the final back slash exists */
@@ -610,7 +604,7 @@ void exportJson(const ExportRenderParams &renderParams,
 
         auto &models3D = AssetManager::getInstance().modelsMap();
         for (auto &itr : models3D) {
-            addModel(d, models, std::static_pointer_cast<Model3D>(itr.second), assetsDirectoryPrefix, assetsFolderName);
+            addModel(d, models, static_cast<Model3D *>(itr.second), assetsDirectoryPrefix, assetsFolderName);
         }
     }
 
@@ -621,7 +615,7 @@ void exportJson(const ExportRenderParams &renderParams,
 
         auto &materials = AssetManager::getInstance().materialsMap();
         for (auto &itr : materials) {
-            addMaterial(d, materialsObject, std::static_pointer_cast<Material>(itr.second), assetsDirectoryPrefix, assetsFolderName);
+            addMaterial(d, materialsObject, static_cast<Material *>(itr.second), assetsDirectoryPrefix, assetsFolderName);
         }
     }
 
@@ -632,7 +626,7 @@ void exportJson(const ExportRenderParams &renderParams,
 
         auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
         for (auto &itr : lightMaterials) {
-            addLightMaterial(d, lightMaterialsObject, std::static_pointer_cast<LightMaterial>(itr.second));
+            addLightMaterial(d, lightMaterialsObject, static_cast<LightMaterial *>(itr.second));
         }
     }
 

@@ -1,6 +1,7 @@
 #include "SceneNode.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 #include <math/MathUtils.hpp>
 
@@ -16,11 +17,17 @@ glm::vec3 SceneNode<SceneObject>::worldPosition() const
 }
 
 template <>
-std::shared_ptr<SceneObject> SceneNode<SceneObject>::addChild(std::shared_ptr<SceneObject> node)
+SceneObject *SceneNode<SceneObject>::addChild(SceneObject *node)
 {
     m_children.push_back(node);
     m_children.back()->parent() = this;
     return m_children.back();
+}
+
+template <>
+void SceneNode<SceneObject>::removeChild(SceneObject *node)
+{
+    m_children.erase(std::remove(m_children.begin(), m_children.end(), node), m_children.end());
 }
 
 template <>
@@ -40,9 +47,9 @@ void SceneNode<SceneObject>::update()
 }
 
 template <>
-std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjectsArray()
+std::vector<SceneObject *> SceneNode<SceneObject>::getSceneObjectsArray()
 {
-    std::vector<std::shared_ptr<SceneObject>> temp;
+    std::vector<SceneObject *> temp;
 
     for (auto &&child : m_children) {
         temp.push_back(child);
@@ -55,9 +62,9 @@ std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObject
 }
 
 template <>
-std::vector<std::shared_ptr<SceneObject>> SceneNode<SceneObject>::getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices)
+std::vector<SceneObject *> SceneNode<SceneObject>::getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices)
 {
-    std::vector<std::shared_ptr<SceneObject>> temp;
+    std::vector<SceneObject *> temp;
 
     for (auto &&child : m_children) {
         temp.push_back(child);

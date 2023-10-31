@@ -62,7 +62,8 @@ private:
     VkResult createDescriptorSets(uint32_t nImages);
     VkResult createBuffers(uint32_t nImages);
 
-    std::shared_ptr<SceneObject> createObject(std::string name) override;
+    SceneObject *createObject(std::string name) override;
+    void deleteObject(SceneObject *object) override;
 };
 
 }  // namespace vengine

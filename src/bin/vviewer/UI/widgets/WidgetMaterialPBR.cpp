@@ -16,7 +16,7 @@
 
 using namespace vengine;
 
-WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, std::shared_ptr<MaterialPBRStandard> material)
+WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *material)
     : QWidget(parent)
 {
     m_material = material;

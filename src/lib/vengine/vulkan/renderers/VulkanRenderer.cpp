@@ -176,7 +176,7 @@ VkResult VulkanRenderer::releaseResources()
     {
         auto &cubemapsMap = AssetManager::getInstance().cubemapsMap();
         for (auto itr = cubemapsMap.begin(); itr != cubemapsMap.end(); ++itr) {
-            auto vkCubemap = std::static_pointer_cast<VulkanCubemap>(itr->second);
+            auto vkCubemap = static_cast<VulkanCubemap *>(itr->second);
             vkCubemap->destroy(m_vkctx.device());
         }
     }
@@ -193,7 +193,7 @@ VkResult VulkanRenderer::releaseResources()
     {
         auto &meshModelsMap = AssetManager::getInstance().modelsMap();
         for (auto itr = meshModelsMap.begin(); itr != meshModelsMap.end(); ++itr) {
-            auto vkmodel = std::static_pointer_cast<VulkanModel3D>(itr->second);
+            auto vkmodel = static_cast<VulkanModel3D *>(itr->second);
             vkmodel->destroy(m_vkctx.device());
         }
         meshModelsMap.reset();
@@ -288,7 +288,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         /* Get skybox material and check if its parameters have changed */
-        auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(m_scene.skyboxMaterial());
+        auto skybox = dynamic_cast<VulkanMaterialSkybox *>(m_scene.skyboxMaterial());
         assert(skybox != nullptr);
         /* If material parameters have changed, update descriptor */
         if (skybox->needsUpdate(imageIndex)) {
@@ -301,9 +301,9 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         }
 
         /* Batch objects into materials */
-        std::vector<std::shared_ptr<SceneObject>> pbrStandardObjects;
-        std::vector<std::shared_ptr<SceneObject>> lambertObjects;
-        std::vector<std::shared_ptr<SceneObject>> lights;
+        std::vector<SceneObject *> pbrStandardObjects;
+        std::vector<SceneObject *> lambertObjects;
+        std::vector<SceneObject *> lights;
         for (auto &itr : sceneGraphArray) {
             if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) {
                 switch (itr->get<ComponentMaterial>().material->getType()) {
@@ -487,14 +487,14 @@ glm::vec3 VulkanRenderer::selectObject(float x, float y)
     return highlightTexelColor;
 }
 
-std::shared_ptr<Cubemap> VulkanRenderer::createCubemap(std::string directory)
+Cubemap *VulkanRenderer::createCubemap(std::string directory)
 {
     auto &cubemapsMap = AssetManager::getInstance().cubemapsMap();
     if (cubemapsMap.isPresent(directory)) {
         return cubemapsMap.get(directory);
     }
 
-    auto cubemap = std::make_shared<VulkanCubemap>(
+    auto cubemap = new VulkanCubemap(
         directory, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool());
     return cubemapsMap.add(cubemap);
 }

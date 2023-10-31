@@ -38,8 +38,8 @@ public:
     virtual void exit() = 0;
     virtual void waitIdle() = 0;
 
-    virtual std::shared_ptr<Model3D> importModel(std::string filename, bool importMaterials = true) = 0;
-    virtual std::shared_ptr<EnvironmentMap> importEnvironmentMap(std::string imagePath, bool keepTexture = false) = 0;
+    virtual Model3D *importModel(std::string filename, bool importMaterials = true) = 0;
+    virtual EnvironmentMap *importEnvironmentMap(std::string imagePath, bool keepTexture = false) = 0;
 
 protected:
     STATUS m_status = STATUS::NOT_STARTED;

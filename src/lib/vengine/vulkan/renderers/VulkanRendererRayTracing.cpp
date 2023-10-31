@@ -201,7 +201,7 @@ void VulkanRendererRayTracing::render(const Scene &scene)
         auto so = sceneObjects[i];
         auto transform = sceneObjectMatrices[i];
         if (so->has<ComponentMesh>() && so->has<ComponentMaterial>()) {
-            auto mesh = std::static_pointer_cast<VulkanMesh>(so->get<ComponentMesh>().mesh);
+            auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
             auto material = so->get<ComponentMaterial>().material;
 
             AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material->getMaterialIndex());
@@ -235,7 +235,7 @@ void VulkanRendererRayTracing::render(const Scene &scene)
     m_materials.updateBuffers(0);
 
     /* Get skybox descriptor */
-    auto skybox = std::dynamic_pointer_cast<VulkanMaterialSkybox>(scene.skyboxMaterial());
+    auto skybox = dynamic_cast<const VulkanMaterialSkybox *>(scene.skyboxMaterial());
     assert(skybox != nullptr);
 
     setResolution();
@@ -1212,20 +1212,20 @@ void VulkanRendererRayTracing::deleteScratchBuffer(RayTracingScratchBuffer &scra
     }
 }
 
-bool VulkanRendererRayTracing::isMeshLight(const std::shared_ptr<SceneObject> so)
+bool VulkanRendererRayTracing::isMeshLight(const SceneObject *so)
 {
     if (so->has<ComponentMaterial>()) {
         auto material = so->get<ComponentMaterial>().material;
         switch (material->getType()) {
             case MaterialType::MATERIAL_PBR_STANDARD: {
-                auto pbrStandard = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
+                auto pbrStandard = static_cast<VulkanMaterialPBRStandard *>(material);
                 if (!isBlack(pbrStandard->emissiveColor(), 0.01F)) {
                     return true;
                 }
                 break;
             }
             case MaterialType::MATERIAL_LAMBERT: {
-                auto lambert = std::static_pointer_cast<VulkanMaterialPBRStandard>(material);
+                auto lambert = static_cast<VulkanMaterialPBRStandard *>(material);
                 if (!isBlack(lambert->emissiveColor(), 0.01F)) {
                     return true;
                 }
@@ -1250,7 +1250,7 @@ void VulkanRendererRayTracing::prepareSceneLights(const Scene &scene, std::vecto
     }
 }
 
-void VulkanRendererRayTracing::prepareSceneObjectLight(const std::shared_ptr<SceneObject> &so,
+void VulkanRendererRayTracing::prepareSceneObjectLight(const SceneObject *so,
                                                        uint32_t objectDescriptionIndex,
                                                        const glm::mat4 &t,
                                                        std::vector<LightRT> &sceneLights)

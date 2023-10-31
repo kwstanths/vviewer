@@ -17,7 +17,7 @@ class WidgetMaterialPBR : public QWidget
 public:
     static const int HEIGHT = 620;
 
-    WidgetMaterialPBR(QWidget *parent, std::shared_ptr<vengine::MaterialPBRStandard> material);
+    WidgetMaterialPBR(QWidget *parent, vengine::MaterialPBRStandard *material);
 
     QPushButton *m_colorAlbedo, *m_colorEmissive;
     QSlider *m_metallic, *m_roughness, *m_ao;
@@ -34,7 +34,7 @@ public:
     QDoubleSpinBox *m_vTiling;
 
 private:
-    std::shared_ptr<vengine::MaterialPBRStandard> m_material = nullptr;
+    vengine::MaterialPBRStandard *m_material = nullptr;
 
     void setColorButton(QPushButton *button, const glm::vec4 &color);
 

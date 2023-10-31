@@ -41,7 +41,7 @@ struct ImportedModelNode {
 struct ImportedTexture {
     ImportedTextureType type;
     std::string name;
-    std::shared_ptr<Image<uint8_t>> image = nullptr;
+    Image<uint8_t> *image = nullptr;
 };
 
 struct ImportedMaterial {
@@ -68,6 +68,28 @@ struct ImportedMaterial {
     std::optional<ImportedTexture> normalTexture = std::nullopt;
 
     glm::vec2 scale = {1, 1};
+
+    ~ImportedMaterial()
+    {
+        if (albedoTexture.has_value()) {
+            delete albedoTexture->image;
+        }
+        if (roughnessTexture.has_value()) {
+            delete roughnessTexture->image;
+        }
+        if (metallicTexture.has_value()) {
+            delete metallicTexture->image;
+        }
+        if (aoTexture.has_value()) {
+            delete aoTexture->image;
+        }
+        if (emissiveTexture.has_value()) {
+            delete emissiveTexture->image;
+        }
+        if (normalTexture.has_value()) {
+            delete normalTexture->image;
+        }
+    }
 };
 
 struct ImportedCamera {

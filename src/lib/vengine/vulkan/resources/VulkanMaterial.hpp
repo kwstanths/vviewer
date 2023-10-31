@@ -27,7 +27,7 @@ public:
     ~VulkanMaterialStorage()
     {
         /* Remove block index from the buffers */
-        m_materialsDataStorage.remove(m_materialsUBOBlockIndex);
+        m_materialsDataStorage.setFree(m_materialsUBOBlockIndex);
     }
 
     uint32_t getUBOBlockIndex() const { return m_materialsUBOBlockIndex; }
@@ -50,7 +50,7 @@ public:
     virtual void updateDescriptorSets(VkDevice device, size_t images) = 0;
     virtual void updateDescriptorSet(VkDevice device, size_t index) = 0;
 
-    VkDescriptorSet getDescriptor(size_t index);
+    VkDescriptorSet getDescriptor(size_t index) const;
     bool needsUpdate(size_t index) const;
 
 protected:
@@ -91,12 +91,12 @@ public:
     float &vTiling() override;
     const float &vTiling() const override;
 
-    void setAlbedoTexture(std::shared_ptr<Texture> texture) override;
-    void setMetallicTexture(std::shared_ptr<Texture> texture) override;
-    void setRoughnessTexture(std::shared_ptr<Texture> texture) override;
-    void setAOTexture(std::shared_ptr<Texture> texture) override;
-    void setEmissiveTexture(std::shared_ptr<Texture> texture) override;
-    void setNormalTexture(std::shared_ptr<Texture> texture) override;
+    void setAlbedoTexture(Texture *texture) override;
+    void setMetallicTexture(Texture *texture) override;
+    void setRoughnessTexture(Texture *texture) override;
+    void setAOTexture(Texture *texture) override;
+    void setEmissiveTexture(Texture *texture) override;
+    void setNormalTexture(Texture *texture) override;
 
 private:
 };
@@ -127,10 +127,10 @@ public:
     float &vTiling() override;
     const float &vTiling() const override;
 
-    void setAlbedoTexture(std::shared_ptr<Texture> texture) override;
-    void setAOTexture(std::shared_ptr<Texture> texture) override;
-    void setEmissiveTexture(std::shared_ptr<Texture> texture) override;
-    void setNormalTexture(std::shared_ptr<Texture> texture) override;
+    void setAlbedoTexture(Texture *texture) override;
+    void setAOTexture(Texture *texture) override;
+    void setEmissiveTexture(Texture *texture) override;
+    void setNormalTexture(Texture *texture) override;
 
 private:
 };
@@ -139,12 +139,9 @@ private:
 class VulkanMaterialSkybox : public MaterialSkybox, public VulkanMaterialDescriptor
 {
 public:
-    VulkanMaterialSkybox(std::string name,
-                         std::shared_ptr<EnvironmentMap> envMap,
-                         VkDevice device,
-                         VkDescriptorSetLayout descriptorLayout);
+    VulkanMaterialSkybox(std::string name, EnvironmentMap *envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout);
 
-    virtual void setMap(std::shared_ptr<EnvironmentMap> envMap) override;
+    virtual void setMap(EnvironmentMap *envMap) override;
 
     VkResult createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
     void updateDescriptorSets(VkDevice device, size_t images) override;

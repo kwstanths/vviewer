@@ -190,9 +190,9 @@ private:
     void deleteScratchBuffer(RayTracingScratchBuffer &scratchBuffer);
 
     /* Scene lights functions */
-    bool isMeshLight(const std::shared_ptr<SceneObject> so);
+    bool isMeshLight(const SceneObject *so);
     void prepareSceneLights(const Scene &scene, std::vector<LightRT> &sceneLights);
-    void prepareSceneObjectLight(const std::shared_ptr<SceneObject> &so,
+    void prepareSceneObjectLight(const SceneObject *so,
                                  uint32_t objectDescriptionIndex,
                                  const glm::mat4 &worldTransform,
                                  std::vector<LightRT> &sceneLights);

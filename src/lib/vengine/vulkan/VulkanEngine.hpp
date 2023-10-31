@@ -38,8 +38,8 @@ public:
     void exit() override;
     void waitIdle() override;
 
-    std::shared_ptr<Model3D> importModel(std::string filename, bool importMaterials = true) override;
-    std::shared_ptr<EnvironmentMap> importEnvironmentMap(std::string imagePath, bool keepTexture = false) override;
+    Model3D *importModel(std::string filename, bool importMaterials = true) override;
+    EnvironmentMap *importEnvironmentMap(std::string imagePath, bool keepTexture = false) override;
 
 private:
     VulkanContext m_context;

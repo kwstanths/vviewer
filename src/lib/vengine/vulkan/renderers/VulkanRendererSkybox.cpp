@@ -79,7 +79,7 @@ VkDescriptorSetLayout &VulkanRendererSkybox::descriptorSetLayout()
 VkResult VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf,
                                             VkDescriptorSet cameraDescriptorSet,
                                             int imageIndex,
-                                            const std::shared_ptr<VulkanMaterialSkybox> &skybox) const
+                                            const VulkanMaterialSkybox *skybox) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
@@ -99,8 +99,7 @@ VkResult VulkanRendererSkybox::renderSkybox(VkCommandBuffer cmdBuf,
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererSkybox::createCubemap(std::shared_ptr<VulkanTexture> inputImage,
-                                             std::shared_ptr<VulkanCubemap> &vulkanCubemap) const
+VkResult VulkanRendererSkybox::createCubemap(VulkanTexture *inputImage, VulkanCubemap *&vulkanCubemap) const
 {
     uint32_t cubemapWidth = static_cast<uint32_t>(std::min(inputImage->width() / 4, uint32_t(1080)));
     uint32_t cubemapHeight = cubemapWidth;
@@ -516,15 +515,13 @@ VkResult VulkanRendererSkybox::createCubemap(std::shared_ptr<VulkanTexture> inpu
 
     /* Added created cubemaps to the cubemap assets */
     auto &cubemaps = AssetManager::getInstance().cubemapsMap();
-    vulkanCubemap = std::make_shared<VulkanCubemap>(inputImage->name(), cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+    vulkanCubemap = new VulkanCubemap(inputImage->name(), cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
     cubemaps.add(vulkanCubemap);
 
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererSkybox::createIrradianceMap(std::shared_ptr<VulkanCubemap> inputMap,
-                                                   std::shared_ptr<VulkanCubemap> &vulkanCubemap,
-                                                   uint32_t resolution) const
+VkResult VulkanRendererSkybox::createIrradianceMap(VulkanCubemap *inputMap, VulkanCubemap *&vulkanCubemap, uint32_t resolution) const
 {
     /* Cubemap data */
     VkImage cubemapImage;
@@ -860,15 +857,14 @@ VkResult VulkanRendererSkybox::createIrradianceMap(std::shared_ptr<VulkanCubemap
     vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
 
     auto &cubemaps = AssetManager::getInstance().cubemapsMap();
-    vulkanCubemap = std::make_shared<VulkanCubemap>(
-        inputMap->name() + "_irradiance", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+    vulkanCubemap = new VulkanCubemap(inputMap->name() + "_irradiance", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
     cubemaps.add(vulkanCubemap);
 
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererSkybox::createPrefilteredCubemap(std::shared_ptr<VulkanCubemap> inputMap,
-                                                        std::shared_ptr<VulkanCubemap> &vulkanCubemap,
+VkResult VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap *inputMap,
+                                                        VulkanCubemap *&vulkanCubemap,
                                                         uint32_t resolution) const
 {
     const uint32_t cubemapWidth = 512;
@@ -1214,8 +1210,8 @@ VkResult VulkanRendererSkybox::createPrefilteredCubemap(std::shared_ptr<VulkanCu
     vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
 
     auto &cubemaps = AssetManager::getInstance().cubemapsMap();
-    vulkanCubemap = std::make_shared<VulkanCubemap>(
-        inputMap->name() + "_prefiltered", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+    vulkanCubemap =
+        new VulkanCubemap(inputMap->name() + "_prefiltered", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
     cubemaps.add(vulkanCubemap);
 
     return VK_SUCCESS;

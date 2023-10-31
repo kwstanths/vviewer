@@ -82,17 +82,17 @@ VkResult VulkanRendererLambert::renderObjectsBasePass(VkCommandBuffer &cmdBuf,
                                                       VkDescriptorSet &descriptorTextures,
                                                       uint32_t imageIndex,
                                                       const VulkanUBO<ModelData> &dynamicUBOModels,
-                                                      std::vector<std::shared_ptr<SceneObject>> &objects) const
+                                                      const SceneGraph &objects) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineBasePass);
     for (size_t i = 0; i < objects.size(); i++) {
-        VulkanSceneObject *object = static_cast<VulkanSceneObject *>(objects[i].get());
+        VulkanSceneObject *object = static_cast<VulkanSceneObject *>(objects[i]);
 
-        const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(object->get<ComponentMesh>().mesh.get());
+        const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(object->get<ComponentMesh>().mesh);
         if (vkmesh == nullptr)
             continue;
 
-        VulkanMaterialLambert *material = static_cast<VulkanMaterialLambert *>(object->get<ComponentMaterial>().material.get());
+        VulkanMaterialLambert *material = static_cast<VulkanMaterialLambert *>(object->get<ComponentMaterial>().material);
 
         VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
         VkDeviceSize offsets[] = {0};
@@ -132,16 +132,16 @@ VkResult VulkanRendererLambert::renderObjectsAddPass(VkCommandBuffer &cmdBuf,
                                                      VkDescriptorSet &descriptorTextures,
                                                      uint32_t imageIndex,
                                                      const VulkanUBO<ModelData> &dynamicUBOModels,
-                                                     std::shared_ptr<SceneObject> object,
+                                                     SceneObject *object,
                                                      PushBlockForwardAddPass &lightInfo) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
 
-    VulkanSceneObject *vobject = static_cast<VulkanSceneObject *>(object.get());
-    const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(vobject->get<ComponentMesh>().mesh.get());
+    VulkanSceneObject *vobject = static_cast<VulkanSceneObject *>(object);
+    const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(vobject->get<ComponentMesh>().mesh);
     assert(vkmesh != nullptr);
 
-    VulkanMaterialLambert *material = static_cast<VulkanMaterialLambert *>(vobject->get<ComponentMaterial>().material.get());
+    VulkanMaterialLambert *material = static_cast<VulkanMaterialLambert *>(vobject->get<ComponentMaterial>().material);
 
     VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
     VkDeviceSize offsets[] = {0};

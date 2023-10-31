@@ -133,7 +133,7 @@ void VulkanEngine::waitIdle()
     m_renderer.waitIdle();
 }
 
-std::shared_ptr<Model3D> VulkanEngine::importModel(std::string filename, bool importMaterials)
+Model3D *VulkanEngine::importModel(std::string filename, bool importMaterials)
 {
     try {
         auto &modelsMap = AssetManager::getInstance().modelsMap();
@@ -142,7 +142,7 @@ std::shared_ptr<Model3D> VulkanEngine::importModel(std::string filename, bool im
             return modelsMap.get(filename);
 
         Tree<ImportedModelNode> importedNode;
-        std::vector<std::shared_ptr<Material>> materials = {};
+        std::vector<Material *> materials = {};
         if (importMaterials) {
             std::vector<ImportedMaterial> importedMaterials;
             importedNode = assimpLoadModel(filename, importedMaterials);
@@ -152,13 +152,13 @@ std::shared_ptr<Model3D> VulkanEngine::importModel(std::string filename, bool im
             importedNode = assimpLoadModel(filename);
         }
 
-        auto vkmodel = std::make_shared<VulkanModel3D>(filename,
-                                                       importedNode,
-                                                       materials,
-                                                       m_context.physicalDevice(),
-                                                       m_context.device(),
-                                                       m_context.graphicsQueue(),
-                                                       m_context.graphicsCommandPool());
+        auto vkmodel = new VulkanModel3D(filename,
+                                         importedNode,
+                                         materials,
+                                         m_context.physicalDevice(),
+                                         m_context.device(),
+                                         m_context.graphicsQueue(),
+                                         m_context.graphicsCommandPool());
 
         return modelsMap.add(vkmodel);
     } catch (std::runtime_error &e) {
@@ -169,7 +169,7 @@ std::shared_ptr<Model3D> VulkanEngine::importModel(std::string filename, bool im
     return nullptr;
 }
 
-std::shared_ptr<EnvironmentMap> VulkanEngine::importEnvironmentMap(std::string imagePath, bool keepTexture)
+EnvironmentMap *VulkanEngine::importEnvironmentMap(std::string imagePath, bool keepTexture)
 {
     try {
         /* Check if an environment map for that imagePath already exists */
@@ -179,11 +179,11 @@ std::shared_ptr<EnvironmentMap> VulkanEngine::importEnvironmentMap(std::string i
         }
 
         /* Read HDR image */
-        std::shared_ptr<VulkanTexture> hdrImage = std::static_pointer_cast<VulkanTexture>(m_textures.createTextureHDR(imagePath));
+        VulkanTexture *hdrImage = static_cast<VulkanTexture *>(m_textures.createTextureHDR(imagePath));
 
         VkResult res;
         /* Transform input texture into a cubemap */
-        std::shared_ptr<VulkanCubemap> cubemap, irradiance, prefiltered;
+        VulkanCubemap *cubemap, *irradiance, *prefiltered;
         res = m_renderer.getRendererSkybox().createCubemap(hdrImage, cubemap);
         assert(res == VK_SUCCESS);
         /* Compute irradiance map */
@@ -199,7 +199,7 @@ std::shared_ptr<EnvironmentMap> VulkanEngine::importEnvironmentMap(std::string i
             hdrImage->destroy(m_context.device());
         }
 
-        auto envMap = std::make_shared<EnvironmentMap>(imagePath, cubemap, irradiance, prefiltered);
+        auto envMap = new EnvironmentMap(imagePath, cubemap, irradiance, prefiltered);
         return envMaps.add(envMap);
     } catch (std::runtime_error &e) {
         debug_tools::ConsoleCritical("Failed to import an environment map: " + std::string(e.what()));
@@ -246,8 +246,8 @@ void VulkanEngine::mainLoop()
 void VulkanEngine::initDefaultData()
 {
     /* A default material */
-    auto defaultMaterial = std::static_pointer_cast<VulkanMaterialPBRStandard>(
-        m_materials.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD));
+    auto defaultMaterial =
+        static_cast<VulkanMaterialPBRStandard *>(m_materials.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD));
     defaultMaterial->albedo() = glm::vec4(0.8, 0.8, 0.8, 1);
     defaultMaterial->metallic() = 0.5;
     defaultMaterial->roughness() = 0.5;
@@ -264,8 +264,8 @@ void VulkanEngine::initDefaultData()
         auto envMap = importEnvironmentMap("assets/HDR/harbor.hdr");
 
         auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
-        auto skybox = materialsSkybox.add(std::make_shared<VulkanMaterialSkybox>(
-            "skybox", envMap, m_context.device(), m_renderer.getRendererSkybox().descriptorSetLayout()));
+        auto skybox = materialsSkybox.add(
+            new VulkanMaterialSkybox("skybox", envMap, m_context.device(), m_renderer.getRendererSkybox().descriptorSetLayout()));
 
         m_scene.skyboxMaterial() = skybox;
     }

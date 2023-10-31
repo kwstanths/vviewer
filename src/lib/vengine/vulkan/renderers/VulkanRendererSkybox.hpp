@@ -37,26 +37,22 @@ public:
     VkResult renderSkybox(VkCommandBuffer cmdBuf,
                           VkDescriptorSet cameraDescriptorSet,
                           int imageIndex,
-                          const std::shared_ptr<VulkanMaterialSkybox> &skybox) const;
+                          const VulkanMaterialSkybox *skybox) const;
 
     /**
         Create a cubemap from an image, inputImage should be an HDR equirectangular projection
     */
-    VkResult createCubemap(std::shared_ptr<VulkanTexture> inputImage, std::shared_ptr<VulkanCubemap> &vulkanCubemap) const;
+    VkResult createCubemap(VulkanTexture *inputImage, VulkanCubemap *&vulkanCubemap) const;
 
     /**
         Create an irradiance map for a cubemap
     */
-    VkResult createIrradianceMap(std::shared_ptr<VulkanCubemap> inputMap,
-                                 std::shared_ptr<VulkanCubemap> &vulkanCubemap,
-                                 uint32_t resolution = 32) const;
+    VkResult createIrradianceMap(VulkanCubemap *inputMap, VulkanCubemap *&vulkanCubemap, uint32_t resolution = 32) const;
 
     /**
         Create a prefiltered cubemap for different rougness values for the input cubemap
     */
-    VkResult createPrefilteredCubemap(std::shared_ptr<VulkanCubemap> inputMap,
-                                      std::shared_ptr<VulkanCubemap> &vulkanCubemap,
-                                      uint32_t resolution = 512) const;
+    VkResult createPrefilteredCubemap(VulkanCubemap *inputMap, VulkanCubemap *&vulkanCubemap, uint32_t resolution = 512) const;
 
 private:
     VkPhysicalDevice m_physicalDevice;

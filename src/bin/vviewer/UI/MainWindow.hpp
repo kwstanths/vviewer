@@ -55,9 +55,9 @@ private:
      * @param parent
      * @return The UI tree widget item, and the actual scene object
      */
-    std::pair<QTreeWidgetItem *, std::shared_ptr<vengine::SceneObject>> createEmptySceneObject(std::string name,
-                                                                                               const vengine::Transform &transform,
-                                                                                               QTreeWidgetItem *parent);
+    std::pair<QTreeWidgetItem *, vengine::SceneObject *> createEmptySceneObject(std::string name,
+                                                                                const vengine::Transform &transform,
+                                                                                QTreeWidgetItem *parent);
 
     /**
      * @brief Change UI selection to the selectedItem
@@ -115,7 +115,7 @@ private Q_SLOTS:
     /* Currently selected item in the scene changed from UI */
     void onSelectedSceneObjectChangedSlotUI();
     /* Currently selected item in the scene changed from the 3d scene */
-    void onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<vengine::SceneObject> object);
+    void onSelectedSceneObjectChangedSlot3DScene(vengine::SceneObject *object);
     /* Currently selected item's name in the scene changed */
     void onSelectedSceneObjectNameChangedSlot(QString newName);
 

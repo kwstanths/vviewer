@@ -21,7 +21,7 @@ template <typename CastType>
 class AssetMap
 {
 public:
-    typedef typename std::unordered_map<std::string, std::shared_ptr<Asset>>::iterator Iterator;
+    typedef typename std::unordered_map<std::string, Asset *>::iterator Iterator;
 
     AssetMap() {}
 
@@ -33,17 +33,17 @@ public:
         return true;
     }
 
-    std::shared_ptr<CastType> add(const std::shared_ptr<Asset> &asset)
+    CastType *add(Asset *asset)
     {
         m_assets[asset->name()] = asset;
-        return std::static_pointer_cast<CastType>(m_assets[asset->name()]);
+        return static_cast<CastType *>(m_assets[asset->name()]);
     }
 
-    std::shared_ptr<CastType> get(const std::string &id)
+    CastType *get(const std::string &id)
     {
         auto itr = m_assets.find(id);
         if (itr != m_assets.end()) {
-            return std::static_pointer_cast<CastType>(itr->second);
+            return static_cast<CastType *>(itr->second);
         }
         throw std::runtime_error("Find: Asset not found: " + id);
     }
@@ -65,7 +65,7 @@ public:
     Iterator end() { return m_assets.end(); }
 
 private:
-    std::unordered_map<std::string, std::shared_ptr<Asset>> m_assets;
+    std::unordered_map<std::string, Asset *> m_assets;
 };
 
 class AssetManager

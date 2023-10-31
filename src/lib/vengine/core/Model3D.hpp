@@ -18,8 +18,8 @@ class Model3D : public Asset
 public:
     struct Model3DNode {
         std::string name;
-        std::vector<std::shared_ptr<Mesh>> meshes;
-        std::vector<std::shared_ptr<Material>> materials;
+        std::vector<Mesh *> meshes;
+        std::vector<Material *> materials;
         Transform transform;
     };
 
@@ -27,13 +27,13 @@ public:
 
     Tree<Model3DNode> &data();
 
-    std::shared_ptr<Mesh> mesh(std::string name) const;
+    Mesh *mesh(std::string name) const;
 
-    std::vector<std::shared_ptr<Mesh>> meshes() const;
+    std::vector<Mesh *> meshes() const;
 
 protected:
     Tree<Model3DNode> m_data;
-    std::unordered_map<std::string, std::shared_ptr<Mesh>> m_meshes;
+    std::unordered_map<std::string, Mesh *> m_meshes;
 };
 
 }  // namespace vengine

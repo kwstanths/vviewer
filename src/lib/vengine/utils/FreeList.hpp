@@ -5,7 +5,7 @@
 #include <atomic>
 #include <vector>
 
-#include <deque>
+#include "Stack.hpp"
 
 namespace vengine
 {
@@ -14,20 +14,20 @@ namespace vengine
 class FreeList
 {
 public:
-    FreeList(size_t nElements);
+    FreeList(size_t N);
 
     size_t getFree();
 
-    void remove(size_t index);
+    void setFree(size_t index);
 
-    bool isFull() const;
+    bool empty() const;
 
-    void clear();
+    void reset();
 
 private:
     size_t m_end;
     size_t m_nElements;
-    std::deque<size_t> m_freeElements;
+    Stack<size_t> m_freeElements;
 };
 
 /* A thread safe class that manages free blocks */
@@ -35,17 +35,22 @@ template <typename T>
 class FreeBlockList : public FreeList
 {
 public:
-    FreeBlockList(size_t nElements)
-        : FreeList(nElements)
+    FreeBlockList(size_t N)
+        : FreeList(N)
     {
-        m_blocks.resize(nElements);
+        m_blocks.resize(N);
     }
 
-    T *add(const T &t)
+    T *get()
     {
         size_t index = getFree();
-        m_blocks[index] = t;
         return &m_blocks[index];
+    }
+
+    void remove(T *t)
+    {
+        size_t index = getIndex(t);
+        setFree(index);
     }
 
     size_t getIndex(T *t) { return (t - &m_blocks[0]); }

@@ -100,7 +100,7 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-    const auto &vkmesh = std::static_pointer_cast<VulkanMesh>(m_arrow->mesh("Cone"));
+    const auto &vkmesh = static_cast<VulkanMesh *>(m_arrow->mesh("Cone"));
 
     VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
     VkDeviceSize offsets[] = {0};

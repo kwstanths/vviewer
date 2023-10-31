@@ -29,9 +29,9 @@ struct LightMaterial : public Asset {
 
 struct Light : public Asset {
     LightType type;
-    std::shared_ptr<LightMaterial> lightMaterial;
+    LightMaterial *lightMaterial;
 
-    Light(std::string name, LightType t, std::shared_ptr<LightMaterial> &lm)
+    Light(std::string name, LightType t, LightMaterial *lm)
         : Asset(name)
         , type(t)
         , lightMaterial(lm){};

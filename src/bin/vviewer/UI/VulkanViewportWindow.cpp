@@ -136,10 +136,10 @@ void VulkanViewportWindow::mousePressEvent(QMouseEvent *ev)
 
 void VulkanViewportWindow::mouseReleaseEvent(QMouseEvent *ev)
 {
-    std::shared_ptr<SceneObject> object = m_engine->scene().getSceneObject(m_selectedPressed);
+    SceneObject *object = m_engine->scene().getSceneObject(m_selectedPressed);
     m_selectedPressed = 0;
 
-    if (object.get() == nullptr)
+    if (object == nullptr)
         return;
 
     Q_EMIT sceneObjectSelected(object);
@@ -178,8 +178,8 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
     VulkanRenderer &renderer = static_cast<VulkanRenderer &>(m_engine->renderer());
     float movementSensitivity = 1.25f * delta;
     if (buttons & Qt::LeftButton) {
-        std::shared_ptr<SceneObject> selectedObject = renderer.getSelectedObject();
-        if (selectedObject.get() == nullptr)
+        SceneObject *selectedObject = renderer.getSelectedObject();
+        if (selectedObject == nullptr)
             return;
 
         Transform &selectedObjectTransform = selectedObject->localTransform();

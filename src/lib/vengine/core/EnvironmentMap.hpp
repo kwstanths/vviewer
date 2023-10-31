@@ -12,23 +12,20 @@ namespace vengine
 class EnvironmentMap : public Asset
 {
 public:
-    EnvironmentMap(std::string name,
-                   std::shared_ptr<Cubemap> skybox,
-                   std::shared_ptr<Cubemap> irradiance,
-                   std::shared_ptr<Cubemap> prefilteredMap)
+    EnvironmentMap(std::string name, Cubemap *skybox, Cubemap *irradiance, Cubemap *prefilteredMap)
         : Asset(name)
         , m_skyboxMap(skybox)
         , m_irradianceMap(irradiance)
         , m_prefilteredMap(prefilteredMap){};
 
-    std::shared_ptr<Cubemap> getSkyboxMap() const;
-    std::shared_ptr<Cubemap> getIrradianceMap() const;
-    std::shared_ptr<Cubemap> getPrefilteredMap() const;
+    Cubemap *getSkyboxMap() const;
+    Cubemap *getIrradianceMap() const;
+    Cubemap *getPrefilteredMap() const;
 
 private:
-    std::shared_ptr<Cubemap> m_skyboxMap;
-    std::shared_ptr<Cubemap> m_irradianceMap;
-    std::shared_ptr<Cubemap> m_prefilteredMap;
+    Cubemap *m_skyboxMap;
+    Cubemap *m_irradianceMap;
+    Cubemap *m_prefilteredMap;
 };
 
 }  // namespace vengine

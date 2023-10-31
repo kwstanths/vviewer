@@ -77,30 +77,30 @@ public:
     virtual float &vTiling() = 0;
     virtual const float &vTiling() const = 0;
 
-    virtual void setAlbedoTexture(std::shared_ptr<Texture> texture);
-    virtual void setMetallicTexture(std::shared_ptr<Texture> texture);
-    virtual void setRoughnessTexture(std::shared_ptr<Texture> texture);
-    virtual void setAOTexture(std::shared_ptr<Texture> texture);
-    virtual void setEmissiveTexture(std::shared_ptr<Texture> texture);
-    virtual void setNormalTexture(std::shared_ptr<Texture> texture);
+    virtual void setAlbedoTexture(Texture *texture);
+    virtual void setMetallicTexture(Texture *texture);
+    virtual void setRoughnessTexture(Texture *texture);
+    virtual void setAOTexture(Texture *texture);
+    virtual void setEmissiveTexture(Texture *texture);
+    virtual void setNormalTexture(Texture *texture);
 
-    std::shared_ptr<Texture> getAlbedoTexture() const;
-    std::shared_ptr<Texture> getMetallicTexture() const;
-    std::shared_ptr<Texture> getRoughnessTexture() const;
-    std::shared_ptr<Texture> getAOTexture() const;
-    std::shared_ptr<Texture> getEmissiveTexture() const;
-    std::shared_ptr<Texture> getNormalTexture() const;
+    Texture *getAlbedoTexture() const;
+    Texture *getMetallicTexture() const;
+    Texture *getRoughnessTexture() const;
+    Texture *getAOTexture() const;
+    Texture *getEmissiveTexture() const;
+    Texture *getNormalTexture() const;
 
     bool &zipMaterial() { return m_zipMaterial; }
     const bool &zipMaterial() const { return m_zipMaterial; }
 
 protected:
-    std::shared_ptr<Texture> m_albedoTexture;
-    std::shared_ptr<Texture> m_metallicTexture;
-    std::shared_ptr<Texture> m_roughnessTexture;
-    std::shared_ptr<Texture> m_aoTexture;
-    std::shared_ptr<Texture> m_emissiveTexture;
-    std::shared_ptr<Texture> m_normalTexture;
+    Texture *m_albedoTexture;
+    Texture *m_metallicTexture;
+    Texture *m_roughnessTexture;
+    Texture *m_aoTexture;
+    Texture *m_emissiveTexture;
+    Texture *m_normalTexture;
 
 private:
     bool m_zipMaterial = false;
@@ -132,21 +132,21 @@ public:
     virtual float &vTiling() = 0;
     virtual const float &vTiling() const = 0;
 
-    virtual void setAlbedoTexture(std::shared_ptr<Texture> texture);
-    virtual void setAOTexture(std::shared_ptr<Texture> texture);
-    virtual void setEmissiveTexture(std::shared_ptr<Texture> texture);
-    virtual void setNormalTexture(std::shared_ptr<Texture> texture);
+    virtual void setAlbedoTexture(Texture *texture);
+    virtual void setAOTexture(Texture *texture);
+    virtual void setEmissiveTexture(Texture *texture);
+    virtual void setNormalTexture(Texture *texture);
 
-    std::shared_ptr<Texture> getAlbedoTexture() const;
-    std::shared_ptr<Texture> getAOTexture() const;
-    std::shared_ptr<Texture> getEmissiveTexture() const;
-    std::shared_ptr<Texture> getNormalTexture() const;
+    Texture *getAlbedoTexture() const;
+    Texture *getAOTexture() const;
+    Texture *getEmissiveTexture() const;
+    Texture *getNormalTexture() const;
 
 protected:
-    std::shared_ptr<Texture> m_albedoTexture;
-    std::shared_ptr<Texture> m_aoTexture;
-    std::shared_ptr<Texture> m_emissiveTexture;
-    std::shared_ptr<Texture> m_normalTexture;
+    Texture *m_albedoTexture;
+    Texture *m_aoTexture;
+    Texture *m_emissiveTexture;
+    Texture *m_normalTexture;
 };
 
 class MaterialSkybox : public Material
@@ -159,11 +159,11 @@ public:
 
     MaterialType getType() const override { return MaterialType::MATERIAL_SKYBOX; }
 
-    virtual void setMap(std::shared_ptr<EnvironmentMap> cubemap);
-    std::shared_ptr<EnvironmentMap> getMap() const;
+    virtual void setMap(EnvironmentMap *cubemap);
+    EnvironmentMap *getMap() const;
 
 protected:
-    std::shared_ptr<EnvironmentMap> m_envMap = nullptr;
+    EnvironmentMap *m_envMap = nullptr;
 };
 
 }  // namespace vengine

@@ -16,7 +16,7 @@
 
 using namespace vengine;
 
-WidgetMaterialLambert::WidgetMaterialLambert(QWidget *parent, std::shared_ptr<MaterialLambert> material)
+WidgetMaterialLambert::WidgetMaterialLambert(QWidget *parent, MaterialLambert *material)
     : QWidget(parent)
 {
     m_material = material;

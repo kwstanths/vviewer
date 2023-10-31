@@ -47,12 +47,15 @@ WidgetRightPanel::WidgetRightPanel(QWidget *parent, Engine *engine)
     m_updateTimer->start();
 }
 
-void WidgetRightPanel::setSelectedObject(std::shared_ptr<SceneObject> object)
+void WidgetRightPanel::setSelectedObject(SceneObject *object)
 {
     m_object = object;
 
     deleteWidgets();
-    createUI(object);
+
+    if (m_object != nullptr) {
+        createUI(object);
+    }
 }
 
 WidgetEnvironment *WidgetRightPanel::getEnvironmentWidget()
@@ -76,8 +79,14 @@ void WidgetRightPanel::onUpdate()
 
 void WidgetRightPanel::deleteWidgets()
 {
-    delete m_layoutControls;
-    delete m_widgetControls;
+    if (m_layoutControls != nullptr) {
+        delete m_layoutControls;
+        m_layoutControls = nullptr;
+    }
+    if (m_widgetControls != nullptr) {
+        delete m_widgetControls;
+        m_widgetControls = nullptr;
+    }
 
     m_selectedObjectWidgetName = nullptr;
     m_selectedObjectWidgetTransform = nullptr;
@@ -86,7 +95,7 @@ void WidgetRightPanel::deleteWidgets()
     m_selectedObjectWidgetLight = nullptr;
 }
 
-void WidgetRightPanel::createUI(std::shared_ptr<SceneObject> object)
+void WidgetRightPanel::createUI(SceneObject *object)
 {
     m_layoutControls = new QVBoxLayout();
     m_layoutControls->setAlignment(Qt::AlignTop);
@@ -201,7 +210,7 @@ void WidgetRightPanel::onAddComponentLight()
     m_engine->stop();
     m_engine->waitIdle();
 
-    m_object->add<ComponentLight>().light = std::make_shared<Light>("PointLight", LightType::POINT_LIGHT, pointLightMaterial);
+    m_object->add<ComponentLight>().light = new Light("PointLight", LightType::POINT_LIGHT, pointLightMaterial);
 
     m_engine->start();
 

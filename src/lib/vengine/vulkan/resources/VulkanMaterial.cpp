@@ -16,7 +16,7 @@ VulkanMaterialDescriptor::VulkanMaterialDescriptor(VkDescriptorSetLayout descrip
 {
 }
 
-VkDescriptorSet VulkanMaterialDescriptor::getDescriptor(size_t index)
+VkDescriptorSet VulkanMaterialDescriptor::getDescriptor(size_t index) const
 {
     return m_descriptorSets[index];
 }
@@ -67,7 +67,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     if (!textures.isPresent("PBR_BRDF_LUT")) {
         throw std::runtime_error("PBR_BRDF_LUT texture not present");
     }
-    auto BRDFLUT = std::static_pointer_cast<VulkanTexture>(textures.get("PBR_BRDF_LUT"));
+    auto BRDFLUT = static_cast<VulkanTexture *>(textures.get("PBR_BRDF_LUT"));
     m_data->gTexturesIndices2.b = static_cast<uint32_t>(BRDFLUT->getBindlessResourceIndex());
 }
 
@@ -161,56 +161,56 @@ const float &VulkanMaterialPBRStandard::vTiling() const
     return m_data->uvTiling.g;
 }
 
-void VulkanMaterialPBRStandard::setAlbedoTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialPBRStandard::setAlbedoTexture(Texture *texture)
 {
     MaterialPBRStandard::setAlbedoTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices1.r = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialPBRStandard::setMetallicTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialPBRStandard::setMetallicTexture(Texture *texture)
 {
     MaterialPBRStandard::setMetallicTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices1.g = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialPBRStandard::setRoughnessTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialPBRStandard::setRoughnessTexture(Texture *texture)
 {
     MaterialPBRStandard::setRoughnessTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices1.b = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialPBRStandard::setAOTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialPBRStandard::setAOTexture(Texture *texture)
 {
     MaterialPBRStandard::setAOTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices1.a = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialPBRStandard::setEmissiveTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialPBRStandard::setEmissiveTexture(Texture *texture)
 {
     MaterialPBRStandard::setEmissiveTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices2.r = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialPBRStandard::setNormalTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialPBRStandard::setNormalTexture(Texture *texture)
 {
     MaterialPBRStandard::setNormalTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
 }
@@ -322,38 +322,38 @@ const float &VulkanMaterialLambert::vTiling() const
     return m_data->uvTiling.g;
 }
 
-void VulkanMaterialLambert::setAlbedoTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialLambert::setAlbedoTexture(Texture *texture)
 {
     MaterialLambert::setAlbedoTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices1.r = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialLambert::setAOTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialLambert::setAOTexture(Texture *texture)
 {
     MaterialLambert::setAOTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices1.a = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialLambert::setEmissiveTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialLambert::setEmissiveTexture(Texture *texture)
 {
     MaterialLambert::setEmissiveTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices2.r = static_cast<uint32_t>(textureIndex);
 }
 
-void VulkanMaterialLambert::setNormalTexture(std::shared_ptr<Texture> texture)
+void VulkanMaterialLambert::setNormalTexture(Texture *texture)
 {
     MaterialLambert::setNormalTexture(texture);
 
-    int32_t textureIndex = std::static_pointer_cast<VulkanTexture>(texture)->getBindlessResourceIndex();
+    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
     assert(textureIndex >= 0);
     m_data->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
 }
@@ -361,7 +361,7 @@ void VulkanMaterialLambert::setNormalTexture(std::shared_ptr<Texture> texture)
 /* ------------------------------------------------------------------------------------------------------------------- */
 
 VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name,
-                                           std::shared_ptr<EnvironmentMap> envMap,
+                                           EnvironmentMap *envMap,
                                            VkDevice device,
                                            VkDescriptorSetLayout descriptorLayout)
     : VulkanMaterialDescriptor(descriptorLayout)
@@ -370,7 +370,7 @@ VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name,
     m_envMap = envMap;
 }
 
-void VulkanMaterialSkybox::setMap(std::shared_ptr<EnvironmentMap> envMap)
+void VulkanMaterialSkybox::setMap(EnvironmentMap *envMap)
 {
     m_envMap = envMap;
     std::fill(m_descirptorsNeedUpdate.begin(), m_descirptorsNeedUpdate.end(), true);
@@ -400,22 +400,22 @@ void VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
 void VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
 {
     VkDescriptorImageInfo skyboxInfo =
-        vkinit::descriptorImageInfo(std::static_pointer_cast<VulkanCubemap>(m_envMap->getSkyboxMap())->getSampler(),
-                                    std::static_pointer_cast<VulkanCubemap>(m_envMap->getSkyboxMap())->getImageView(),
+        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->getSkyboxMap())->getSampler(),
+                                    static_cast<VulkanCubemap *>(m_envMap->getSkyboxMap())->getImageView(),
                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     VkWriteDescriptorSet descriptorWriteSkybox =
         vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &skyboxInfo);
 
     VkDescriptorImageInfo irradianceInfo =
-        vkinit::descriptorImageInfo(std::static_pointer_cast<VulkanCubemap>(m_envMap->getIrradianceMap())->getSampler(),
-                                    std::static_pointer_cast<VulkanCubemap>(m_envMap->getIrradianceMap())->getImageView(),
+        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->getIrradianceMap())->getSampler(),
+                                    static_cast<VulkanCubemap *>(m_envMap->getIrradianceMap())->getImageView(),
                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     VkWriteDescriptorSet descriptorWriteIrradiance =
         vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, &irradianceInfo);
 
     VkDescriptorImageInfo prefilteredMapInfo =
-        vkinit::descriptorImageInfo(std::static_pointer_cast<VulkanCubemap>(m_envMap->getPrefilteredMap())->getSampler(),
-                                    std::static_pointer_cast<VulkanCubemap>(m_envMap->getPrefilteredMap())->getImageView(),
+        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->getPrefilteredMap())->getSampler(),
+                                    static_cast<VulkanCubemap *>(m_envMap->getPrefilteredMap())->getImageView(),
                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     VkWriteDescriptorSet descriptorWritePrefiltered =
         vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1, &prefilteredMapInfo);

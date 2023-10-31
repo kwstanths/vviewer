@@ -25,7 +25,7 @@ Q_SIGNALS:
     void initializationFinished();
 
     /* emitted when the user selected an object from the 3d scene */
-    void sceneObjectSelected(std::shared_ptr<vengine::SceneObject> object);
+    void sceneObjectSelected(vengine::SceneObject *object);
 
     /* emitted when the position of the selected object changes */
     void selectedObjectPositionChanged();

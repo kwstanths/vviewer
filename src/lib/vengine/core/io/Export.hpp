@@ -7,8 +7,8 @@
 
 #include <rapidjson/document.h>
 
-#include <vengine/core/Camera.hpp>
 #include <vengine/core/SceneObject.hpp>
+#include <vengine/core/Camera.hpp>
 #include <vengine/core/Material.hpp>
 #include <vengine/core/Lights.hpp>
 
@@ -24,8 +24,8 @@ struct ExportRenderParams {
 
 void exportJson(const ExportRenderParams &renderParams,
                 std::shared_ptr<Camera> sceneCamera,
-                const std::vector<std::shared_ptr<SceneObject>> &sceneObjects,
-                std::shared_ptr<EnvironmentMap> envMap);
+                const SceneGraph &sceneObjects,
+                EnvironmentMap *envMap);
 
 }  // namespace vengine
 

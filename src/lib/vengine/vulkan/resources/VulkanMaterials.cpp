@@ -47,7 +47,7 @@ VkResult VulkanMaterials::initSwapchainResources(uint32_t nImages)
     {
         auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
         for (auto itr = materialsSkybox.begin(); itr != materialsSkybox.end(); ++itr) {
-            auto material = std::static_pointer_cast<VulkanMaterialSkybox>(itr->second);
+            auto material = static_cast<VulkanMaterialSkybox *>(itr->second);
             VULKAN_CHECK_CRITICAL(material->createDescriptors(m_vkctx.device(), m_descriptorPool, m_swapchainImages));
             material->updateDescriptorSets(m_vkctx.device(), m_swapchainImages);
         }
@@ -89,24 +89,22 @@ VkBuffer VulkanMaterials::getBuffer(uint32_t index)
     return m_materialsStorage.buffer(index);
 }
 
-std::shared_ptr<Material> VulkanMaterials::createMaterial(const std::string &name, const std::string &filepath, MaterialType type)
+Material *VulkanMaterials::createMaterial(const std::string &name, const std::string &filepath, MaterialType type)
 {
     auto &materials = AssetManager::getInstance().materialsMap();
     if (materials.isPresent(name)) {
         return materials.get(name);
     }
 
-    std::shared_ptr<Material> temp;
+    Material *temp;
     switch (type) {
         case MaterialType::MATERIAL_PBR_STANDARD: {
-            temp = std::make_shared<VulkanMaterialPBRStandard>(
-                name, filepath, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
+            temp = new VulkanMaterialPBRStandard(name, filepath, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
             materials.add(temp);
             break;
         }
         case MaterialType::MATERIAL_LAMBERT: {
-            temp =
-                std::make_shared<VulkanMaterialLambert>(name, filepath, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
+            temp = new VulkanMaterialLambert(name, filepath, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
             materials.add(temp);
             break;
         }
@@ -119,12 +117,12 @@ std::shared_ptr<Material> VulkanMaterials::createMaterial(const std::string &nam
     return temp;
 }
 
-std::shared_ptr<Material> VulkanMaterials::createMaterial(const std::string &name, MaterialType type)
+Material *VulkanMaterials::createMaterial(const std::string &name, MaterialType type)
 {
     return createMaterial(name, name, type);
 }
 
-std::shared_ptr<Material> VulkanMaterials::createMaterialFromDisk(std::string name, std::string stackDirectory, Textures &textures)
+Material *VulkanMaterials::createMaterialFromDisk(std::string name, std::string stackDirectory, Textures &textures)
 {
     auto material = createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD);
     if (material == nullptr)
@@ -137,20 +135,20 @@ std::shared_ptr<Material> VulkanMaterials::createMaterialFromDisk(std::string na
     auto roughness = textures.createTexture(stackDirectory + "/roughness.png", ColorSpace::LINEAR);
 
     if (albedo != nullptr)
-        std::static_pointer_cast<MaterialPBRStandard>(material)->setAlbedoTexture(albedo);
+        static_cast<MaterialPBRStandard *>(material)->setAlbedoTexture(albedo);
     if (ao != nullptr)
-        std::static_pointer_cast<MaterialPBRStandard>(material)->setAOTexture(ao);
+        static_cast<MaterialPBRStandard *>(material)->setAOTexture(ao);
     if (metallic != nullptr)
-        std::static_pointer_cast<MaterialPBRStandard>(material)->setMetallicTexture(metallic);
+        static_cast<MaterialPBRStandard *>(material)->setMetallicTexture(metallic);
     if (normal != nullptr)
-        std::static_pointer_cast<MaterialPBRStandard>(material)->setNormalTexture(normal);
+        static_cast<MaterialPBRStandard *>(material)->setNormalTexture(normal);
     if (roughness != nullptr)
-        std::static_pointer_cast<MaterialPBRStandard>(material)->setRoughnessTexture(roughness);
+        static_cast<MaterialPBRStandard *>(material)->setRoughnessTexture(roughness);
 
     return material;
 }
 
-std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, std::string filename, Textures &textures)
+Material *VulkanMaterials::createZipMaterial(std::string name, std::string filename, Textures &textures)
 {
     struct zip_t *zip = zip_open(filename.c_str(), 0, 'r');
     if (zip == nullptr) {
@@ -198,7 +196,7 @@ std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, s
     }
 
     /* Parse albedo */
-    std::shared_ptr<Texture> albedoTexture = nullptr;
+    Texture *albedoTexture = nullptr;
     std::string albedoZipPath = texturesFolder + "textures/albedo.png";
     if (zip_entry_open(zip, albedoZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
@@ -208,17 +206,18 @@ std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, s
             stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, STBI_rgb_alpha);
 
         std::string id = filename + ":" + albedoZipPath;
-        auto image = std::make_shared<Image<stbi_uc>>(id, filename, rawImgBuffer, x, y, STBI_rgb_alpha, ColorSpace::sRGB, false);
+        auto image = new Image<stbi_uc>(id, filename, rawImgBuffer, x, y, STBI_rgb_alpha, ColorSpace::sRGB, true);
         albedoTexture = textures.createTexture(image);
         if (albedoTexture == nullptr) {
             debug_tools::ConsoleWarning("Unable to load albedo from zip texture stack");
         }
+        delete image;
         /* entry_close will delete the memory */
         zip_entry_close(zip);
     }
 
     /* Parse roughness */
-    std::shared_ptr<Texture> roughnessTexture = nullptr;
+    Texture *roughnessTexture = nullptr;
     std::string roughnessZipPath = texturesFolder + "textures/roughness.png";
     if (zip_entry_open(zip, roughnessZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
@@ -228,17 +227,18 @@ std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, s
             stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, &channels, STBI_default);
 
         std::string id = filename + ":" + roughnessZipPath;
-        auto image = std::make_shared<Image<stbi_uc>>(id, filename, rawImgBuffer, x, y, channels, ColorSpace::LINEAR, false);
+        auto image = new Image<stbi_uc>(id, filename, rawImgBuffer, x, y, channels, ColorSpace::LINEAR, true);
         roughnessTexture = textures.createTexture(image);
         if (roughnessTexture == nullptr) {
             debug_tools::ConsoleWarning("Unable to load roughness from zip texture stack");
         }
+        delete image;
         /* entry_close will delete the memory */
         zip_entry_close(zip);
     }
 
     /* Parse normal */
-    std::shared_ptr<Texture> normalTexture = nullptr;
+    Texture *normalTexture = nullptr;
     std::string normalZipPath = texturesFolder + "textures/normal.png";
     if (zip_entry_open(zip, normalZipPath.c_str()) == 0) {
         zip_entry_read(zip, &buf, &bufsize);
@@ -248,16 +248,17 @@ std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, s
             stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, STBI_rgb_alpha);
 
         std::string id = filename + ":" + normalZipPath;
-        auto image = std::make_shared<Image<stbi_uc>>(id, filename, rawImgBuffer, x, y, STBI_rgb_alpha, ColorSpace::LINEAR, false);
+        auto image = new Image<stbi_uc>(id, filename, rawImgBuffer, x, y, STBI_rgb_alpha, ColorSpace::LINEAR, true);
         normalTexture = textures.createTexture(image);
         if (normalTexture == nullptr) {
             debug_tools::ConsoleWarning("Unable to load normal from zip texture stack");
         }
+        delete image;
         /* entry_close will delete the memory */
         zip_entry_close(zip);
     }
 
-    auto mat = std::dynamic_pointer_cast<MaterialPBRStandard>(createMaterial(name, filename, MaterialType::MATERIAL_PBR_STANDARD));
+    auto mat = dynamic_cast<MaterialPBRStandard *>(createMaterial(name, filename, MaterialType::MATERIAL_PBR_STANDARD));
     mat->setAlbedoTexture(albedoTexture);
     mat->setRoughnessTexture(roughnessTexture);
     mat->roughness() = 1.0F;
@@ -270,8 +271,8 @@ std::shared_ptr<Material> VulkanMaterials::createZipMaterial(std::string name, s
     return mat;
 }
 
-std::vector<std::shared_ptr<Material>> VulkanMaterials::createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
-                                                                                Textures &textures)
+std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
+                                                                 Textures &textures)
 {
     auto getTexture = [&](ImportedTexture tex) {
         if (tex.image != nullptr) {
@@ -283,7 +284,7 @@ std::vector<std::shared_ptr<Material>> VulkanMaterials::createImportedMaterials(
         return texture;
     };
 
-    std::vector<std::shared_ptr<Material>> materials;
+    std::vector<Material *> materials;
     for (uint32_t i = 0; i < importedMaterials.size(); i++) {
         const ImportedMaterial &mat = importedMaterials[i];
 
@@ -293,8 +294,8 @@ std::vector<std::shared_ptr<Material>> VulkanMaterials::createImportedMaterials(
             auto material = createZipMaterial(mat.name, mat.filepath, textures);
             materials.push_back(nullptr);
         } else if (mat.type == ImportedMaterialType::LAMBERT) {
-            auto material = std::static_pointer_cast<VulkanMaterialLambert>(
-                createMaterial(mat.name, mat.filepath, MaterialType::MATERIAL_PBR_STANDARD));
+            auto material =
+                static_cast<VulkanMaterialLambert *>(createMaterial(mat.name, mat.filepath, MaterialType::MATERIAL_PBR_STANDARD));
             materials.push_back(material);
 
             material->albedo() = mat.albedo;
@@ -313,8 +314,8 @@ std::vector<std::shared_ptr<Material>> VulkanMaterials::createImportedMaterials(
                 material->setNormalTexture(getTexture(mat.normalTexture.value()));
             }
         } else if (mat.type == ImportedMaterialType::PBR_STANDARD) {
-            auto material = std::static_pointer_cast<VulkanMaterialPBRStandard>(
-                createMaterial(mat.name, mat.filepath, MaterialType::MATERIAL_PBR_STANDARD));
+            auto material =
+                static_cast<VulkanMaterialPBRStandard *>(createMaterial(mat.name, mat.filepath, MaterialType::MATERIAL_PBR_STANDARD));
             materials.push_back(material);
 
             material->albedo() = mat.albedo;

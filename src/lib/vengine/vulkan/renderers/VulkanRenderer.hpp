@@ -60,7 +60,7 @@ public:
 
     VulkanRendererSkybox &getRendererSkybox() { return m_rendererSkybox; }
 
-    std::shared_ptr<Cubemap> createCubemap(std::string directory);
+    Cubemap *createCubemap(std::string directory);
 
     VkResult renderFrame(SceneGraph &sceneGraphArray);
 

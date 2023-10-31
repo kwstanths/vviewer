@@ -153,22 +153,22 @@ void MainWindow::createMenu()
     m_menuExport->addAction(actionExport);
 }
 
-std::pair<QTreeWidgetItem *, std::shared_ptr<SceneObject>> MainWindow::createEmptySceneObject(std::string name,
-                                                                                              const Transform &transform,
-                                                                                              QTreeWidgetItem *parent)
+std::pair<QTreeWidgetItem *, SceneObject *> MainWindow::createEmptySceneObject(std::string name,
+                                                                               const Transform &transform,
+                                                                               QTreeWidgetItem *parent)
 {
     /* If parent is null, add at root */
     if (parent == nullptr) {
-        std::shared_ptr<SceneObject> newObject = m_scene->addSceneObject(name, transform);
+        SceneObject *newObject = m_scene->addSceneObject(name, transform);
         QTreeWidgetItem *widgetItem = m_sceneGraphWidget->createTreeWidgetItem(newObject);
 
         m_sceneGraphWidget->addTopLevelItem(widgetItem);
 
         return {widgetItem, newObject};
     } else {
-        std::shared_ptr<SceneObject> parentObject = WidgetSceneGraph::getSceneObject(parent);
+        SceneObject *parentObject = WidgetSceneGraph::getSceneObject(parent);
 
-        std::shared_ptr<SceneObject> newObject = m_scene->addSceneObject(name, parentObject, transform);
+        SceneObject *newObject = m_scene->addSceneObject(name, parentObject, transform);
         QTreeWidgetItem *widgetItem = m_sceneGraphWidget->createTreeWidgetItem(newObject);
 
         parent->addChild(widgetItem);
@@ -187,7 +187,7 @@ void MainWindow::selectObject(QTreeWidgetItem *selectedItem)
     m_sceneGraphWidget->blockSignals(true);
 
     /* Get selected object */
-    std::shared_ptr<SceneObject> sceneObject = WidgetSceneGraph::getSceneObject(selectedItem);
+    SceneObject *sceneObject = WidgetSceneGraph::getSceneObject(selectedItem);
     /* Remove UI selection if needed */
     if (!selectedItem->isSelected()) {
         selectedItem->setSelected(true);
@@ -197,7 +197,7 @@ void MainWindow::selectObject(QTreeWidgetItem *selectedItem)
     /* Remove selection from previously selected item */
     if (previouslySelected != nullptr) {
         previouslySelected->setSelected(false);
-        std::shared_ptr<SceneObject> previousSelected = WidgetSceneGraph::getSceneObject(previouslySelected);
+        SceneObject *previousSelected = WidgetSceneGraph::getSceneObject(previouslySelected);
         previousSelected->m_isSelected = false;
     }
 
@@ -214,7 +214,7 @@ void MainWindow::selectObject(QTreeWidgetItem *selectedItem)
 void MainWindow::removeObjectFromScene(QTreeWidgetItem *treeItem)
 {
     /* Get corresponding scene object */
-    std::shared_ptr<SceneObject> selectedObject = WidgetSceneGraph::getSceneObject(treeItem);
+    SceneObject *selectedObject = WidgetSceneGraph::getSceneObject(treeItem);
 
     /* Remove scene object from scene */
     m_scene->removeSceneObject(selectedObject);
@@ -237,8 +237,8 @@ void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem, std::string mo
     Tree<Model3D::Model3DNode> &modelData = model->data();
 
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
-    std::shared_ptr<Material> defaultMat = instanceMaterials.get("defaultMaterial");
-    std::shared_ptr<Material> overrideMat = (overrideMaterial.has_value() ? instanceMaterials.get(overrideMaterial.value()) : nullptr);
+    Material *defaultMat = instanceMaterials.get("defaultMaterial");
+    Material *overrideMat = (overrideMaterial.has_value() ? instanceMaterials.get(overrideMaterial.value()) : nullptr);
 
     std::function<void(QTreeWidgetItem *, Tree<Model3D::Model3DNode> &)> addModelF = [&](QTreeWidgetItem *parent,
                                                                                          Tree<Model3D::Model3DNode> &modelData) {
@@ -304,7 +304,7 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
     /* Add light component */
     if (object.light.has_value()) {
         auto lightMat = instanceLightMaterials.get(object.light->lightMaterial);
-        newSceneObject.second->add<ComponentLight>().light = std::make_shared<Light>("light", LightType::POINT_LIGHT, lightMat);
+        newSceneObject.second->add<ComponentLight>().light = new Light("light", LightType::POINT_LIGHT, lightMat);
     }
 
     /* Add children */
@@ -593,6 +593,7 @@ void MainWindow::onImportScene()
     }
 
     /* Delete previous assets */
+    // TODO properly destroy the assets
     AssetManager::getInstance().materialsMap().reset();
     AssetManager::getInstance().lightMaterialsMap().reset();
     AssetManager::getInstance().modelsMap().reset();
@@ -617,7 +618,7 @@ void MainWindow::onImportScene()
 
     /* Import light materials */
     for (auto &itr : lightMaterials) {
-        AssetManager::getInstance().lightMaterialsMap().add(std::make_shared<LightMaterial>(itr.name, itr.color, itr.intensity));
+        AssetManager::getInstance().lightMaterialsMap().add(new LightMaterial(itr.name, itr.color, itr.intensity));
     }
 
     /* Create new scene */
@@ -694,6 +695,10 @@ void MainWindow::onRemoveSceneObjectSlot()
 
     removeObjectFromScene(selectedItem);
 
+    if (m_sceneGraphWidget->isEmpty()) {
+        m_widgetRightPanel->setSelectedObject(nullptr);
+    }
+
     m_engine->start();
 }
 
@@ -733,12 +738,11 @@ void MainWindow::onAddPointLightSlot()
     /* Add light component */
     auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
     if (!lightMaterials.isPresent("DefaultPointLightMaterial")) {
-        lightMaterials.add(std::make_shared<LightMaterial>("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1));
+        lightMaterials.add(new LightMaterial("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1));
     }
     auto lightMat = lightMaterials.get("DefaultPointLightMaterial");
 
-    newObject.second->add<ComponentLight>().light =
-        std::make_shared<Light>(newObject.second->m_name, LightType::POINT_LIGHT, lightMat);
+    newObject.second->add<ComponentLight>().light = new Light(newObject.second->m_name, LightType::POINT_LIGHT, lightMat);
 
     m_engine->start();
 }
@@ -842,13 +846,12 @@ void MainWindow::onDuplicateSceneObjectSlot()
 
     std::function<void(QTreeWidgetItem *, QTreeWidgetItem *)> duplicate;
     duplicate = [&](QTreeWidgetItem *duplicatedItem, QTreeWidgetItem *parent) {
-        std::shared_ptr<SceneObject> so = m_sceneGraphWidget->getSceneObject(duplicatedItem);
+        SceneObject *so = m_sceneGraphWidget->getSceneObject(duplicatedItem);
         auto newObject = createEmptySceneObject(so->m_name + " (D)", so->localTransform(), parent);
 
         if (so->has<ComponentLight>()) {
             auto l = so->get<ComponentLight>().light;
-            newObject.second->add<ComponentLight>().light =
-                std::make_shared<Light>(newObject.second->m_name, l->type, l->lightMaterial);
+            newObject.second->add<ComponentLight>().light = new Light(newObject.second->m_name, l->type, l->lightMaterial);
         }
         if (so->has<ComponentMesh>()) {
             newObject.second->add<ComponentMesh>().mesh = so->get<ComponentMesh>().mesh;
@@ -883,7 +886,7 @@ void MainWindow::onSelectedSceneObjectChangedSlotUI()
     selectObject(selectedItem);
 }
 
-void MainWindow::onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<SceneObject> object)
+void MainWindow::onSelectedSceneObjectChangedSlot3DScene(SceneObject *object)
 {
     QTreeWidgetItem *treeItem = m_sceneGraphWidget->getTreeWidgetItem(object);
     if (treeItem == nullptr)
@@ -895,7 +898,7 @@ void MainWindow::onSelectedSceneObjectChangedSlot3DScene(std::shared_ptr<SceneOb
 void MainWindow::onSelectedSceneObjectNameChangedSlot(QString newName)
 {
     QTreeWidgetItem *selectedItem = m_sceneGraphWidget->currentItem();
-    std::shared_ptr<SceneObject> object = WidgetSceneGraph::getSceneObject(selectedItem);
+    SceneObject *object = WidgetSceneGraph::getSceneObject(selectedItem);
 
     object->m_name = newName.toStdString();
     selectedItem->setText(0, newName);

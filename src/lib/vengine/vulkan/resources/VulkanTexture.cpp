@@ -7,7 +7,7 @@
 namespace vengine
 {
 
-VulkanTexture::VulkanTexture(std::shared_ptr<Image<stbi_uc>> image,
+VulkanTexture::VulkanTexture(Image<stbi_uc> *image,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
@@ -101,7 +101,7 @@ VulkanTexture::VulkanTexture(std::shared_ptr<Image<stbi_uc>> image,
     createSampler(device, m_sampler);
 }
 
-VulkanTexture::VulkanTexture(std::shared_ptr<Image<float>> image,
+VulkanTexture::VulkanTexture(Image<float> *image,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,

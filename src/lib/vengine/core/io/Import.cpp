@@ -333,14 +333,13 @@ std::optional<ImportedTexture> parseTexture(const rapidjson::Value &o, const std
     value.name = o["texture"]["name"].GetString();
 
     if (value.type == ImportedTextureType::DISK_FILE) {
-        value.image = std::make_shared<Image<uint8_t>>(relativePath + value.name, colorSpace);
+        value.image = new Image<uint8_t>(relativePath + value.name, colorSpace);
     }
     return value;
 }
 
-ImportedMaterial parseMaterial(const rapidjson::Value &o, const std::string &relativePath)
+void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, ImportedMaterial &material)
 {
-    ImportedMaterial material;
     material.name = o["name"].GetString();
 
     {
@@ -354,12 +353,12 @@ ImportedMaterial parseMaterial(const rapidjson::Value &o, const std::string &rel
     }
 
     if (material.type == ImportedMaterialType::EMBEDDED) {
-        return material;
+        return;
     }
 
     if (material.type == ImportedMaterialType::STACK) {
         material.filepath = relativePath + o["path"].GetString();
-        return material;
+        return;
     }
 
     material.filepath = material.name;
@@ -395,7 +394,7 @@ ImportedMaterial parseMaterial(const rapidjson::Value &o, const std::string &rel
         material.scale = parseVec2(o, "scale", material.scale);
     }
 
-    return material;
+    return;
 }
 
 ImportedLightMaterial parseLightMaterial(const rapidjson::Value &o)
@@ -470,8 +469,9 @@ std::string importScene(std::string filename,
     }
 
     /* Parse materials */
+    materials.resize(doc["materials"].Size());
     for (size_t m = 0; m < doc["materials"].Size(); m++) {
-        materials.push_back(parseMaterial(doc["materials"][m], sceneFolder));
+        parseMaterial(doc["materials"][m], sceneFolder, materials[m]);
     }
 
     /* Parse light materials */

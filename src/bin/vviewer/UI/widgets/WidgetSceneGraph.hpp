@@ -9,7 +9,7 @@
 
 #include "vengine/core/SceneObject.hpp"
 
-Q_DECLARE_METATYPE(std::shared_ptr<vengine::SceneObject>)
+Q_DECLARE_METATYPE(vengine::SceneObject *)
 
 class WidgetSceneGraph : public QTreeWidget
 {
@@ -20,16 +20,18 @@ public:
     QTreeWidgetItem *getPreviouslySelectedItem() const;
     void setPreviouslySelectedItem(QTreeWidgetItem *item);
 
-    static std::shared_ptr<vengine::SceneObject> getSceneObject(QTreeWidgetItem *item)
+    static vengine::SceneObject *getSceneObject(QTreeWidgetItem *item)
     {
-        return item->data(0, Qt::UserRole).value<std::shared_ptr<vengine::SceneObject>>();
+        return item->data(0, Qt::UserRole).value<vengine::SceneObject *>();
     }
 
-    QTreeWidgetItem *createTreeWidgetItem(std::shared_ptr<vengine::SceneObject> object);
+    QTreeWidgetItem *createTreeWidgetItem(vengine::SceneObject *object);
 
     void removeItem(QTreeWidgetItem *item);
 
-    QTreeWidgetItem *getTreeWidgetItem(std::shared_ptr<vengine::SceneObject> object);
+    QTreeWidgetItem *getTreeWidgetItem(vengine::SceneObject *object);
+
+    bool isEmpty() const;
 
 private:
     /* Previously selected item */

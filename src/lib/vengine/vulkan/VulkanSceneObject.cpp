@@ -1,5 +1,7 @@
 #include "VulkanSceneObject.hpp"
 
+#include <iostream>
+
 namespace vengine
 {
 
@@ -17,7 +19,7 @@ VulkanSceneObject::VulkanSceneObject(VulkanUBO<ModelData> &transformDynamicUBO)
 VulkanSceneObject::~VulkanSceneObject()
 {
     /* Remove block index from the buffers */
-    m_transformDynamicUBO.remove(m_transformUBOBlock);
+    m_transformDynamicUBO.setFree(m_transformUBOBlock);
 }
 
 void VulkanSceneObject::setModelMatrix(const glm::mat4 &modelMatrix)

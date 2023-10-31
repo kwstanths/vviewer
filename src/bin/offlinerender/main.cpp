@@ -2,6 +2,8 @@
 
 #include "vengine/vulkan/VulkanEngine.hpp"
 
+#include "vengine/utils/Pool.hpp"
+
 using namespace vengine;
 
 void createSceneBallOnPlance(Scene &scene)
@@ -20,18 +22,18 @@ void createSceneBallOnPlance(Scene &scene)
     auto plane = instanceModels.get("assets/models/plane.obj");
     auto sphere = instanceModels.get("assets/models/uvsphere.obj");
 
-    std::shared_ptr<SceneObject> planeObject = scene.addSceneObject("plane", Transform({0, -3, 0}, {10, 10, 10}));
+    SceneObject *planeObject = scene.addSceneObject("plane", Transform({0, -3, 0}, {10, 10, 10}));
     planeObject->add<ComponentMesh>().mesh = plane->mesh("Plane");
     planeObject->add<ComponentMaterial>().material = matDef;
 
-    std::shared_ptr<SceneObject> sphereObject = scene.addSceneObject("sphere", Transform({0, 0, 0}, {3, 3, 3}));
+    SceneObject *sphereObject = scene.addSceneObject("sphere", Transform({0, 0, 0}, {3, 3, 3}));
     sphereObject->add<ComponentMesh>().mesh = sphere->mesh("defaultobject");
     sphereObject->add<ComponentMaterial>().material = matDef;
 }
 
 void performVideoRender(VulkanEngine &engine, Scene &scene)
 {
-    engine.renderer().rendererRayTracing().renderInfo().samples = 512;
+    engine.renderer().rendererRayTracing().renderInfo().samples = 256;
     engine.renderer().rendererRayTracing().renderInfo().batchSize = 256;
     engine.renderer().rendererRayTracing().renderInfo().fileType = FileType::PNG;
 

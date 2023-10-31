@@ -39,13 +39,13 @@ class Renderer
 public:
     Renderer();
 
-    void setSelectedObject(std::shared_ptr<SceneObject> sceneObject) { m_selectedObject = sceneObject; }
-    std::shared_ptr<SceneObject> getSelectedObject() const { return m_selectedObject; }
+    void setSelectedObject(SceneObject *sceneObject) { m_selectedObject = sceneObject; }
+    SceneObject *getSelectedObject() const { return m_selectedObject; }
 
     virtual RendererRayTracing &rendererRayTracing() = 0;
 
 protected:
-    std::shared_ptr<SceneObject> m_selectedObject;
+    SceneObject *m_selectedObject = nullptr;
 
 private:
 };

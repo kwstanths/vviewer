@@ -20,7 +20,7 @@ public:
                   VkCommandPool commandPool);
     VulkanModel3D(const std::string &name,
                   const Tree<ImportedModelNode> &importedData,
-                  const std::vector<std::shared_ptr<Material>> &materials,
+                  const std::vector<Material *> &materials,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
@@ -46,7 +46,7 @@ private:
                     VkDevice device,
                     VkQueue queue,
                     VkCommandPool commandPool,
-                    const std::vector<std::shared_ptr<Material>> &materials);
+                    const std::vector<Material *> &materials);
 };
 
 }  // namespace vengine

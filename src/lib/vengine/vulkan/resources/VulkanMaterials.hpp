@@ -33,12 +33,12 @@ public:
     void updateBuffers(uint32_t index) const;
     VkBuffer getBuffer(uint32_t index);
 
-    std::shared_ptr<Material> createMaterial(const std::string &name, const std::string &filepath, MaterialType type) override;
-    std::shared_ptr<Material> createMaterial(const std::string &name, MaterialType type) override;
-    std::shared_ptr<Material> createMaterialFromDisk(std::string name, std::string stackDirectory, Textures &textures) override;
-    std::shared_ptr<Material> createZipMaterial(std::string name, std::string filename, Textures &textures) override;
-    std::vector<std::shared_ptr<Material>> createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
-                                                                   Textures &textures) override;
+    Material *createMaterial(const std::string &name, const std::string &filepath, MaterialType type) override;
+    Material *createMaterial(const std::string &name, MaterialType type) override;
+    Material *createMaterialFromDisk(std::string name, std::string stackDirectory, Textures &textures) override;
+    Material *createZipMaterial(std::string name, std::string filename, Textures &textures) override;
+    std::vector<Material *> createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
+                                                    Textures &textures) override;
 
 private:
     VulkanContext &m_vkctx;

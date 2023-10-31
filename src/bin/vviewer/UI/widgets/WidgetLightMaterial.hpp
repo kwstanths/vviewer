@@ -17,10 +17,10 @@ class WidgetLightMaterial : public QWidget
 {
     Q_OBJECT
 public:
-    WidgetLightMaterial(QWidget *parent, std::shared_ptr<vengine::Light> light);
+    WidgetLightMaterial(QWidget *parent, vengine::Light *light);
 
 private:
-    std::shared_ptr<vengine::Light> m_light;
+    vengine::Light *m_light;
 
     QComboBox *m_widgetLightMaterials;
 

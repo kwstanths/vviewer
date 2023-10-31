@@ -13,7 +13,7 @@
 
 using namespace vengine;
 
-WidgetLightMaterial::WidgetLightMaterial(QWidget *parent, std::shared_ptr<Light> light)
+WidgetLightMaterial::WidgetLightMaterial(QWidget *parent, Light *light)
     : QWidget(parent)
 {
     m_light = light;
@@ -93,7 +93,7 @@ void WidgetLightMaterial::onCreateNewMaterial()
     std::string name = "LightMaterial" + std::to_string(newLightMaterialNameIndex);
 
     auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
-    auto newLightMaterial = lightMaterials.add(std::make_shared<LightMaterial>(name, glm::vec3(1, 1, 1), 1.F));
+    auto newLightMaterial = lightMaterials.add(new LightMaterial(name, glm::vec3(1, 1, 1), 1.F));
 
     m_widgetLightMaterials->blockSignals(true);
 

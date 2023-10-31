@@ -30,8 +30,6 @@ struct SceneData {
     glm::vec4 m_exposure; /* R = exposure, G = ambient environment map multiplier, B = , A = */
 };
 
-typedef std::vector<std::shared_ptr<SceneObject>> SceneGraph;
-
 class Scene
 {
 public:
@@ -47,8 +45,8 @@ public:
     const float &ambientIBLFactor() const { return m_ambientIBL; }
     float &ambientIBLFactor() { return m_ambientIBL; }
 
-    const std::shared_ptr<MaterialSkybox> &skyboxMaterial() const { return m_skybox; }
-    std::shared_ptr<MaterialSkybox> &skyboxMaterial() { return m_skybox; }
+    const MaterialSkybox *skyboxMaterial() const { return m_skybox; }
+    MaterialSkybox *&skyboxMaterial() { return m_skybox; }
 
     const EnvironmentType &environmentType() const { return m_environmentType; }
     EnvironmentType &environmentType() { return m_environmentType; }
@@ -59,11 +57,11 @@ public:
     virtual SceneData getSceneData() const;
 
     /* Add a new scene object at the root of the scene graph */
-    std::shared_ptr<SceneObject> addSceneObject(std::string name, Transform transform);
+    SceneObject *addSceneObject(std::string name, Transform transform);
     /* Add a new scene object as a child of a node */
-    std::shared_ptr<SceneObject> addSceneObject(std::string name, std::shared_ptr<SceneObject> node, Transform transform);
+    SceneObject *addSceneObject(std::string name, SceneObject *parentNode, Transform transform);
 
-    void removeSceneObject(std::shared_ptr<SceneObject> node);
+    void removeSceneObject(SceneObject *object);
 
     void updateSceneGraph();
 
@@ -72,7 +70,7 @@ public:
     SceneGraph getSceneObjectsArray() const;
     SceneGraph getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices) const;
 
-    std::shared_ptr<SceneObject> getSceneObject(vengine::ID id) const;
+    SceneObject *getSceneObject(vengine::ID id) const;
 
     void exportScene(const ExportRenderParams &renderParams) const;
 
@@ -81,13 +79,14 @@ protected:
     float m_exposure = 0.0f;
     float m_ambientIBL = 1.0f;
 
-    std::shared_ptr<MaterialSkybox> m_skybox;
+    MaterialSkybox *m_skybox;
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
     glm::vec3 m_backgroundColor = {0, 0.5, 0.5};
 
-    std::unordered_map<vengine::ID, std::shared_ptr<SceneObject>> m_objectsMap;
+    std::unordered_map<vengine::ID, SceneObject *> m_objectsMap;
 
-    virtual std::shared_ptr<SceneObject> createObject(std::string name) = 0;
+    virtual SceneObject *createObject(std::string name) = 0;
+    virtual void deleteObject(SceneObject *) = 0;
 
     SceneGraph m_sceneGraph;
 };

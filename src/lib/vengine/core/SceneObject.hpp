@@ -27,6 +27,8 @@ protected:
     glm::vec3 m_idRGB;
 };
 
+typedef std::vector<SceneObject *> SceneGraph;
+
 }  // namespace vengine
 
 #endif

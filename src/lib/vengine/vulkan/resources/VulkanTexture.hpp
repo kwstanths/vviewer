@@ -14,14 +14,14 @@ namespace vengine
 class VulkanTexture : public Texture
 {
 public:
-    VulkanTexture(std::shared_ptr<Image<stbi_uc>> image,
+    VulkanTexture(Image<stbi_uc> *image,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
                   VkCommandPool commandPool,
                   bool genMipMaps);
 
-    VulkanTexture(std::shared_ptr<Image<float>> image,
+    VulkanTexture(Image<float> *image,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,

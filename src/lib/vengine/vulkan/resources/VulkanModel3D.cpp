@@ -12,18 +12,6 @@ VulkanModel3D::VulkanModel3D(const std::string &name)
 
 VulkanModel3D::VulkanModel3D(const std::string &name,
                              const Tree<ImportedModelNode> &importedData,
-                             const std::vector<std::shared_ptr<Material>> &materials,
-                             VkPhysicalDevice physicalDevice,
-                             VkDevice device,
-                             VkQueue queue,
-                             VkCommandPool commandPool)
-    : Model3D(name)
-{
-    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, materials);
-}
-
-VulkanModel3D::VulkanModel3D(const std::string &name,
-                             const Tree<ImportedModelNode> &importedData,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
@@ -33,11 +21,25 @@ VulkanModel3D::VulkanModel3D(const std::string &name,
     importNode(importedData, m_data, physicalDevice, device, queue, commandPool, {});
 }
 
+VulkanModel3D::VulkanModel3D(const std::string &name,
+                             const Tree<ImportedModelNode> &importedData,
+                             const std::vector<Material *> &materials,
+                             VkPhysicalDevice physicalDevice,
+                             VkDevice device,
+                             VkQueue queue,
+                             VkCommandPool commandPool)
+    : Model3D(name)
+{
+    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, materials);
+}
+
 void VulkanModel3D::destroy(VkDevice device)
 {
     std::function<void(VkDevice, Tree<Model3DNode> &)> destroyR = [&](VkDevice device, Tree<Model3DNode> &node) {
         for (auto &m : node.data().meshes) {
-            std::static_pointer_cast<VulkanMesh>(m)->destroy(device);
+            VulkanMesh *mesh = static_cast<VulkanMesh *>(m);
+            mesh->destroy(device);
+            delete mesh;
         }
 
         for (uint32_t i = 0; i < node.size(); i++) {
@@ -54,15 +56,15 @@ void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
                                VkDevice device,
                                VkQueue queue,
                                VkCommandPool commandPool,
-                               const std::vector<std::shared_ptr<Material>> &materials)
+                               const std::vector<Material *> &materials)
 {
     Model3DNode model3DNode;
     model3DNode.name = node.data().name;
     for (uint32_t i = 0; i < node.data().meshes.size(); i++) {
         auto &mesh = node.data().meshes[i];
-        auto &mat = (materials.size() > 0 ? materials[node.data().materialIndices[i]] : nullptr);
+        auto *mat = (materials.size() > 0 ? materials[node.data().materialIndices[i]] : nullptr);
 
-        auto vkmesh = std::make_shared<VulkanMesh>(mesh, physicalDevice, device, queue, commandPool);
+        auto vkmesh = new VulkanMesh(mesh, physicalDevice, device, queue, commandPool);
         vkmesh->m_model = this;
 
         model3DNode.meshes.emplace_back(vkmesh);

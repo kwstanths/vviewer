@@ -31,13 +31,11 @@ public:
 
     void updateTextures();
 
-    std::shared_ptr<Texture> createTexture(std::string imagePath,
-                                           ColorSpace colorSpace = ColorSpace::sRGB,
-                                           bool keepImage = false) override;
-    std::shared_ptr<Texture> createTexture(std::shared_ptr<Image<stbi_uc>> image) override;
-    std::shared_ptr<Texture> createTextureHDR(std::string imagePath, bool keepImage = false) override;
+    Texture *createTexture(std::string imagePath, ColorSpace colorSpace = ColorSpace::sRGB, bool keepImage = false) override;
+    Texture *createTexture(Image<stbi_uc> *image) override;
+    Texture *createTextureHDR(std::string imagePath, bool keepImage = false) override;
 
-    std::shared_ptr<Texture> addTexture(std::shared_ptr<Texture> tex);
+    Texture *addTexture(Texture *tex);
 
 private:
     VulkanContext &m_vkctx;
@@ -46,7 +44,7 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayout;
     VkDescriptorSet m_descriptorSet;
 
-    std::vector<std::shared_ptr<VulkanTexture>> m_texturesToUpdate;
+    std::vector<VulkanTexture *> m_texturesToUpdate;
     vengine::FreeList m_freeList;
 
     VkResult createDescriptorSetsLayout(uint32_t nBindlessTextures);

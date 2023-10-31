@@ -27,6 +27,9 @@ public:
         m_nBlocks = nBlocks;
     };
 
+    VulkanUBO(VulkanUBO const &) = delete;
+    void operator=(VulkanUBO const &) = delete;
+
     /**
         Allocate cpu memory for nBlocks aligned based on the minUniformBufferOffsetAlignment
         @param minUniformBufferOffsetAlignment The device's minimum alignment

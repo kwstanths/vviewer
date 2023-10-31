@@ -96,11 +96,16 @@ void VulkanScene::updateBuffers(uint32_t imageIndex) const
     }
 }
 
-std::shared_ptr<SceneObject> VulkanScene::createObject(std::string name)
+SceneObject *VulkanScene::createObject(std::string name)
 {
-    auto object = std::make_shared<VulkanSceneObject>(m_modelDataDynamicUBO);
+    auto object = new VulkanSceneObject(m_modelDataDynamicUBO);
     object->m_name = name;
     return object;
+}
+
+void VulkanScene::deleteObject(SceneObject *object)
+{
+    delete object;
 }
 
 VkResult VulkanScene::createDescriptorSetsLayouts()

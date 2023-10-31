@@ -236,20 +236,20 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
     return nullptr;
 }
 
-std::shared_ptr<Image<uint8_t>> assimpCreateImage(std::string name,
-                                                  std::string filepath,
-                                                  uint8_t *data,
-                                                  int width,
-                                                  int height,
-                                                  int channels,
-                                                  ColorSpace colorSpace,
-                                                  int channel = -1)
+Image<uint8_t> *assimpCreateImage(std::string name,
+                                  std::string filepath,
+                                  uint8_t *data,
+                                  int width,
+                                  int height,
+                                  int channels,
+                                  ColorSpace colorSpace,
+                                  int channel = -1)
 {
     if (channel == -1) {
 #ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGES
         debug_tools::ConsoleInfo("Loaded image: " + name);
 #endif
-        return std::make_shared<Image<uint8_t>>(name, filepath, data, width, height, channels, colorSpace, true);
+        return new Image<uint8_t>(name, filepath, data, width, height, channels, colorSpace, true);
     } else {
         uint8_t *channelData = new uint8_t[width * height];
         uint32_t index = 0;
@@ -261,7 +261,7 @@ std::shared_ptr<Image<uint8_t>> assimpCreateImage(std::string name,
 #ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGES
         debug_tools::ConsoleInfo("Loaded image: " + name);
 #endif
-        return std::make_shared<Image<uint8_t>>(name, filepath, channelData, width, height, 1, colorSpace, true);
+        return new Image<uint8_t>(name, filepath, channelData, width, height, 1, colorSpace, true);
     }
 }
 
@@ -270,12 +270,12 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                                                       std::string folderPath,
                                                       std::string materialNamePrefix = "")
 {
-    std::vector<ImportedMaterial> materials;
+    std::vector<ImportedMaterial> materials(scene->mNumMaterials);
 
     for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
         aiMaterial *mat = scene->mMaterials[i];
 
-        ImportedMaterial importedMaterial;
+        ImportedMaterial &importedMaterial = materials[i];
 
         {
             aiString name;
@@ -387,8 +387,6 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                 importedMaterial.normalTexture = normalTex;
             }
         }
-
-        materials.push_back(importedMaterial);
     }
 
     return materials;

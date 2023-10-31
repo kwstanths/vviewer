@@ -34,25 +34,27 @@ class ComponentMesh : public Component
 {
 public:
     ComponentMesh(){};
-    std::shared_ptr<Mesh> mesh;
+    Mesh *mesh;
 };
 class ComponentMaterial : public Component
 {
 public:
     ComponentMaterial(){};
-    std::shared_ptr<Material> material;
+    Material *material;
 };
 class ComponentLight : public Component
 {
 public:
     ComponentLight(){};
-    std::shared_ptr<Light> light;
+    Light *light;
 };
 
 /* Component buffers */
 class IComponentBuffer
 {
 public:
+    virtual ~IComponentBuffer(){};
+
     virtual void clear() = 0;
 
 private:
@@ -64,7 +66,7 @@ public:
     ComponentBuffer(uint32_t nComponents)
         : FreeBlockList<T>(nComponents){};
 
-    void clear() override { FreeBlockList<T>::clear(); }
+    void clear() override { FreeBlockList<T>::reset(); }
 
 private:
 };
@@ -101,13 +103,28 @@ private:
             m_componentBuffers.insert({name, new ComponentBuffer<ComponentLight>(MAX_COMPONENTS)});
         }
     }
+    ~ComponentManager()
+    {
+        {
+            const char *name = typeid(ComponentMesh).name();
+            delete m_componentBuffers[name];
+        }
+        {
+            const char *name = typeid(ComponentMaterial).name();
+            delete m_componentBuffers[name];
+        }
+        {
+            const char *name = typeid(ComponentLight).name();
+            delete m_componentBuffers[name];
+        }
+    }
     std::unordered_map<const char *, IComponentBuffer *> m_componentBuffers;
 
     template <typename T>
     T *create()
     {
         auto componentBuffer = getComponentBuffer<T>();
-        auto *component = componentBuffer->add(T());
+        auto *component = componentBuffer->get();
         return component;
     }
 
@@ -115,8 +132,7 @@ private:
     void remove(T *t)
     {
         auto componentBuffer = getComponentBuffer<T>();
-        size_t index = componentBuffer->getIndex(t);
-        componentBuffer->remove(index);
+        componentBuffer->remove(t);
     }
 
     template <typename T>

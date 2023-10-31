@@ -13,7 +13,7 @@ Tree<Model3D::Model3DNode> &Model3D::data()
     return m_data;
 }
 
-std::shared_ptr<Mesh> Model3D::mesh(std::string name) const
+Mesh *Model3D::mesh(std::string name) const
 {
     auto itr = m_meshes.find(name);
     if (itr == m_meshes.end()) {
@@ -22,9 +22,9 @@ std::shared_ptr<Mesh> Model3D::mesh(std::string name) const
     return itr->second;
 }
 
-std::vector<std::shared_ptr<Mesh>> Model3D::meshes() const
+std::vector<Mesh *> Model3D::meshes() const
 {
-    std::vector<std::shared_ptr<Mesh>> temp;
+    std::vector<Mesh *> temp;
     for (auto i : m_meshes) {
         temp.push_back(i.second);
     }

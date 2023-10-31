@@ -31,7 +31,7 @@ private:
     QWidget *m_materialWidget = nullptr;
 
     void createUI(QWidget *widgetMaterial);
-    QWidget *createMaterialWidget(std::shared_ptr<vengine::Material> &material);
+    QWidget *createMaterialWidget(vengine::Material *material);
 
     QWidget *m_widgetGroupBox = nullptr;
     QVBoxLayout *m_layoutGroupBox = nullptr;

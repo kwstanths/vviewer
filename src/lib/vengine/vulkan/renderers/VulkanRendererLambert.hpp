@@ -53,7 +53,7 @@ public:
                                    VkDescriptorSet &descriptorTextures,
                                    uint32_t imageIndex,
                                    const VulkanUBO<ModelData> &dynamicUBOModels,
-                                   std::vector<std::shared_ptr<SceneObject>> &objects) const;
+                                   const SceneGraph &objects) const;
 
     /**
      * @brief Render objects with an additive pass
@@ -73,7 +73,7 @@ public:
                                   VkDescriptorSet &descriptorTextures,
                                   uint32_t imageIndex,
                                   const VulkanUBO<ModelData> &dynamicUBOModels,
-                                  std::shared_ptr<SceneObject> object,
+                                  SceneObject *object,
                                   PushBlockForwardAddPass &lightInfo) const;
 
 private:

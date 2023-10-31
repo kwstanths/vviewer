@@ -49,7 +49,7 @@ QStringList getImportedTextures(ColorSpace colorSpace)
     {
         auto &instance = AssetManager::getInstance().texturesMap();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-            auto tex = std::static_pointer_cast<Texture>(itr->second);
+            auto tex = static_cast<Texture *>(itr->second);
             if (tex->colorSpace() == colorSpace) {
                 importedTextures.push_back(QString::fromStdString(itr->first));
             }

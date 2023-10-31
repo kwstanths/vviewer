@@ -27,15 +27,17 @@ public:
     const SceneNode<T> *parent() const { return m_parent; }
     SceneNode<T> *&parent() { return m_parent; }
 
-    std::vector<std::shared_ptr<T>> &children() { return m_children; }
+    const std::vector<T *> &children() const { return m_children; }
 
-    std::shared_ptr<T> addChild(std::shared_ptr<T> node);
+    T *addChild(T *node);
+
+    void removeChild(T *node);
 
     void update();
 
     /* Get all nodes in a flat array */
-    std::vector<std::shared_ptr<T>> getSceneObjectsArray();
-    std::vector<std::shared_ptr<T>> getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices);
+    std::vector<T *> getSceneObjectsArray();
+    std::vector<T *> getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices);
 
     virtual void setModelMatrix(const glm::mat4 &modelMatrix) = 0;
 
@@ -43,7 +45,7 @@ private:
     glm::mat4 m_modelMatrix = glm::mat4(1.0f);
     Transform m_localTransform;
 
-    std::vector<std::shared_ptr<T>> m_children;
+    std::vector<T *> m_children;
 
     SceneNode<T> *m_parent = nullptr;
 };

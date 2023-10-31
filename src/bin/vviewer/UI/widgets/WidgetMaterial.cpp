@@ -60,7 +60,7 @@ void WidgetMaterial::createUI(QWidget *widgetMaterial)
     m_widgetGroupBox->setLayout(m_layoutGroupBox);
 }
 
-QWidget *WidgetMaterial::createMaterialWidget(std::shared_ptr<Material> &material)
+QWidget *WidgetMaterial::createMaterialWidget(Material *material)
 {
     if (m_widgetMaterial != nullptr) {
         delete m_widgetMaterial;
@@ -68,10 +68,10 @@ QWidget *WidgetMaterial::createMaterialWidget(std::shared_ptr<Material> &materia
 
     switch (material->getType()) {
         case MaterialType::MATERIAL_PBR_STANDARD:
-            m_widgetMaterial = new WidgetMaterialPBR(this, std::dynamic_pointer_cast<MaterialPBRStandard>(material));
+            m_widgetMaterial = new WidgetMaterialPBR(this, dynamic_cast<MaterialPBRStandard *>(material));
             break;
         case MaterialType::MATERIAL_LAMBERT:
-            m_widgetMaterial = new WidgetMaterialLambert(this, std::dynamic_pointer_cast<MaterialLambert>(material));
+            m_widgetMaterial = new WidgetMaterialLambert(this, dynamic_cast<MaterialLambert *>(material));
             break;
         default:
             break;
