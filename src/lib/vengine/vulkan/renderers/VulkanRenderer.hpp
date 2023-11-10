@@ -13,7 +13,7 @@
 #include "core/AssetManager.hpp"
 #include "core/Materials.hpp"
 #include "core/EnvironmentMap.hpp"
-#include "core/Lights.hpp"
+#include "core/Light.hpp"
 #include "core/Renderer.hpp"
 
 #include "vulkan/VulkanContext.hpp"

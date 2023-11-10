@@ -15,7 +15,6 @@
 #include <debug_tools/Console.hpp>
 #include <debug_tools/Timer.hpp>
 
-#include "core/Lights.hpp"
 #include "core/Materials.hpp"
 #include "utils/ECS.hpp"
 #include "utils/ImageUtils.hpp"
@@ -25,6 +24,7 @@
 #include "vulkan/common/VulkanUtils.hpp"
 #include "vulkan/common/VulkanShader.hpp"
 #include "vulkan/common/VulkanLimits.hpp"
+#include "vulkan/resources/VulkanLight.hpp"
 
 namespace vengine
 {
@@ -204,12 +204,12 @@ void VulkanRendererRayTracing::render(const Scene &scene)
             auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
             auto material = so->get<ComponentMaterial>().material;
 
-            AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material->getMaterialIndex());
+            AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material->materialIndex());
 
             uint32_t sbtOffset;
-            if (material->getType() == MaterialType::MATERIAL_LAMBERT)
+            if (material->type() == MaterialType::MATERIAL_LAMBERT)
                 sbtOffset = 0;
-            else if (material->getType() == MaterialType::MATERIAL_PBR_STANDARD)
+            else if (material->type() == MaterialType::MATERIAL_PBR_STANDARD)
                 sbtOffset = 1;
             else {
                 throw std::runtime_error("VulkanRendererRayTracing::renderScene(): Unexpected material");
@@ -1216,7 +1216,7 @@ bool VulkanRendererRayTracing::isMeshLight(const SceneObject *so)
 {
     if (so->has<ComponentMaterial>()) {
         auto material = so->get<ComponentMaterial>().material;
-        switch (material->getType()) {
+        switch (material->type()) {
             case MaterialType::MATERIAL_PBR_STANDARD: {
                 auto pbrStandard = static_cast<VulkanMaterialPBRStandard *>(material);
                 if (!isBlack(pbrStandard->emissiveColor(), 0.01F)) {
@@ -1258,20 +1258,26 @@ void VulkanRendererRayTracing::prepareSceneObjectLight(const SceneObject *so,
     if (so->has<ComponentLight>()) {
         auto cl = so->get<ComponentLight>().light;
         sceneLights.push_back(LightRT());
-        if (cl->type == LightType::POINT_LIGHT) {
-            sceneLights.back().position = glm::vec4(so->worldPosition(), 0.F);
-            sceneLights.back().color = glm::vec4(cl->lightMaterial->color * cl->lightMaterial->intensity, 0.F);
-        } else if (cl->type == LightType::DIRECTIONAL_LIGHT) {
-            sceneLights.back().position = glm::vec4(0, 0, 0, 1.F);
+        if (cl->type() == LightType::POINT_LIGHT) {
+            auto l = static_cast<VulkanPointLight *>(cl);
+            auto color = l->color();
+
+            sceneLights.back().position = glm::vec4(so->worldPosition(), LightType::POINT_LIGHT);
+            sceneLights.back().color = glm::vec4(glm::vec3(color) * color.a, 0.F);
+        } else if (cl->type() == LightType::DIRECTIONAL_LIGHT) {
+            auto l = static_cast<VulkanDirectionalLight *>(cl);
+            auto color = l->color();
+
+            sceneLights.back().position = glm::vec4(0, 0, 0, LightType::DIRECTIONAL_LIGHT);
             sceneLights.back().direction = glm::vec4(so->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0));
-            sceneLights.back().color = glm::vec4(cl->lightMaterial->color * cl->lightMaterial->intensity, 0.F);
+            sceneLights.back().color = glm::vec4(glm::vec3(color) * color.a, 0.F);
         }
     }
 
     if (so->has<ComponentMaterial>() && isMeshLight(so)) {
         auto material = so->get<ComponentMaterial>().material;
         sceneLights.push_back(LightRT());
-        sceneLights.back().position = glm::vec4(t[0][0], t[0][1], t[0][2], 2.F);
+        sceneLights.back().position = glm::vec4(t[0][0], t[0][1], t[0][2], LightType::MESH_LIGHT);
         sceneLights.back().direction = glm::vec4(t[1][0], t[1][1], t[1][2], objectDescriptionIndex);
         sceneLights.back().color = glm::vec4(t[2][0], t[2][1], t[2][2], 0);
         sceneLights.back().transform = glm::vec4(t[3][0], t[3][1], t[3][2], 0);

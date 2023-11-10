@@ -6,29 +6,36 @@
 #include <qpushbutton.h>
 #include <qslider.h>
 #include <qlabel.h>
+#include <qlayout.h>
 
-#include <vengine/core/Lights.hpp>
+#include <vengine/core/Light.hpp>
 #include <vengine/utils/ECS.hpp>
 
-#include "WidgetLightMaterial.hpp"
-
-/* A UI widget for a point light */
+/* A UI widget for a light */
 class WidgetLight : public QWidget
 {
     Q_OBJECT
 public:
-    static const int HEIGHT = 210;
+    static const int HEIGHT = 165;
     WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponent);
+
+    void updateAvailableLights();
 
 private:
     vengine::ComponentLight &m_lightComponent;
 
-    QComboBox *m_lightTypeComboBox;
+    QComboBox *m_comboBoxLights = nullptr;
+    QWidget *m_widgetLight = nullptr;
 
-    WidgetLightMaterial *m_widgetLightMaterial;
+    QWidget *m_widgetGroupBox = nullptr;
+    QVBoxLayout *m_layoutGroupBox = nullptr;
+    QVBoxLayout *m_layoutMain = nullptr;
+
+    void createUI(QWidget *widgetLight);
+    QWidget *createLightWidget(vengine::Light *light);
 
 private Q_SLOTS:
-    void onLightTypeChanged(int);
+    void onLightChanged(int);
 };
 
 #endif

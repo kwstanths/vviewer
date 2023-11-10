@@ -9,7 +9,7 @@
 
 QStringList getImportedModels();
 QStringList getCreatedMaterials();
-QStringList getCreatedLightMaterials();
+QStringList getCreatedLights();
 QStringList getImportedTextures(vengine::ColorSpace colorSpace);
 QStringList getImportedCubemaps();
 QStringList getImportedEnvironmentMaps();

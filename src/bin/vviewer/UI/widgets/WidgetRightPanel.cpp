@@ -70,6 +70,13 @@ void WidgetRightPanel::updateAvailableMaterials()
     }
 }
 
+void WidgetRightPanel::updateAvailableLights()
+{
+    if (m_selectedObjectWidgetLight != nullptr) {
+        m_selectedObjectWidgetLight->getWidget<WidgetLight>()->updateAvailableLights();
+    }
+}
+
 void WidgetRightPanel::onUpdate()
 {
     if (m_selectedObjectWidgetMaterial != nullptr) {
@@ -138,9 +145,16 @@ void WidgetRightPanel::createUI(SceneObject *object)
         menu->addAction(actionAddMaterialComponent);
     }
     if (!object->has<ComponentLight>()) {
-        QAction *actionAddLightComponent = new QAction("Light", this);
-        connect(actionAddLightComponent, SIGNAL(triggered()), this, SLOT(onAddComponentLight()));
-        menu->addAction(actionAddLightComponent);
+        QMenu *lightMenu = new QMenu("Light");
+
+        QAction *actionAddPointLight = new QAction("Point Light", this);
+        connect(actionAddPointLight, SIGNAL(triggered()), this, SLOT(onAddComponentPointLight()));
+        lightMenu->addAction(actionAddPointLight);
+        QAction *actionAddDirectionalLight = new QAction("Directional Light", this);
+        connect(actionAddDirectionalLight, SIGNAL(triggered()), this, SLOT(onAddComponentDirectionalLight()));
+        lightMenu->addAction(actionAddDirectionalLight);
+
+        menu->addMenu(lightMenu);
     }
     QPushButton *buttonAddComponent = new QPushButton(tr("Add component"));
     buttonAddComponent->setMenu(menu);
@@ -202,15 +216,31 @@ void WidgetRightPanel::onAddComponentMaterial()
     createUI(m_object);
 }
 
-void WidgetRightPanel::onAddComponentLight()
+void WidgetRightPanel::onAddComponentPointLight()
 {
-    auto &instanceLightMaterials = AssetManager::getInstance().lightMaterialsMap();
-    auto pointLightMaterial = instanceLightMaterials.get("DefaultPointLightMaterial");
+    auto &instanceLights = AssetManager::getInstance().lightsMap();
+    auto pointLight = instanceLights.get("defaultPointLight");
 
     m_engine->stop();
     m_engine->waitIdle();
 
-    m_object->add<ComponentLight>().light = new Light("PointLight", LightType::POINT_LIGHT, pointLightMaterial);
+    m_object->add<ComponentLight>().light = pointLight;
+
+    m_engine->start();
+
+    deleteWidgets();
+    createUI(m_object);
+}
+
+void WidgetRightPanel::onAddComponentDirectionalLight()
+{
+    auto &instanceLights = AssetManager::getInstance().lightsMap();
+    auto directionalLight = instanceLights.get("defaultDirectionalLight");
+
+    m_engine->stop();
+    m_engine->waitIdle();
+
+    m_object->add<ComponentLight>().light = directionalLight;
 
     m_engine->start();
 

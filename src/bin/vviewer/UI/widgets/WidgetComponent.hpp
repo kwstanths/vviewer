@@ -100,9 +100,9 @@ public:
 
     int getWidgetHeight()
     {
-        if (m_object->get<vengine::ComponentMaterial>().material->getType() == vengine::MaterialType::MATERIAL_PBR_STANDARD) {
+        if (m_object->get<vengine::ComponentMaterial>().material->type() == vengine::MaterialType::MATERIAL_PBR_STANDARD) {
             return WidgetMaterial::HEIGHT_PBR;
-        } else if (m_object->get<vengine::ComponentMaterial>().material->getType() == vengine::MaterialType::MATERIAL_LAMBERT) {
+        } else if (m_object->get<vengine::ComponentMaterial>().material->type() == vengine::MaterialType::MATERIAL_LAMBERT) {
             return WidgetMaterial::HEIGHT_LAMBERT;
         } else {
             throw std::runtime_error("UIComponentMaterial::Unexpected material");

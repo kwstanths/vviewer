@@ -33,6 +33,11 @@ void MaterialPBRStandard::setNormalTexture(Texture *texture)
     m_normalTexture = texture;
 }
 
+void MaterialPBRStandard::setAlphaTexture(Texture *texture)
+{
+    m_alphaTexture = texture;
+}
+
 Texture *MaterialPBRStandard::getAlbedoTexture() const
 {
     return m_albedoTexture;
@@ -63,6 +68,11 @@ Texture *MaterialPBRStandard::getNormalTexture() const
     return m_normalTexture;
 }
 
+Texture *MaterialPBRStandard::getAlphaTexture() const
+{
+    return m_alphaTexture;
+}
+
 void MaterialLambert::setAlbedoTexture(Texture *texture)
 {
     m_albedoTexture = texture;
@@ -83,6 +93,11 @@ void MaterialLambert::setNormalTexture(Texture *texture)
     m_normalTexture = texture;
 }
 
+void MaterialLambert::setAlphaTexture(Texture *texture)
+{
+    m_alphaTexture = texture;
+}
+
 Texture *MaterialLambert::getAlbedoTexture() const
 {
     return m_albedoTexture;
@@ -101,6 +116,11 @@ Texture *MaterialLambert::getEmissiveTexture() const
 Texture *MaterialLambert::getNormalTexture() const
 {
     return m_normalTexture;
+}
+
+Texture *MaterialLambert::getAlphaTexture() const
+{
+    return m_alphaTexture;
 }
 
 void MaterialSkybox::setMap(EnvironmentMap *envMap)

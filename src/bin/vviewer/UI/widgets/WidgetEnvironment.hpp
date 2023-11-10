@@ -13,7 +13,7 @@
 #include <qgroupbox.h>
 
 #include "vengine/core/Materials.hpp"
-#include "vengine/core/Lights.hpp"
+#include "vengine/core/Light.hpp"
 #include "vengine/core/Scene.hpp"
 #include "vengine/core/SceneObject.hpp"
 #include "vengine/math/Transform.hpp"

@@ -10,36 +10,6 @@
 namespace vengine
 {
 
-/* A class to handle the UBO storage for a material */
-template <typename T>
-class VulkanMaterialStorage
-{
-public:
-    VulkanMaterialStorage(VulkanUBO<T> &materialsUBO)
-        : m_materialsDataStorage(materialsUBO)
-    {
-        /* Get an index for a free block in the material storage buffers */
-        m_materialsUBOBlockIndex = static_cast<uint32_t>(m_materialsDataStorage.getFree());
-        /* Get pointer to free block */
-        m_data = m_materialsDataStorage.block(m_materialsUBOBlockIndex);
-    }
-
-    ~VulkanMaterialStorage()
-    {
-        /* Remove block index from the buffers */
-        m_materialsDataStorage.setFree(m_materialsUBOBlockIndex);
-    }
-
-    uint32_t getUBOBlockIndex() const { return m_materialsUBOBlockIndex; }
-
-    uint32_t getBlockSizeAligned() const { return m_materialsDataStorage.getBlockSizeAligned(); }
-
-protected:
-    VulkanUBO<T> &m_materialsDataStorage;
-    uint32_t m_materialsUBOBlockIndex = -1;
-    T *m_data = nullptr;
-};
-
 /* A class that wraps descriptor creation for a material, needs to be implemented by each material */
 class VulkanMaterialDescriptor
 {
@@ -62,7 +32,7 @@ protected:
 /** MATERIALS **/
 
 /* Default PBR material */
-class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanMaterialStorage<MaterialData>
+class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanUBOBlock<MaterialData>
 {
 public:
     VulkanMaterialPBRStandard(std::string name,
@@ -71,7 +41,7 @@ public:
                               VkDescriptorSetLayout descriptorLayout,
                               VulkanUBO<MaterialData> &materialsUBO);
 
-    MaterialIndex getMaterialIndex() const override;
+    MaterialIndex materialIndex() const override;
 
     glm::vec4 &albedo() override;
     const glm::vec4 &albedo() const override;
@@ -97,12 +67,13 @@ public:
     void setAOTexture(Texture *texture) override;
     void setEmissiveTexture(Texture *texture) override;
     void setNormalTexture(Texture *texture) override;
+    void setAlphaTexture(Texture *texture) override;
 
 private:
 };
 
 /* Lambert material */
-class VulkanMaterialLambert : public MaterialLambert, public VulkanMaterialStorage<MaterialData>
+class VulkanMaterialLambert : public MaterialLambert, public VulkanUBOBlock<MaterialData>
 {
 public:
     VulkanMaterialLambert(std::string name,
@@ -111,7 +82,7 @@ public:
                           VkDescriptorSetLayout descriptorLayout,
                           VulkanUBO<MaterialData> &materialsUBO);
 
-    MaterialIndex getMaterialIndex() const override;
+    MaterialIndex materialIndex() const override;
 
     glm::vec4 &albedo() override;
     const glm::vec4 &albedo() const override;
@@ -131,6 +102,7 @@ public:
     void setAOTexture(Texture *texture) override;
     void setEmissiveTexture(Texture *texture) override;
     void setNormalTexture(Texture *texture) override;
+    void setAlphaTexture(Texture *texture) override;
 
 private:
 };

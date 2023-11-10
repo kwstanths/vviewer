@@ -148,5 +148,5 @@ void WidgetTransform::updateTransformUI()
 void WidgetTransform::onTransformChangedSlot(double d)
 {
     if (m_sceneObject != nullptr)
-        m_sceneObject->localTransform() = getTransform();
+        m_sceneObject->setLocalTransform(getTransform());
 }

@@ -7,7 +7,7 @@
 #include <vengine/utils/IDGeneration.hpp>
 
 #include "Camera.hpp"
-#include "Lights.hpp"
+#include "Light.hpp"
 #include "SceneObject.hpp"
 #include "io/Export.hpp"
 #include "utils/ECS.hpp"
@@ -22,6 +22,7 @@ enum class EnvironmentType {
     SOLID_COLOR_WITH_HDRI_LIGHTING = 2
 };
 
+/* A clone of the GPU struct */
 struct SceneData {
     glm::mat4 m_view;
     glm::mat4 m_viewInverse;
@@ -73,6 +74,8 @@ public:
     SceneObject *getSceneObject(vengine::ID id) const;
 
     void exportScene(const ExportRenderParams &renderParams) const;
+
+    virtual Light *createLight(const std::string &name, LightType type, glm::vec4 color = {1, 1, 1, 1}) = 0;
 
 protected:
     std::shared_ptr<Camera> m_camera = nullptr;

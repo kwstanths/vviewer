@@ -2,7 +2,7 @@
 
 #include "vengine/vulkan/VulkanEngine.hpp"
 
-#include "vengine/utils/Pool.hpp"
+#include "vengine/utils/Algorithms.hpp"
 
 using namespace vengine;
 
@@ -16,7 +16,7 @@ void createSceneBallOnPlance(Scene &scene)
 
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
-    auto &instanceLightMaterials = AssetManager::getInstance().lightMaterialsMap();
+    auto &instanceLights = AssetManager::getInstance().lightsMap();
 
     auto matDef = instanceMaterials.get("defaultMaterial");
     auto plane = instanceModels.get("assets/models/plane.obj");
@@ -29,6 +29,9 @@ void createSceneBallOnPlance(Scene &scene)
     SceneObject *sphereObject = scene.addSceneObject("sphere", Transform({0, 0, 0}, {3, 3, 3}));
     sphereObject->add<ComponentMesh>().mesh = sphere->mesh("defaultobject");
     sphereObject->add<ComponentMaterial>().material = matDef;
+
+    SceneObject *lightObject = scene.addSceneObject("light", Transform({4, 1.5, 0}));
+    lightObject->add<ComponentLight>().light = instanceLights.get("defaultPointLight");
 }
 
 void performVideoRender(VulkanEngine &engine, Scene &scene)

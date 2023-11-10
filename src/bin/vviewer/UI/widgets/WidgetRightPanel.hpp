@@ -29,6 +29,7 @@ public:
     WidgetEnvironment *getEnvironmentWidget();
 
     void updateAvailableMaterials();
+    void updateAvailableLights();
 
 private:
     QVBoxLayout *m_layoutControls;
@@ -60,7 +61,8 @@ private Q_SLOTS:
     void onComponentRemoved();
     void onAddComponentMesh();
     void onAddComponentMaterial();
-    void onAddComponentLight();
+    void onAddComponentPointLight();
+    void onAddComponentDirectionalLight();
 
 Q_SIGNALS:
     void selectedSceneObjectNameChanged(QString newName);

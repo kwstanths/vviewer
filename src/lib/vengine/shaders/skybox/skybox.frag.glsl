@@ -10,15 +10,15 @@ layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outHighlight;
 layout(location = 0) in vec3 direction;
 
-layout(set = 0, binding = 0) uniform readonly SceneData {
-    Scene data;
-} scene;
+layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
+    SceneData data;
+} sceneData;
 
 layout(set = 1, binding = 0) uniform samplerCube skybox;
 
 void main()
 {
-    outColor.xyz = tonemapDefault2(textureLod(skybox, normalize(direction), 0).xyz, scene.data.exposure.r);
+    outColor.xyz = tonemapDefault2(textureLod(skybox, normalize(direction), 0).xyz, sceneData.data.exposure.r);
 	outColor.a = 0;
 	outHighlight = vec4(0., 0., 0., 0.);
 }

@@ -4,6 +4,7 @@
 #include <set>
 
 #include "core/AssetManager.hpp"
+#include "utils/Algorithms.hpp"
 
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/common/VulkanUtils.hpp"
@@ -25,19 +26,22 @@ VkResult VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
                                           VkPhysicalDeviceProperties physicalDeviceProperties,
                                           VkDescriptorSetLayout cameraDescriptorLayout,
                                           VkDescriptorSetLayout modelDescriptorLayout,
+                                          VkDescriptorSetLayout lightDescriptorLayout,
                                           VkDescriptorSetLayout skyboxDescriptorLayout,
                                           VkDescriptorSetLayout materialDescriptorLayout,
                                           VulkanTextures &textures)
 {
-    m_physicalDevice = physicalDevice;
-    m_device = device;
-    m_commandPool = commandPool;
-    m_queue = queue;
-    m_descriptorSetLayoutCamera = cameraDescriptorLayout;
-    m_descriptorSetLayoutModel = modelDescriptorLayout;
-    m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
-    m_descriptorSetLayoutMaterial = materialDescriptorLayout;
-    m_descriptorSetLayoutTextures = textures.descriptorSetLayout();
+    VULKAN_CHECK_CRITICAL(VulkanRendererBase::initResources(physicalDevice,
+                                                            device,
+                                                            queue,
+                                                            commandPool,
+                                                            physicalDeviceProperties,
+                                                            cameraDescriptorLayout,
+                                                            modelDescriptorLayout,
+                                                            lightDescriptorLayout,
+                                                            skyboxDescriptorLayout,
+                                                            materialDescriptorLayout,
+                                                            textures.descriptorSetLayout()));
 
     VULKAN_CHECK_CRITICAL(createBRDFLUT(textures));
 
@@ -49,23 +53,28 @@ VkResult VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent,
                                                    uint32_t swapchainImages,
                                                    VkSampleCountFlagBits msaaSamples)
 {
-    m_swapchainExtent = swapchainExtent;
-    m_renderPass = renderPass;
-    m_msaaSamples = msaaSamples;
+    VULKAN_CHECK_CRITICAL(VulkanRendererBase::initSwapChainResources(swapchainExtent, renderPass, swapchainImages, msaaSamples));
 
-    VULKAN_CHECK_CRITICAL(createGraphicsPipelineBasePass());
-    VULKAN_CHECK_CRITICAL(createGraphicsPipelineAddPass());
+    VkShaderModule vertexShader = VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv");
+    VkShaderModule fragmentShader = VulkanShader::load(m_device, "shaders/SPIRV/pbrBase.frag.spv");
+
+    VULKAN_CHECK_CRITICAL(
+        createPipelineForwardOpaque(vertexShader, fragmentShader, m_pipelineLayoutForwardOpaque, m_graphicsPipelineForwardOpaque));
+    VULKAN_CHECK_CRITICAL(createPipelineForwardTransparent(
+        vertexShader, fragmentShader, m_pipelineLayoutForwardTransparent, m_graphicsPipelineForwardTransparent));
+
+    vkDestroyShaderModule(m_device, vertexShader, nullptr);
+    vkDestroyShaderModule(m_device, fragmentShader, nullptr);
 
     return VK_SUCCESS;
 }
 
 VkResult VulkanRendererPBR::releaseSwapChainResources()
 {
-    vkDestroyPipeline(m_device, m_graphicsPipelineBasePass, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayoutBasePass, nullptr);
-
-    vkDestroyPipeline(m_device, m_graphicsPipelineAddPass, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayoutAddPass, nullptr);
+    vkDestroyPipeline(m_device, m_graphicsPipelineForwardOpaque, nullptr);
+    vkDestroyPipeline(m_device, m_graphicsPipelineForwardTransparent, nullptr);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayoutForwardOpaque, nullptr);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayoutForwardTransparent, nullptr);
 
     return VK_SUCCESS;
 }
@@ -285,224 +294,58 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererPBR::renderObjectsBasePass(VkCommandBuffer &cmdBuf,
-                                                  VkDescriptorSet &descriptorScene,
-                                                  VkDescriptorSet &descriptorModel,
-                                                  VkDescriptorSet descriptorSkybox,
-                                                  VkDescriptorSet &descriptorMaterials,
-                                                  VkDescriptorSet &descriptorTextures,
-                                                  uint32_t imageIndex,
-                                                  const VulkanUBO<ModelData> &dynamicUBOModels,
-                                                  const SceneGraph &objects) const
+VkResult VulkanRendererPBR::renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
+                                                       VkDescriptorSet &descriptorScene,
+                                                       VkDescriptorSet &descriptorModel,
+                                                       VkDescriptorSet &descriptorLight,
+                                                       VkDescriptorSet descriptorSkybox,
+                                                       VkDescriptorSet &descriptorMaterials,
+                                                       VkDescriptorSet &descriptorTextures,
+                                                       const SceneGraph &objects,
+                                                       const SceneGraph &lights) const
 {
-    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineBasePass);
-    for (size_t i = 0; i < objects.size(); i++) {
-        VulkanSceneObject *object = static_cast<VulkanSceneObject *>(objects[i]);
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardOpaque);
 
-        const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(object->get<ComponentMesh>().mesh);
-        if (vkmesh == nullptr)
-            continue;
-
-        VulkanMaterialPBRStandard *material = static_cast<VulkanMaterialPBRStandard *>(object->get<ComponentMaterial>().material);
-
-        VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
-        VkDeviceSize offsets[] = {0};
-
-        vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(cmdBuf, vkmesh->indexBuffer().buffer(), 0, vkmesh->indexType());
-
-        /* Calculate model data offsets */
-        std::array<uint32_t, 1> dynamicOffsets = {dynamicUBOModels.blockSizeAligned() * object->getTransformUBOBlock()};
-        std::array<VkDescriptorSet, 5> descriptorSets = {
-            descriptorScene, descriptorModel, descriptorMaterials, descriptorTextures, descriptorSkybox};
-
-        PushBlockForwardBasePass pushConstants;
-        pushConstants.selected = glm::vec4(object->getIDRGB(), object->m_isSelected);
-        pushConstants.material.r = material->getMaterialIndex();
-        vkCmdPushConstants(
-            cmdBuf, m_pipelineLayoutBasePass, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushBlockForwardBasePass), &pushConstants);
-        vkCmdBindDescriptorSets(cmdBuf,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_pipelineLayoutBasePass,
-                                0,
-                                static_cast<uint32_t>(descriptorSets.size()),
-                                &descriptorSets[0],
-                                static_cast<uint32_t>(dynamicOffsets.size()),
-                                &dynamicOffsets[0]);
-
-        vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
-    }
-
-    return VK_SUCCESS;
-}
-
-VkResult VulkanRendererPBR::renderObjectsAddPass(VkCommandBuffer &cmdBuf,
-                                                 VkDescriptorSet &descriptorScene,
-                                                 VkDescriptorSet &descriptorModel,
-                                                 VkDescriptorSet &descriptorMaterials,
-                                                 VkDescriptorSet &descriptorTextures,
-                                                 uint32_t imageIndex,
-                                                 const VulkanUBO<ModelData> &dynamicUBOModels,
-                                                 SceneObject *object,
-                                                 PushBlockForwardAddPass &lightInfo) const
-{
-    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAddPass);
-
-    VulkanSceneObject *vobject = static_cast<VulkanSceneObject *>(object);
-    const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(vobject->get<ComponentMesh>().mesh);
-    assert(vkmesh != nullptr);
-
-    VulkanMaterialPBRStandard *material = static_cast<VulkanMaterialPBRStandard *>(vobject->get<ComponentMaterial>().material);
-
-    VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmdBuf, vkmesh->indexBuffer().buffer(), 0, vkmesh->indexType());
-
-    /* Calculate model data offsets */
-    std::array<uint32_t, 1> dynamicOffsets = {dynamicUBOModels.blockSizeAligned() * vobject->getTransformUBOBlock()};
-    /* Create descriptor sets array */
-    std::array<VkDescriptorSet, 4> descriptorSets = {descriptorScene, descriptorModel, descriptorMaterials, descriptorTextures};
-
-    lightInfo.material.r = material->getMaterialIndex();
-
-    vkCmdPushConstants(cmdBuf, m_pipelineLayoutAddPass, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushBlockForwardAddPass), &lightInfo);
+    std::array<VkDescriptorSet, 6> descriptorSets = {
+        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox};
     vkCmdBindDescriptorSets(cmdBuf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayoutAddPass,
+                            m_pipelineLayoutForwardOpaque,
                             0,
                             static_cast<uint32_t>(descriptorSets.size()),
                             &descriptorSets[0],
-                            static_cast<uint32_t>(dynamicOffsets.size()),
-                            &dynamicOffsets[0]);
+                            0,
+                            nullptr);
 
-    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
-
-    return VK_SUCCESS;
-}
-
-VkResult VulkanRendererPBR::createGraphicsPipelineBasePass()
-{
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv"), "main");
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_device, "shaders/SPIRV/pbrBase.frag.spv"), "main");
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-    auto bindingDescription = VulkanVertex::getBindingDescription();
-    auto attributeDescriptions = VulkanVertex::getAttributeDescriptionsFull();
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(
-        1, &bindingDescription, static_cast<uint32_t>(attributeDescriptions.size()), attributeDescriptions.data());
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
-
-    VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0.0, 0.0);
-    VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
-
-    VkPipelineRasterizationStateCreateInfo rasterizer =
-        vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(m_msaaSamples);
-    VkPipelineDepthStencilStateCreateInfo depthStencil =
-        vkinit::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS);
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, VK_FALSE);
-    std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
-    VkPipelineColorBlendStateCreateInfo colorBlending =
-        vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
-
-    std::array<VkDescriptorSetLayout, 5> descriptorSetsLayouts{m_descriptorSetLayoutCamera,
-                                                               m_descriptorSetLayoutModel,
-                                                               m_descriptorSetLayoutMaterial,
-                                                               m_descriptorSetLayoutTextures,
-                                                               m_descriptorSetLayoutSkybox};
-    VkPushConstantRange pushConstantRange =
-        vkinit::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushBlockForwardBasePass), 0);
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(
-        static_cast<uint32_t>(descriptorSetsLayouts.size()), descriptorSetsLayouts.data(), 1, &pushConstantRange);
-    VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayoutBasePass));
-
-    VkGraphicsPipelineCreateInfo pipelineInfo = vkinit::graphicsPipelineCreateInfo(m_pipelineLayoutBasePass, m_renderPass, 0);
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = &depthStencil;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    VULKAN_CHECK_CRITICAL(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineBasePass));
-
-    vkDestroyShaderModule(m_device, fragShaderStageInfo.module, nullptr);
-    vkDestroyShaderModule(m_device, vertShaderStageInfo.module, nullptr);
+    VulkanRendererBase::renderObjects(cmdBuf, m_pipelineLayoutForwardOpaque, objects, lights);
 
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererPBR::createGraphicsPipelineAddPass()
+VkResult VulkanRendererPBR::renderObjectsForwardTransparent(VkCommandBuffer &cmdBuf,
+                                                            VkDescriptorSet &descriptorScene,
+                                                            VkDescriptorSet &descriptorModel,
+                                                            VkDescriptorSet &descriptorLight,
+                                                            VkDescriptorSet descriptorSkybox,
+                                                            VkDescriptorSet &descriptorMaterials,
+                                                            VkDescriptorSet &descriptorTextures,
+                                                            SceneObject *object,
+                                                            const SceneGraph &lights) const
 {
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv"), "main");
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_device, "shaders/SPIRV/pbrAdd.frag.spv"), "main");
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardTransparent);
 
-    auto bindingDescription = VulkanVertex::getBindingDescription();
-    auto attributeDescriptions = VulkanVertex::getAttributeDescriptionsFull();
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(
-        1, &bindingDescription, static_cast<uint32_t>(attributeDescriptions.size()), attributeDescriptions.data());
+    std::array<VkDescriptorSet, 6> descriptorSets = {
+        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox};
+    vkCmdBindDescriptorSets(cmdBuf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_pipelineLayoutForwardTransparent,
+                            0,
+                            static_cast<uint32_t>(descriptorSets.size()),
+                            &descriptorSets[0],
+                            0,
+                            nullptr);
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
-
-    VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0.0, 0.0);
-    VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
-
-    VkPipelineRasterizationStateCreateInfo rasterizer =
-        vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(m_msaaSamples);
-    VkPipelineDepthStencilStateCreateInfo depthStencil =
-        vkinit::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_FALSE, VK_COMPARE_OP_EQUAL);
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, VK_TRUE);
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-    std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
-    VkPipelineColorBlendStateCreateInfo colorBlending =
-        vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
-
-    std::array<VkDescriptorSetLayout, 4> descriptorSetsLayouts{
-        m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutTextures};
-    VkPushConstantRange pushConstantRange =
-        vkinit::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushBlockForwardAddPass), 0);
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(
-        static_cast<uint32_t>(descriptorSetsLayouts.size()), descriptorSetsLayouts.data(), 1, &pushConstantRange);
-    VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayoutAddPass));
-
-    /* Create the graphics pipeline */
-    VkGraphicsPipelineCreateInfo pipelineInfo = vkinit::graphicsPipelineCreateInfo(m_pipelineLayoutAddPass, m_renderPass, 0);
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = &depthStencil;
-    pipelineInfo.pColorBlendState = &colorBlending;
-
-    VULKAN_CHECK_CRITICAL(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineAddPass));
-
-    vkDestroyShaderModule(m_device, fragShaderStageInfo.module, nullptr);
-    vkDestroyShaderModule(m_device, vertShaderStageInfo.module, nullptr);
+    VulkanRendererBase::renderObjects(cmdBuf, m_pipelineLayoutForwardTransparent, {object}, lights);
 
     return VK_SUCCESS;
 }

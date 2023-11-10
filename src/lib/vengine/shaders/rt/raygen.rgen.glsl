@@ -9,9 +9,9 @@
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 layout(set = 0, binding = 1, rgba8) uniform image2D image;
-layout(set = 0, binding = 2) uniform readonly SceneData {
-    Scene data;
-} scene;
+layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
+    SceneData data;
+} sceneData;
 layout(set = 0, binding = 3) uniform RayTracingData 
 {
     uvec4 samplesBatchesDepthIndex;
@@ -46,9 +46,9 @@ void main()
 		vec2 d = inUV * 2.0 - 1.0;
 
 		/* Calculate first ray direction */
-		vec4 origin = scene.data.viewInverse * vec4(0, 0, 0, 1);
-		vec4 target = scene.data.projectionInverse * vec4(d.x, d.y, 1, 1) ;
-		vec4 direction = scene.data.viewInverse * vec4(normalize(target.xyz), 0) ;
+		vec4 origin = sceneData.data.viewInverse * vec4(0, 0, 0, 1);
+		vec4 target = sceneData.data.projectionInverse * vec4(d.x, d.y, 1, 1) ;
+		vec4 direction = sceneData.data.viewInverse * vec4(normalize(target.xyz), 0) ;
 
 		vec3 beta = vec3(1);
 		vec3 radiance = vec3(0);

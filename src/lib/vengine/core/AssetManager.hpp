@@ -12,7 +12,7 @@
 #include "Cubemap.hpp"
 #include "Model3D.hpp"
 #include "EnvironmentMap.hpp"
-#include "Lights.hpp"
+#include "Light.hpp"
 
 namespace vengine
 {
@@ -84,7 +84,7 @@ public:
     AssetMap<Image<float>> &imagesHDRMap() { return m_imagesFloatMap; }
     AssetMap<Material> &materialsMap() { return m_materialsMap; }
     AssetMap<MaterialSkybox> &materialsSkyboxMap() { return m_materialsSkyboxMap; }
-    AssetMap<LightMaterial> &lightMaterialsMap() { return m_lightMaterialsMap; }
+    AssetMap<Light> &lightsMap() { return m_lightsMap; }
     AssetMap<Cubemap> &cubemapsMap() { return m_cubemapsMap; }
     AssetMap<Model3D> &modelsMap() { return m_modelsMap; }
     AssetMap<EnvironmentMap> &environmentsMapMap() { return m_environmentMapsMap; }
@@ -97,7 +97,7 @@ private:
     AssetMap<Image<float>> m_imagesFloatMap;
     AssetMap<Material> m_materialsMap;
     AssetMap<MaterialSkybox> m_materialsSkyboxMap;
-    AssetMap<LightMaterial> m_lightMaterialsMap;
+    AssetMap<Light> m_lightsMap;
     AssetMap<Cubemap> m_cubemapsMap;
     AssetMap<Model3D> m_modelsMap;
     AssetMap<EnvironmentMap> m_environmentMapsMap;

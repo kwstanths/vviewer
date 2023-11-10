@@ -19,13 +19,14 @@ VulkanViewportWindow::VulkanViewportWindow()
     setVulkanInstance(m_vkinstance);
 
     /* Create default camera */
-    auto camera = std::make_shared<PerspectiveCamera>();
-    camera->fov() = 60.0f;
+    {
+        auto camera = std::make_shared<PerspectiveCamera>();
+        camera->fov() = 60.0f;
+        camera->transform().position() = glm::vec3(0, 3, 10);
+        camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(-15.F), 0, 0)));
 
-    camera->transform().position() = glm::vec3(0, 3, 10);
-    camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(-15.F), 0, 0)));
-
-    m_engine->scene().camera() = camera;
+        m_engine->scene().camera() = camera;
+    }
 
     m_updateCameraTimer = new QTimer();
     m_updateCameraTimer->setInterval(16);
@@ -182,7 +183,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
         if (selectedObject == nullptr)
             return;
 
-        Transform &selectedObjectTransform = selectedObject->localTransform();
+        auto selectedObjectTransform = selectedObject->localTransform();
         glm::vec3 position = selectedObjectTransform.position();
 
         /* Get the basis vectors of the selected object */
@@ -202,9 +203,6 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                     movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
                 }
                 position += selectedObjectTransform.X() * movementSensitivity * movement;
-
-                selectedObjectTransform.position() = position;
-                Q_EMIT selectedObjectPositionChanged();
                 break;
             }
             case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW): {
@@ -218,9 +216,6 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                     movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
                 }
                 position += selectedObjectTransform.Z() * movementSensitivity * movement;
-
-                selectedObjectTransform.position() = position;
-                Q_EMIT selectedObjectPositionChanged();
                 break;
             }
             case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW): {
@@ -234,14 +229,14 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                     movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
                 }
                 position += selectedObjectTransform.Y() * movementSensitivity * movement;
-
-                selectedObjectTransform.position() = position;
-                Q_EMIT selectedObjectPositionChanged();
                 break;
             }
             default:
                 break;
         }
+        selectedObjectTransform.position() = position;
+        selectedObject->setLocalTransform(selectedObjectTransform);
+        Q_EMIT selectedObjectPositionChanged();
     }
 }
 

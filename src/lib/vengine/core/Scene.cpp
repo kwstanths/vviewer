@@ -5,7 +5,7 @@
 
 #include "AssetManager.hpp"
 #include "Console.hpp"
-#include "core/Lights.hpp"
+#include "core/Light.hpp"
 #include "core/SceneObject.hpp"
 #include "math/Transform.hpp"
 #include "utils/ECS.hpp"
@@ -15,9 +15,6 @@ namespace vengine
 
 Scene::Scene()
 {
-    auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
-    lightMaterials.add(new LightMaterial("DirectionalLightMaterial", glm::vec3(1, 0.9, 0.8), 0.F));
-    lightMaterials.add(new LightMaterial("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1.F));
 }
 
 Scene::~Scene()
@@ -40,7 +37,7 @@ SceneData Scene::getSceneData() const
 SceneObject *Scene::addSceneObject(std::string name, Transform transform)
 {
     SceneObject *object = createObject(name);
-    object->localTransform() = transform;
+    object->setLocalTransform(transform);
     m_sceneGraph.push_back(object);
 
     m_objectsMap.insert({object->getID(), object});
@@ -51,7 +48,7 @@ SceneObject *Scene::addSceneObject(std::string name, Transform transform)
 SceneObject *Scene::addSceneObject(std::string name, SceneObject *parentNode, Transform transform)
 {
     SceneObject *object = createObject(name);
-    object->localTransform() = transform;
+    object->setLocalTransform(transform);
     parentNode->addChild(object);
 
     m_objectsMap.insert({object->getID(), object});

@@ -40,11 +40,15 @@ public:
 
     virtual ~Material(){};
 
-    virtual MaterialType getType() const { return MaterialType::MATERIAL_NOT_SET; };
+    virtual MaterialType type() const { return MaterialType::MATERIAL_NOT_SET; };
 
-    virtual MaterialIndex getMaterialIndex() const { return 0; }
+    virtual MaterialIndex materialIndex() const { return 0; }
+
+    bool &transparent() { return m_transparent; }
+    const bool &transparent() const { return m_transparent; }
 
 private:
+    bool m_transparent = false;
 };
 
 class MaterialPBRStandard : public Material
@@ -57,7 +61,7 @@ public:
 
     virtual ~MaterialPBRStandard() {}
 
-    MaterialType getType() const override { return MaterialType::MATERIAL_PBR_STANDARD; }
+    MaterialType type() const override { return MaterialType::MATERIAL_PBR_STANDARD; }
 
     virtual glm::vec4 &albedo() = 0;
     virtual const glm::vec4 &albedo() const = 0;
@@ -83,6 +87,7 @@ public:
     virtual void setAOTexture(Texture *texture);
     virtual void setEmissiveTexture(Texture *texture);
     virtual void setNormalTexture(Texture *texture);
+    virtual void setAlphaTexture(Texture *texture);
 
     Texture *getAlbedoTexture() const;
     Texture *getMetallicTexture() const;
@@ -90,17 +95,19 @@ public:
     Texture *getAOTexture() const;
     Texture *getEmissiveTexture() const;
     Texture *getNormalTexture() const;
+    Texture *getAlphaTexture() const;
 
     bool &zipMaterial() { return m_zipMaterial; }
     const bool &zipMaterial() const { return m_zipMaterial; }
 
 protected:
-    Texture *m_albedoTexture;
-    Texture *m_metallicTexture;
-    Texture *m_roughnessTexture;
-    Texture *m_aoTexture;
-    Texture *m_emissiveTexture;
-    Texture *m_normalTexture;
+    Texture *m_albedoTexture = nullptr;
+    Texture *m_metallicTexture = nullptr;
+    Texture *m_roughnessTexture = nullptr;
+    Texture *m_aoTexture = nullptr;
+    Texture *m_emissiveTexture = nullptr;
+    Texture *m_normalTexture = nullptr;
+    Texture *m_alphaTexture = nullptr;
 
 private:
     bool m_zipMaterial = false;
@@ -116,7 +123,7 @@ public:
 
     virtual ~MaterialLambert() {}
 
-    MaterialType getType() const override { return MaterialType::MATERIAL_LAMBERT; }
+    MaterialType type() const override { return MaterialType::MATERIAL_LAMBERT; }
 
     virtual glm::vec4 &albedo() = 0;
     virtual const glm::vec4 &albedo() const = 0;
@@ -136,17 +143,20 @@ public:
     virtual void setAOTexture(Texture *texture);
     virtual void setEmissiveTexture(Texture *texture);
     virtual void setNormalTexture(Texture *texture);
+    virtual void setAlphaTexture(Texture *texture);
 
     Texture *getAlbedoTexture() const;
     Texture *getAOTexture() const;
     Texture *getEmissiveTexture() const;
     Texture *getNormalTexture() const;
+    Texture *getAlphaTexture() const;
 
 protected:
-    Texture *m_albedoTexture;
-    Texture *m_aoTexture;
-    Texture *m_emissiveTexture;
-    Texture *m_normalTexture;
+    Texture *m_albedoTexture = nullptr;
+    Texture *m_aoTexture = nullptr;
+    Texture *m_emissiveTexture = nullptr;
+    Texture *m_normalTexture = nullptr;
+    Texture *m_alphaTexture = nullptr;
 };
 
 class MaterialSkybox : public Material
@@ -157,7 +167,7 @@ public:
 
     virtual ~MaterialSkybox() {}
 
-    MaterialType getType() const override { return MaterialType::MATERIAL_SKYBOX; }
+    MaterialType type() const override { return MaterialType::MATERIAL_SKYBOX; }
 
     virtual void setMap(EnvironmentMap *cubemap);
     EnvironmentMap *getMap() const;

@@ -12,7 +12,7 @@ VulkanEngine::VulkanEngine(const std::string &applicationName)
     , m_textures(m_context)
     , m_materials(m_context)
     , m_swapchain(m_context)
-    , m_scene(m_context, VULKAN_LIMITS_MAX_OBJECTS)
+    , m_scene(m_context)
     , m_renderer(m_context, m_swapchain, m_textures, m_materials, m_scene)
 {
     m_threadMain = std::thread(&VulkanEngine::mainLoop, this);
@@ -246,20 +246,37 @@ void VulkanEngine::mainLoop()
 void VulkanEngine::initDefaultData()
 {
     /* A default material */
-    auto defaultMaterial =
-        static_cast<VulkanMaterialPBRStandard *>(m_materials.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD));
-    defaultMaterial->albedo() = glm::vec4(0.8, 0.8, 0.8, 1);
-    defaultMaterial->metallic() = 0.5;
-    defaultMaterial->roughness() = 0.5;
-    defaultMaterial->ao() = 1.0f;
-    defaultMaterial->emissive() = glm::vec4(0.0, 0.0, 0.0, 1.0);
+    {
+        auto defaultMaterial = static_cast<VulkanMaterialPBRStandard *>(
+            m_materials.createMaterial("defaultMaterial", MaterialType::MATERIAL_PBR_STANDARD));
+        defaultMaterial->albedo() = glm::vec4(0.8, 0.8, 0.8, 1);
+        defaultMaterial->metallic() = 0.5;
+        defaultMaterial->roughness() = 0.5;
+        defaultMaterial->ao() = 1.0f;
+        defaultMaterial->emissive() = glm::vec4(0.0, 0.0, 0.0, 1.0);
+    }
 
-    /* Some models */
-    auto uvsphereMeshModel = importModel("assets/models/uvsphere.obj", false);
-    auto planeMeshModel = importModel("assets/models/plane.obj", false);
-    auto cubeMeshModel = importModel("assets/models/cube.obj", false);
+    /* Create some default lights */
+    {
+        auto &lights = AssetManager::getInstance().lightsMap();
 
-    /* Skybox material */
+        auto defaultPointLight = scene().createLight("defaultPointLight", LightType::POINT_LIGHT);
+        static_cast<PointLight *>(defaultPointLight)->color() = glm::vec4(1, 1, 1, 1);
+        lights.add(defaultPointLight);
+
+        auto defaultDirectionalLight = scene().createLight("defaultDirectionalLight", LightType::DIRECTIONAL_LIGHT);
+        static_cast<PointLight *>(defaultDirectionalLight)->color() = glm::vec4(1, 0.9, 0.8, 1);
+        lights.add(defaultDirectionalLight);
+    }
+
+    {
+        /* Some models */
+        auto uvsphereMeshModel = importModel("assets/models/uvsphere.obj", false);
+        auto planeMeshModel = importModel("assets/models/plane.obj", false);
+        auto cubeMeshModel = importModel("assets/models/cube.obj", false);
+    }
+
+    /* A skybox material */
     {
         auto envMap = importEnvironmentMap("assets/HDR/harbor.hdr");
 

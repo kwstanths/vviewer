@@ -8,6 +8,7 @@
 #include <qpushbutton.h>
 #include <qslider.h>
 #include <qcombobox.h>
+#include <qgroupbox.h>
 
 #include "vengine/core/Materials.hpp"
 #include "vengine/core/SceneObject.hpp"
@@ -17,18 +18,20 @@ class WidgetMaterialLambert : public QWidget
 {
     Q_OBJECT
 public:
-    static const int HEIGHT = 430;
+    static const int HEIGHT = 525;
 
     WidgetMaterialLambert(QWidget *parent, vengine::MaterialLambert *material);
 
     QPushButton *m_colorAlbedo, *m_colorEmissive;
-    QSlider *m_ao;
+    QSlider *m_ao, *m_alpha;
     QDoubleSpinBox *m_emissive;
+    QGroupBox *m_groupBoxAlpha;
 
     QComboBox *m_comboBoxAlbedo;
     QComboBox *m_comboBoxAO;
     QComboBox *m_comboBoxNormal;
     QComboBox *m_comboBoxEmissive;
+    QComboBox *m_comboBoxAlpha;
 
     QDoubleSpinBox *m_uTiling;
     QDoubleSpinBox *m_vTiling;
@@ -47,6 +50,9 @@ private Q_SLOTS:
     void onEmissiveButton();
     void onEmissiveTextureChanged(int);
     void onNormalTextureChanged(int);
+    void onAlphaStateChanged(bool);
+    void onAlphaChanged();
+    void onAlphaTextureChanged(int);
     void onUTilingChanged(double);
     void onVTilingChanged(double);
 };

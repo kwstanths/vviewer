@@ -75,7 +75,7 @@ Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene)
             if (!checkValid(vertices[i].normal))
                 debug_tools::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is corrupted");
             if (glm::length(vertices[i].normal) < 0.99) {
-                debug_tools::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is not normalized");
+                debug_tools::ConsoleWarning("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is not normalized");
                 vertices[i].normal = glm::normalize(vertices[i].normal);
             }
 #endif
@@ -289,7 +289,7 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
         {
             aiColor3D baseColor;
             mat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColor);
-            importedMaterial.albedo = glm::vec4(baseColor.r, baseColor.g, baseColor.b, 0);
+            importedMaterial.albedo = glm::vec4(baseColor.r, baseColor.g, baseColor.b, 1);
 
             aiString baseColorTexture;
             mat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &baseColorTexture);

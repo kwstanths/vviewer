@@ -45,7 +45,7 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 		ObjDesc objResource = objDesc.i[meshIndex];
 		Indices indices = Indices(objResource.indexAddress);
 		Vertices vertices = Vertices(objResource.vertexAddress);
-		Material material = materials.i[objResource.materialIndex];
+		MaterialData material = materialData.data[objResource.materialIndex];
 		mat4 transform = mat4(vec4(light.position.xyz, 0), vec4(light.direction.xyz, 0), vec4(light.color.xyz, 0), vec4(light.transform.xyz, 1));
 		
 		uint randomTriangle = uint(rand1D(rayPayload) * objResource.numTriangles);

@@ -9,7 +9,7 @@
 #include <vengine/core/Model3D.hpp>
 #include <vengine/core/Materials.hpp>
 #include <vengine/core/EnvironmentMap.hpp>
-#include <vengine/core/Lights.hpp>
+#include <vengine/core/Light.hpp>
 
 using namespace vengine;
 
@@ -33,14 +33,14 @@ QStringList getCreatedMaterials()
     return createdMaterials;
 }
 
-QStringList getCreatedLightMaterials()
+QStringList getCreatedLights()
 {
-    QStringList createdLightMaterials;
-    auto &instance = AssetManager::getInstance().lightMaterialsMap();
+    QStringList createdLights;
+    auto &instance = AssetManager::getInstance().lightsMap();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
-        createdLightMaterials.push_back(QString::fromStdString(itr->first));
+        createdLights.push_back(QString::fromStdString(itr->first));
     }
-    return createdLightMaterials;
+    return createdLights;
 }
 
 QStringList getImportedTextures(ColorSpace colorSpace)

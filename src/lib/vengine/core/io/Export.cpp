@@ -9,7 +9,7 @@
 #include "rapidjson/ostreamwrapper.h"
 
 #include <core/AssetManager.hpp>
-#include <core/Lights.hpp>
+#include <core/Light.hpp>
 #include <core/Model3D.hpp>
 #include <core/StringUtils.hpp>
 #include <math/MathUtils.hpp>
@@ -152,17 +152,9 @@ void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneO
 
     Light *light = sceneObject->get<ComponentLight>().light;
 
-    Value type;
-    if (light->type == LightType::POINT_LIGHT) {
-        type.SetString("POINT", d.GetAllocator());
-    } else if (light->type == LightType::DIRECTIONAL_LIGHT) {
-        type.SetString("DIRECTIONAL", d.GetAllocator());
-    }
-    lightObject.AddMember("type", type, d.GetAllocator());
-
-    Value lightMat;
-    lightMat.SetString(light->lightMaterial->name().c_str(), d.GetAllocator());
-    lightObject.AddMember("material", lightMat, d.GetAllocator());
+    Value name;
+    name.SetString(light->name().c_str(), d.GetAllocator());
+    lightObject.AddMember("name", name, d.GetAllocator());
 
     v.AddMember("light", lightObject, d.GetAllocator());
 }
@@ -235,7 +227,7 @@ void addMaterial(rapidjson::Document &d,
     auto createMatDirectory = [&materialDirectory]() { std::filesystem::create_directory(materialDirectory); };
     bool directoryCreated = false;
 
-    switch (material->getType()) {
+    switch (material->type()) {
         case MaterialType::MATERIAL_LAMBERT: {
             auto m = dynamic_cast<const MaterialLambert *>(material);
 
@@ -448,22 +440,39 @@ void addMaterial(rapidjson::Document &d,
     v.PushBack(mat, d.GetAllocator());
 }
 
-void addLightMaterial(rapidjson::Document &d, rapidjson::Value &v, const LightMaterial *material)
+void addLight(rapidjson::Document &d, rapidjson::Value &v, const Light *light)
 {
-    Value light;
-    light.SetObject();
+    Value lightObject;
+    lightObject.SetObject();
 
     Value name;
-    name.SetString(material->name().c_str(), d.GetAllocator());
-    light.AddMember("name", name, d.GetAllocator());
+    name.SetString(light->name().c_str(), d.GetAllocator());
+    lightObject.AddMember("name", name, d.GetAllocator());
 
-    addVec3(d, light, "color", material->color);
+    Value type;
+    if (light->type() == LightType::POINT_LIGHT) {
+        type.SetString("POINT", d.GetAllocator());
+        lightObject.AddMember("type", type, d.GetAllocator());
 
-    Value intensity;
-    intensity.SetFloat(material->intensity);
-    light.AddMember("intensity", intensity, d.GetAllocator());
+        auto pl = static_cast<const PointLight *>(light);
+        addVec3(d, lightObject, "color", glm::vec3(pl->color()));
 
-    v.PushBack(light, d.GetAllocator());
+        Value intensity;
+        intensity.SetFloat(pl->color().a);
+        lightObject.AddMember("intensity", intensity, d.GetAllocator());
+    } else if (light->type() == LightType::DIRECTIONAL_LIGHT) {
+        type.SetString("DIRECTIONAL", d.GetAllocator());
+        lightObject.AddMember("type", type, d.GetAllocator());
+
+        auto pl = static_cast<const DirectionalLight *>(light);
+        addVec3(d, lightObject, "color", glm::vec3(pl->color()));
+
+        Value intensity;
+        intensity.SetFloat(pl->color().a);
+        lightObject.AddMember("intensity", intensity, d.GetAllocator());
+    }
+
+    v.PushBack(lightObject, d.GetAllocator());
 }
 
 bool isMaterialEmissive(const Material *material)
@@ -471,7 +480,7 @@ bool isMaterialEmissive(const Material *material)
     if (material == nullptr)
         return false;
 
-    MaterialType type = material->getType();
+    MaterialType type = material->type();
     switch (type) {
         case MaterialType::MATERIAL_PBR_STANDARD: {
             const MaterialPBRStandard *m = dynamic_cast<const MaterialPBRStandard *>(material);
@@ -484,7 +493,7 @@ bool isMaterialEmissive(const Material *material)
             break;
         }
         default:
-            throw std::runtime_error("isMaterialEmissive(): This should never happen");
+            throw std::runtime_error("Export::isMaterialEmissive(): Unexpected material");
             break;
     }
 }
@@ -620,13 +629,13 @@ void exportJson(const ExportRenderParams &renderParams,
     }
 
     /* Add light materials */
-    Value lightMaterialsObject;
+    Value lightsObject;
     {
-        lightMaterialsObject.SetArray();
+        lightsObject.SetArray();
 
-        auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
-        for (auto &itr : lightMaterials) {
-            addLightMaterial(d, lightMaterialsObject, static_cast<LightMaterial *>(itr.second));
+        auto &lights = AssetManager::getInstance().lightsMap();
+        for (auto &itr : lights) {
+            addLight(d, lightsObject, static_cast<Light *>(itr.second));
         }
     }
 
@@ -655,7 +664,7 @@ void exportJson(const ExportRenderParams &renderParams,
     d.AddMember("scene", scene, d.GetAllocator());
     d.AddMember("models", models, d.GetAllocator());
     d.AddMember("materials", materialsObject, d.GetAllocator());
-    d.AddMember("light materials", lightMaterialsObject, d.GetAllocator());
+    d.AddMember("lights", lightsObject, d.GetAllocator());
     d.AddMember("environment", environment, d.GetAllocator());
 
     std::ofstream of(fileName);

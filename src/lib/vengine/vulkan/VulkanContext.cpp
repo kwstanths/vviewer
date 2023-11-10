@@ -297,6 +297,7 @@ bool VulkanContext::createLogicalDevice()
     deviceFeatures2.features.geometryShader = VK_TRUE;
     deviceFeatures2.features.shaderInt64 = VK_TRUE;
     deviceFeatures2.features.shaderInt16 = VK_TRUE;
+    deviceFeatures2.features.independentBlend = VK_TRUE;
     deviceFeatures2.pNext = &indexing_features;
 
     std::vector<const char *> extensionNames;

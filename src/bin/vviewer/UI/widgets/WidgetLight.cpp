@@ -8,7 +8,11 @@
 #include <qnamespace.h>
 
 #include "UI/UIUtils.hpp"
-#include "vengine/core/Lights.hpp"
+#include "vengine/core/Light.hpp"
+#include "vengine/core/AssetManager.hpp"
+
+#include "WidgetLightPoint.hpp"
+#include "WidgetLightDirectional.hpp"
 
 using namespace vengine;
 
@@ -16,37 +20,81 @@ WidgetLight::WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponen
     : QWidget(parent)
     , m_lightComponent(lightComponent)
 {
-    m_widgetLightMaterial = new WidgetLightMaterial(this, m_lightComponent.light);
+    m_comboBoxLights = new QComboBox();
+    updateAvailableLights();
+    connect(m_comboBoxLights, SIGNAL(currentIndexChanged(int)), this, SLOT(onLightChanged(int)));
 
-    m_lightTypeComboBox = new QComboBox();
-    m_lightTypeComboBox->addItem("Point light");
-    m_lightTypeComboBox->addItem("Directional light");
+    m_widgetGroupBox = new QGroupBox();
+    createUI(createLightWidget(lightComponent.light));
 
-    if (lightComponent.light->type == LightType::POINT_LIGHT)
-        m_lightTypeComboBox->setCurrentIndex(0);
-    else if (lightComponent.light->type == LightType::DIRECTIONAL_LIGHT)
-        m_lightTypeComboBox->setCurrentIndex(1);
-    connect(m_lightTypeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onLightTypeChanged(int)));
+    m_layoutMain = new QVBoxLayout();
+    m_layoutMain->addWidget(m_widgetGroupBox);
+    m_layoutMain->setContentsMargins(0, 0, 0, 0);
+    m_layoutMain->setAlignment(Qt::AlignTop);
 
-    QGroupBox *lightGroupBox = new QGroupBox();
-    QVBoxLayout *layoutLight = new QVBoxLayout();
-    layoutLight->addWidget(m_lightTypeComboBox);
-    layoutLight->addWidget(m_widgetLightMaterial);
-    lightGroupBox->setLayout(layoutLight);
-
-    /* Complete layout */
-    QVBoxLayout *layoutMain = new QVBoxLayout();
-    layoutMain->addWidget(lightGroupBox);
-    layoutMain->setAlignment(Qt::AlignTop);
-    layoutMain->setContentsMargins(0, 0, 0, 0);
-
-    setLayout(layoutMain);
+    setLayout(m_layoutMain);
 }
 
-void WidgetLight::onLightTypeChanged(int)
+void WidgetLight::updateAvailableLights()
 {
-    if (m_lightTypeComboBox->currentIndex() == 0)
-        m_lightComponent.light->type = LightType::POINT_LIGHT;
-    else if (m_lightTypeComboBox->currentIndex() == 1)
-        m_lightComponent.light->type = LightType::DIRECTIONAL_LIGHT;
+    QStringList availableLights = getCreatedLights();
+    m_comboBoxLights->blockSignals(true);
+    m_comboBoxLights->clear();
+    m_comboBoxLights->addItems(availableLights);
+    m_comboBoxLights->blockSignals(false);
+    m_comboBoxLights->setCurrentText(QString::fromStdString(m_lightComponent.light->name()));
+}
+
+void WidgetLight::createUI(QWidget *widgetLight)
+{
+    if (m_layoutGroupBox != nullptr) {
+        delete m_layoutGroupBox;
+    }
+
+    QLabel *labelType = new QLabel("Light:");
+    labelType->setFixedWidth(35);
+
+    QHBoxLayout *layoutComboBox = new QHBoxLayout();
+    layoutComboBox->addWidget(labelType);
+    layoutComboBox->addWidget(m_comboBoxLights);
+    layoutComboBox->setContentsMargins(0, 0, 0, 0);
+    QWidget *widgetComboBox = new QWidget();
+    widgetComboBox->setLayout(layoutComboBox);
+
+    m_layoutGroupBox = new QVBoxLayout();
+    m_layoutGroupBox->addWidget(widgetComboBox);
+    m_layoutGroupBox->addWidget(widgetLight);
+    m_layoutGroupBox->setContentsMargins(5, 5, 5, 5);
+    m_layoutGroupBox->setSpacing(15);
+    m_layoutGroupBox->setAlignment(Qt::AlignTop);
+
+    m_widgetGroupBox->setLayout(m_layoutGroupBox);
+}
+
+QWidget *WidgetLight::createLightWidget(vengine::Light *light)
+{
+    if (m_widgetLight != nullptr) {
+        delete m_widgetLight;
+    }
+
+    if (light->type() == LightType::POINT_LIGHT) {
+        m_widgetLight = new WidgetLightPoint(this, dynamic_cast<PointLight *>(light));
+    } else if (light->type() == LightType::DIRECTIONAL_LIGHT) {
+        m_widgetLight = new WidgetLightDirectional(this, dynamic_cast<DirectionalLight *>(light));
+    } else {
+        return nullptr;
+    }
+
+    return m_widgetLight;
+}
+
+void WidgetLight::onLightChanged(int)
+{
+    QString lightName = m_comboBoxLights->currentText();
+
+    auto &lights = AssetManager::getInstance().lightsMap();
+    auto light = lights.get(lightName.toStdString());
+
+    createUI(createLightWidget(light));
+    m_lightComponent.light = light;
 }

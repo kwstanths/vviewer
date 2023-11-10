@@ -11,7 +11,7 @@
 
 #include "core/Mesh.hpp"
 #include "core/Material.hpp"
-#include "core/Lights.hpp"
+#include "core/Light.hpp"
 
 #include "IDGeneration.hpp"
 #include "FreeList.hpp"
@@ -21,6 +21,7 @@ namespace vengine
 
 static const uint32_t MAX_COMPONENTS = 1000;
 
+/* Component types */
 class Component
 {
 public:
@@ -87,6 +88,28 @@ public:
 
     void clear();
 
+    template <typename T>
+    T *create()
+    {
+        auto componentBuffer = buffer<T>();
+        auto *component = componentBuffer->get();
+        return component;
+    }
+
+    template <typename T>
+    void remove(T *t)
+    {
+        auto componentBuffer = buffer<T>();
+        componentBuffer->remove(t);
+    }
+
+    template <typename T>
+    ComponentBuffer<T> *buffer()
+    {
+        const char *name = typeid(T).name();
+        return static_cast<ComponentBuffer<T> *>(m_componentBuffers[name]);
+    }
+
 private:
     ComponentManager()
     {
@@ -105,42 +128,11 @@ private:
     }
     ~ComponentManager()
     {
-        {
-            const char *name = typeid(ComponentMesh).name();
-            delete m_componentBuffers[name];
-        }
-        {
-            const char *name = typeid(ComponentMaterial).name();
-            delete m_componentBuffers[name];
-        }
-        {
-            const char *name = typeid(ComponentLight).name();
-            delete m_componentBuffers[name];
+        for (auto &itr : m_componentBuffers) {
+            delete itr.second;
         }
     }
     std::unordered_map<const char *, IComponentBuffer *> m_componentBuffers;
-
-    template <typename T>
-    T *create()
-    {
-        auto componentBuffer = getComponentBuffer<T>();
-        auto *component = componentBuffer->get();
-        return component;
-    }
-
-    template <typename T>
-    void remove(T *t)
-    {
-        auto componentBuffer = getComponentBuffer<T>();
-        componentBuffer->remove(t);
-    }
-
-    template <typename T>
-    ComponentBuffer<T> *getComponentBuffer()
-    {
-        const char *name = typeid(T).name();
-        return static_cast<ComponentBuffer<T> *>(m_componentBuffers[name]);
-    }
 };
 
 /* Entity */

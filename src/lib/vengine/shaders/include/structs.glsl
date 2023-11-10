@@ -9,15 +9,8 @@ struct Vertex
     vec3 bitangent;
 };
 
-/* Types of lights:
-    0: point light
-    1: directional light
-    2: mesh light
-    3: environment map
-*/
-
-/* Scene struct. A mirror of the CPU struct */
-struct Scene {
+/* SceneData struct. A mirror of the CPU struct */
+struct SceneData {
     mat4 view;
 	mat4 viewInverse;
     mat4 projection;
@@ -25,8 +18,13 @@ struct Scene {
     vec4 exposure; /* R = exposure, G = Ambient environment map multiplier, B = , A = */
 };
 
+/* ModelData struct. A mirror of the CPU struct */
+struct ModelData {
+    mat4 model;
+};
+
 /* Material struct. A mirror of the CPU struct */
-struct Material
+struct MaterialData
 {
     vec4 albedo;                /* RGB: albedo, A: unused */
     vec4 metallicRoughnessAO;   /* R: metallic, G: roughness, B: AO, A = unused */
@@ -37,6 +35,24 @@ struct Material
     
     uvec4 padding1;
     uvec4 padding2;
+};
+
+/* LightData struct. A mirror of the CPU struct */
+struct LightData {
+    vec4 color; /* RGB: color, A: intensity */
+    uvec4 type;  /* R = type (LightType), GBA: unused */
+    
+    uvec4 padding1;
+    uvec4 padding2;
+};
+
+/* LightComponent struct. A mirror of the CPU struct */
+struct LightComponent {
+    uvec4 info; /* R = LightData index, G = ModelData index, BA = unused */
+    
+    uvec4 padding1;
+    uvec4 padding2;
+    uvec4 padding3;
 };
 
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require

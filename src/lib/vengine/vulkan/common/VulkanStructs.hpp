@@ -50,22 +50,33 @@ struct MaterialData {
     glm::vec4 emissive;            /* RGB: emissive color, A: emissive intensity */
     glm::uvec4 gTexturesIndices1;  /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture
                             index */
-    glm::uvec4 gTexturesIndices2;  /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: unused */
-    glm::vec4 uvTiling;            /* R: u tiling, G: v tiling, B: unused, A: unused */
+    glm::uvec4 gTexturesIndices2; /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: alpha texture */
+    glm::vec4 uvTiling;           /* R: u tiling, G: v tiling, B: unused, A: unused */
 
     glm::uvec4 padding1;
     glm::uvec4 padding2;
 }; /* sizeof(MaterialData) = 128 */
 
-struct PushBlockForwardBasePass {
-    glm::vec4 selected;  /* RGB = ID of object, A = if object is selected */
-    glm::uvec4 material; /* R = Material index, GBA = unused */
-};
+struct LightData {
+    glm::vec4 color; /* RGB: color, A: intensity */
+    glm::uvec4 type; /* R = type (LightType), GBA: unused */
 
-struct PushBlockForwardAddPass {
-    glm::vec4 lightPosition; /* RGB = World space light position or direction,  A = light type */
-    glm::vec4 lightColor;    /* RGB = light color, A = unused */
-    glm::uvec4 material;     /* R = Material index, GBA = unused */
+    glm::uvec4 padding1;
+    glm::uvec4 padding2;
+}; /* sizeof(LightData) = 64 */
+
+struct LightComponent {
+    glm::uvec4 info; /* R = LightData index, G = ModelData index, BA = unused */
+
+    glm::uvec4 padding1;
+    glm::uvec4 padding2;
+    glm::uvec4 padding3;
+}; /* sizeof(LightComponent) = 64 */
+
+struct PushBlockForward {
+    glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
+    glm::uvec4 info;    /* R = Material index, G = model index, B = total lights, A = unused */
+    glm::uvec4 lights;  /* R = light 1, G = light 2, B = light 3, A = light 4*/
 };
 
 struct PushBlockForward3DUI {
@@ -86,12 +97,6 @@ struct ObjectDescriptionRT {
     uint32_t numTriangles;
 };
 
-/* Types of lights:
-    0: point light
-    1: directional light
-    2: mesh light
-    3: environment map
-*/
 struct LightRT {
     glm::vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
     glm::vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */

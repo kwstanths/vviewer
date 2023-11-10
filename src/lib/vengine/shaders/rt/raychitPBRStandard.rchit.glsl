@@ -26,9 +26,9 @@ layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 /* Descriptors */
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
-layout(set = 0, binding = 2) uniform readonly SceneData {
-    Scene data;
-} scene;
+layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
+    SceneData data;
+} sceneData;
 layout(set = 0, binding = 3) uniform RayTracingData 
 {
     uvec4 samplesBatchesDepthIndex;
@@ -48,10 +48,10 @@ layout(set = 0, binding = 5) uniform readonly Lights
 } lights;
 
 /* Descriptor with materials */
-layout(set = 1, binding = 0) uniform readonly Materials
+layout(set = 1, binding = 0) uniform readonly MaterialDataUBO
 {
-	Material i[200];
-} materials;
+	MaterialData data[200];
+} materialData;
 
 /* Descriptor for global textures arrays */
 layout (set = 2, binding = 0) uniform sampler2D global_textures[];
@@ -67,7 +67,7 @@ void main()
 	ObjDesc objResource = objDesc.i[gl_InstanceCustomIndexEXT];
 	Indices indices = Indices(objResource.indexAddress);
 	Vertices vertices = Vertices(objResource.vertexAddress);
-	Material material = materials.i[objResource.materialIndex];
+	MaterialData material = materialData.data[objResource.materialIndex];
 
 	/* Get hit triangle info */
 	ivec3  ind = indices.i[gl_PrimitiveID];

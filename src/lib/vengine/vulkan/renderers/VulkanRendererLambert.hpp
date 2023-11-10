@@ -1,15 +1,15 @@
 #ifndef __VulkanRendererLambert_hpp__
 #define __VulkanRendererLambert_hpp__
 
-#include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/resources/VulkanMaterials.hpp"
+#include "vulkan/renderers/VulkanRendererBase.hpp"
 
 namespace vengine
 {
 
-class VulkanRendererLambert
+class VulkanRendererLambert : public VulkanRendererBase
 {
     friend class VulkanRenderer;
 
@@ -23,6 +23,7 @@ public:
                            VkPhysicalDeviceProperties physicalDeviceProperties,
                            VkDescriptorSetLayout cameraDescriptorLayout,
                            VkDescriptorSetLayout modelDescriptorLayout,
+                           VkDescriptorSetLayout lightDescriptorLayout,
                            VkDescriptorSetLayout skyboxDescriptorLayout,
                            VkDescriptorSetLayout materialDescriptorLayout,
                            VkDescriptorSetLayout texturesDescriptorLayout);
@@ -34,68 +35,29 @@ public:
     VkResult releaseSwapChainResources();
     VkResult releaseResources();
 
-    /**
-     * @brief Render objects with the base pass, IBL + directional light + selection info
-     *
-     * @param cmdBuf
-     * @param descriptorScene
-     * @param descriptorModel
-     * @param skybox
-     * @param imageIndex
-     * @param dynamicUBOModels
-     * @param objects
-     */
-    VkResult renderObjectsBasePass(VkCommandBuffer &cmdBuf,
-                                   VkDescriptorSet &descriptorScene,
-                                   VkDescriptorSet &descriptorModel,
-                                   VkDescriptorSet descriptorSkybox,
-                                   VkDescriptorSet &descriptorMaterial,
-                                   VkDescriptorSet &descriptorTextures,
-                                   uint32_t imageIndex,
-                                   const VulkanUBO<ModelData> &dynamicUBOModels,
-                                   const SceneGraph &objects) const;
+    VkResult renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
+                                        VkDescriptorSet &descriptorScene,
+                                        VkDescriptorSet &descriptorModel,
+                                        VkDescriptorSet &descriptorLight,
+                                        VkDescriptorSet descriptorSkybox,
+                                        VkDescriptorSet &descriptorMaterial,
+                                        VkDescriptorSet &descriptorTextures,
+                                        const SceneGraph &objects,
+                                        const SceneGraph &lights) const override;
 
-    /**
-     * @brief Render objects with an additive pass
-     *
-     * @param cmdBuf
-     * @param descriptorScene
-     * @param descriptorModel
-     * @param skybox
-     * @param imageIndex
-     * @param dynamicUBOModels
-     * @param objects
-     */
-    VkResult renderObjectsAddPass(VkCommandBuffer &cmdBuf,
-                                  VkDescriptorSet &descriptorScene,
-                                  VkDescriptorSet &descriptorModel,
-                                  VkDescriptorSet &descriptorMaterial,
-                                  VkDescriptorSet &descriptorTextures,
-                                  uint32_t imageIndex,
-                                  const VulkanUBO<ModelData> &dynamicUBOModels,
-                                  SceneObject *object,
-                                  PushBlockForwardAddPass &lightInfo) const;
+    VkResult renderObjectsForwardTransparent(VkCommandBuffer &cmdBuf,
+                                             VkDescriptorSet &descriptorScene,
+                                             VkDescriptorSet &descriptorModel,
+                                             VkDescriptorSet &descriptorLight,
+                                             VkDescriptorSet descriptorSkybox,
+                                             VkDescriptorSet &descriptorMaterials,
+                                             VkDescriptorSet &descriptorTextures,
+                                             SceneObject *object,
+                                             const SceneGraph &lights) const override;
 
 private:
-    VkDevice m_device;
-    VkPhysicalDevice m_physicalDevice;
-    VkCommandPool m_commandPool;
-    VkQueue m_queue;
-    VkExtent2D m_swapchainExtent;
-
-    VkDescriptorSetLayout m_descriptorSetLayoutCamera;
-    VkDescriptorSetLayout m_descriptorSetLayoutModel;
-    VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
-    VkDescriptorSetLayout m_descriptorSetLayoutMaterial;
-    VkDescriptorSetLayout m_descriptorSetLayoutTextures;
-
-    VkPipelineLayout m_pipelineLayoutBasePass, m_pipelineLayoutAddPass;
-    VkPipeline m_graphicsPipelineBasePass, m_graphicsPipelineAddPass;
-    VkRenderPass m_renderPass;
-    VkSampleCountFlagBits m_msaaSamples;
-
-    VkResult createGraphicsPipelineBasePass();
-    VkResult createGraphicsPipelineAddPass();
+    VkPipelineLayout m_pipelineLayoutForwardOpaque, m_pipelineLayoutForwardTransparent;
+    VkPipeline m_graphicsPipelineForwardOpaque, m_graphicsPipelineForwardTransparent;
 };
 
 }  // namespace vengine

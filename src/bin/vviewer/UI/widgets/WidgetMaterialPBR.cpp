@@ -122,6 +122,25 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     layoutNormal->setContentsMargins(5, 5, 5, 5);
     groupBoxNormal->setLayout(layoutNormal);
 
+    m_comboBoxAlpha = new QComboBox();
+    m_comboBoxAlpha->addItems(availableLinearTextures);
+    m_comboBoxAlpha->setCurrentText(QString::fromStdString(material->getAlphaTexture()->name()));
+    connect(m_comboBoxAlpha, SIGNAL(currentIndexChanged(int)), this, SLOT(onAlphaTextureChanged(int)));
+    m_alpha = new QSlider(Qt::Horizontal);
+    m_alpha->setMaximum(100);
+    m_alpha->setMinimum(0);
+    m_alpha->setSingleStep(1);
+    m_alpha->setValue(material->albedo().a * 100);
+    m_groupBoxAlpha = new QGroupBox(tr("Alpha"));
+    m_groupBoxAlpha->setCheckable(true);
+    m_groupBoxAlpha->setChecked(material->transparent());
+    connect(m_groupBoxAlpha, SIGNAL(clicked(bool)), this, SLOT(onAlphaStateChanged(bool)));
+    QVBoxLayout *layoutAlpha = new QVBoxLayout();
+    layoutAlpha->addWidget(m_alpha);
+    layoutAlpha->addWidget(m_comboBoxAlpha);
+    layoutAlpha->setContentsMargins(5, 5, 5, 5);
+    m_groupBoxAlpha->setLayout(layoutAlpha);
+
     m_uTiling = new QDoubleSpinBox();
     m_uTiling->setMinimum(0);
     m_uTiling->setMaximum(65536);
@@ -150,6 +169,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     layoutMain->addWidget(groupBoxAO);
     layoutMain->addWidget(groupBoxEmssive);
     layoutMain->addWidget(groupBoxNormal);
+    layoutMain->addWidget(m_groupBoxAlpha);
     layoutMain->addWidget(groupBoxUVTiling);
     layoutMain->setSpacing(15);
     layoutMain->setAlignment(Qt::AlignTop);
@@ -164,6 +184,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     connect(m_ao, &QSlider::valueChanged, this, &WidgetMaterialPBR::onAOChanged);
     connect(m_emissive, &QDoubleSpinBox::valueChanged, this, &WidgetMaterialPBR::onEmissiveChanged);
     connect(m_colorEmissive, &QPushButton::pressed, this, &WidgetMaterialPBR::onEmissiveButton);
+    connect(m_alpha, &QSlider::valueChanged, this, &WidgetMaterialPBR::onAlphaChanged);
 }
 
 void WidgetMaterialPBR::onAlbedoButton()
@@ -177,7 +198,8 @@ void WidgetMaterialPBR::onAlbedoButton()
     dialog->exec();
 
     QColor color = dialog->currentColor();
-    m_material->albedo() = glm::vec4(color.red(), color.green(), color.blue(), color.alpha()) / glm::vec4(255.0f);
+    float oldAlpha = m_material->albedo().a;
+    m_material->albedo() = glm::vec4(glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f), oldAlpha);
 
     setColorButton(m_colorAlbedo, m_material->albedo());
 
@@ -281,6 +303,24 @@ void WidgetMaterialPBR::onNormalTextureChanged(int)
 
     auto &textures = AssetManager::getInstance().texturesMap();
     m_material->setNormalTexture(textures.get(newTexture));
+}
+
+void WidgetMaterialPBR::onAlphaStateChanged(bool)
+{
+    m_material->transparent() = m_groupBoxAlpha->isChecked();
+}
+
+void WidgetMaterialPBR::onAlphaChanged()
+{
+    m_material->albedo().a = static_cast<float>(m_alpha->value()) / 100;
+}
+
+void WidgetMaterialPBR::onAlphaTextureChanged(int)
+{
+    std::string newTexture = m_comboBoxAlpha->currentText().toStdString();
+
+    auto &textures = AssetManager::getInstance().texturesMap();
+    m_material->setAlphaTexture(textures.get(newTexture));
 }
 
 void WidgetMaterialPBR::onUTilingChanged(double)

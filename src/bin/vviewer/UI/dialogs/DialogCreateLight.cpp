@@ -1,4 +1,4 @@
-#include "DialogCreateMaterial.hpp"
+#include "DialogCreateLight.hpp"
 
 #include "vengine/core/Materials.hpp"
 #include "vengine/core/AssetManager.hpp"
@@ -9,7 +9,7 @@
 
 using namespace vengine;
 
-DialogCreateMaterial::DialogCreateMaterial(QWidget *parent, const char *name)
+DialogCreateLight::DialogCreateLight(QWidget *parent, const char *name)
 {
     m_name = new QTextEdit();
     m_name->setPlainText("");
@@ -22,18 +22,18 @@ DialogCreateMaterial::DialogCreateMaterial(QWidget *parent, const char *name)
     QWidget *widget_name = new QWidget();
     widget_name->setLayout(layout_name);
 
-    m_materialType = new QComboBox();
+    m_lightType = new QComboBox();
 
-    QStringList availableMaterials;
-    for (size_t m = 0; m < materialTypeNames.size(); m++) {
-        availableMaterials.push_back(QString::fromStdString(materialTypeNames.find(static_cast<MaterialType>(m))->second));
+    QStringList availableLights;
+    for (size_t m = 0; m < lightTypeNames.size(); m++) {
+        availableLights.push_back(QString::fromStdString(lightTypeNames.find(static_cast<LightType>(m))->second));
     }
-    m_materialType->addItems(availableMaterials);
+    m_lightType->addItems(availableLights);
 
     m_buttonOk = new QPushButton(tr("Ok"));
-    connect(m_buttonOk, &QPushButton::released, this, &DialogCreateMaterial::onButtonOk);
+    connect(m_buttonOk, &QPushButton::released, this, &DialogCreateLight::onButtonOk);
     m_buttonCancel = new QPushButton(tr("Cancel"));
-    connect(m_buttonCancel, &QPushButton::released, this, &DialogCreateMaterial::onButtonCancel);
+    connect(m_buttonCancel, &QPushButton::released, this, &DialogCreateLight::onButtonCancel);
 
     QHBoxLayout *layoutButtons = new QHBoxLayout();
     layoutButtons->addWidget(m_buttonCancel);
@@ -43,14 +43,14 @@ DialogCreateMaterial::DialogCreateMaterial(QWidget *parent, const char *name)
 
     QVBoxLayout *layoutMain = new QVBoxLayout();
     layoutMain->addWidget(widget_name);
-    layoutMain->addWidget(m_materialType);
+    layoutMain->addWidget(m_lightType);
     layoutMain->addWidget(widgetButtons);
 
     setLayout(layoutMain);
     setFixedSize(350, 120);
 }
 
-void DialogCreateMaterial::onButtonOk()
+void DialogCreateLight::onButtonOk()
 {
     std::string chosenName = m_name->toPlainText().toStdString();
 
@@ -62,11 +62,11 @@ void DialogCreateMaterial::onButtonOk()
     }
 
     m_selectedName = m_name->toPlainText();
-    m_selectedMaterialType = static_cast<MaterialType>(m_materialType->currentIndex());
+    m_selectedLightType = static_cast<LightType>(m_lightType->currentIndex());
     close();
 }
 
-void DialogCreateMaterial::onButtonCancel()
+void DialogCreateLight::onButtonCancel()
 {
     close();
 }

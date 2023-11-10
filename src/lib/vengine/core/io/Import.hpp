@@ -23,7 +23,7 @@ std::string importScene(std::string filename,
                         Tree<ImportedSceneObject> &sceneObjects,
                         std::vector<std::string> &models,
                         std::vector<ImportedMaterial> &materials,
-                        std::vector<ImportedLightMaterial> &lightMaterials,
+                        std::vector<ImportedLight> &lights,
                         ImportedEnvironment &e);
 
 }  // namespace vengine

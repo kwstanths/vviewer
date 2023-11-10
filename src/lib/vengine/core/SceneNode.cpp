@@ -33,13 +33,22 @@ void SceneNode<SceneObject>::removeChild(SceneObject *node)
 template <>
 void SceneNode<SceneObject>::update()
 {
+    m_modelMatrixChanged = false;
     if (m_parent) {
-        m_modelMatrix = m_parent->m_modelMatrix * m_localTransform.getModelMatrix();
-    } else {
+        if (m_parent->modelMatrixChanged() || m_localTransformDirty) {
+            m_modelMatrix = m_parent->m_modelMatrix * m_localTransform.getModelMatrix();
+            m_modelMatrixChanged = true;
+            m_localTransformDirty = false;
+        }
+    } else if (m_localTransformDirty) {
         m_modelMatrix = m_localTransform.getModelMatrix();
+        m_modelMatrixChanged = true;
+        m_localTransformDirty = false;
     }
 
-    setModelMatrix(m_modelMatrix);
+    if (m_modelMatrixChanged) {
+        setModelMatrix(m_modelMatrix);
+    }
 
     for (auto &&child : m_children) {
         child->update();

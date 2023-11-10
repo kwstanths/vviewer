@@ -1,13 +1,9 @@
 #include "VulkanRenderer.hpp"
-#include "core/Lights.hpp"
-#include "core/Scene.hpp"
-#include "core/SceneObject.hpp"
-#include "utils/ECS.hpp"
-#include "utils/IDGeneration.hpp"
 
 #include <chrono>
 #include <memory>
 #include <set>
+#include <algorithm>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -18,6 +14,11 @@
 #include <debug_tools/Console.hpp>
 #include <debug_tools/Timer.hpp>
 
+#include "core/Light.hpp"
+#include "core/Scene.hpp"
+#include "core/SceneObject.hpp"
+#include "utils/ECS.hpp"
+#include "utils/IDGeneration.hpp"
 #include "core/Image.hpp"
 #include "core/EnvironmentMap.hpp"
 #include "core/io/AssimpLoadModel.hpp"
@@ -26,6 +27,8 @@
 #include "vulkan/common/VulkanUtils.hpp"
 #include "vulkan/common/VulkanLimits.hpp"
 #include "vulkan/resources/VulkanModel3D.hpp"
+#include "vulkan/resources/VulkanLight.hpp"
+
 namespace vengine
 {
 
@@ -65,6 +68,7 @@ VkResult VulkanRenderer::initResources()
                                                       m_vkctx.physicalDeviceProperties(),
                                                       m_scene.layoutSceneData(),
                                                       m_scene.layoutModelData(),
+                                                      m_scene.layoutLights(),
                                                       m_rendererSkybox.descriptorSetLayout(),
                                                       m_materials.descriptorSetLayout(),
                                                       m_textures));
@@ -75,6 +79,7 @@ VkResult VulkanRenderer::initResources()
                                                           m_vkctx.physicalDeviceProperties(),
                                                           m_scene.layoutSceneData(),
                                                           m_scene.layoutModelData(),
+                                                          m_scene.layoutLights(),
                                                           m_rendererSkybox.descriptorSetLayout(),
                                                           m_materials.descriptorSetLayout(),
                                                           m_textures.descriptorSetLayout()));
@@ -258,13 +263,34 @@ VkResult VulkanRenderer::renderFrame(SceneGraph &sceneGraphArray)
 
 VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {
-    /* Update scene data changes to GPU */
-    m_scene.updateBuffers(static_cast<uint32_t>(imageIndex));
+    /* Parse objects */
+    std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects, lights;
+    for (auto &itr : sceneGraphArray) {
+        if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) {
+            Material *mat = itr->get<ComponentMaterial>().material;
+            if (mat->transparent()) {
+                transparentObjects.push_back(itr);
+            } else {
+                switch (mat->type()) {
+                    case MaterialType::MATERIAL_PBR_STANDARD:
+                        opaquePBRStandardObjects.push_back(itr);
+                        break;
+                    case MaterialType::MATERIAL_LAMBERT:
+                        opaqueLambertObjects.push_back(itr);
+                        break;
+                    default:
+                        throw std::runtime_error("VulkanRenderer::buildFrame(): Unexpected material");
+                }
+            }
+        }
 
-    /* Update material data changes to GPU */
+        if (itr->has<ComponentLight>()) {
+            lights.push_back(itr);
+        }
+    }
+
+    m_scene.updateBuffers(lights, static_cast<uint32_t>(imageIndex));
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
-
-    /* Update texture changes to GPU */
     m_textures.updateTextures();
 
     /* Begin command buffer */
@@ -300,87 +326,52 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
             m_rendererSkybox.renderSkybox(commandBuffer, m_scene.descriptorSetSceneData(imageIndex), imageIndex, skybox);
         }
 
-        /* Batch objects into materials */
-        std::vector<SceneObject *> pbrStandardObjects;
-        std::vector<SceneObject *> lambertObjects;
-        std::vector<SceneObject *> lights;
-        for (auto &itr : sceneGraphArray) {
-            if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) {
-                switch (itr->get<ComponentMaterial>().material->getType()) {
-                    case MaterialType::MATERIAL_PBR_STANDARD:
-                        pbrStandardObjects.push_back(itr);
-                        break;
-                    case MaterialType::MATERIAL_LAMBERT:
-                        lambertObjects.push_back(itr);
-                        break;
-                    default:
-                        throw std::runtime_error("VulkanRenderer::buildFrame(): Unexpected material");
-                }
-            }
-
-            if (itr->has<ComponentLight>()) {
-                lights.push_back(itr);
-            }
+        /* Draw opaque */
+        {
+            m_rendererLambert.renderObjectsForwardOpaque(commandBuffer,
+                                                         m_scene.descriptorSetSceneData(imageIndex),
+                                                         m_scene.descriptorSetModelData(imageIndex),
+                                                         m_scene.descriptorSetLight(imageIndex),
+                                                         skybox->getDescriptor(imageIndex),
+                                                         m_materials.descriptorSet(imageIndex),
+                                                         m_textures.descriptorSet(),
+                                                         opaqueLambertObjects,
+                                                         lights);
+            m_rendererPBR.renderObjectsForwardOpaque(commandBuffer,
+                                                     m_scene.descriptorSetSceneData(imageIndex),
+                                                     m_scene.descriptorSetModelData(imageIndex),
+                                                     m_scene.descriptorSetLight(imageIndex),
+                                                     skybox->getDescriptor(imageIndex),
+                                                     m_materials.descriptorSet(imageIndex),
+                                                     m_textures.descriptorSet(),
+                                                     opaquePBRStandardObjects,
+                                                     lights);
         }
 
-        /* Draw PBR material objects, base pass */
-        m_rendererPBR.renderObjectsBasePass(commandBuffer,
-                                            m_scene.descriptorSetSceneData(imageIndex),
-                                            m_scene.descriptorSetModelData(imageIndex),
-                                            skybox->getDescriptor(imageIndex),
-                                            m_materials.descriptorSet(imageIndex),
-                                            m_textures.descriptorSet(),
-                                            imageIndex,
-                                            m_scene.m_modelDataDynamicUBO,
-                                            pbrStandardObjects);
-        /* Draw lambert material objects, base pass */
-        m_rendererLambert.renderObjectsBasePass(commandBuffer,
-                                                m_scene.descriptorSetSceneData(imageIndex),
-                                                m_scene.descriptorSetModelData(imageIndex),
-                                                skybox->getDescriptor(imageIndex),
-                                                m_materials.descriptorSet(imageIndex),
-                                                m_textures.descriptorSet(),
-                                                imageIndex,
-                                                m_scene.m_modelDataDynamicUBO,
-                                                lambertObjects);
+        /* Draw transparent */
+        {
+            /* Sort with distance to camera */
+            glm::vec3 cameraPos = m_scene.camera()->transform().position();
+            std::sort(transparentObjects.begin(), transparentObjects.end(), [&](SceneObject *a, SceneObject *b) {
+                float d1 = glm::distance(cameraPos, a->worldPosition());
+                float d2 = glm::distance(cameraPos, b->worldPosition());
+                return d1 > d2;
+            });
 
-        /* Draw additive pass for all lights in the scene */
-        for (auto &l : lights) {
-            if (!l->has<ComponentLight>())
-                continue;
+            std::unordered_map<MaterialType, VulkanRendererBase *> renderers = {{MaterialType::MATERIAL_LAMBERT, &m_rendererLambert},
+                                                                                {MaterialType::MATERIAL_PBR_STANDARD, &m_rendererPBR}};
+            for (auto itr : transparentObjects) {
+                auto renderer = renderers[itr->get<ComponentMaterial>().material->type()];
 
-            auto light = l->get<ComponentLight>().light;
-            PushBlockForwardAddPass t;
-            if (light->type == LightType::POINT_LIGHT) {
-                t.lightPosition = glm::vec4(l->worldPosition(), 0);
-                t.lightPosition.a = static_cast<float>(LightType::POINT_LIGHT);
-            } else if (light->type == LightType::DIRECTIONAL_LIGHT) {
-                t.lightPosition = l->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0);
-                t.lightPosition.a = static_cast<float>(LightType::DIRECTIONAL_LIGHT);
-            }
-            t.lightColor = light->lightMaterial->intensity * glm::vec4(light->lightMaterial->color, 0);
-
-            for (auto &obj : pbrStandardObjects) {
-                m_rendererPBR.renderObjectsAddPass(commandBuffer,
-                                                   m_scene.descriptorSetSceneData(imageIndex),
-                                                   m_scene.descriptorSetModelData(imageIndex),
-                                                   m_materials.descriptorSet(imageIndex),
-                                                   m_textures.descriptorSet(),
-                                                   imageIndex,
-                                                   m_scene.m_modelDataDynamicUBO,
-                                                   obj,
-                                                   t);
-            }
-            for (auto &obj : lambertObjects) {
-                m_rendererLambert.renderObjectsAddPass(commandBuffer,
-                                                       m_scene.descriptorSetSceneData(imageIndex),
-                                                       m_scene.descriptorSetModelData(imageIndex),
-                                                       m_materials.descriptorSet(imageIndex),
-                                                       m_textures.descriptorSet(),
-                                                       imageIndex,
-                                                       m_scene.m_modelDataDynamicUBO,
-                                                       obj,
-                                                       t);
+                renderer->renderObjectsForwardTransparent(commandBuffer,
+                                                          m_scene.descriptorSetSceneData(imageIndex),
+                                                          m_scene.descriptorSetModelData(imageIndex),
+                                                          m_scene.descriptorSetLight(imageIndex),
+                                                          skybox->getDescriptor(imageIndex),
+                                                          m_materials.descriptorSet(imageIndex),
+                                                          m_textures.descriptorSet(),
+                                                          itr,
+                                                          lights);
             }
         }
 

@@ -52,6 +52,11 @@ public:
         m_dataTransferSpace = (Block *)_aligned_malloc(m_blockAlignment * m_nBlocks, m_blockAlignment);
 #endif  // !_MSC_VER
 
+        if (sizeof(Block) != blockSizeAligned()) {
+            debug_tools::ConsoleWarning(
+                "VulkanUBO::init(): Block size allocated is different than the one requested. Block type needs padding");
+        }
+
         isInited = true;
         return VK_SUCCESS;
     }
@@ -166,6 +171,34 @@ private:
     uint32_t m_buffers = 0;
 
     std::vector<VulkanBuffer> m_gpuBuffers;
+};
+
+/* A class to handle access to a UBO block */
+template <typename T>
+class VulkanUBOBlock
+{
+public:
+    VulkanUBOBlock(VulkanUBO<T> &ubo)
+        : m_ubo(ubo)
+    {
+        /* Get an index for a free block in the ubo */
+        m_blockIndex = static_cast<uint32_t>(m_ubo.getFree());
+        /* Get pointer to free block */
+        m_block = m_ubo.block(m_blockIndex);
+    }
+
+    ~VulkanUBOBlock()
+    {
+        /* Remove block index from the buffers */
+        m_ubo.setFree(m_blockIndex);
+    }
+
+    const uint32_t &UBOBlockIndex() const { return m_blockIndex; }
+
+protected:
+    VulkanUBO<T> &m_ubo;
+    uint32_t m_blockIndex = -1;
+    T *m_block = nullptr;
 };
 
 }  // namespace vengine

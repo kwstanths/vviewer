@@ -66,7 +66,7 @@ QWidget *WidgetMaterial::createMaterialWidget(Material *material)
         delete m_widgetMaterial;
     }
 
-    switch (material->getType()) {
+    switch (material->type()) {
         case MaterialType::MATERIAL_PBR_STANDARD:
             m_widgetMaterial = new WidgetMaterialPBR(this, dynamic_cast<MaterialPBRStandard *>(material));
             break;
@@ -85,11 +85,6 @@ void WidgetMaterial::onMaterialChanged(int)
 
     auto &materials = AssetManager::getInstance().materialsMap();
     auto material = materials.get(newMaterial);
-
-    if (material == nullptr) {
-        debug_tools::ConsoleWarning("Material: " + newMaterial + " doesn't exist");
-        return;
-    }
 
     createUI(createMaterialWidget(material));
     m_materialComponent.material = material;

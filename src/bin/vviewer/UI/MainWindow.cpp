@@ -23,13 +23,14 @@
 #include "UI/widgets/WidgetSceneGraph.hpp"
 #include "dialogs/DialogAddSceneObject.hpp"
 #include "dialogs/DialogCreateMaterial.hpp"
+#include "dialogs/DialogCreateLight.hpp"
 #include "dialogs/DialogSceneExport.hpp"
 #include "dialogs/DialogSceneRender.hpp"
 #include "dialogs/DialogWaiting.hpp"
 #include "core/SceneObject.hpp"
 #include "core/AssetManager.hpp"
 #include "core/io/Import.hpp"
-#include "core/Lights.hpp"
+#include "core/Light.hpp"
 #include "core/Materials.hpp"
 #include "math/Transform.hpp"
 #include "utils/ECS.hpp"
@@ -127,7 +128,10 @@ void MainWindow::createMenu()
 
     QAction *actionCreateMaterial = new QAction(tr("&Create a material"), this);
     actionCreateMaterial->setStatusTip(tr("Create a material"));
-    connect(actionCreateMaterial, &QAction::triggered, this, &MainWindow::onAddMaterialSlot);
+    connect(actionCreateMaterial, &QAction::triggered, this, &MainWindow::onCreateMaterialSlot);
+    QAction *actionCreateLight = new QAction(tr("&Create a light"), this);
+    actionCreateLight->setStatusTip(tr("Create a light"));
+    connect(actionCreateLight, &QAction::triggered, this, &MainWindow::onCreateLightSlot);
 
     QAction *actionRender = new QAction(tr("&Render scene"), this);
     actionRender->setStatusTip(tr("Render scene"));
@@ -147,6 +151,7 @@ void MainWindow::createMenu()
     m_menuImport->addAction(actionImportScene);
     QMenu *m_menuAdd = menuBar()->addMenu(tr("&Create"));
     m_menuAdd->addAction(actionCreateMaterial);
+    m_menuAdd->addAction(actionCreateLight);
     QMenu *m_menuRender = menuBar()->addMenu(tr("&Render"));
     m_menuRender->addAction(actionRender);
     QMenu *m_menuExport = menuBar()->addMenu(tr("&Export"));
@@ -274,7 +279,7 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
 {
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
-    auto &instanceLightMaterials = AssetManager::getInstance().lightMaterialsMap();
+    auto &instanceLights = AssetManager::getInstance().lightsMap();
 
     const ImportedSceneObject &object = scene.data();
 
@@ -303,8 +308,8 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
 
     /* Add light component */
     if (object.light.has_value()) {
-        auto lightMat = instanceLightMaterials.get(object.light->lightMaterial);
-        newSceneObject.second->add<ComponentLight>().light = new Light("light", LightType::POINT_LIGHT, lightMat);
+        auto light = instanceLights.get(object.light->name);
+        newSceneObject.second->add<ComponentLight>().light = light;
     }
 
     /* Add children */
@@ -565,11 +570,11 @@ void MainWindow::onImportScene()
     Tree<ImportedSceneObject> scene;
     std::vector<std::string> models;
     std::vector<ImportedMaterial> materials;
-    std::vector<ImportedLightMaterial> lightMaterials;
+    std::vector<ImportedLight> lights;
     ImportedEnvironment env;
     std::string sceneFolder;
     try {
-        sceneFolder = importScene(sceneFile.toStdString(), camera, scene, models, materials, lightMaterials, env);
+        sceneFolder = importScene(sceneFile.toStdString(), camera, scene, models, materials, lights, env);
     } catch (std::runtime_error &e) {
         debug_tools::ConsoleWarning("Unable to open scene file: " + std::string(e.what()));
         return;
@@ -593,9 +598,9 @@ void MainWindow::onImportScene()
     }
 
     /* Delete previous assets */
-    // TODO properly destroy the assets
+    // TODO properly destroy and remove all the assets
     AssetManager::getInstance().materialsMap().reset();
-    AssetManager::getInstance().lightMaterialsMap().reset();
+    AssetManager::getInstance().lightsMap().reset();
     AssetManager::getInstance().modelsMap().reset();
 
     /* Remove old scene */
@@ -616,9 +621,10 @@ void MainWindow::onImportScene()
     debug_tools::ConsoleInfo("Importing materials...");
     m_engine->materials().createImportedMaterials(materials, m_engine->textures());
 
-    /* Import light materials */
-    for (auto &itr : lightMaterials) {
-        AssetManager::getInstance().lightMaterialsMap().add(new LightMaterial(itr.name, itr.color, itr.intensity));
+    /* Import light */
+    for (auto &itr : lights) {
+        AssetManager::getInstance().lightsMap().add(
+            m_engine->scene().createLight(itr.name, itr.type, glm::vec4(itr.color, itr.intensity)));
     }
 
     /* Create new scene */
@@ -702,9 +708,9 @@ void MainWindow::onRemoveSceneObjectSlot()
     m_engine->start();
 }
 
-void MainWindow::onAddMaterialSlot()
+void MainWindow::onCreateMaterialSlot()
 {
-    DialogCreateMaterial *dialog = new DialogCreateMaterial(nullptr, "Create a material", getImportedModels());
+    DialogCreateMaterial *dialog = new DialogCreateMaterial(nullptr, "Create a material");
     dialog->exec();
 
     if (dialog->m_selectedMaterialType == MaterialType::MATERIAL_NOT_SET)
@@ -724,6 +730,28 @@ void MainWindow::onAddMaterialSlot()
     }
 }
 
+void MainWindow::onCreateLightSlot()
+{
+    DialogCreateLight *dialog = new DialogCreateLight(nullptr, "Create a light");
+    dialog->exec();
+
+    if (!dialog->m_selectedLightType.has_value())
+        return;
+
+    std::string lightName = dialog->m_selectedName.toStdString();
+    if (lightName == "") {
+        debug_tools::ConsoleWarning("Light name can't be empty");
+        return;
+    }
+
+    auto light = m_engine->scene().createLight(lightName, dialog->m_selectedLightType.value());
+    if (light == nullptr) {
+        debug_tools::ConsoleWarning("Failed to create light");
+    } else {
+        m_widgetRightPanel->updateAvailableLights();
+    }
+}
+
 void MainWindow::onAddPointLightSlot()
 {
     /* Get currently selected tree item */
@@ -736,13 +764,34 @@ void MainWindow::onAddPointLightSlot()
     auto newObject = createEmptySceneObject("Point light", Transform(), selectedItem);
 
     /* Add light component */
-    auto &lightMaterials = AssetManager::getInstance().lightMaterialsMap();
-    if (!lightMaterials.isPresent("DefaultPointLightMaterial")) {
-        lightMaterials.add(new LightMaterial("DefaultPointLightMaterial", glm::vec3(1, 1, 1), 1));
+    auto &lights = AssetManager::getInstance().lightsMap();
+    if (!lights.isPresent("defaultPointLight")) {
+        lights.add(m_engine->scene().createLight("defaultPointLight", LightType::POINT_LIGHT, glm::vec4(1, 1, 1, 1)));
     }
-    auto lightMat = lightMaterials.get("DefaultPointLightMaterial");
 
-    newObject.second->add<ComponentLight>().light = new Light(newObject.second->m_name, LightType::POINT_LIGHT, lightMat);
+    newObject.second->add<ComponentLight>().light = lights.get("defaultPointLight");
+
+    m_engine->start();
+}
+
+void MainWindow::onAddDirectionalLightSlot()
+{
+    /* Get currently selected tree item */
+    QTreeWidgetItem *selectedItem = m_sceneGraphWidget->currentItem();
+
+    m_engine->stop();
+    m_engine->waitIdle();
+
+    /* Create new empty item under the selected item */
+    auto newObject = createEmptySceneObject("Directional light", Transform(), selectedItem);
+
+    /* Add light component */
+    auto &lights = AssetManager::getInstance().lightsMap();
+    if (!lights.isPresent("defaultDirectionalLight")) {
+        lights.add(m_engine->scene().createLight("defaultDirectionalLight", LightType::DIRECTIONAL_LIGHT, glm::vec4(1, 1, 1, 1)));
+    }
+
+    newObject.second->add<ComponentLight>().light = lights.get("defaultDirectionalLight");
 
     m_engine->start();
 }
@@ -851,7 +900,7 @@ void MainWindow::onDuplicateSceneObjectSlot()
 
         if (so->has<ComponentLight>()) {
             auto l = so->get<ComponentLight>().light;
-            newObject.second->add<ComponentLight>().light = new Light(newObject.second->m_name, l->type, l->lightMaterial);
+            newObject.second->add<ComponentLight>().light = l;
         }
         if (so->has<ComponentMesh>()) {
             newObject.second->add<ComponentMesh>().mesh = so->get<ComponentMesh>().mesh;
@@ -917,22 +966,29 @@ void MainWindow::onContextMenuSceneGraph(const QPoint &pos)
     QAction action3("Remove scene object", this);
     connect(&action3, SIGNAL(triggered()), this, SLOT(onRemoveSceneObjectSlot()));
     contextMenu.addAction(&action3);
+
+    QMenu lightMenu(tr("Add light"), this);
     QAction action4("Add point light", this);
     connect(&action4, SIGNAL(triggered()), this, SLOT(onAddPointLightSlot()));
-    contextMenu.addAction(&action4);
+    lightMenu.addAction(&action4);
+    QAction action5("Add directional light", this);
+    connect(&action5, SIGNAL(triggered()), this, SLOT(onAddDirectionalLightSlot()));
+    lightMenu.addAction(&action5);
+
+    contextMenu.addMenu(&lightMenu);
 
     /* Check if it's a valid index */
     QModelIndex index = m_sceneGraphWidget->indexAt(pos);
-    QAction *action5 = nullptr;
+    QAction *action6 = nullptr;
     if (index.isValid()) {
-        action5 = new QAction("Duplicate", this);
-        connect(action5, SIGNAL(triggered()), this, SLOT(onDuplicateSceneObjectSlot()));
-        contextMenu.addAction(action5);
+        action6 = new QAction("Duplicate", this);
+        connect(action6, SIGNAL(triggered()), this, SLOT(onDuplicateSceneObjectSlot()));
+        contextMenu.addAction(action6);
     }
 
     contextMenu.exec(m_sceneGraphWidget->mapToGlobal(pos));
-    if (action5 != nullptr)
-        delete action5;
+    if (action6 != nullptr)
+        delete action6;
 }
 
 void MainWindow::onStartUpInitialization()
@@ -942,7 +998,7 @@ void MainWindow::onStartUpInitialization()
 
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
-    auto &instanceLightMaterials = AssetManager::getInstance().lightMaterialsMap();
+    auto &instanceLightMaterials = AssetManager::getInstance().lightsMap();
 
     /* Create a plane scene with the assetName on top */
     try {

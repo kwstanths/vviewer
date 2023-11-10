@@ -7,9 +7,9 @@
 
 layout(location = 0) rayPayloadInEXT RayPayload rayPayload;
 
-layout(set = 0, binding = 2) uniform readonly SceneData {
-    Scene data;
-} scene;
+layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
+    SceneData data;
+} sceneData;
 
 layout(set = 3, binding = 0) uniform samplerCube skybox;
 
@@ -21,5 +21,5 @@ void main()
 
     vec3 backgroundColor = textureLod(skybox, rayDir, 0).xyz;
 
-	rayPayload.radiance += scene.data.exposure.g * backgroundColor * rayPayload.beta;
+	rayPayload.radiance += sceneData.data.exposure.g * backgroundColor * rayPayload.beta;
 }

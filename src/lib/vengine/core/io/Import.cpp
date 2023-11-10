@@ -272,20 +272,10 @@ std::optional<ImportedSceneObjectLight> parseLightComponent(const rapidjson::Val
     }
 
     ImportedSceneObjectLight importedLight;
-    if (o["light"].HasMember("type")) {
-        auto type = std::string(o["light"]["type"].GetString());
-        auto itr = importedLightTypeNames.find(type);
-        if (itr == importedLightTypeNames.end()) {
-            throw std::runtime_error("parseLightComponent(): " + type + " light not supported");
-        }
-
-        importedLight.type = itr->second;
-    }
-
-    if (o["light"].HasMember("material")) {
-        importedLight.lightMaterial = o["light"]["material"].GetString();
+    if (o.HasMember("name")) {
+        importedLight.name = o["name"].GetString();
     } else {
-        throw std::runtime_error("parseLightComponent(): light doesn't have a material");
+        throw std::runtime_error("parseLightComponent(): Imported light doesn't have a name");
     }
 
     return importedLight;
@@ -397,17 +387,28 @@ void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, I
     return;
 }
 
-ImportedLightMaterial parseLightMaterial(const rapidjson::Value &o)
+ImportedLight parseLight(const rapidjson::Value &o)
 {
-    ImportedLightMaterial lightMaterial;
-    lightMaterial.name = o["name"].GetString();
-    lightMaterial.color = parseVec3(o, "color", lightMaterial.color);
+    ImportedLight light;
+    light.name = o["name"].GetString();
 
-    if (o.HasMember("intensity")) {
-        lightMaterial.intensity = o["intensity"].GetFloat();
+    if (o.HasMember("type")) {
+        auto type = std::string(o["type"].GetString());
+        auto itr = importedLightTypeNames.find(type);
+        if (itr == importedLightTypeNames.end()) {
+            throw std::runtime_error("parseLight(): " + type + " light not supported");
+        }
+
+        light.type = itr->second;
     }
 
-    return lightMaterial;
+    light.color = parseVec3(o, "color", light.color);
+
+    if (o.HasMember("intensity")) {
+        light.intensity = o["intensity"].GetFloat();
+    }
+
+    return light;
 }
 
 ImportedEnvironment parseEnvironment(const rapidjson::Value &o)
@@ -429,7 +430,7 @@ std::string importScene(std::string filename,
                         Tree<ImportedSceneObject> &sceneObjects,
                         std::vector<std::string> &models,
                         std::vector<ImportedMaterial> &materials,
-                        std::vector<ImportedLightMaterial> &lightMaterials,
+                        std::vector<ImportedLight> &lights,
                         ImportedEnvironment &e)
 {
     auto filenameSplit = split(filename, "/");
@@ -474,9 +475,9 @@ std::string importScene(std::string filename,
         parseMaterial(doc["materials"][m], sceneFolder, materials[m]);
     }
 
-    /* Parse light materials */
-    for (size_t lm = 0; lm < doc["light materials"].Size(); lm++) {
-        lightMaterials.push_back(parseLightMaterial(doc["light materials"][lm]));
+    /* Parse lights */
+    for (size_t lm = 0; lm < doc["lights"].Size(); lm++) {
+        lights.push_back(parseLight(doc["lights"][lm]));
     }
 
     /* Parse environment */

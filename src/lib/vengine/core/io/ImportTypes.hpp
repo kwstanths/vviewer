@@ -12,7 +12,7 @@
 #include <vengine/core/Scene.hpp>
 #include <vengine/core/Image.hpp>
 #include <vengine/core/Mesh.hpp>
-#include <vengine/core/Lights.hpp>
+#include <vengine/core/Light.hpp>
 #include <vengine/math/Transform.hpp>
 #include <vengine/utils/Tree.hpp>
 
@@ -99,8 +99,9 @@ struct ImportedCamera {
     float fov = 60.F;
 };
 
-struct ImportedLightMaterial {
+struct ImportedLight {
     std::string name;
+    LightType type;
     glm::vec3 color = {1, 1, 1};
     float intensity = 1.F;
 };
@@ -122,8 +123,7 @@ struct ImportedSceneObjectMaterial {
 };
 
 struct ImportedSceneObjectLight {
-    LightType type;
-    std::string lightMaterial;
+    std::string name = "";
 };
 
 struct ImportedSceneObject {

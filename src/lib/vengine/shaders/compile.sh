@@ -2,9 +2,7 @@ compiler=${VULKAN_SDK}/bin/glslangValidator
 
 $compiler -V standard.vert.glsl -o SPIRV/standard.vert.spv
 $compiler -V pbrBase.frag.glsl -o SPIRV/pbrBase.frag.spv
-$compiler -V pbrAdd.frag.glsl -o SPIRV/pbrAdd.frag.spv
 $compiler -V lambertBase.frag.glsl -o SPIRV/lambertBase.frag.spv
-$compiler -V lambertAdd.frag.glsl -o SPIRV/lambertAdd.frag.spv
 $compiler -V 3dui.vert.glsl -o SPIRV/3dui.vert.spv
 $compiler -V 3dui.frag.glsl -o SPIRV/3dui.frag.spv
 

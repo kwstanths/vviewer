@@ -101,10 +101,14 @@ private Q_SLOTS:
     void onAddSceneObjectSlot();
     /* Remove the selected object from the scene */
     void onRemoveSceneObjectSlot();
-    /* Create a material */
-    void onAddMaterialSlot();
     /* Add a point light as a child of the currently selected node */
     void onAddPointLightSlot();
+    /* Add a directional light as a child of the currently selected node */
+    void onAddDirectionalLightSlot();
+    /* Create a material */
+    void onCreateMaterialSlot();
+    /* Create a light */
+    void onCreateLightSlot();
     /* Render scene */
     void onRenderSceneSlot();
     /* Export scene */
