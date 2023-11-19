@@ -8,7 +8,7 @@
 #include <qlistwidget.h>
 #include <sys/types.h>
 
-DialogSceneRender::DialogSceneRender(QWidget *parent, const RendererRayTracing::RenderInfo &renderInfo)
+DialogSceneRender::DialogSceneRender(QWidget *parent, const RendererPathTracing::RenderInfo &renderInfo)
 {
     setWindowTitle(QString("Render scene:"));
 

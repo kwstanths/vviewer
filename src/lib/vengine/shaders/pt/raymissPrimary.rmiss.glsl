@@ -5,7 +5,7 @@
 #include "../include/structs.glsl"
 #include "../include/rng.glsl"
 
-layout(location = 0) rayPayloadInEXT RayPayload rayPayload;
+layout(location = 0) rayPayloadInEXT RayPayloadPrimary rayPayloadPrimary;
 
 layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
     SceneData data;
@@ -15,11 +15,11 @@ layout(set = 3, binding = 0) uniform samplerCube skybox;
 
 void main()
 {
-    rayPayload.stop = true;
+    rayPayloadPrimary.stop = true;
     
     vec3 rayDir = gl_WorldRayDirectionEXT;
 
     vec3 backgroundColor = textureLod(skybox, rayDir, 0).xyz;
 
-	rayPayload.radiance += sceneData.data.exposure.g * backgroundColor * rayPayload.beta;
+	rayPayloadPrimary.radiance += sceneData.data.exposure.g * backgroundColor * rayPayloadPrimary.beta;
 }

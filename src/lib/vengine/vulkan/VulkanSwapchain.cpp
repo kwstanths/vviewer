@@ -17,7 +17,7 @@ VulkanSwapchain::~VulkanSwapchain()
 {
 }
 
-bool VulkanSwapchain::initResources(uint32_t width, uint32_t height)
+VkResult VulkanSwapchain::initResources(uint32_t width, uint32_t height)
 {
     SwapChainDetails details = querySwapChainSupport(m_vkctx.physicalDevice(), m_vkctx.surface());
 
@@ -58,10 +58,7 @@ bool VulkanSwapchain::initResources(uint32_t width, uint32_t height)
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = (m_initialized ? m_swapchain : VK_NULL_HANDLE);
 
-    VkResult ret = vkCreateSwapchainKHR(m_vkctx.device(), &createInfo, nullptr, &m_swapchain);
-    if (ret != VK_SUCCESS) {
-        throw std::runtime_error("VulkanSwapchain::init(): Failed to create a swap chain: " + std::to_string(ret));
-    }
+    VULKAN_CHECK_CRITICAL(vkCreateSwapchainKHR(m_vkctx.device(), &createInfo, nullptr, &m_swapchain));
 
     /* Get images */
     vkGetSwapchainImagesKHR(m_vkctx.device(), m_swapchain, &imageCount, nullptr);
@@ -75,7 +72,8 @@ bool VulkanSwapchain::initResources(uint32_t width, uint32_t height)
     createDepthBuffer();
 
     m_initialized = true;
-    return true;
+
+    return VK_SUCCESS;
 }
 
 void VulkanSwapchain::releaseResources()

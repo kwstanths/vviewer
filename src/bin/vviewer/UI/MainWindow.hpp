@@ -105,6 +105,8 @@ private Q_SLOTS:
     void onAddPointLightSlot();
     /* Add a directional light as a child of the currently selected node */
     void onAddDirectionalLightSlot();
+    /* Add an area light as a child of the currently selected node */
+    void onAddAreaLightSlot();
     /* Create a material */
     void onCreateMaterialSlot();
     /* Create a light */

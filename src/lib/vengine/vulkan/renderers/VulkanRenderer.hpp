@@ -29,7 +29,7 @@
 #include "vulkan/renderers/VulkanRendererSkybox.hpp"
 #include "vulkan/renderers/VulkanRendererPost.hpp"
 #include "vulkan/renderers/VulkanRenderer3DUI.hpp"
-#include "vulkan/renderers/VulkanRendererRayTracing.hpp"
+#include "vulkan/renderers/VulkanRendererPathTracing.hpp"
 #include "vulkan/resources/VulkanMesh.hpp"
 #include "vulkan/resources/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
@@ -54,7 +54,7 @@ public:
     VkResult releaseSwapChainResources();
     VkResult releaseResources();
 
-    RendererRayTracing &rendererRayTracing() override;
+    RendererPathTracing &rendererPathTracing() override;
 
     glm::vec3 selectObject(float x, float y);
 
@@ -106,7 +106,7 @@ private:
     VulkanRendererSkybox m_rendererSkybox;
     VulkanRendererPost m_rendererPost;
     VulkanRenderer3DUI m_renderer3DUI;
-    VulkanRendererRayTracing m_rendererRayTracing;
+    VulkanRendererPathTracing m_rendererPathTracing;
 
     /* Render commands and synchronization data */
     std::vector<VkCommandBuffer> m_commandBuffer;

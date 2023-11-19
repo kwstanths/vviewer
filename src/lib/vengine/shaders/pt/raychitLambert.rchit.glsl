@@ -17,8 +17,9 @@
 hitAttributeEXT vec2 attribs;
 
 /* Ray payload */
-layout(location = 0) rayPayloadInEXT RayPayload rayPayload;
-layout(location = 1) rayPayloadEXT bool shadowed;
+layout(location = 0) rayPayloadInEXT RayPayloadPrimary rayPayloadPrimary;
+layout(location = 1) rayPayloadEXT RayPayloadSecondary rayPayloadSecondary;
+layout(location = 2) rayPayloadEXT RayPayloadNEE rayPayloadNEE;
 
 /* Types for the arrays of vertices and indices of the currently hit object */
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
@@ -26,14 +27,11 @@ layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 /* Descriptors */
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
-layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
-    SceneData data;
-} sceneData;
-layout(set = 0, binding = 3) uniform RayTracingData 
+layout(set = 0, binding = 3) uniform PathTracingData 
 {
     uvec4 samplesBatchesDepthIndex;
     uvec4 lights;
-} rayTracingData;
+} pathTracingData;
 
 /* Descriptor with the buffer for the object description structs */
 layout(set = 0, binding = 4, scalar) buffer ObjDesc_ 
@@ -104,34 +102,16 @@ void main()
 	vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
-	if (!isBlack(emissive) && !flipped) {
-		if (rayPayload.depth == 0)
-		{
-			/* beta is 1 at depth 0 */
-			rayPayload.radiance = emissive;
-		} 
-		else
-		{
-			/* If this mesh is emissive and the depth is not 1, weight the emissive contribution with MIS */
-			vec3 v0WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v0.position, 1.0));
-			vec3 v1WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v1.position, 1.0));
-			vec3 v2WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v2.position, 1.0));
-			float triangleArea = 0.5 * length(cross(v1WorldPos - v0WorldPos, v2WorldPos - v0WorldPos));
-			float sampledPointPdf = (1.0 / objResource.numTriangles) * ( 1 / triangleArea );
-
-            const float dotProduct = dot(-gl_WorldRayDirectionEXT, worldNormal);
-            float lightDirectPdf = sampledPointPdf * distanceSquared(gl_ObjectRayOriginEXT, worldPosition) / dotProduct;
-
-			float weightMIS = PowerHeuristic(1, rayPayload.bsdfPdf, 1, lightDirectPdf);
-			rayPayload.radiance += weightMIS * emissive * rayPayload.beta;
-		}
-		rayPayload.stop = true;
+	/* Add emissive of first hit */
+	if (rayPayloadPrimary.depth == 0 && !isBlack(emissive, 0.1) && !flipped) {
+		rayPayloadPrimary.radiance += emissive * rayPayloadPrimary.beta;
+		rayPayloadPrimary.stop = true;
 		return;
 	}
 
 	/* Light sampling */
 	LightSamplingRecord lsr = sampleLight(worldPosition);
-	if (!lsr.shadowed && !isBlack(lsr.radiance))
+	if (!isBlack(lsr.radiance))
 	{
 		vec3 wi = worldToLocal(frame, lsr.direction);
 		float cosTheta = clamp(wi.y, 0, 1);
@@ -142,28 +122,40 @@ void main()
 		{
 			if (lsr.isDeltaLight)
 			{
-				rayPayload.radiance += lsr.radiance * F * rayPayload.beta / lsr.pdf;
+				rayPayloadPrimary.radiance += lsr.radiance * F * rayPayloadPrimary.beta / lsr.pdf;
 			}
 			else 
 			{
 				float bsdfPdf = cosineSampleHemispherePdf(cosTheta);
 				float weightMIS = PowerHeuristic(1, lsr.pdf, 1, bsdfPdf);
 				
-				rayPayload.radiance += weightMIS * lsr.radiance * F * rayPayload.beta / lsr.pdf;
+				rayPayloadPrimary.radiance += weightMIS * lsr.radiance * F * rayPayloadPrimary.beta / lsr.pdf;
 			}
 		}
 	}
 
 	/* BSDF sampling */
 	float sampleDirectionPDF;
-	vec3 sampleDirectionLocal = cosineSampleHemisphere(rand2D(rayPayload), sampleDirectionPDF);
+	vec3 sampleDirectionLocal = cosineSampleHemisphere(rand2D(rayPayloadPrimary), sampleDirectionPDF);
 	vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
 	
-	rayPayload.origin = worldPosition;
-	rayPayload.direction = sampleDirectionWorld;
-	rayPayload.bsdfPdf = sampleDirectionPDF;
+	rayPayloadPrimary.origin = worldPosition;
+	rayPayloadPrimary.direction = sampleDirectionWorld;
 
 	/* float cosTheta = sampleDirectionLocal.y */
-	rayPayload.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
+	rayPayloadPrimary.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
+
+	/* Next event estimation */
+	rayPayloadNEE.throughput = 1.0;
+	rayPayloadNEE.emissive = vec3(0);
+	rayPayloadNEE.pdf = 0;
+	uint neeRayFlags = gl_RayFlagsSkipClosestHitShaderEXT;
+	traceRayEXT(topLevelAS, neeRayFlags, 0xFF, 2, 3, 2, worldPosition, 0.001, rayPayloadPrimary.direction, 10000.0, 2);
+
+	if (!isBlack(rayPayloadNEE.emissive))
+	{
+		float weightMIS = PowerHeuristic(1, sampleDirectionPDF, 1, rayPayloadNEE.pdf);
+		rayPayloadPrimary.radiance += weightMIS * rayPayloadNEE.throughput * rayPayloadNEE.emissive * rayPayloadPrimary.beta;
+	}
 
 }

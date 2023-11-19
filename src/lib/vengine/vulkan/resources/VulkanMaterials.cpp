@@ -26,7 +26,7 @@ VkResult VulkanMaterials::initResources()
             "= " +
             std::to_string(m_materialsStorage.blockSizeAligned());
         debug_tools::ConsoleCritical(error);
-        throw std::runtime_error(error);
+        return VK_ERROR_UNKNOWN;
     }
 
     VULKAN_CHECK_CRITICAL(createDescriptorSetsLayout());
@@ -109,8 +109,8 @@ Material *VulkanMaterials::createMaterial(const std::string &name, const std::st
             break;
         }
         default: {
-            throw std::runtime_error("VulkanMaterialSystem::createMaterial(): Unexpected material");
-            break;
+            debug_tools::ConsoleWarning("VulkanMaterialSystem::createMaterial(): Unexpected material");
+            return nullptr;
         }
     }
 
@@ -313,6 +313,10 @@ std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vect
             if (mat.normalTexture.has_value()) {
                 material->setNormalTexture(getTexture(mat.normalTexture.value()));
             }
+            if (mat.alphaTexture.has_value()) {
+                material->setAlphaTexture(getTexture(mat.alphaTexture.value()));
+            }
+            material->transparent() = mat.transparent;
         } else if (mat.type == ImportedMaterialType::PBR_STANDARD) {
             auto material =
                 static_cast<VulkanMaterialPBRStandard *>(createMaterial(mat.name, mat.filepath, MaterialType::MATERIAL_PBR_STANDARD));
@@ -341,6 +345,10 @@ std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vect
             if (mat.normalTexture.has_value()) {
                 material->setNormalTexture(getTexture(mat.normalTexture.value()));
             }
+            if (mat.alphaTexture.has_value()) {
+                material->setAlphaTexture(getTexture(mat.alphaTexture.value()));
+            }
+            material->transparent() = mat.transparent;
         }
     }
 
@@ -351,7 +359,10 @@ VkResult VulkanMaterials::createDescriptorSetsLayout()
 {
     /* Create binding for material data */
     VkDescriptorSetLayoutBinding materiaDatalLayoutBinding = vkinit::descriptorSetLayoutBinding(
-        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, 1);
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
+        0,
+        1);
 
     std::array<VkDescriptorSetLayoutBinding, 1> setBindings = {materiaDatalLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo =

@@ -2,7 +2,7 @@
 
 #include "math/Constants.hpp"
 #include "vulkan/common/VulkanUtils.hpp"
-#include "vulkan/renderers/VulkanRendererRayTracing.hpp"
+#include "vulkan/renderers/VulkanRendererPathTracing.hpp"
 
 namespace vengine
 {
@@ -23,7 +23,7 @@ VulkanMesh::VulkanMesh(std::string name,
                        VkCommandPool transferCommandPool)
     : Mesh(name, vertices, indices, hasNormals, hasUVs)
 {
-    VkBufferUsageFlags rayTracingUsageFlags = VulkanRendererRayTracing::getBufferUsageFlags();
+    VkBufferUsageFlags rayTracingUsageFlags = VulkanRendererPathTracing::getBufferUsageFlags();
 
     createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_vertices, rayTracingUsageFlags, m_vertexBuffer);
     createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_indices, rayTracingUsageFlags, m_indexBuffer);

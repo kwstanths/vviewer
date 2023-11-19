@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <cassert>
 
+#include "Console.hpp"
+
 namespace vengine
 {
 
@@ -17,11 +19,12 @@ size_t FreeList::getFree()
 {
     if (!m_freeElements.empty()) {
         return m_freeElements.pop();
-    } else if (m_end == m_nElements) {
-        throw std::runtime_error("FreeList is empty");
-    } else {
+    } else if (m_end < m_nElements) {
         return m_end++;
     }
+
+    debug_tools::ConsoleCritical("FreeList::getFree(): FreeList is empty");
+    return m_end;
 }
 
 void FreeList::setFree(size_t index)

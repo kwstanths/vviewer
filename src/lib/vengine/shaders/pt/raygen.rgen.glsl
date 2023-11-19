@@ -12,27 +12,27 @@ layout(set = 0, binding = 1, rgba8) uniform image2D image;
 layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
-layout(set = 0, binding = 3) uniform RayTracingData 
+layout(set = 0, binding = 3) uniform PathTracingData 
 {
     uvec4 samplesBatchesDepthIndex;
     uvec4 lights;
-} rayTracingData;
+} pathTracingData;
 
 #include "../include/rng.glsl"
 
-layout(location = 0) rayPayloadEXT RayPayload rayPayload;
+layout(location = 0) rayPayloadEXT RayPayloadPrimary rayPayloadPrimary;
 
 void main() 
 {
-	uint batchSize = rayTracingData.samplesBatchesDepthIndex.r;
-	uint batches = rayTracingData.samplesBatchesDepthIndex.g;
-	uint depth = rayTracingData.samplesBatchesDepthIndex.b;
-	uint batchIndex = rayTracingData.samplesBatchesDepthIndex.a;
+	uint batchSize = pathTracingData.samplesBatchesDepthIndex.r;
+	uint batches = pathTracingData.samplesBatchesDepthIndex.g;
+	uint depth = pathTracingData.samplesBatchesDepthIndex.b;
+	uint batchIndex = pathTracingData.samplesBatchesDepthIndex.a;
 	uint totalSamples = batchSize * batches;
 
 	/* Initialize a RNG */
 	uint rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, batchIndex);
-	rayPayload.rngState = rngState;
+	rayPayloadPrimary.rngState = rngState;
 
 	/* Calculate pixel uvs */
 	const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
@@ -41,7 +41,7 @@ void main()
 	for(int s = 0; s < batchSize; s++) 
 	{
 		/* Calculate first ray target offset */
-		vec2 offset = rand2D(rayPayload);
+		vec2 offset = rand2D(rayPayloadPrimary);
 		const vec2 inUV = (pixelLeftCorner + offset) / vec2(gl_LaunchSizeEXT.xy);
 		vec2 d = inUV * 2.0 - 1.0;
 
@@ -52,29 +52,27 @@ void main()
 
 		vec3 beta = vec3(1);
 		vec3 radiance = vec3(0);
-		float bsdfPdf = 1.0F;
 		for (int d = 0; d < depth; d++)
 		{
 			/* Launch ray */
-			rayPayload.stop = false;
-			rayPayload.radiance = radiance;
-			rayPayload.beta = beta;
-			rayPayload.bsdfPdf = bsdfPdf;
-			rayPayload.depth = d;
+			rayPayloadPrimary.stop = false;
+			rayPayloadPrimary.radiance = radiance;
+			rayPayloadPrimary.beta = beta;
+			rayPayloadPrimary.depth = d;
 
-			traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin.xyz, 0.001, direction.xyz, 10000.0, 0);
+			uint primaryRayFlags = gl_RayFlagsNoneEXT;
+			traceRayEXT(topLevelAS, primaryRayFlags, 0xff, 0, 3, 0, origin.xyz, 0.001, direction.xyz, 10000.0, 0);
 
-			beta = rayPayload.beta;
-			radiance = rayPayload.radiance;
-			bsdfPdf = rayPayload.bsdfPdf;
+			beta = rayPayloadPrimary.beta;
+			radiance = rayPayloadPrimary.radiance;
 			
-			if (rayPayload.stop) 
+			if (rayPayloadPrimary.stop) 
 			{
 				break;
 			}
 
-			origin.xyz = rayPayload.origin;
-			direction.xyz = rayPayload.direction;
+			origin.xyz = rayPayloadPrimary.origin;
+			direction.xyz = rayPayloadPrimary.direction;
 		}
 
 		cumRadiance += radiance / totalSamples;

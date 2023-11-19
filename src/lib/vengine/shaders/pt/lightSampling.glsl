@@ -1,12 +1,11 @@
 LightSamplingRecord sampleLight(vec3 originPosition)
 {
 	LightSamplingRecord lsr;
-	lsr.shadowed = true;
 	lsr.isDeltaLight = true;
 	lsr.radiance = vec3(0, 0, 0);
 	lsr.pdf = 1.0;
 
-	uint totalLights = rayTracingData.lights.r;
+	uint totalLights = pathTracingData.lights.r;
 	if (totalLights == 0)
 	{
 		return lsr;
@@ -14,7 +13,7 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 
 	/* Uniformly pick a light */
 	float pdf = 1.0 / totalLights;
-	uint randomLight = uint(rand1D(rayPayload) * totalLights);
+	uint randomLight = uint(rand1D(rayPayloadPrimary) * totalLights);
 	Light light = lights.i[randomLight];
 
 	float tmin = 0.001;
@@ -48,12 +47,12 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 		MaterialData material = materialData.data[objResource.materialIndex];
 		mat4 transform = mat4(vec4(light.position.xyz, 0), vec4(light.direction.xyz, 0), vec4(light.color.xyz, 0), vec4(light.transform.xyz, 1));
 		
-		uint randomTriangle = uint(rand1D(rayPayload) * objResource.numTriangles);
+		uint randomTriangle = uint(rand1D(rayPayloadPrimary) * objResource.numTriangles);
 		ivec3 ind = indices.i[randomTriangle];
 		float trianglePdf = 1.0 / objResource.numTriangles;
 		
 		/* Sample triangle */
-		vec2 barycentricCoords = uniformSampleTriangle(rand2D(rayPayload));
+		vec2 barycentricCoords = uniformSampleTriangle(rand2D(rayPayloadPrimary));
 		vec3 sampledBarycentricCoords = vec3(barycentricCoords, 1.F - barycentricCoords.x - barycentricCoords.y);
 
 		/* Sampled triangle info */
@@ -103,13 +102,21 @@ LightSamplingRecord sampleLight(vec3 originPosition)
     /* Shadow ray */
 	if (!isBlack(lsr.radiance))
 	{
-		/* Trace shadow ray, set stb offset indices to match shadow hit/miss shader group indices */
-		shadowed = true;
+		/* Trace shadow ray */
+		rayPayloadSecondary.shadowed = true;
+		rayPayloadSecondary.throughput = 1.0;
 
 		/* Slightly reduce tmax to make sure we don't hit the sampled surface at all */
-		traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT, 0xFF, 0, 0, 1, originPosition, tmin, lsr.direction, tmax - tmin, 1);		
+		uint secondaryRayFlags = gl_RayFlagsSkipClosestHitShaderEXT;
+		traceRayEXT(topLevelAS, secondaryRayFlags, 0xFF, 1, 3, 1, originPosition, tmin, lsr.direction, tmax - tmin, 1);		
 		
-		lsr.shadowed = shadowed;
+		/* If the anyhit shader was never executed then make sure throughput is zero */
+		if (rayPayloadSecondary.shadowed) 
+		{
+			rayPayloadSecondary.throughput = 0.0;
+		}
+
+		lsr.radiance *= rayPayloadSecondary.throughput;
 	}
 	
 	return lsr;

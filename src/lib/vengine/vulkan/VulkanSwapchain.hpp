@@ -4,31 +4,33 @@
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/VulkanContext.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 /* Initializes a swapchain and a depth buffer */
-class VulkanSwapchain {
+class VulkanSwapchain
+{
 public:
-    VulkanSwapchain(VulkanContext& vkctx);
+    VulkanSwapchain(VulkanContext &vkctx);
     ~VulkanSwapchain();
 
-    bool initResources(uint32_t width, uint32_t height);
+    VkResult initResources(uint32_t width, uint32_t height);
     void releaseResources();
     bool isInitialized() const { return m_initialized; };
 
     VkSwapchainKHR swapchain() { return m_swapchain; }
 
     uint32_t imageCount() { return static_cast<uint32_t>(m_swapchainImageViews.size()); }
-    VkExtent2D& extent() { return m_extent; }
-    VkFormat& format() { return m_format; }
-    VkFormat& depthFormat() { return m_depthFormat; }
+    VkExtent2D &extent() { return m_extent; }
+    VkFormat &format() { return m_format; }
+    VkFormat &depthFormat() { return m_depthFormat; }
 
-    VkImageView& swapchainImageView(uint32_t i) { return m_swapchainImageViews[i]; }
-    VkImageView& msaaImageView() { return m_msaaImageView; }
-    VkImageView& depthStencilImageView() { return m_depthImageView; }
+    VkImageView &swapchainImageView(uint32_t i) { return m_swapchainImageViews[i]; }
+    VkImageView &msaaImageView() { return m_msaaImageView; }
+    VkImageView &depthStencilImageView() { return m_depthImageView; }
 
 private:
-    VulkanContext& m_vkctx;
+    VulkanContext &m_vkctx;
 
     /* Swapchain data */
     bool m_initialized = false;
@@ -54,12 +56,12 @@ private:
     bool createImageViews();
     bool createDepthBuffer();
 
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, uint32_t width, uint32_t height);
     VkFormat findDepthFormat();
 };
 
-}
+}  // namespace vengine
 
 #endif

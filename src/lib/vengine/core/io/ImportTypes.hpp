@@ -67,6 +67,9 @@ struct ImportedMaterial {
 
     std::optional<ImportedTexture> normalTexture = std::nullopt;
 
+    std::optional<ImportedTexture> alphaTexture = std::nullopt;
+    bool transparent = false;
+
     glm::vec2 scale = {1, 1};
 
     ~ImportedMaterial()

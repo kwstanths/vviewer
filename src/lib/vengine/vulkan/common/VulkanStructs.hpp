@@ -45,7 +45,7 @@ struct ModelData {
 };
 
 struct MaterialData {
-    glm::vec4 albedo;              /* RGB: albedo, A: unused */
+    glm::vec4 albedo;              /* RGB: albedo, A: alpha */
     glm::vec4 metallicRoughnessAO; /* R: metallic, G: roughness, B: AO, A: unused */
     glm::vec4 emissive;            /* RGB: emissive color, A: emissive intensity */
     glm::uvec4 gTexturesIndices1;  /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture
@@ -86,7 +86,7 @@ struct PushBlockForward3DUI {
 };
 
 /* Objects description data for meshes in the scene */
-struct ObjectDescriptionRT {
+struct ObjectDescriptionPT {
     /* A pointer to a buffer holding mesh vertex data */
     uint64_t vertexAddress;
     /* A pointer to a buffer holding mesh index data*/
@@ -97,7 +97,7 @@ struct ObjectDescriptionRT {
     uint32_t numTriangles;
 };
 
-struct LightRT {
+struct LightPT {
     glm::vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
     glm::vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */
     glm::vec4 color;     /* RGB = color or column 3 of transform matrix, A = ... */

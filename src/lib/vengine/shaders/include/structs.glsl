@@ -56,7 +56,7 @@ struct LightComponent {
 };
 
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-/* Struct for the object description of a mesh in the scene for RT */
+/* Struct for the object description of a mesh in the scene for PT */
 struct ObjDesc
 {
     /* Pointers to GPU buffers */
@@ -66,21 +66,33 @@ struct ObjDesc
     uint numTriangles;
 };
 
-/* Struct with ray payload for RT */
-struct RayPayload {
+/* Struct with ray payload for the primary ray in PT */
+struct RayPayloadPrimary {
     vec3 radiance;          /* Ray radiance */
     vec3 beta;              /* Current throughput */
     uint depth;             /* Current depth */
 
     vec3 origin;            /* Ray origin */
     vec3 direction;         /* Ray direction */
-    float bsdfPdf;          /* The pdf of sampling that direction, valid only if depth > 0 */
     bool stop;              /* If true stop tracing */
 
     uint rngState;          /* RNG state */
 };
 
-/* Struct to represent lights in RT */
+/* Struct with ray payload for the secondary ray in PT */
+struct RayPayloadSecondary {
+    bool shadowed;
+    float throughput;
+};
+
+/* Struct with ray payload for the NEE ray in PT */
+struct RayPayloadNEE {
+    vec3 emissive;
+    float throughput;
+    float pdf;    
+};
+
+/* Struct to represent lights in PT */
 struct Light {
     vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
     vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */
@@ -88,11 +100,10 @@ struct Light {
     vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
 
-/* Struct for RT light sampling */
+/* Struct for PT light sampling */
 struct LightSamplingRecord {
 	vec3 direction;
 	vec3 radiance;
 	float pdf;
-	bool shadowed;
 	bool isDeltaLight;
 };

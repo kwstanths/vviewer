@@ -5,6 +5,8 @@
 #include <memory>
 #include <stdexcept>
 
+#include "Console.hpp"
+
 #include "Asset.hpp"
 #include "Texture.hpp"
 #include "Image.hpp"
@@ -45,14 +47,17 @@ public:
         if (itr != m_assets.end()) {
             return static_cast<CastType *>(itr->second);
         }
-        throw std::runtime_error("Find: Asset not found: " + id);
+
+        debug_tools::ConsoleWarning("Find: Asset not found: " + id);
+        return nullptr;
     }
 
     Iterator remove(const std::string &id)
     {
         auto itr = m_assets.find(id);
         if (itr == m_assets.end()) {
-            throw std::runtime_error("Erase: Asset not found: " + id);
+            debug_tools::ConsoleWarning("Erase: Asset not found: " + id);
+            return m_assets.end();
         }
 
         return m_assets.erase(itr);

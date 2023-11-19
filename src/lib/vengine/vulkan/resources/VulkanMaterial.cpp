@@ -43,16 +43,6 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     vTiling() = 1;
 
     auto &textures = AssetManager::getInstance().texturesMap();
-    if (!textures.isPresent("white")) {
-        throw std::runtime_error("White texture not present");
-    }
-    if (!textures.isPresent("whiteColor")) {
-        throw std::runtime_error("White color texture not present");
-    }
-    if (!textures.isPresent("normalmapdefault")) {
-        throw std::runtime_error("Normal default texture not present");
-    }
-
     auto white = textures.get("white");
     auto whiteColor = textures.get("whiteColor");
     auto normalmap = textures.get("normalmapdefault");
@@ -65,9 +55,6 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
     setNormalTexture(normalmap);
     setAlphaTexture(white);
 
-    if (!textures.isPresent("PBR_BRDF_LUT")) {
-        throw std::runtime_error("PBR_BRDF_LUT texture not present");
-    }
     auto BRDFLUT = static_cast<VulkanTexture *>(textures.get("PBR_BRDF_LUT"));
     m_block->gTexturesIndices2.b = static_cast<uint32_t>(BRDFLUT->getBindlessResourceIndex());
 }
@@ -242,15 +229,6 @@ VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
     vTiling() = 1.F;
 
     auto &textures = AssetManager::getInstance().texturesMap();
-    if (!textures.isPresent("white")) {
-        throw std::runtime_error("White texture not present");
-    }
-    if (!textures.isPresent("whiteColor")) {
-        throw std::runtime_error("White color texture not present");
-    }
-    if (!textures.isPresent("normalmapdefault")) {
-        throw std::runtime_error("Normal default texture not present");
-    }
 
     auto white = textures.get("white");
     auto whiteColor = textures.get("whiteColor");

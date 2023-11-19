@@ -64,9 +64,15 @@ VkResult VulkanRandom::createDescriptorSetLayout()
 {
     /* Create bindings for PMJ sequences and blue noise data */
     VkDescriptorSetLayoutBinding pmjlLayoutBinding = vkinit::descriptorSetLayoutBinding(
-        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, 1);
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
+        0,
+        1);
     VkDescriptorSetLayoutBinding blueNoiselLayoutBinding = vkinit::descriptorSetLayoutBinding(
-        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1, 1);
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
+        1,
+        1);
 
     std::array<VkDescriptorSetLayoutBinding, 2> setBindings = {pmjlLayoutBinding, blueNoiselLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo =

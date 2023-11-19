@@ -18,9 +18,13 @@ $compiler -V genBRDFLUT.frag.glsl -o SPIRV/genBRDFLUT.frag.spv
 
 $compiler -V post/highlight.frag.glsl -o SPIRV/highlight.frag.spv
 
-$compiler -V --target-env spirv1.4 rt/raygen.rgen.glsl -o SPIRV/rt/raygen.rgen.spv
-$compiler -V --target-env spirv1.4 rt/raychitLambert.rchit.glsl -o SPIRV/rt/raychitLambert.rchit.spv
-$compiler -V --target-env spirv1.4 rt/raychitPBRStandard.rchit.glsl -o SPIRV/rt/raychitPBRStandard.rchit.spv
-$compiler -V --target-env spirv1.4 rt/raymiss.rmiss.glsl -o SPIRV/rt/raymiss.rmiss.spv
-$compiler -V --target-env spirv1.4 rt/shadow.rmiss.glsl -o SPIRV/rt/shadow.rmiss.spv
+$compiler -V --target-env spirv1.4 pt/raygen.rgen.glsl -o SPIRV/pt/raygen.rgen.spv
+$compiler -V --target-env spirv1.4 pt/raychitLambert.rchit.glsl -o SPIRV/pt/raychitLambert.rchit.spv
+$compiler -V --target-env spirv1.4 pt/raychitPBRStandard.rchit.glsl -o SPIRV/pt/raychitPBRStandard.rchit.spv
+$compiler -V --target-env spirv1.4 pt/rayahitPrimary.rahit.glsl -o SPIRV/pt/rayahitPrimary.rahit.spv
+$compiler -V --target-env spirv1.4 pt/rayahitSecondary.rahit.glsl -o SPIRV/pt/rayahitSecondary.rahit.spv
+$compiler -V --target-env spirv1.4 pt/rayahitNEE.rahit.glsl -o SPIRV/pt/rayahitNEE.rahit.spv
+$compiler -V --target-env spirv1.4 pt/raymissPrimary.rmiss.glsl -o SPIRV/pt/raymissPrimary.rmiss.spv
+$compiler -V --target-env spirv1.4 pt/raymissSecondary.rmiss.glsl -o SPIRV/pt/raymissSecondary.rmiss.spv
+$compiler -V --target-env spirv1.4 pt/raymissNEE.rmiss.glsl -o SPIRV/pt/raymissNEE.rmiss.spv
 

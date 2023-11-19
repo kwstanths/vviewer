@@ -1,5 +1,5 @@
-#ifndef __VulkanRendererRayTracing_hpp__
-#define __VulkanRendererRayTracing_hpp__
+#ifndef __VulkanRendererPathTracing_hpp__
+#define __VulkanRendererPathTracing_hpp__
 
 #include <cstdint>
 #include <memory>
@@ -24,19 +24,19 @@
 namespace vengine
 {
 
-class VulkanRendererRayTracing : public RendererRayTracing
+class VulkanRendererPathTracing : public RendererPathTracing
 {
     friend class VulkanRenderer;
 
 public:
-    VulkanRendererRayTracing(VulkanContext &vkctx, VulkanMaterials &materials, VulkanTextures &textures, VulkanRandom &random);
+    VulkanRendererPathTracing(VulkanContext &vkctx, VulkanMaterials &materials, VulkanTextures &textures, VulkanRandom &random);
 
     VkResult initResources(VkFormat colorFormat, VkDescriptorSetLayout skyboxDescriptorLayout);
 
     VkResult releaseRenderResources();
     VkResult releaseResources();
 
-    bool isRTEnabled() const override;
+    bool isRayTracingEnabled() const override;
     void render(const Scene &scene) override;
     float renderProgress() override;
 
@@ -60,7 +60,7 @@ private:
         PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
     } m_devF;
 
-    struct RayTracingData {
+    struct PathTracingData {
         glm::uvec4 samplesBatchesDepthIndex =
             glm::vec4(256, 16, 5, 0); /* R = total samples, G = Total number of batches, B = max depth per ray, A = batch index */
         glm::uvec4 lights;            /* R = total number of lights */
@@ -76,14 +76,14 @@ private:
     struct BLAS {
         AccelerationStructure as;
         glm::mat4 transform;
-        uint32_t sbtOffset; /* Index in the sbt table for the hit shader to be used for this blas */
-        BLAS(const AccelerationStructure &_as, const glm::mat4 &_transform, uint32_t _sbtOffset)
+        uint32_t instanceOffset; /* SBT Ioffset */
+        BLAS(const AccelerationStructure &_as, const glm::mat4 &_transform, uint32_t _instanceOffset)
             : as(_as)
             , transform(_transform)
-            , sbtOffset(_sbtOffset){};
+            , instanceOffset(_instanceOffset){};
     };
 
-    struct RayTracingScratchBuffer {
+    struct ScratchBuffer {
         uint64_t deviceAddress = 0;
         VkBuffer handle = VK_NULL_HANDLE;
         VkDeviceMemory memory = VK_NULL_HANDLE;
@@ -113,15 +113,15 @@ private:
     /* Image result data */
     VkFormat m_format;
     StorageImage m_renderResult, m_tempImage;
-    RayTracingData m_rayTracingData;
+    PathTracingData m_pathTracingData;
 
     bool m_renderInProgress = false;
     float m_renderProgress = 0.0F;
 
-    std::vector<ObjectDescriptionRT> m_sceneObjectsDescription;
+    std::vector<ObjectDescriptionPT> m_sceneObjectsDescription;
 
     /* Descriptor sets */
-    VulkanBuffer m_uniformBufferScene;             /* Holds scene data, ray tracing data and light data */
+    VulkanBuffer m_uniformBufferScene;             /* Holds scene data, path tracing data and light data */
     VulkanBuffer m_storageBufferObjectDescription; /* Holds references to scene objects */
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSet m_descriptorSet;
@@ -159,7 +159,7 @@ private:
      */
     AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh &mesh,
                                                                  const glm::mat4 &transformationMatrix,
-                                                                 const uint32_t materialIndex);
+                                                                 const Material *material);
     AccelerationStructure createTopLevelAccelerationStructure();
     void destroyAccellerationStructures();
 
@@ -169,8 +169,8 @@ private:
 
     /* Buffers */
     VkResult createBuffers();
-    VkResult updateBuffers(const SceneData &sceneData, const RayTracingData &rtData, const std::vector<LightRT> &lights);
-    VkResult updateBuffersRayTracingData(const RayTracingData &rtData);
+    VkResult updateBuffers(const SceneData &sceneData, const PathTracingData &ptData, const std::vector<LightPT> &lights);
+    VkResult updateBuffersPathTracingData(const PathTracingData &ptData);
 
     /* Descriptor sets */
     VkResult createDescriptorSets();
@@ -186,16 +186,16 @@ private:
     /**
         Create a scratch buffer to hold temporary data for a ray tracing acceleration structure
     */
-    VkResult createScratchBuffer(VkDeviceSize size, RayTracingScratchBuffer &rayTracingScratchBuffer);
-    void deleteScratchBuffer(RayTracingScratchBuffer &scratchBuffer);
+    VkResult createScratchBuffer(VkDeviceSize size, ScratchBuffer &scratchBuffer);
+    void deleteScratchBuffer(ScratchBuffer &scratchBuffer);
 
     /* Scene lights functions */
     bool isMeshLight(const SceneObject *so);
-    void prepareSceneLights(const Scene &scene, std::vector<LightRT> &sceneLights);
+    void prepareSceneLights(const Scene &scene, std::vector<LightPT> &sceneLights);
     void prepareSceneObjectLight(const SceneObject *so,
                                  uint32_t objectDescriptionIndex,
                                  const glm::mat4 &worldTransform,
-                                 std::vector<LightRT> &sceneLights);
+                                 std::vector<LightPT> &sceneLights);
 };
 
 }  // namespace vengine

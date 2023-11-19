@@ -26,7 +26,8 @@ VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice,
         }
     }
 
-    throw std::runtime_error("VulkanSwapchain::findSupportedFormat(): Failed to find supported format");
+    debug_tools::ConsoleCritical("VulkanSwapchain::findSupportedFormat(): Failed to find supported format");
+    return VK_FORMAT_UNDEFINED;
 }
 
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
@@ -114,7 +115,8 @@ VkResult createBuffer(VkPhysicalDevice physicalDevice,
                       VulkanBuffer &outBuffer)
 {
     if (bufferSize <= 0) {
-        throw std::runtime_error("createBuffer(): Trying to allocate a buffer with zero size");
+        debug_tools::ConsoleWarning("createBuffer(): Trying to allocate a buffer with zero size");
+        return VK_ERROR_UNKNOWN;
     }
 
     /* Create buffer */

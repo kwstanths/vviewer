@@ -52,7 +52,7 @@ uint permutationElement(uint i, uint l, uint p) {
     return (i + p) % l;
 }
 
-float rand1D(inout RayPayload rayPayload)
+float rand1D(inout RayPayloadPrimary rayPayload)
 {
     uint64_t hash = mixBits((uint64_t(rayPayload.pixel.x) << 48) ^ (uint64_t(rayPayload.pixel.y) << 32) ^
                                 (uint64_t(rayPayload.dimension) << 16) ^ PMJ_SEED);
@@ -65,7 +65,7 @@ float rand1D(inout RayPayload rayPayload)
     return min((index + delta) / rayPayload.samplesPerPixel, ONEMINUSEPSILON);
 }
 
-vec2 rand2D(inout RayPayload rayPayload)
+vec2 rand2D(inout RayPayloadPrimary rayPayload)
 {
     uint index = rayPayload.sampleIndex;
     uint pmjInstance = rayPayload.dimension / 2;

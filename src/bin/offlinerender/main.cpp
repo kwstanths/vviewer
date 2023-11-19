@@ -36,21 +36,21 @@ void createSceneBallOnPlance(Scene &scene)
 
 void performVideoRender(VulkanEngine &engine, Scene &scene)
 {
-    engine.renderer().rendererRayTracing().renderInfo().samples = 256;
-    engine.renderer().rendererRayTracing().renderInfo().batchSize = 256;
-    engine.renderer().rendererRayTracing().renderInfo().fileType = FileType::PNG;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 256;
+    engine.renderer().rendererPathTracing().renderInfo().batchSize = 256;
+    engine.renderer().rendererPathTracing().renderInfo().fileType = FileType::PNG;
 
     uint32_t i = 0;
     float height = 1.0F;
     float radius = 10.0F;
     float angleStep = glm::radians(45.0F);
     for (float a = 0; a < 2 * M_PI; a += angleStep) {
-        engine.renderer().rendererRayTracing().renderInfo().filename = std::to_string(i++);
+        engine.renderer().rendererPathTracing().renderInfo().filename = std::to_string(i++);
 
         scene.camera()->transform().position() = glm::vec3(radius * sin(a), height, radius * cos(a));
         scene.camera()->transform().setRotationEuler(0, a, 0);
 
-        engine.renderer().rendererRayTracing().render(scene);
+        engine.renderer().rendererPathTracing().render(scene);
     }
 }
 

@@ -20,7 +20,7 @@ class DialogSceneRender : public QDialog
 {
     Q_OBJECT
 public:
-    DialogSceneRender(QWidget *parent, const RendererRayTracing::RenderInfo &renderInfo);
+    DialogSceneRender(QWidget *parent, const RendererPathTracing::RenderInfo &renderInfo);
 
     std::string getRenderOutputFileName() const;
     FileType getRenderOutputFileType() const;

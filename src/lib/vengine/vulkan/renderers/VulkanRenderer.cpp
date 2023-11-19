@@ -44,7 +44,7 @@ VulkanRenderer::VulkanRenderer(VulkanContext &context,
     , m_materials(materials)
     , m_scene(scene)
     , m_random(context)
-    , m_rendererRayTracing(context, materials, textures, m_random)
+    , m_rendererPathTracing(context, materials, textures, m_random)
 {
 }
 
@@ -98,7 +98,7 @@ VkResult VulkanRenderer::initResources()
 
     try {
         VULKAN_CHECK_CRITICAL(
-            m_rendererRayTracing.initResources(VK_FORMAT_R32G32B32A32_SFLOAT, m_rendererSkybox.descriptorSetLayout()));
+            m_rendererPathTracing.initResources(VK_FORMAT_R32G32B32A32_SFLOAT, m_rendererSkybox.descriptorSetLayout()));
     } catch (std::exception &e) {
         debug_tools::ConsoleWarning("VulkanRenderer::initResources():Failed to initialize GPU ray tracing renderer: " +
                                     std::string(e.what()));
@@ -191,8 +191,8 @@ VkResult VulkanRenderer::releaseResources()
     m_rendererLambert.releaseResources();
     m_rendererPost.releaseResources();
     m_renderer3DUI.releaseResources();
-    if (m_rendererRayTracing.isRTEnabled())
-        m_rendererRayTracing.releaseResources();
+    if (m_rendererPathTracing.isRayTracingEnabled())
+        m_rendererPathTracing.releaseResources();
 
     /* Destroy imported models */
     {
@@ -279,7 +279,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                         opaqueLambertObjects.push_back(itr);
                         break;
                     default:
-                        throw std::runtime_error("VulkanRenderer::buildFrame(): Unexpected material");
+                        debug_tools::ConsoleWarning("VulkanRenderer::buildFrame(): Unexpected material");
                 }
             }
         }
@@ -444,9 +444,9 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
     return VK_SUCCESS;
 }
 
-RendererRayTracing &VulkanRenderer::rendererRayTracing()
+RendererPathTracing &VulkanRenderer::rendererPathTracing()
 {
-    return m_rendererRayTracing;
+    return m_rendererPathTracing;
 }
 
 glm::vec3 VulkanRenderer::selectObject(float x, float y)

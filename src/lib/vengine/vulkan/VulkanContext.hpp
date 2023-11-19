@@ -55,8 +55,9 @@ public:
     VulkanContext(const std::string &applicationName);
     ~VulkanContext();
 
-    bool init();
-    bool init(VkSurfaceKHR surface);
+    VkResult init();
+    VkResult init(VkSurfaceKHR surface);
+
     void destroy();
 
     bool initialized() const { return m_initialized; }
@@ -103,16 +104,16 @@ private:
     VkCommandPool m_renderCommandPool;
 
     VkResult createVulkanInstance(const std::string &applicationName);
-    void createDebugCallback();
+    VkResult createDebugCallback();
     void destroyDebugCallback();
 
-    bool pickPhysicalDevice();
+    VkResult pickPhysicalDevice();
     bool isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties physicalDeviceProperties);
     VkSampleCountFlagBits getMaxUsableSampleCount(const VkPhysicalDeviceProperties &deviceProperties);
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    VkResult checkDeviceExtensionSupport(VkPhysicalDevice device);
 
-    bool createLogicalDevice();
-    void createCommandPool();
+    VkResult createLogicalDevice();
+    VkResult createCommandPool();
 };
 
 }  // namespace vengine

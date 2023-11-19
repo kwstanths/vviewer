@@ -254,6 +254,11 @@ void VulkanEngine::initDefaultData()
         defaultMaterial->roughness() = 0.5;
         defaultMaterial->ao() = 1.0f;
         defaultMaterial->emissive() = glm::vec4(0.0, 0.0, 0.0, 1.0);
+
+        auto defaultEmissive = static_cast<VulkanMaterialPBRStandard *>(
+            m_materials.createMaterial("defaultEmissive", MaterialType::MATERIAL_PBR_STANDARD));
+        defaultEmissive->albedo() = glm::vec4(1, 1, 1, 1);
+        defaultEmissive->emissive() = glm::vec4(1, 1, 1, 1.0);
     }
 
     /* Create some default lights */

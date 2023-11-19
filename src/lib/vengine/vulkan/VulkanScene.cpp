@@ -167,7 +167,8 @@ Light *VulkanScene::createLight(const std::string &name, LightType type, glm::ve
             break;
         }
         default: {
-            throw std::runtime_error("VulkanScene::createLight(): Unknown type of light");
+            debug_tools::ConsoleWarning("VulkanScene::createLight(): Unknown type of light");
+            return nullptr;
         }
     }
 }

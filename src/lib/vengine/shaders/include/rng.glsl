@@ -12,11 +12,11 @@ uint xorshift(inout uint rngState) {
 	return rngState;
 }
 
-float rand1D(inout RayPayload rayPayload) {
+float rand1D(inout RayPayloadPrimary rayPayload) {
 	return uintToFloat(xorshift(rayPayload.rngState));
 }
 
-vec2 rand2D(inout RayPayload rayPayload) {
+vec2 rand2D(inout RayPayloadPrimary rayPayload) {
 	return vec2(rand1D(rayPayload), rand1D(rayPayload)); 
 }
 

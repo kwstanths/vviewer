@@ -29,6 +29,7 @@ VulkanTexture::VulkanTexture(Image<stbi_uc> *image,
     }
 
     m_format = autoChooseFormat(colorSpace(), colorDepth(), channels());
+    assert(m_format != VK_FORMAT_UNDEFINED);
 
     /* Size of image in bytes  */
     VkDeviceSize imageSize = imageWidth * imageHeight * image->channels();
@@ -123,6 +124,7 @@ VulkanTexture::VulkanTexture(Image<float> *image,
     }
 
     m_format = autoChooseFormat(colorSpace(), colorDepth(), channels());
+    assert(m_format != VK_FORMAT_UNDEFINED);
 
     /* Size of image in bytes  */
     VkDeviceSize imageSize = imageWidth * imageHeight * image->channels() * sizeof(float);

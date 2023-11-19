@@ -8,7 +8,7 @@
 namespace vengine
 {
 
-class RendererRayTracing
+class RendererPathTracing
 {
 public:
     struct RenderInfo {
@@ -26,7 +26,7 @@ public:
     RenderInfo &renderInfo() { return m_renderInfo; }
     const RenderInfo &renderInfo() const { return m_renderInfo; }
 
-    virtual bool isRTEnabled() const = 0;
+    virtual bool isRayTracingEnabled() const = 0;
     virtual void render(const Scene &scene) = 0;
     virtual float renderProgress() = 0;
 
@@ -42,7 +42,7 @@ public:
     void setSelectedObject(SceneObject *sceneObject) { m_selectedObject = sceneObject; }
     SceneObject *getSelectedObject() const { return m_selectedObject; }
 
-    virtual RendererRayTracing &rendererRayTracing() = 0;
+    virtual RendererPathTracing &rendererPathTracing() = 0;
 
 protected:
     SceneObject *m_selectedObject = nullptr;

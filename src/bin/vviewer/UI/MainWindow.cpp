@@ -796,11 +796,38 @@ void MainWindow::onAddDirectionalLightSlot()
     m_engine->start();
 }
 
+void MainWindow::onAddAreaLightSlot()
+{
+    /* Get currently selected tree item */
+    QTreeWidgetItem *selectedItem = m_sceneGraphWidget->currentItem();
+
+    m_engine->stop();
+    m_engine->waitIdle();
+
+    /* Create new empty item under the selected item */
+    auto newObject = createEmptySceneObject("Area light", Transform(), selectedItem);
+
+    auto &instanceModels = AssetManager::getInstance().modelsMap();
+    auto &instanceMaterials = AssetManager::getInstance().materialsMap();
+
+    auto matDefE = instanceMaterials.get("defaultEmissive");
+
+    if (!instanceModels.isPresent("assets/models/plane.obj")) {
+        m_engine->importModel("assets/models/plane.obj", false);
+    }
+    auto plane = instanceModels.get("assets/models/plane.obj");
+
+    newObject.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
+    newObject.second->add<ComponentMaterial>().material = matDefE;
+
+    m_engine->start();
+}
+
 void MainWindow::onRenderSceneSlot()
 {
-    auto &RTrenderer = m_engine->renderer().rendererRayTracing();
+    auto &RTrenderer = m_engine->renderer().rendererPathTracing();
 
-    if (!RTrenderer.isRTEnabled()) {
+    if (!RTrenderer.isRayTracingEnabled()) {
         int ret = QMessageBox::warning(
             this,
             tr("Error"),
@@ -828,19 +855,19 @@ void MainWindow::onRenderSceneSlot()
     delete dialog;
 
     struct RTRenderTask : public Task {
-        RendererRayTracing &renderer;
+        RendererPathTracing &renderer;
 
-        RTRenderTask(RendererRayTracing &r, Scene &s)
+        RTRenderTask(RendererPathTracing &r, Scene &s)
             : renderer(r)
         {
             function = Funct(renderer, s);
         };
 
         struct Funct {
-            RendererRayTracing &renderer;
+            RendererPathTracing &renderer;
             Scene &scene;
 
-            Funct(RendererRayTracing &r, Scene &s)
+            Funct(RendererPathTracing &r, Scene &s)
                 : renderer(r)
                 , scene(s){};
             bool operator()(float &)
@@ -974,21 +1001,24 @@ void MainWindow::onContextMenuSceneGraph(const QPoint &pos)
     QAction action5("Add directional light", this);
     connect(&action5, SIGNAL(triggered()), this, SLOT(onAddDirectionalLightSlot()));
     lightMenu.addAction(&action5);
+    QAction action6("Add area light", this);
+    connect(&action6, SIGNAL(triggered()), this, SLOT(onAddAreaLightSlot()));
+    lightMenu.addAction(&action6);
 
     contextMenu.addMenu(&lightMenu);
 
     /* Check if it's a valid index */
     QModelIndex index = m_sceneGraphWidget->indexAt(pos);
-    QAction *action6 = nullptr;
+    QAction *action7 = nullptr;
     if (index.isValid()) {
-        action6 = new QAction("Duplicate", this);
-        connect(action6, SIGNAL(triggered()), this, SLOT(onDuplicateSceneObjectSlot()));
-        contextMenu.addAction(action6);
+        action7 = new QAction("Duplicate", this);
+        connect(action7, SIGNAL(triggered()), this, SLOT(onDuplicateSceneObjectSlot()));
+        contextMenu.addAction(action7);
     }
 
     contextMenu.exec(m_sceneGraphWidget->mapToGlobal(pos));
-    if (action6 != nullptr)
-        delete action6;
+    if (action7 != nullptr)
+        delete action7;
 }
 
 void MainWindow::onStartUpInitialization()
@@ -1003,11 +1033,14 @@ void MainWindow::onStartUpInitialization()
     /* Create a plane scene with the assetName on top */
     try {
         auto matDef = instanceMaterials.get("defaultMaterial");
+        auto matDefE = instanceMaterials.get("defaultEmissive");
         auto plane = instanceModels.get("assets/models/plane.obj");
+        auto cube = instanceModels.get("assets/models/cube.obj");
+        auto sphere = instanceModels.get("assets/models/uvsphere.obj");
 
-        auto o2 = createEmptySceneObject("plane", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
-        o2.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
-        o2.second->add<ComponentMaterial>().material = matDef;
+        auto o1 = createEmptySceneObject("plane1", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
+        o1.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
+        o1.second->add<ComponentMaterial>().material = matDef;
 
         addSceneObjectModel(NULL, assetName, std::nullopt);
 

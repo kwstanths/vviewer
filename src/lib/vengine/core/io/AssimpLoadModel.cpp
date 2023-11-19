@@ -199,8 +199,7 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
                 unsigned char *encodedData = reinterpret_cast<unsigned char *>(texture->pcData);
 
                 unsigned char *textureData =
-                    stbi_load_from_memory(encodedData, texture->mWidth, &width, &height, nullptr, STBI_rgb_alpha);
-                channels = 4;
+                    stbi_load_from_memory(encodedData, texture->mWidth, &width, &height, &channels, STBI_rgb_alpha);
                 if (textureData == nullptr) {
                     debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + std::string(texturePath.C_Str()) +
                                                 " from memory");
@@ -287,9 +286,9 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
         importedMaterial.type = ImportedMaterialType::PBR_STANDARD;
 
         {
-            aiColor3D baseColor;
+            aiColor4D baseColor;
             mat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColor);
-            importedMaterial.albedo = glm::vec4(baseColor.r, baseColor.g, baseColor.b, 1);
+            importedMaterial.albedo = glm::vec4(baseColor.r, baseColor.g, baseColor.b, baseColor.a);
 
             aiString baseColorTexture;
             mat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &baseColorTexture);
@@ -300,9 +299,17 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                 ImportedTexture baseColorTex;
                 baseColorTex.type = ImportedTextureType::EMBEDDED;
                 baseColorTex.name = importedMaterial.name + ":albedo";
-                baseColorTex.image =
-                    assimpCreateImage(baseColorTex.name, filename, texData, width, height, channels, ColorSpace::sRGB);
+                baseColorTex.image = assimpCreateImage(baseColorTex.name, filename, texData, width, height, 4, ColorSpace::sRGB);
                 importedMaterial.albedoTexture = baseColorTex;
+            }
+            if (texData != nullptr && channels == 4) {
+                ImportedTexture alphaTex;
+                alphaTex.type = ImportedTextureType::EMBEDDED;
+                alphaTex.name = importedMaterial.name + ":alpha";
+                alphaTex.image = assimpCreateImage(alphaTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 3);
+                importedMaterial.alphaTexture = alphaTex;
+
+                importedMaterial.transparent = true;
             }
         }
 
@@ -318,16 +325,14 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                 ImportedTexture roughnessTex;
                 roughnessTex.type = ImportedTextureType::EMBEDDED;
                 roughnessTex.name = importedMaterial.name + ":roughness";
-                roughnessTex.image =
-                    assimpCreateImage(roughnessTex.name, filename, texData, width, height, channels, ColorSpace::LINEAR, 1);
+                roughnessTex.image = assimpCreateImage(roughnessTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 1);
                 importedMaterial.roughnessTexture = roughnessTex;
             }
             if (texData != nullptr) {
                 ImportedTexture metallicTex;
                 metallicTex.type = ImportedTextureType::EMBEDDED;
                 metallicTex.name = importedMaterial.name + ":metallic";
-                metallicTex.image =
-                    assimpCreateImage(metallicTex.name, filename, texData, width, height, channels, ColorSpace::LINEAR, 2);
+                metallicTex.image = assimpCreateImage(metallicTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 2);
                 importedMaterial.metallicTexture = metallicTex;
             }
         }
@@ -341,7 +346,7 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                 ImportedTexture aoTex;
                 aoTex.type = ImportedTextureType::EMBEDDED;
                 aoTex.name = importedMaterial.name + ":ao";
-                aoTex.image = assimpCreateImage(aoTex.name, filename, texData, width, height, channels, ColorSpace::LINEAR);
+                aoTex.image = assimpCreateImage(aoTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 1);
                 importedMaterial.aoTexture = aoTex;
             }
         }
@@ -361,7 +366,7 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                 ImportedTexture emissiveTex;
                 emissiveTex.type = ImportedTextureType::EMBEDDED;
                 emissiveTex.name = importedMaterial.name + ":emissive";
-                emissiveTex.image = assimpCreateImage(emissiveTex.name, filename, texData, width, height, channels, ColorSpace::sRGB);
+                emissiveTex.image = assimpCreateImage(emissiveTex.name, filename, texData, width, height, 4, ColorSpace::sRGB);
                 importedMaterial.emissiveTexture = emissiveTex;
 
                 /* If it has en emissive texture, then make sure that the color and strength are not zero */
@@ -383,7 +388,7 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
                 ImportedTexture normalTex;
                 normalTex.type = ImportedTextureType::EMBEDDED;
                 normalTex.name = importedMaterial.name + ":normal";
-                normalTex.image = assimpCreateImage(normalTex.name, filename, texData, width, height, channels, ColorSpace::LINEAR);
+                normalTex.image = assimpCreateImage(normalTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR);
                 importedMaterial.normalTexture = normalTex;
             }
         }

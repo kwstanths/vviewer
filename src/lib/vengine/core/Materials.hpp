@@ -20,6 +20,9 @@ public:
     virtual Material *createZipMaterial(std::string name, std::string filename, Textures &textures) = 0;
     virtual std::vector<Material *> createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
                                                             Textures &textures) = 0;
+
+    template <typename MatType>
+    MatType *createMaterial(const std::string &name);
 };
 
 }  // namespace vengine
