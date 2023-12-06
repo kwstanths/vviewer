@@ -12,14 +12,8 @@ namespace vengine
 class Texture : public Asset
 {
 public:
-    Texture(std::string name,
-            std::string filepath,
-            ColorSpace colorSpace,
-            ColorDepth colorDepth,
-            size_t width,
-            size_t height,
-            size_t channels)
-        : Asset(name, filepath)
+    Texture(const AssetInfo &info, ColorSpace colorSpace, ColorDepth colorDepth, size_t width, size_t height, size_t channels)
+        : Asset(info)
         , m_colorSpace(colorSpace)
         , m_colorDepth(colorDepth)
         , m_width(width)

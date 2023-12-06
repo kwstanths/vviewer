@@ -5,13 +5,17 @@
 namespace vengine
 {
 
-Mesh::Mesh(std::string name)
-    : Asset(name)
+Mesh::Mesh(const AssetInfo &info)
+    : Asset(info)
 {
 }
 
-Mesh::Mesh(std::string name, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, bool hasNormals, bool hasUVs)
-    : Asset(name)
+Mesh::Mesh(const AssetInfo &info,
+           const std::vector<Vertex> &vertices,
+           const std::vector<uint32_t> &indices,
+           bool hasNormals,
+           bool hasUVs)
+    : Asset(info)
 {
     m_vertices = vertices;
     m_indices = indices;

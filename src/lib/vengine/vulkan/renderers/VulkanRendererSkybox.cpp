@@ -34,7 +34,7 @@ VkResult VulkanRendererSkybox::initResources(VkPhysicalDevice physicalDevice,
 
     VULKAN_CHECK_CRITICAL(createDescriptorSetsLayout());
 
-    m_cube = new VulkanCube(m_physicalDevice, m_device, queue, commandPool);
+    m_cube = new VulkanCube(AssetInfo("Cube", AssetSource::INTERNAL), m_physicalDevice, m_device, queue, commandPool);
 
     return VK_SUCCESS;
 }
@@ -515,7 +515,7 @@ VkResult VulkanRendererSkybox::createCubemap(VulkanTexture *inputImage, VulkanCu
 
     /* Added created cubemaps to the cubemap assets */
     auto &cubemaps = AssetManager::getInstance().cubemapsMap();
-    vulkanCubemap = new VulkanCubemap(inputImage->name(), cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+    vulkanCubemap = new VulkanCubemap(inputImage->info(), cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
     cubemaps.add(vulkanCubemap);
 
     return VK_SUCCESS;
@@ -716,7 +716,7 @@ VkResult VulkanRendererSkybox::createIrradianceMap(VulkanCubemap *inputMap, Vulk
         /* Write the descriptor set, bind with the input image. We should use a separate sampler here i guess, but that should be
          * ok anyway */
         VkDescriptorImageInfo imageInfo =
-            vkinit::descriptorImageInfo(inputMap->getSampler(), inputMap->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            vkinit::descriptorImageInfo(inputMap->sampler(), inputMap->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         VkWriteDescriptorSet writeDescriptorSet =
             vkinit::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &imageInfo);
         vkUpdateDescriptorSets(m_device, 1, &writeDescriptorSet, 0, nullptr);
@@ -857,7 +857,11 @@ VkResult VulkanRendererSkybox::createIrradianceMap(VulkanCubemap *inputMap, Vulk
     vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
 
     auto &cubemaps = AssetManager::getInstance().cubemapsMap();
-    vulkanCubemap = new VulkanCubemap(inputMap->name() + "_irradiance", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+    vulkanCubemap = new VulkanCubemap(AssetInfo(inputMap->name() + "_irradiance", inputMap->source()),
+                                      cubemapImage,
+                                      cubemapMemory,
+                                      cubemapImageView,
+                                      cubemapSampler);
     cubemaps.add(vulkanCubemap);
 
     return VK_SUCCESS;
@@ -1057,7 +1061,7 @@ VkResult VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap *inputMap,
         /* Write the descriptor set, bind with the input image. We should use a separate sampler here i guess, but that should be
          * ok anyway */
         VkDescriptorImageInfo imageInfo =
-            vkinit::descriptorImageInfo(inputMap->getSampler(), inputMap->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            vkinit::descriptorImageInfo(inputMap->sampler(), inputMap->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         VkWriteDescriptorSet writeDescriptorSet =
             vkinit::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &imageInfo);
         vkUpdateDescriptorSets(m_device, 1, &writeDescriptorSet, 0, nullptr);
@@ -1210,8 +1214,11 @@ VkResult VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap *inputMap,
     vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
 
     auto &cubemaps = AssetManager::getInstance().cubemapsMap();
-    vulkanCubemap =
-        new VulkanCubemap(inputMap->name() + "_prefiltered", cubemapImage, cubemapMemory, cubemapImageView, cubemapSampler);
+    vulkanCubemap = new VulkanCubemap(AssetInfo(inputMap->name() + "_prefiltered", inputMap->source()),
+                                      cubemapImage,
+                                      cubemapMemory,
+                                      cubemapImageView,
+                                      cubemapSampler);
     cubemaps.add(vulkanCubemap);
 
     return VK_SUCCESS;

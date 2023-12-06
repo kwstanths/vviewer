@@ -33,10 +33,9 @@ public:
     void updateBuffers(uint32_t index) const;
     VkBuffer getBuffer(uint32_t index);
 
-    Material *createMaterial(const std::string &name, const std::string &filepath, MaterialType type) override;
-    Material *createMaterial(const std::string &name, MaterialType type) override;
-    Material *createMaterialFromDisk(std::string name, std::string stackDirectory, Textures &textures) override;
-    Material *createZipMaterial(std::string name, std::string filename, Textures &textures) override;
+    Material *createMaterial(const AssetInfo &info, MaterialType type) override;
+    Material *createMaterialFromDisk(const AssetInfo &info, std::string stackDirectory, Textures &textures) override;
+    Material *createZipMaterial(const AssetInfo &info, Textures &textures) override;
     std::vector<Material *> createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
                                                     Textures &textures) override;
 

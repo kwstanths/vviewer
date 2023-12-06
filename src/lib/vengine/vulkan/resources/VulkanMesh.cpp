@@ -7,12 +7,12 @@
 namespace vengine
 {
 
-VulkanMesh::VulkanMesh(std::string name)
-    : Mesh(name)
+VulkanMesh::VulkanMesh(const AssetInfo &info)
+    : Mesh(info)
 {
 }
 
-VulkanMesh::VulkanMesh(std::string name,
+VulkanMesh::VulkanMesh(const AssetInfo &info,
                        const std::vector<Vertex> &vertices,
                        const std::vector<uint32_t> &indices,
                        bool hasNormals,
@@ -21,7 +21,7 @@ VulkanMesh::VulkanMesh(std::string name,
                        VkDevice device,
                        VkQueue transferQueue,
                        VkCommandPool transferCommandPool)
-    : Mesh(name, vertices, indices, hasNormals, hasUVs)
+    : Mesh(info, vertices, indices, hasNormals, hasUVs)
 {
     VkBufferUsageFlags rayTracingUsageFlags = VulkanRendererPathTracing::getBufferUsageFlags();
 
@@ -34,7 +34,7 @@ VulkanMesh::VulkanMesh(const Mesh &mesh,
                        VkDevice device,
                        VkQueue transferQueue,
                        VkCommandPool transferCommandPool)
-    : VulkanMesh(mesh.name(),
+    : VulkanMesh(mesh.info(),
                  mesh.vertices(),
                  mesh.indices(),
                  mesh.hasNormals(),
@@ -52,8 +52,12 @@ void VulkanMesh::destroy(VkDevice device)
     m_indexBuffer.destroy(device);
 }
 
-VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool)
-    : VulkanMesh("Cube")
+VulkanCube::VulkanCube(const AssetInfo &info,
+                       VkPhysicalDevice physicalDevice,
+                       VkDevice device,
+                       VkQueue transferQueue,
+                       VkCommandPool transferCommandPool)
+    : VulkanMesh(info)
 {
     m_vertices = {{{-1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
                   {{1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
@@ -66,7 +70,7 @@ VulkanCube::VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue
 
     m_indices = {0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 7, 6, 5, 5, 4, 7, 4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
 
-    Mesh mesh("cube", m_vertices, m_indices, false, false);
+    Mesh mesh(info, m_vertices, m_indices, false, false);
 
     createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_vertices, {}, m_vertexBuffer);
     createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_indices, {}, m_indexBuffer);

@@ -35,8 +35,7 @@ protected:
 class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanUBOBlock<MaterialData>
 {
 public:
-    VulkanMaterialPBRStandard(std::string name,
-                              std::string filepath,
+    VulkanMaterialPBRStandard(const AssetInfo &info,
                               VkDevice device,
                               VkDescriptorSetLayout descriptorLayout,
                               VulkanUBO<MaterialData> &materialsUBO);
@@ -76,8 +75,7 @@ private:
 class VulkanMaterialLambert : public MaterialLambert, public VulkanUBOBlock<MaterialData>
 {
 public:
-    VulkanMaterialLambert(std::string name,
-                          std::string filepath,
+    VulkanMaterialLambert(const AssetInfo &info,
                           VkDevice device,
                           VkDescriptorSetLayout descriptorLayout,
                           VulkanUBO<MaterialData> &materialsUBO);
@@ -111,7 +109,7 @@ private:
 class VulkanMaterialSkybox : public MaterialSkybox, public VulkanMaterialDescriptor
 {
 public:
-    VulkanMaterialSkybox(std::string name, EnvironmentMap *envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout);
+    VulkanMaterialSkybox(const AssetInfo &info, EnvironmentMap *envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout);
 
     virtual void setMap(EnvironmentMap *envMap) override;
 

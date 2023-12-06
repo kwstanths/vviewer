@@ -8,24 +8,25 @@
 namespace vengine
 {
 
-VulkanCubemap::VulkanCubemap(std::string directory,
+VulkanCubemap::VulkanCubemap(const AssetInfo &info,
+                             std::string directory,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
                              VkCommandPool commandPool)
-    : Cubemap(directory, directory) /* Use the directory as the name */
+    : Cubemap(info, directory) /* Use the directory as the name */
 {
     bool ret = createCubemap(physicalDevice, device, queue, commandPool);
     if (!ret)
         throw std::runtime_error("Failed to create a vulkan cubemap");
 }
 
-VulkanCubemap::VulkanCubemap(std::string name,
+VulkanCubemap::VulkanCubemap(const AssetInfo &info,
                              VkImage cubemapImage,
                              VkDeviceMemory cubemapMemory,
                              VkImageView cubemapImageView,
                              VkSampler cubemapSampler)
-    : Cubemap(name)
+    : Cubemap(info)
     , m_cubemapImage(cubemapImage)
     , m_cubemapMemory(cubemapMemory)
     , m_cubemapImageView(cubemapImageView)
@@ -33,22 +34,22 @@ VulkanCubemap::VulkanCubemap(std::string name,
 {
 }
 
-VkImage VulkanCubemap::getImage() const
+VkImage VulkanCubemap::image() const
 {
     return m_cubemapImage;
 }
 
-VkDeviceMemory VulkanCubemap::getDeviceMemory() const
+VkDeviceMemory VulkanCubemap::deviceMemory() const
 {
     return m_cubemapMemory;
 }
 
-VkImageView VulkanCubemap::getImageView() const
+VkImageView VulkanCubemap::imageView() const
 {
     return m_cubemapImageView;
 }
 
-VkSampler VulkanCubemap::getSampler() const
+VkSampler VulkanCubemap::sampler() const
 {
     return m_cubemapSampler;
 }

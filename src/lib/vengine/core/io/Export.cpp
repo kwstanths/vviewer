@@ -21,12 +21,9 @@ using namespace rapidjson;
 namespace vengine
 {
 
-std::string getFilename(std::string file)
-{
-    /* TODO optimise this */
-    auto fileSplit = split(file, "/");
-    return fileSplit.back();
-}
+static const std::string VENGINE_EXPORT_ASSETS_FOLDER = "assets/";
+static const std::string VENGINE_EXPORT_MODELS_FOLDER = VENGINE_EXPORT_ASSETS_FOLDER + "models/";
+static const std::string VENGINE_EXPORT_TEXTURES_FOLDER = VENGINE_EXPORT_ASSETS_FOLDER + "textures/";
 
 std::string copyFileToDirectoryAndGetFileName(std::string file, std::string directory, std::string newFileName = "")
 {
@@ -106,21 +103,18 @@ void addTransform(rapidjson::Document &d, rapidjson::Value &v, const Transform &
     v.AddMember("transform", transform, d.GetAllocator());
 }
 
-void addMeshComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject, std::string assetDirectoryPrefix)
+void addMeshComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject)
 {
     Value meshObject;
     meshObject.SetObject();
 
     /* Get the mesh component */
     const Mesh *mesh = sceneObject->get<ComponentMesh>().mesh;
+    const Model3D *model = mesh->m_model;
 
-    /* Copy the mesh model file to the mesh folder, and get a file path relative to the scene file */
-    std::string relativePathName = assetDirectoryPrefix + getFilename(mesh->m_model->name());
-
-    /* Set the path to the copied file */
-    Value path;
-    path.SetString(relativePathName.c_str(), d.GetAllocator());
-    meshObject.AddMember("path", path, d.GetAllocator());
+    Value name;
+    name.SetString(model->name().c_str(), d.GetAllocator());
+    meshObject.AddMember("modelName", name, d.GetAllocator());
 
     Value submesh;
     submesh.SetString(mesh->name().c_str(), d.GetAllocator());
@@ -159,17 +153,24 @@ void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneO
     v.AddMember("light", lightObject, d.GetAllocator());
 }
 
-void addModel(rapidjson::Document &d,
-              rapidjson::Value &v,
-              const Model3D *model,
-              std::string assetDirectoryPrefix,
-              std::string assetDirectory)
+void addModel(rapidjson::Document &d, rapidjson::Value &v, const Model3D *model, std::string storeDirectory)
 {
-    std::string relativePath = assetDirectoryPrefix + copyFileToDirectoryAndGetFileName(model->name(), assetDirectory);
+    if (model->internal())
+        return;
+
+    Value modelObject;
+    modelObject.SetObject();
 
     Value name;
-    name.SetString(relativePath.c_str(), d.GetAllocator());
-    v.PushBack(name, d.GetAllocator());
+    name.SetString(model->name().c_str(), d.GetAllocator());
+    modelObject.AddMember("name", name, d.GetAllocator());
+
+    std::string relativePath = VENGINE_EXPORT_MODELS_FOLDER + copyFileToDirectoryAndGetFileName(model->filepath(), storeDirectory);
+    Value filepath;
+    filepath.SetString(relativePath.c_str(), d.GetAllocator());
+    modelObject.AddMember("filepath", filepath, d.GetAllocator());
+
+    v.PushBack(modelObject, d.GetAllocator());
 }
 
 void addTexture(rapidjson::Document &d,
@@ -187,33 +188,32 @@ void addTexture(rapidjson::Document &d,
         type.SetString("EMBEDDED", d.GetAllocator());
         textureObject.AddMember("type", type, d.GetAllocator());
 
-        Value value;
-        value.SetString(tex->name().c_str(), d.GetAllocator());
-        textureObject.AddMember("value", value, d.GetAllocator());
+        Value name;
+        name.SetString(tex->name().c_str(), d.GetAllocator());
+        textureObject.AddMember("name", name, d.GetAllocator());
     } else {
         Value type;
-        type.SetString("DISK_FILE", d.GetAllocator());
+        type.SetString("STANDALONE", d.GetAllocator());
         textureObject.AddMember("type", type, d.GetAllocator());
 
-        auto extensionPointPosition = tex->name().find_last_of(".");
-        auto fileType = tex->name().substr(extensionPointPosition + 1);
+        Value name;
+        name.SetString(tex->name().c_str(), d.GetAllocator());
+        textureObject.AddMember("name", name, d.GetAllocator());
 
+        auto extensionPointPosition = tex->filepath().find_last_of(".");
+        auto fileType = tex->filepath().substr(extensionPointPosition + 1);
         std::string relativePath =
-            assetDirectoryPrefix + copyFileToDirectoryAndGetFileName(tex->name(), assetDirectory, finalName + "." + fileType);
+            assetDirectoryPrefix + copyFileToDirectoryAndGetFileName(tex->filepath(), assetDirectory, finalName + "." + fileType);
 
-        Value value;
-        value.SetString(relativePath.c_str(), d.GetAllocator());
-        textureObject.AddMember("name", value, d.GetAllocator());
+        Value filepath;
+        filepath.SetString(relativePath.c_str(), d.GetAllocator());
+        textureObject.AddMember("filepath", filepath, d.GetAllocator());
     }
 
     v.AddMember("texture", textureObject, d.GetAllocator());
 }
 
-void addMaterial(rapidjson::Document &d,
-                 rapidjson::Value &v,
-                 const Material *material,
-                 std::string assetDirectoryPrefix,
-                 std::string assetDirectory)
+void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *material, std::string storeDirectory)
 {
     Value mat;
     mat.SetObject();
@@ -223,23 +223,20 @@ void addMaterial(rapidjson::Document &d,
     mat.AddMember("name", name, d.GetAllocator());
 
     /* Create a directory for the textures of that material */
-    std::string materialDirectory = assetDirectory + material->name() + "/";
+    std::string materialDirectory = storeDirectory + material->name() + "/";
     auto createMatDirectory = [&materialDirectory]() { std::filesystem::create_directory(materialDirectory); };
     bool directoryCreated = false;
 
+    std::string materialFolderPrefix = VENGINE_EXPORT_TEXTURES_FOLDER;
     switch (material->type()) {
         case MaterialType::MATERIAL_LAMBERT: {
             auto m = dynamic_cast<const MaterialLambert *>(material);
-
-            Value filepath;
-            filepath.SetString(material->filepath().c_str(), d.GetAllocator());
-            mat.AddMember("filepath", filepath, d.GetAllocator());
 
             Value type;
             type.SetString("LAMBERT");
             mat.AddMember("type", type, d.GetAllocator());
 
-            assetDirectoryPrefix += material->name() + "/";
+            materialFolderPrefix += material->name() + "/";
 
             /* Set albedo */
             {
@@ -250,7 +247,7 @@ void addMaterial(rapidjson::Document &d,
                     if (!m->embedded() && !directoryCreated)
                         createMatDirectory();
 
-                    addTexture(d, albedoObject, m->getAlbedoTexture(), assetDirectoryPrefix, materialDirectory, "albedo");
+                    addTexture(d, albedoObject, m->getAlbedoTexture(), materialFolderPrefix, materialDirectory, "albedo");
                 }
 
                 addVec4(d, albedoObject, "value", m->albedo());
@@ -266,7 +263,7 @@ void addMaterial(rapidjson::Document &d,
                 if (m->getEmissiveTexture() != nullptr && m->getEmissiveTexture()->name() != "whiteColor") {
                     if (!m->embedded() && !directoryCreated)
                         createMatDirectory();
-                    addTexture(d, emissiveObject, m->getEmissiveTexture(), assetDirectoryPrefix, materialDirectory, "emissive");
+                    addTexture(d, emissiveObject, m->getEmissiveTexture(), materialFolderPrefix, materialDirectory, "emissive");
                 }
 
                 addVec4(d, emissiveObject, "value", m->emissive());
@@ -282,7 +279,7 @@ void addMaterial(rapidjson::Document &d,
                 if (!m->embedded() && !directoryCreated)
                     createMatDirectory();
 
-                addTexture(d, normalObject, m->getNormalTexture(), assetDirectoryPrefix, materialDirectory, "normal");
+                addTexture(d, normalObject, m->getNormalTexture(), materialFolderPrefix, materialDirectory, "normal");
 
                 mat.AddMember("normal", normalObject, d.GetAllocator());
             }
@@ -295,7 +292,7 @@ void addMaterial(rapidjson::Document &d,
                 if (!m->embedded() && !directoryCreated)
                     createMatDirectory();
 
-                addTexture(d, alphaObject, m->getAlphaTexture(), assetDirectoryPrefix, materialDirectory, "alpha");
+                addTexture(d, alphaObject, m->getAlphaTexture(), materialFolderPrefix, materialDirectory, "alpha");
 
                 mat.AddMember("alpha", alphaObject, d.GetAllocator());
             }
@@ -321,7 +318,8 @@ void addMaterial(rapidjson::Document &d,
                 type.SetString("STACK");
                 mat.AddMember("type", type, d.GetAllocator());
 
-                std::string relativePath = assetDirectoryPrefix + copyFileToDirectoryAndGetFileName(m->filepath(), assetDirectory);
+                std::string relativePath =
+                    VENGINE_EXPORT_TEXTURES_FOLDER + copyFileToDirectoryAndGetFileName(m->filepath(), storeDirectory);
 
                 Value path;
                 path.SetString(relativePath.c_str(), d.GetAllocator());
@@ -340,7 +338,7 @@ void addMaterial(rapidjson::Document &d,
             type.SetString("PBR_STANDARD");
             mat.AddMember("type", type, d.GetAllocator());
 
-            assetDirectoryPrefix += material->name() + "/";
+            materialFolderPrefix += material->name() + "/";
 
             /* Set albedo */
             {
@@ -351,7 +349,7 @@ void addMaterial(rapidjson::Document &d,
                     if (!m->embedded() && !directoryCreated)
                         createMatDirectory();
 
-                    addTexture(d, albedoObject, m->getAlbedoTexture(), assetDirectoryPrefix, materialDirectory, "albedo");
+                    addTexture(d, albedoObject, m->getAlbedoTexture(), materialFolderPrefix, materialDirectory, "albedo");
                 }
 
                 addVec4(d, albedoObject, "value", m->albedo());
@@ -367,7 +365,7 @@ void addMaterial(rapidjson::Document &d,
                 if (m->getRoughnessTexture() != nullptr && m->getRoughnessTexture()->name() != "white") {
                     if (!m->embedded() && !directoryCreated)
                         createMatDirectory();
-                    addTexture(d, roughnessObject, m->getRoughnessTexture(), assetDirectoryPrefix, materialDirectory, "roughness");
+                    addTexture(d, roughnessObject, m->getRoughnessTexture(), materialFolderPrefix, materialDirectory, "roughness");
                 }
 
                 Value roughnessValue;
@@ -385,7 +383,7 @@ void addMaterial(rapidjson::Document &d,
                 if (m->getMetallicTexture() != nullptr && m->getMetallicTexture()->name() != "white") {
                     if (!m->embedded() && !directoryCreated)
                         createMatDirectory();
-                    addTexture(d, metallicObject, m->getMetallicTexture(), assetDirectoryPrefix, materialDirectory, "metallic");
+                    addTexture(d, metallicObject, m->getMetallicTexture(), materialFolderPrefix, materialDirectory, "metallic");
                 }
 
                 Value metallicValue;
@@ -403,7 +401,7 @@ void addMaterial(rapidjson::Document &d,
                 if (m->getAOTexture() != nullptr && m->getAOTexture()->name() != "white") {
                     if (!m->embedded() && !directoryCreated)
                         createMatDirectory();
-                    addTexture(d, aoObject, m->getAOTexture(), assetDirectoryPrefix, materialDirectory, "ao");
+                    addTexture(d, aoObject, m->getAOTexture(), materialFolderPrefix, materialDirectory, "ao");
                 }
 
                 Value aoValue;
@@ -421,7 +419,7 @@ void addMaterial(rapidjson::Document &d,
                 if (m->getEmissiveTexture() != nullptr && m->getEmissiveTexture()->name() != "whiteColor") {
                     if (!m->embedded() && !directoryCreated)
                         createMatDirectory();
-                    addTexture(d, emissiveObject, m->getEmissiveTexture(), assetDirectoryPrefix, materialDirectory, "emissive");
+                    addTexture(d, emissiveObject, m->getEmissiveTexture(), materialFolderPrefix, materialDirectory, "emissive");
                 }
 
                 addVec4(d, emissiveObject, "value", m->emissive());
@@ -437,7 +435,7 @@ void addMaterial(rapidjson::Document &d,
                 if (!m->embedded() && !directoryCreated)
                     createMatDirectory();
 
-                addTexture(d, normalObject, m->getNormalTexture(), assetDirectoryPrefix, materialDirectory, "normal");
+                addTexture(d, normalObject, m->getNormalTexture(), materialFolderPrefix, materialDirectory, "normal");
 
                 mat.AddMember("normal", normalObject, d.GetAllocator());
             }
@@ -450,7 +448,7 @@ void addMaterial(rapidjson::Document &d,
                 if (!m->embedded() && !directoryCreated)
                     createMatDirectory();
 
-                addTexture(d, alphaObject, m->getAlphaTexture(), assetDirectoryPrefix, materialDirectory, "alpha");
+                addTexture(d, alphaObject, m->getAlphaTexture(), materialFolderPrefix, materialDirectory, "alpha");
 
                 mat.AddMember("alpha", alphaObject, d.GetAllocator());
             }
@@ -532,7 +530,7 @@ bool isMaterialEmissive(const Material *material)
     }
 }
 
-void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject, std::string assetDirectoryPrefix)
+void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject)
 {
     Value sceneObjectEntry;
     sceneObjectEntry.SetObject();
@@ -547,7 +545,7 @@ void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
 
     /* mesh */
     if (sceneObject->has<ComponentMesh>()) {
-        addMeshComponent(d, sceneObjectEntry, sceneObject, assetDirectoryPrefix);
+        addMeshComponent(d, sceneObjectEntry, sceneObject);
     }
 
     if (sceneObject->has<ComponentMaterial>()) {
@@ -565,7 +563,7 @@ void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
         children.SetArray();
 
         for (auto itr : sceneObject->children()) {
-            parseSceneObject(d, children, itr, assetDirectoryPrefix);
+            parseSceneObject(d, children, itr);
         }
 
         sceneObjectEntry.AddMember("children", children, d.GetAllocator());
@@ -581,10 +579,13 @@ void exportJson(const ExportRenderParams &renderParams,
 {
     /* Create folder with scene */
     std::string sceneFolderName = renderParams.name + "/"; /* Make sure the final back slash exists */
-    std::string assetsDirectoryPrefix = "assets/";
-    std::string assetsFolderName = sceneFolderName + assetsDirectoryPrefix;
+    std::string assetsFolderName = sceneFolderName + VENGINE_EXPORT_ASSETS_FOLDER;
+    std::string assetModelsFolderName = sceneFolderName + VENGINE_EXPORT_MODELS_FOLDER;
+    std::string assetTexturesFolderName = sceneFolderName + VENGINE_EXPORT_TEXTURES_FOLDER;
     std::filesystem::create_directory(sceneFolderName);
     std::filesystem::create_directory(assetsFolderName);
+    std::filesystem::create_directory(assetModelsFolderName);
+    std::filesystem::create_directory(assetTexturesFolderName);
 
     std::string fileName = renderParams.name + "/scene.json";
 
@@ -630,13 +631,13 @@ void exportJson(const ExportRenderParams &renderParams,
         }
     }
 
-    /* Parse the scene and keep here the resources referenced in the scene */
+    /* Scene */
     Value scene;
     {
         scene.SetArray();
 
         for (auto &itr : sceneGraph) {
-            parseSceneObject(d, scene, itr, assetsDirectoryPrefix);
+            parseSceneObject(d, scene, itr);
         }
     }
 
@@ -647,7 +648,7 @@ void exportJson(const ExportRenderParams &renderParams,
 
         auto &models3D = AssetManager::getInstance().modelsMap();
         for (auto &itr : models3D) {
-            addModel(d, models, static_cast<Model3D *>(itr.second), assetsDirectoryPrefix, assetsFolderName);
+            addModel(d, models, static_cast<Model3D *>(itr.second), assetModelsFolderName);
         }
     }
 
@@ -658,7 +659,7 @@ void exportJson(const ExportRenderParams &renderParams,
 
         auto &materials = AssetManager::getInstance().materialsMap();
         for (auto &itr : materials) {
-            addMaterial(d, materialsObject, static_cast<Material *>(itr.second), assetsDirectoryPrefix, assetsFolderName);
+            addMaterial(d, materialsObject, static_cast<Material *>(itr.second), assetTexturesFolderName);
         }
     }
 
@@ -680,7 +681,8 @@ void exportJson(const ExportRenderParams &renderParams,
 
         if (envMap != nullptr) {
             /* Copy environment map */
-            std::string relativePath = assetsDirectoryPrefix + copyFileToDirectoryAndGetFileName(envMap->name(), assetsFolderName);
+            std::string relativePath =
+                VENGINE_EXPORT_ASSETS_FOLDER + copyFileToDirectoryAndGetFileName(envMap->name(), assetsFolderName);
 
             Value path;
             path.SetString(relativePath.c_str(), d.GetAllocator());

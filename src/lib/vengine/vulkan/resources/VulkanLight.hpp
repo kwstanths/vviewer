@@ -11,12 +11,12 @@ namespace vengine
 class VulkanPointLight : public PointLight, public VulkanUBOBlock<LightData>
 {
 public:
-    VulkanPointLight(const std::string &name, VulkanUBO<LightData> &lightsUBO);
+    VulkanPointLight(const AssetInfo &info, VulkanUBO<LightData> &lightsUBO);
 
     glm::vec4 &color() override;
     const glm::vec4 &color() const override;
 
-    LightIndex getLightIndex() const override;
+    LightIndex lightIndex() const override;
 
 private:
 };
@@ -24,12 +24,12 @@ private:
 class VulkanDirectionalLight : public DirectionalLight, public VulkanUBOBlock<LightData>
 {
 public:
-    VulkanDirectionalLight(const std::string &name, VulkanUBO<LightData> &lightsUBO);
+    VulkanDirectionalLight(const AssetInfo &info, VulkanUBO<LightData> &lightsUBO);
 
     glm::vec4 &color() override;
     const glm::vec4 &color() const override;
 
-    LightIndex getLightIndex() const override;
+    LightIndex lightIndex() const override;
 
 private:
 };

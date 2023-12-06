@@ -60,8 +60,6 @@ public:
 
     VulkanRendererSkybox &getRendererSkybox() { return m_rendererSkybox; }
 
-    Cubemap *createCubemap(std::string directory);
-
     VkResult renderFrame(SceneGraph &sceneGraphArray);
 
     /* Blocks and waits for the renderer to idle, stop the renderer before waiting here */

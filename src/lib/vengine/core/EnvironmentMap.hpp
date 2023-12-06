@@ -12,15 +12,15 @@ namespace vengine
 class EnvironmentMap : public Asset
 {
 public:
-    EnvironmentMap(std::string name, Cubemap *skybox, Cubemap *irradiance, Cubemap *prefilteredMap)
-        : Asset(name)
+    EnvironmentMap(const AssetInfo &info, Cubemap *skybox, Cubemap *irradiance, Cubemap *prefilteredMap)
+        : Asset(info)
         , m_skyboxMap(skybox)
         , m_irradianceMap(irradiance)
         , m_prefilteredMap(prefilteredMap){};
 
-    Cubemap *getSkyboxMap() const;
-    Cubemap *getIrradianceMap() const;
-    Cubemap *getPrefilteredMap() const;
+    Cubemap *skyboxMap() const;
+    Cubemap *irradianceMap() const;
+    Cubemap *prefilteredMap() const;
 
 private:
     Cubemap *m_skyboxMap;

@@ -7,22 +7,16 @@
 namespace vengine
 {
 
-VulkanTexture::VulkanTexture(Image<stbi_uc> *image,
+VulkanTexture::VulkanTexture(const Image<stbi_uc> &image,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
                              VkCommandPool commandPool,
                              bool genMipMaps)
-    : Texture(image->name(),
-              image->filepath(),
-              image->colorSpace(),
-              image->colorDepth(),
-              image->width(),
-              image->height(),
-              image->channels())
+    : Texture(image.info(), image.colorSpace(), image.colorDepth(), image.width(), image.height(), image.channels())
 {
-    uint32_t imageWidth = image->width();
-    uint32_t imageHeight = image->height();
+    uint32_t imageWidth = image.width();
+    uint32_t imageHeight = image.height();
 
     if (genMipMaps) {
         m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(width(), height())))) + 1;
@@ -32,7 +26,7 @@ VulkanTexture::VulkanTexture(Image<stbi_uc> *image,
     assert(m_format != VK_FORMAT_UNDEFINED);
 
     /* Size of image in bytes  */
-    VkDeviceSize imageSize = imageWidth * imageHeight * image->channels();
+    VkDeviceSize imageSize = imageWidth * imageHeight * image.channels();
 
     /* Create staging buffer */
     VulkanBuffer stagingBuffer;
@@ -46,7 +40,7 @@ VulkanTexture::VulkanTexture(Image<stbi_uc> *image,
     /* Copy image data to staging buffer */
     void *data;
     vkMapMemory(device, stagingBuffer.memory(), 0, imageSize, 0, &data);
-    memcpy(data, image->data(), static_cast<size_t>(imageSize));
+    memcpy(data, image.data(), static_cast<size_t>(imageSize));
     vkUnmapMemory(device, stagingBuffer.memory());
 
     /* Create vulkan image and memory */
@@ -102,22 +96,16 @@ VulkanTexture::VulkanTexture(Image<stbi_uc> *image,
     createSampler(device, m_sampler);
 }
 
-VulkanTexture::VulkanTexture(Image<float> *image,
+VulkanTexture::VulkanTexture(const Image<float> &image,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
                              VkCommandPool commandPool,
                              bool genMipMaps)
-    : Texture(image->name(),
-              image->filepath(),
-              image->colorSpace(),
-              image->colorDepth(),
-              image->width(),
-              image->height(),
-              image->channels())
+    : Texture(image.info(), image.colorSpace(), image.colorDepth(), image.width(), image.height(), image.channels())
 {
-    uint32_t imageWidth = image->width();
-    uint32_t imageHeight = image->height();
+    uint32_t imageWidth = image.width();
+    uint32_t imageHeight = image.height();
 
     if (genMipMaps) {
         m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(width(), height())))) + 1;
@@ -127,7 +115,7 @@ VulkanTexture::VulkanTexture(Image<float> *image,
     assert(m_format != VK_FORMAT_UNDEFINED);
 
     /* Size of image in bytes  */
-    VkDeviceSize imageSize = imageWidth * imageHeight * image->channels() * sizeof(float);
+    VkDeviceSize imageSize = imageWidth * imageHeight * image.channels() * sizeof(float);
 
     /* Create staging buffer */
     VulkanBuffer stagingBuffer;
@@ -141,7 +129,7 @@ VulkanTexture::VulkanTexture(Image<float> *image,
     /* Copy image data to staging buffer */
     void *data;
     vkMapMemory(device, stagingBuffer.memory(), 0, imageSize, 0, &data);
-    memcpy(data, image->data(), static_cast<size_t>(imageSize));
+    memcpy(data, image.data(), static_cast<size_t>(imageSize));
     vkUnmapMemory(device, stagingBuffer.memory());
 
     /* Create vulkan image and memory */
@@ -197,7 +185,7 @@ VulkanTexture::VulkanTexture(Image<float> *image,
     createSampler(device, m_sampler);
 }
 
-VulkanTexture::VulkanTexture(std::string name,
+VulkanTexture::VulkanTexture(const AssetInfo &info,
                              ColorSpace colorSpace,
                              ColorDepth colorDepth,
                              size_t width,
@@ -209,7 +197,7 @@ VulkanTexture::VulkanTexture(std::string name,
                              VkSampler &sampler,
                              VkFormat &format,
                              uint32_t numMips)
-    : Texture(name, name, colorSpace, colorDepth, width, height, channels)
+    : Texture(info, colorSpace, colorDepth, width, height, channels)
     , m_image(image)
     , m_imageMemory(imageMemory)
     , m_imageView(imageView)

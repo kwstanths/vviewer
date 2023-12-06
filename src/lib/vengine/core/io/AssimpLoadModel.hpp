@@ -11,8 +11,8 @@
 namespace vengine
 {
 
-Tree<ImportedModelNode> assimpLoadModel(std::string filename);
-Tree<ImportedModelNode> assimpLoadModel(std::string filename, std::vector<ImportedMaterial> &materials);
+Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info);
+Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info, std::vector<ImportedMaterial> &materials);
 
 }  // namespace vengine
 

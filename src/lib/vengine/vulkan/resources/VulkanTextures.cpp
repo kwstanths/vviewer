@@ -62,9 +62,9 @@ VkResult VulkanTextures::releaseSwapchainResources()
 
 void VulkanTextures::createBaseTextures()
 {
-    createTexture(new Image<stbi_uc>("white", Color::WHITE, ColorSpace::LINEAR));
-    createTexture(new Image<stbi_uc>("whiteColor", Color::WHITE, ColorSpace::sRGB));
-    createTexture(new Image<stbi_uc>("normalmapdefault", Color::NORMAL_MAP, ColorSpace::LINEAR));
+    createTexture(Image<stbi_uc>(AssetInfo("white", AssetSource::INTERNAL), Color::WHITE, ColorSpace::LINEAR));
+    createTexture(Image<stbi_uc>(AssetInfo("whiteColor", AssetSource::INTERNAL), Color::WHITE, ColorSpace::sRGB));
+    createTexture(Image<stbi_uc>(AssetInfo("normalmapdefault", AssetSource::INTERNAL), Color::NORMAL_MAP, ColorSpace::LINEAR));
 }
 
 void VulkanTextures::updateTextures()
@@ -85,95 +85,41 @@ void VulkanTextures::updateTextures()
     m_texturesToUpdate.clear();
 }
 
-Texture *VulkanTextures::createTexture(std::string imagePath, ColorSpace colorSpace, bool keepImage)
+Texture *VulkanTextures::createTexture(const AssetInfo &info, ColorSpace colorSpace)
 {
-    try {
-        auto &imagesMap = AssetManager::getInstance().imagesCharMap();
-
-        Image<stbi_uc> *image;
-        if (imagesMap.isPresent(imagePath)) {
-            image = imagesMap.get(imagePath);
-        } else {
-            image = new Image<stbi_uc>(imagePath, colorSpace);
-            imagesMap.add(image);
-        }
-
-        auto temp = createTexture(image);
-
-        if (!keepImage) {
-            imagesMap.remove(imagePath);
-            delete image;
-        }
-
-        return temp;
-    } catch (std::runtime_error &e) {
-        debug_tools::ConsoleWarning("VulkanTextures::createTexture(): Can't create a vulkan texture: " + std::string(e.what()));
-        return nullptr;
-    }
-
-    return nullptr;
+    Image<stbi_uc> image(info, colorSpace);
+    auto temp = createTexture(image);
+    return temp;
 }
 
-Texture *VulkanTextures::createTexture(Image<stbi_uc> *image)
+Texture *VulkanTextures::createTexture(const Image<stbi_uc> &image)
 {
-    try {
-        auto &texturesMap = AssetManager::getInstance().texturesMap();
-
-        if (texturesMap.isPresent(image->name())) {
-            return texturesMap.get(image->name());
-        }
-
-        auto temp = new VulkanTexture(
-            image, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), true);
-
-        addTexture(temp);
-
-        return texturesMap.add(temp);
-    } catch (std::runtime_error &e) {
-        debug_tools::ConsoleCritical("VulkanTextures::createTexture(): Failed to create a vulkan texture: " + std::string(e.what()));
-        return nullptr;
+    auto &texturesMap = AssetManager::getInstance().texturesMap();
+    if (texturesMap.isPresent(image.name())) {
+        return texturesMap.get(image.name());
     }
 
-    return nullptr;
+    auto temp = new VulkanTexture(
+        image, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), true);
+
+    addTexture(temp);
+
+    return texturesMap.add(temp);
 }
 
-Texture *VulkanTextures::createTextureHDR(std::string imagePath, bool keepImage)
+Texture *VulkanTextures::createTextureHDR(const AssetInfo &info)
 {
-    try {
-        /* Check if a texture has already been created for that image */
-        auto &texturesMap = AssetManager::getInstance().texturesMap();
-        if (texturesMap.isPresent(imagePath)) {
-            return texturesMap.get(imagePath);
-        }
-
-        /* Check if the image has already been imported, if not read it from disk  */
-        Image<float> *image;
-        auto &imagesMap = AssetManager::getInstance().imagesHDRMap();
-        if (imagesMap.isPresent(imagePath)) {
-            image = imagesMap.get(imagePath);
-        } else {
-            image = new Image<float>(imagePath, ColorSpace::LINEAR);
-            imagesMap.add(image);
-        }
-
-        /* Create texture for that image */
-        auto temp = new VulkanTexture(
-            image, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), false);
-
-        /* If you are not to keep the image in memory, remove from the assets */
-        if (!keepImage) {
-            imagesMap.remove(imagePath);
-            delete image;
-        }
-
-        return texturesMap.add(temp);
-    } catch (std::runtime_error &e) {
-        debug_tools::ConsoleCritical("VulkanTextures::createTextureHDR(): Failed to create a vulkan HDR texture: " +
-                                     std::string(e.what()));
-        return nullptr;
+    auto &texturesMap = AssetManager::getInstance().texturesMap();
+    if (texturesMap.isPresent(info.name)) {
+        return texturesMap.get(info.name);
     }
 
-    return nullptr;
+    Image<float> image(info, ColorSpace::LINEAR);
+
+    auto temp = new VulkanTexture(
+        image, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool(), false);
+
+    return texturesMap.add(temp);
 }
 
 Texture *VulkanTextures::addTexture(Texture *tex)

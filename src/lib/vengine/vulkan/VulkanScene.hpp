@@ -42,7 +42,7 @@ public:
     /* Flush buffer changes to gpu */
     void updateBuffers(const std::vector<SceneObject *> &lights, uint32_t imageIndex) const;
 
-    Light *createLight(const std::string &name, LightType type, glm::vec4 color = {1, 1, 1, 1}) override;
+    Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) override;
 
 private:
     VulkanContext &m_vkctx;

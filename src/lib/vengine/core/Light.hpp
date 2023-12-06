@@ -29,12 +29,14 @@ typedef uint32_t LightIndex;
 class Light : public Asset
 {
 public:
-    Light(const std::string &name)
-        : Asset(name){};
+    Light(const AssetInfo &info)
+        : Asset(info){};
+
+    virtual ~Light(){};
 
     virtual LightType type() const = 0;
 
-    virtual LightIndex getLightIndex() const = 0;
+    virtual LightIndex lightIndex() const = 0;
 
     /**
      * @brief The light contribution of such a light on position l, on point p
@@ -51,8 +53,10 @@ private:
 class PointLight : public Light
 {
 public:
-    PointLight(const std::string &name)
-        : Light(name){};
+    PointLight(const AssetInfo &info)
+        : Light(info){};
+
+    virtual ~PointLight(){};
 
     LightType type() const { return LightType::POINT_LIGHT; }
 
@@ -72,8 +76,10 @@ private:
 class DirectionalLight : public Light
 {
 public:
-    DirectionalLight(const std::string &name)
-        : Light(name){};
+    DirectionalLight(const AssetInfo &info)
+        : Light(info){};
+
+    virtual ~DirectionalLight(){};
 
     LightType type() const { return LightType::DIRECTIONAL_LIGHT; }
 

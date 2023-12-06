@@ -26,13 +26,12 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
     return m_descirptorsNeedUpdate[index];
 }
 
-VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(std::string name,
-                                                     std::string filepath,
+VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info,
                                                      VkDevice device,
                                                      VkDescriptorSetLayout descriptorLayout,
                                                      VulkanUBO<MaterialData> &materialsUBO)
     : VulkanUBOBlock<MaterialData>(materialsUBO)
-    , MaterialPBRStandard(name, filepath)
+    , MaterialPBRStandard(info)
 {
     albedo() = glm::vec4(1, 1, 1, 1);
     metallic() = 0;
@@ -214,13 +213,12 @@ void VulkanMaterialPBRStandard::setAlphaTexture(Texture *texture)
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialLambert::VulkanMaterialLambert(std::string name,
-                                             std::string filepath,
+VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info,
                                              VkDevice device,
                                              VkDescriptorSetLayout descriptorLayout,
                                              VulkanUBO<MaterialData> &materialsUBO)
     : VulkanUBOBlock<MaterialData>(materialsUBO)
-    , MaterialLambert(name, filepath)
+    , MaterialLambert(info)
 {
     albedo() = glm::vec4(1, 1, 1, 1);
     ao() = 1;
@@ -358,12 +356,12 @@ void VulkanMaterialLambert::setAlphaTexture(Texture *texture)
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialSkybox::VulkanMaterialSkybox(std::string name,
+VulkanMaterialSkybox::VulkanMaterialSkybox(const AssetInfo &info,
                                            EnvironmentMap *envMap,
                                            VkDevice device,
                                            VkDescriptorSetLayout descriptorLayout)
     : VulkanMaterialDescriptor(descriptorLayout)
-    , MaterialSkybox(name)
+    , MaterialSkybox(info)
 {
     m_envMap = envMap;
 }
@@ -397,23 +395,22 @@ void VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
 
 void VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
 {
-    VkDescriptorImageInfo skyboxInfo =
-        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->getSkyboxMap())->getSampler(),
-                                    static_cast<VulkanCubemap *>(m_envMap->getSkyboxMap())->getImageView(),
-                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    VkDescriptorImageInfo skyboxInfo = vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->skyboxMap())->sampler(),
+                                                                   static_cast<VulkanCubemap *>(m_envMap->skyboxMap())->imageView(),
+                                                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     VkWriteDescriptorSet descriptorWriteSkybox =
         vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &skyboxInfo);
 
     VkDescriptorImageInfo irradianceInfo =
-        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->getIrradianceMap())->getSampler(),
-                                    static_cast<VulkanCubemap *>(m_envMap->getIrradianceMap())->getImageView(),
+        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->irradianceMap())->sampler(),
+                                    static_cast<VulkanCubemap *>(m_envMap->irradianceMap())->imageView(),
                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     VkWriteDescriptorSet descriptorWriteIrradiance =
         vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, &irradianceInfo);
 
     VkDescriptorImageInfo prefilteredMapInfo =
-        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->getPrefilteredMap())->getSampler(),
-                                    static_cast<VulkanCubemap *>(m_envMap->getPrefilteredMap())->getImageView(),
+        vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->prefilteredMap())->sampler(),
+                                    static_cast<VulkanCubemap *>(m_envMap->prefilteredMap())->imageView(),
                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     VkWriteDescriptorSet descriptorWritePrefiltered =
         vkinit::writeDescriptorSet(m_descriptorSets[index], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1, &prefilteredMapInfo);

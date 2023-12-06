@@ -3,20 +3,20 @@
 namespace vengine
 {
 
-Cubemap::Cubemap(std::string name)
-    : Asset(name)
+Cubemap::Cubemap(const AssetInfo &info)
+    : Asset(info)
 {
 }
 
-Cubemap::Cubemap(std::string name, std::string directory)
-    : Asset(name)
+Cubemap::Cubemap(const AssetInfo &info, std::string directory)
+    : Asset(info)
 {
-    m_image_front = new Image<stbi_uc>(directory + "/front.png", ColorSpace::sRGB);
-    m_image_back = new Image<stbi_uc>(directory + "/back.png", ColorSpace::sRGB);
-    m_image_top = new Image<stbi_uc>(directory + "/top.png", ColorSpace::sRGB);
-    m_image_bottom = new Image<stbi_uc>(directory + "/bottom.png", ColorSpace::sRGB);
-    m_image_right = new Image<stbi_uc>(directory + "/right.png", ColorSpace::sRGB);
-    m_image_left = new Image<stbi_uc>(directory + "/left.png", ColorSpace::sRGB);
+    m_image_front = new Image<stbi_uc>(AssetInfo(directory + "/front.png", info.source), ColorSpace::sRGB);
+    m_image_back = new Image<stbi_uc>(AssetInfo(directory + "/back.png", info.source), ColorSpace::sRGB);
+    m_image_top = new Image<stbi_uc>(AssetInfo(directory + "/top.png", info.source), ColorSpace::sRGB);
+    m_image_bottom = new Image<stbi_uc>(AssetInfo(directory + "/bottom.png", info.source), ColorSpace::sRGB);
+    m_image_right = new Image<stbi_uc>(AssetInfo(directory + "/right.png", info.source), ColorSpace::sRGB);
+    m_image_left = new Image<stbi_uc>(AssetInfo(directory + "/left.png", info.source), ColorSpace::sRGB);
 }
 
 Cubemap::~Cubemap()

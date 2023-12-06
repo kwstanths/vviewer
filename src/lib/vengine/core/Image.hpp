@@ -16,25 +16,18 @@ template <typename T>
 class Image : public Asset
 {
 public:
-    Image(std::string filename, ColorSpace colorSpace)
-        : Asset(filename)
+    Image(const AssetInfo &info, ColorSpace colorSpace)
+        : Asset(info)
         , m_colorSpace(colorSpace)
     {
-        m_data = loadDiskImage(filename, m_width, m_height, m_channels);
+        m_data = loadDiskImage(info.filepath, m_width, m_height, m_channels);
         if (m_data == nullptr) {
-            throw std::runtime_error("Unable to load image from disk: " + filename);
+            throw std::runtime_error("Unable to load image from disk: " + info.filepath);
         }
     }
 
-    Image(std::string name,
-          std::string filename,
-          T *data,
-          int width,
-          int height,
-          int channels,
-          ColorSpace colorSpace,
-          bool freeDataOnDestroy)
-        : Asset(name, filename)
+    Image(const AssetInfo &info, T *data, int width, int height, int channels, ColorSpace colorSpace, bool freeDataOnDestroy)
+        : Asset(info)
         , m_colorSpace(colorSpace)
         , m_data(data)
         , m_width(width)
@@ -44,8 +37,8 @@ public:
     {
     }
 
-    Image(std::string name, Color color, ColorSpace colorSpace)
-        : Asset(name)
+    Image(const AssetInfo &info, Color color, ColorSpace colorSpace)
+        : Asset(info)
         , m_colorSpace(colorSpace)
     {
         m_width = 1;
@@ -102,6 +95,7 @@ public:
     }
 
     T *data() { return m_data; }
+    const T *data() const { return m_data; }
     int width() const { return m_width; }
     int height() const { return m_height; }
     int channels() const { return m_channels; }

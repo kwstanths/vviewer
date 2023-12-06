@@ -4,15 +4,15 @@ namespace vengine
 {
 
 template <>
-MaterialPBRStandard *Materials::createMaterial<MaterialPBRStandard>(const std::string &name)
+MaterialPBRStandard *Materials::createMaterial<MaterialPBRStandard>(const AssetInfo &info)
 {
-    return static_cast<MaterialPBRStandard *>(createMaterial(name, MaterialType::MATERIAL_PBR_STANDARD));
+    return static_cast<MaterialPBRStandard *>(createMaterial(info, MaterialType::MATERIAL_PBR_STANDARD));
 }
 
 template <>
-MaterialLambert *Materials::createMaterial<MaterialLambert>(const std::string &name)
+MaterialLambert *Materials::createMaterial<MaterialLambert>(const AssetInfo &info)
 {
-    return static_cast<MaterialLambert *>(createMaterial(name, MaterialType::MATERIAL_LAMBERT));
+    return static_cast<MaterialLambert *>(createMaterial(info, MaterialType::MATERIAL_LAMBERT));
 }
 
 }  // namespace vengine

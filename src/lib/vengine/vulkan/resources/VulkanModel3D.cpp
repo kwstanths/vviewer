@@ -5,30 +5,30 @@
 namespace vengine
 {
 
-VulkanModel3D::VulkanModel3D(const std::string &name)
-    : Model3D(name)
+VulkanModel3D::VulkanModel3D(const AssetInfo &info)
+    : Model3D(info)
 {
 }
 
-VulkanModel3D::VulkanModel3D(const std::string &name,
+VulkanModel3D::VulkanModel3D(const AssetInfo &info,
                              const Tree<ImportedModelNode> &importedData,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
                              VkCommandPool commandPool)
-    : Model3D(name)
+    : Model3D(info)
 {
     importNode(importedData, m_data, physicalDevice, device, queue, commandPool, {});
 }
 
-VulkanModel3D::VulkanModel3D(const std::string &name,
+VulkanModel3D::VulkanModel3D(const AssetInfo &info,
                              const Tree<ImportedModelNode> &importedData,
                              const std::vector<Material *> &materials,
                              VkPhysicalDevice physicalDevice,
                              VkDevice device,
                              VkQueue queue,
                              VkCommandPool commandPool)
-    : Model3D(name)
+    : Model3D(info)
 {
     importNode(importedData, m_data, physicalDevice, device, queue, commandPool, materials);
 }

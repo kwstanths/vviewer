@@ -27,9 +27,9 @@ static std::unordered_map<std::string, LightType> importedLightTypeNames = {
     {"POINT", LightType::POINT_LIGHT},
     {"DIRECTIONAL", LightType::DIRECTIONAL_LIGHT},
 };
-static std::unordered_map<std::string, ImportedTextureType> importedTextureTypeNames = {
-    {"DISK_FILE", ImportedTextureType::DISK_FILE},
-    {"EMBEDDED", ImportedTextureType::EMBEDDED},
+static std::unordered_map<std::string, AssetLocation> importedTextureTypeNames = {
+    {"STANDALONE", AssetLocation::STANDALONE},
+    {"EMBEDDED", AssetLocation::EMBEDDED},
 };
 
 float parseFloat(const rapidjson::Value &o, std::string name, float defaultValue)
@@ -229,21 +229,23 @@ ImportedCamera parseCamera(const rapidjson::Value &o)
     return c;
 }
 
-std::optional<ImportedSceneObjectMesh> parseMeshComponent(const rapidjson::Value &o, const std::string &relativePath)
+std::optional<ImportedSceneObjectMesh> parseMeshComponent(const rapidjson::Value &o)
 {
     if (!o.HasMember("mesh")) {
         return std::nullopt;
     }
 
     ImportedSceneObjectMesh importedMesh;
-    if (o["mesh"].HasMember("path")) {
-        importedMesh.path = relativePath + o["mesh"]["path"].GetString();
+    if (o["mesh"].HasMember("modelName")) {
+        importedMesh.modelName = o["mesh"]["modelName"].GetString();
     } else {
-        throw std::runtime_error("parseMeshComponent(): Imported mesh doesn't have a path set");
+        throw std::runtime_error("parseMeshComponent(): Imported mesh doesn't have a modelName set");
     }
 
     if (o["mesh"].HasMember("submesh")) {
         importedMesh.submesh = o["mesh"]["submesh"].GetString();
+    } else {
+        throw std::runtime_error("parseMeshComponent(): Imported mesh doesn't have a submesh set");
     }
 
     return importedMesh;
@@ -272,8 +274,8 @@ std::optional<ImportedSceneObjectLight> parseLightComponent(const rapidjson::Val
     }
 
     ImportedSceneObjectLight importedLight;
-    if (o.HasMember("name")) {
-        importedLight.name = o["name"].GetString();
+    if (o["light"].HasMember("name")) {
+        importedLight.name = o["light"]["name"].GetString();
     } else {
         throw std::runtime_error("parseLightComponent(): Imported light doesn't have a name");
     }
@@ -281,7 +283,7 @@ std::optional<ImportedSceneObjectLight> parseLightComponent(const rapidjson::Val
     return importedLight;
 }
 
-Tree<ImportedSceneObject> parseSceneObject(const rapidjson::Value &o, const std::string &relativePath)
+Tree<ImportedSceneObject> parseSceneObject(const rapidjson::Value &o)
 {
     ImportedSceneObject object;
     object.name = o["name"].GetString();
@@ -296,7 +298,7 @@ Tree<ImportedSceneObject> parseSceneObject(const rapidjson::Value &o, const std:
         object.transform = Transform({0, 0, 0}, {1, 1, 1}, {1, 0, 0, 0});
     }
 
-    object.mesh = parseMeshComponent(o, relativePath);
+    object.mesh = parseMeshComponent(o);
     object.material = parseMaterialComponent(o);
     object.light = parseLightComponent(o);
 
@@ -305,11 +307,30 @@ Tree<ImportedSceneObject> parseSceneObject(const rapidjson::Value &o, const std:
 
     if (o.HasMember("children")) {
         for (size_t c = 0; c < o["children"].Size(); c++) {
-            root.add(parseSceneObject(o["children"][c], relativePath));
+            root.add(parseSceneObject(o["children"][c]));
         }
     }
 
     return root;
+}
+
+ImportedModel parseModel(const rapidjson::Value &o, const std::string &relativePath)
+{
+    ImportedModel importedModel;
+
+    if (o.HasMember("name")) {
+        importedModel.name = o["name"].GetString();
+    } else {
+        throw std::runtime_error("parseModel(): Imported model doesn't have a name set");
+    }
+
+    if (o.HasMember("filepath")) {
+        importedModel.filepath = relativePath + o["filepath"].GetString();
+    } else {
+        throw std::runtime_error("parseModel(): Imported mesh doesn't have a filepath set");
+    }
+
+    return importedModel;
 }
 
 std::optional<ImportedTexture> parseTexture(const rapidjson::Value &o, const std::string &relativePath, ColorSpace colorSpace)
@@ -319,18 +340,19 @@ std::optional<ImportedTexture> parseTexture(const rapidjson::Value &o, const std
     }
 
     ImportedTexture value;
-    value.type = importedTextureTypeNames[o["texture"]["type"].GetString()];
+    value.location = importedTextureTypeNames[o["texture"]["type"].GetString()];
     value.name = o["texture"]["name"].GetString();
 
-    if (value.type == ImportedTextureType::DISK_FILE) {
-        value.image = new Image<uint8_t>(relativePath + value.name, colorSpace);
+    if (value.location == AssetLocation::STANDALONE && o["texture"].HasMember("filepath")) {
+        std::string filepath = o["texture"]["filepath"].GetString();
+        value.image = new Image<uint8_t>(AssetInfo(relativePath + filepath), colorSpace);
     }
     return value;
 }
 
 void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, ImportedMaterial &material)
 {
-    material.name = o["name"].GetString();
+    std::string name = o["name"].GetString();
 
     {
         auto type = std::string(o["type"].GetString());
@@ -343,15 +365,17 @@ void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, I
     }
 
     if (material.type == ImportedMaterialType::EMBEDDED) {
+        material.info = AssetInfo(name);
         return;
     }
 
     if (material.type == ImportedMaterialType::STACK) {
-        material.filepath = relativePath + o["path"].GetString();
+        std::string filepath = relativePath + o["path"].GetString();
+        material.info = AssetInfo(name, filepath, AssetSource::IMPORTED, AssetLocation::STANDALONE);
         return;
     }
 
-    material.filepath = material.name;
+    material.info = AssetInfo(name);
     if (material.type == ImportedMaterialType::PBR_STANDARD) {
         if (o.HasMember("roughness")) {
             material.roughnessTexture = parseTexture(o["roughness"], relativePath, ColorSpace::LINEAR);
@@ -392,7 +416,7 @@ void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, I
     }
 
     return;
-}
+}  // namespace vengine
 
 ImportedLight parseLight(const rapidjson::Value &o)
 {
@@ -435,7 +459,7 @@ ImportedEnvironment parseEnvironment(const rapidjson::Value &o)
 std::string importScene(std::string filename,
                         ImportedCamera &c,
                         Tree<ImportedSceneObject> &sceneObjects,
-                        std::vector<std::string> &models,
+                        std::vector<ImportedModel> &models,
                         std::vector<ImportedMaterial> &materials,
                         std::vector<ImportedLight> &lights,
                         ImportedEnvironment &e)
@@ -468,12 +492,12 @@ std::string importScene(std::string filename,
     /* Parse scene objects */
     sceneObjects.data().name = "root";
     for (size_t o = 0; o < doc["scene"].Size(); o++) {
-        sceneObjects.add(parseSceneObject(doc["scene"][o], sceneFolder));
+        sceneObjects.add(parseSceneObject(doc["scene"][o]));
     }
 
     /* Parse scene models */
     for (size_t o = 0; o < doc["models"].Size(); o++) {
-        models.push_back(sceneFolder + doc["models"][o].GetString());
+        models.push_back(parseModel(doc["models"][o], sceneFolder));
     }
 
     /* Parse materials */

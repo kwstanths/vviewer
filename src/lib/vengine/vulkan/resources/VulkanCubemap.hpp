@@ -11,17 +11,22 @@ namespace vengine
 class VulkanCubemap : public Cubemap
 {
 public:
-    VulkanCubemap(std::string directory, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
-    VulkanCubemap(std::string name,
+    VulkanCubemap(const AssetInfo &info,
+                  std::string directory,
+                  VkPhysicalDevice physicalDevice,
+                  VkDevice device,
+                  VkQueue queue,
+                  VkCommandPool commandPool);
+    VulkanCubemap(const AssetInfo &info,
                   VkImage cubemapImage,
                   VkDeviceMemory m_cubemapMemory,
                   VkImageView m_cubemapImageView,
                   VkSampler m_cubemapSampler);
 
-    VkImage getImage() const;
-    VkDeviceMemory getDeviceMemory() const;
-    VkImageView getImageView() const;
-    VkSampler getSampler() const;
+    VkImage image() const;
+    VkDeviceMemory deviceMemory() const;
+    VkImageView imageView() const;
+    VkSampler sampler() const;
 
     void destroy(VkDevice device);
 

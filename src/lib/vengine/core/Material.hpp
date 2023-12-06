@@ -33,10 +33,8 @@ static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
 class Material : public Asset
 {
 public:
-    Material(std::string name)
-        : Asset(name){};
-    Material(std::string name, std::string filepath)
-        : Asset(name, filepath){};
+    Material(const AssetInfo &info)
+        : Asset(info){};
 
     virtual ~Material(){};
 
@@ -54,10 +52,8 @@ private:
 class MaterialPBRStandard : public Material
 {
 public:
-    MaterialPBRStandard(std::string name)
-        : Material(name){};
-    MaterialPBRStandard(std::string name, std::string filepath)
-        : Material(name, filepath){};
+    MaterialPBRStandard(const AssetInfo &info)
+        : Material(info){};
 
     virtual ~MaterialPBRStandard() {}
 
@@ -116,10 +112,8 @@ private:
 class MaterialLambert : public Material
 {
 public:
-    MaterialLambert(std::string name)
-        : Material(name){};
-    MaterialLambert(std::string name, std::string filepath)
-        : Material(name, filepath){};
+    MaterialLambert(const AssetInfo &info)
+        : Material(info){};
 
     virtual ~MaterialLambert() {}
 
@@ -162,8 +156,8 @@ protected:
 class MaterialSkybox : public Material
 {
 public:
-    MaterialSkybox(std::string name)
-        : Material(name){};
+    MaterialSkybox(const AssetInfo &info)
+        : Material(info){};
 
     virtual ~MaterialSkybox() {}
 

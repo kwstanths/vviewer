@@ -3,8 +3,8 @@
 namespace vengine
 {
 
-VulkanPointLight::VulkanPointLight(const std::string &name, VulkanUBO<LightData> &lightsUBO)
-    : PointLight(name)
+VulkanPointLight::VulkanPointLight(const AssetInfo &info, VulkanUBO<LightData> &lightsUBO)
+    : PointLight(info)
     , VulkanUBOBlock<LightData>(lightsUBO)
 {
     m_block->type.r = static_cast<unsigned int>(LightType::POINT_LIGHT);
@@ -20,13 +20,13 @@ const glm::vec4 &VulkanPointLight::color() const
     return m_block->color;
 }
 
-LightIndex VulkanPointLight::getLightIndex() const
+LightIndex VulkanPointLight::lightIndex() const
 {
     return UBOBlockIndex();
 }
 
-VulkanDirectionalLight::VulkanDirectionalLight(const std::string &name, VulkanUBO<LightData> &lightsUBO)
-    : DirectionalLight(name)
+VulkanDirectionalLight::VulkanDirectionalLight(const AssetInfo &info, VulkanUBO<LightData> &lightsUBO)
+    : DirectionalLight(info)
     , VulkanUBOBlock<LightData>(lightsUBO)
 {
     m_block->type.r = static_cast<unsigned int>(LightType::DIRECTIONAL_LIGHT);
@@ -42,7 +42,7 @@ const glm::vec4 &VulkanDirectionalLight::color() const
     return m_block->color;
 }
 
-LightIndex VulkanDirectionalLight::getLightIndex() const
+LightIndex VulkanDirectionalLight::lightIndex() const
 {
     return UBOBlockIndex();
 }

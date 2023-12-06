@@ -129,7 +129,7 @@ void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights, uint32
         Light *light = lights[l]->get<ComponentLight>().light;
 
         LightComponent *lightComponentBlock = m_lightComponentsUBO.block(l);
-        lightComponentBlock->info.r = light->getLightIndex();
+        lightComponentBlock->info.r = light->lightIndex();
         lightComponentBlock->info.g = vo->getModelDataUBOIndex();
     }
 
@@ -147,20 +147,20 @@ void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights, uint32
     }
 }
 
-Light *VulkanScene::createLight(const std::string &name, LightType type, glm::vec4 color)
+Light *VulkanScene::createLight(const AssetInfo &info, LightType type, glm::vec4 color)
 {
     auto &lights = AssetManager::getInstance().lightsMap();
 
     switch (type) {
         case LightType::POINT_LIGHT: {
-            auto light = new VulkanPointLight(name, m_lightDataUBO);
+            auto light = new VulkanPointLight(info, m_lightDataUBO);
             light->color() = color;
             lights.add(light);
             return light;
             break;
         }
         case LightType::DIRECTIONAL_LIGHT: {
-            auto light = new VulkanDirectionalLight(name, m_lightDataUBO);
+            auto light = new VulkanDirectionalLight(info, m_lightDataUBO);
             light->color() = color;
             lights.add(light);
             return light;

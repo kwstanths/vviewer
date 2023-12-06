@@ -478,18 +478,6 @@ glm::vec3 VulkanRenderer::selectObject(float x, float y)
     return highlightTexelColor;
 }
 
-Cubemap *VulkanRenderer::createCubemap(std::string directory)
-{
-    auto &cubemapsMap = AssetManager::getInstance().cubemapsMap();
-    if (cubemapsMap.isPresent(directory)) {
-        return cubemapsMap.get(directory);
-    }
-
-    auto cubemap = new VulkanCubemap(
-        directory, m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool());
-    return cubemapsMap.add(cubemap);
-}
-
 VkResult VulkanRenderer::createRenderPasses()
 {     /* Render pass 1: Forward pass */
     { /* ------------------------------ SUBPASS 1 ---------------------------------- */

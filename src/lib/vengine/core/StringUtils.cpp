@@ -37,4 +37,10 @@ std::string join(const std::vector<std::string> &strings, const std::string &d)
     return out;
 }
 
+std::string getFilename(std::string file)
+{
+    auto fileSplit = split(file, "/");
+    return fileSplit.back();
+}
+
 }  // namespace vengine

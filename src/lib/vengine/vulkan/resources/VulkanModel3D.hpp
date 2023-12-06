@@ -11,14 +11,14 @@ namespace vengine
 class VulkanModel3D : public Model3D
 {
 public:
-    VulkanModel3D(const std::string &name);
-    VulkanModel3D(const std::string &name,
+    VulkanModel3D(const AssetInfo &info);
+    VulkanModel3D(const AssetInfo &info,
                   const Tree<ImportedModelNode> &importedData,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
                   VkCommandPool commandPool);
-    VulkanModel3D(const std::string &name,
+    VulkanModel3D(const AssetInfo &info,
                   const Tree<ImportedModelNode> &importedData,
                   const std::vector<Material *> &materials,
                   VkPhysicalDevice physicalDevice,

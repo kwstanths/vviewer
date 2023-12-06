@@ -34,6 +34,14 @@ std::vector<std::string> split(const std::string &in, const std::string &d);
  */
 std::string join(const std::vector<std::string> &strings, const std::string &d);
 
+/**
+ * @brief Get the Filename object
+ *
+ * @param file
+ * @return std::string
+ */
+std::string getFilename(std::string file);
+
 }  // namespace vengine
 
 #endif

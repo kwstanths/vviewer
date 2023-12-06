@@ -69,8 +69,8 @@ public:
 class VulkanMesh : public Mesh
 {
 public:
-    VulkanMesh(std::string name);
-    VulkanMesh(std::string name,
+    VulkanMesh(const AssetInfo &info);
+    VulkanMesh(const AssetInfo &info,
                const std::vector<Vertex> &vertices,
                const std::vector<uint32_t> &indices,
                bool hasNormals,
@@ -105,7 +105,11 @@ protected:
 class VulkanCube : public VulkanMesh
 {
 public:
-    VulkanCube(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool);
+    VulkanCube(const AssetInfo &info,
+               VkPhysicalDevice physicalDevice,
+               VkDevice device,
+               VkQueue transferQueue,
+               VkCommandPool transferCommandPool);
 
 private:
 };

@@ -14,21 +14,21 @@ namespace vengine
 class VulkanTexture : public Texture
 {
 public:
-    VulkanTexture(Image<stbi_uc> *image,
+    VulkanTexture(const Image<stbi_uc> &image,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
                   VkCommandPool commandPool,
                   bool genMipMaps);
 
-    VulkanTexture(Image<float> *image,
+    VulkanTexture(const Image<float> &image,
                   VkPhysicalDevice physicalDevice,
                   VkDevice device,
                   VkQueue queue,
                   VkCommandPool commandPool,
                   bool genMipMaps);
 
-    VulkanTexture(std::string name,
+    VulkanTexture(const AssetInfo &info,
                   ColorSpace colorSpace,
                   ColorDepth colorDepth,
                   size_t width,

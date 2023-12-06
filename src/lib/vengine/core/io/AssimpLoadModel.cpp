@@ -48,7 +48,7 @@ bool checkValid(glm::vec2 in)
     return !std::isnan(in.x) && !std::isinf(in.x) && !std::isnan(in.y) && !std::isinf(in.y);
 }
 
-Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene)
+Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene, const AssetInfo &info)
 {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
@@ -144,7 +144,7 @@ Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene)
         }
     }
 
-    Mesh temp(meshName, vertices, indices, hasNormals, hasUVs);
+    Mesh temp(AssetInfo(meshName, info.filepath, info.source, AssetLocation::EMBEDDED), vertices, indices, hasNormals, hasUVs);
 
     if (!hasUVs) {
         debug_tools::ConsoleWarning("Mesh: [" + std::string(scene->mRootNode->mName.C_Str()) + " : " + std::string(temp.name()) +
@@ -159,7 +159,7 @@ glm::mat4 getTransformation(aiNode *node)
     return glm::transpose(glm::make_mat4(&node->mTransformation.a1));
 }
 
-void assimpLoadNode(aiNode *node, const aiScene *scene, Tree<ImportedModelNode> &root)
+void assimpLoadNode(aiNode *node, const aiScene *scene, const AssetInfo &info, Tree<ImportedModelNode> &root)
 {
     root.data().name = std::string(node->mName.C_Str());
 
@@ -173,18 +173,18 @@ void assimpLoadNode(aiNode *node, const aiScene *scene, Tree<ImportedModelNode> 
     /* Loop through all meshes in this node */
     for (size_t i = 0; i < node->mNumMeshes; i++) {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        root.data().meshes.push_back(assimpLoadMesh(mesh, scene));
+        root.data().meshes.push_back(assimpLoadMesh(mesh, scene, info));
         root.data().materialIndices.push_back(mesh->mMaterialIndex);
     }
 
     /* Loop through all nodes attached to this node, and append their meshes */
     for (size_t i = 0; i < node->mNumChildren; i++) {
-        assimpLoadNode(node->mChildren[i], scene, root.add());
+        assimpLoadNode(node->mChildren[i], scene, info, root.add());
     }
 }
 
 uint8_t *assimpLoadTextureData(const aiScene *scene,
-                               std::string relativePath,
+                               const std::string &folder,
                                aiString texturePath,
                                int &width,
                                int &height,
@@ -216,7 +216,7 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
             }
         } else {
             /* Parse from disk */
-            std::string fullPath = relativePath + std::string(texturePath.C_Str());
+            std::string fullPath = folder + std::string(texturePath.C_Str());
 
 #ifdef _WIN32
             // TODO
@@ -235,20 +235,14 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
     return nullptr;
 }
 
-Image<uint8_t> *assimpCreateImage(std::string name,
-                                  std::string filepath,
-                                  uint8_t *data,
-                                  int width,
-                                  int height,
-                                  int channels,
-                                  ColorSpace colorSpace,
-                                  int channel = -1)
+Image<uint8_t> *
+assimpCreateImage(const AssetInfo &info, uint8_t *data, int width, int height, int channels, ColorSpace colorSpace, int channel = -1)
 {
     if (channel == -1) {
 #ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGES
         debug_tools::ConsoleInfo("Loaded image: " + name);
 #endif
-        return new Image<uint8_t>(name, filepath, data, width, height, channels, colorSpace, true);
+        return new Image<uint8_t>(info, data, width, height, channels, colorSpace, true);
     } else {
         uint8_t *channelData = new uint8_t[width * height];
         uint32_t index = 0;
@@ -260,12 +254,12 @@ Image<uint8_t> *assimpCreateImage(std::string name,
 #ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGES
         debug_tools::ConsoleInfo("Loaded image: " + name);
 #endif
-        return new Image<uint8_t>(name, filepath, channelData, width, height, 1, colorSpace, true);
+        return new Image<uint8_t>(info, channelData, width, height, 1, colorSpace, true);
     }
 }
 
 std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
-                                                      std::string filename,
+                                                      const AssetInfo &info,
                                                       std::string folderPath,
                                                       std::string materialNamePrefix = "")
 {
@@ -279,8 +273,8 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
         {
             aiString name;
             mat->Get(AI_MATKEY_NAME, name);
-            importedMaterial.name = materialNamePrefix + ":" + std::string(name.C_Str());
-            importedMaterial.filepath = filename;
+            importedMaterial.info =
+                AssetInfo(materialNamePrefix + ":" + std::string(name.C_Str()), info.filepath, info.source, AssetLocation::EMBEDDED);
         }
 
         importedMaterial.type = ImportedMaterialType::PBR_STANDARD;
@@ -297,16 +291,27 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
             auto *texData = assimpLoadTextureData(scene, folderPath, baseColorTexture, width, height, channels);
             if (texData != nullptr) {
                 ImportedTexture baseColorTex;
-                baseColorTex.type = ImportedTextureType::EMBEDDED;
-                baseColorTex.name = importedMaterial.name + ":albedo";
-                baseColorTex.image = assimpCreateImage(baseColorTex.name, filename, texData, width, height, 4, ColorSpace::sRGB);
+                baseColorTex.location = AssetLocation::EMBEDDED;
+                baseColorTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":albedo", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::sRGB);
                 importedMaterial.albedoTexture = baseColorTex;
             }
             if (texData != nullptr && channels == 4) {
                 ImportedTexture alphaTex;
-                alphaTex.type = ImportedTextureType::EMBEDDED;
-                alphaTex.name = importedMaterial.name + ":alpha";
-                alphaTex.image = assimpCreateImage(alphaTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 3);
+                alphaTex.location = AssetLocation::EMBEDDED;
+                alphaTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":alpha", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::LINEAR,
+                    3);
                 importedMaterial.alphaTexture = alphaTex;
 
                 importedMaterial.transparent = true;
@@ -323,16 +328,28 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
             auto *texData = assimpLoadTextureData(scene, folderPath, roughnessTexture, width, height, channels);
             if (texData != nullptr) {
                 ImportedTexture roughnessTex;
-                roughnessTex.type = ImportedTextureType::EMBEDDED;
-                roughnessTex.name = importedMaterial.name + ":roughness";
-                roughnessTex.image = assimpCreateImage(roughnessTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 1);
+                roughnessTex.location = AssetLocation::EMBEDDED;
+                roughnessTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":roughness", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::LINEAR,
+                    1);
                 importedMaterial.roughnessTexture = roughnessTex;
             }
             if (texData != nullptr) {
                 ImportedTexture metallicTex;
-                metallicTex.type = ImportedTextureType::EMBEDDED;
-                metallicTex.name = importedMaterial.name + ":metallic";
-                metallicTex.image = assimpCreateImage(metallicTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 2);
+                metallicTex.location = AssetLocation::EMBEDDED;
+                metallicTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":metallic", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::LINEAR,
+                    2);
                 importedMaterial.metallicTexture = metallicTex;
             }
         }
@@ -344,9 +361,15 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
             auto *texData = assimpLoadTextureData(scene, folderPath, occlusionTexture, width, height, channels);
             if (texData != nullptr) {
                 ImportedTexture aoTex;
-                aoTex.type = ImportedTextureType::EMBEDDED;
-                aoTex.name = importedMaterial.name + ":ao";
-                aoTex.image = assimpCreateImage(aoTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR, 1);
+                aoTex.location = AssetLocation::EMBEDDED;
+                aoTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":ao", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::LINEAR,
+                    1);
                 importedMaterial.aoTexture = aoTex;
             }
         }
@@ -364,9 +387,14 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
             auto *texData = assimpLoadTextureData(scene, folderPath, emissiveTexture, width, height, channels);
             if (texData != nullptr) {
                 ImportedTexture emissiveTex;
-                emissiveTex.type = ImportedTextureType::EMBEDDED;
-                emissiveTex.name = importedMaterial.name + ":emissive";
-                emissiveTex.image = assimpCreateImage(emissiveTex.name, filename, texData, width, height, 4, ColorSpace::sRGB);
+                emissiveTex.location = AssetLocation::EMBEDDED;
+                emissiveTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":emissive", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::sRGB);
                 importedMaterial.emissiveTexture = emissiveTex;
 
                 /* If it has en emissive texture, then make sure that the color and strength are not zero */
@@ -386,9 +414,14 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
             auto *texData = assimpLoadTextureData(scene, folderPath, normalTexture, width, height, channels);
             if (texData != nullptr) {
                 ImportedTexture normalTex;
-                normalTex.type = ImportedTextureType::EMBEDDED;
-                normalTex.name = importedMaterial.name + ":normal";
-                normalTex.image = assimpCreateImage(normalTex.name, filename, texData, width, height, 4, ColorSpace::LINEAR);
+                normalTex.location = AssetLocation::EMBEDDED;
+                normalTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":normal", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::LINEAR);
                 importedMaterial.normalTexture = normalTex;
             }
         }
@@ -397,47 +430,47 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
     return materials;
 }
 
-Tree<ImportedModelNode> assimpLoadModel(std::string filename)
+Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info)
 {
     assert(aiGetVersionMajor() >= 5);
     assert(aiGetVersionMinor() >= 2);
     Assimp::Importer importer;
 
-    const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    const aiScene *scene = importer.ReadFile(info.filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
     if (!scene) {
         importer.FreeScene();
-        throw std::runtime_error("Failed to load model: " + filename);
+        throw std::runtime_error("Failed to load model: " + info.filepath);
     }
 
     Tree<ImportedModelNode> importedModel;
-    assimpLoadNode(scene->mRootNode, scene, importedModel);
+    assimpLoadNode(scene->mRootNode, scene, info, importedModel);
 
     importer.FreeScene();
 
     return importedModel;
 }
 
-Tree<ImportedModelNode> assimpLoadModel(std::string filename, std::vector<ImportedMaterial> &materials)
+Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info, std::vector<ImportedMaterial> &materials)
 {
     assert(aiGetVersionMajor() >= 5);
     assert(aiGetVersionMinor() >= 2);
     Assimp::Importer importer;
 
-    const aiScene *scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    const aiScene *scene = importer.ReadFile(info.filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
     if (!scene) {
         importer.FreeScene();
-        throw std::runtime_error("Failed to load model: " + filename);
+        throw std::runtime_error("Failed to load model: " + info.filepath);
     }
 
     Tree<ImportedModelNode> importedModel;
-    assimpLoadNode(scene->mRootNode, scene, importedModel);
+    assimpLoadNode(scene->mRootNode, scene, info, importedModel);
 
     FileType fileType;
     std::string folderPath;
     std::string filenameWithoutExtension;
     {
-        auto extensionPointPosition = filename.find_last_of(".");
-        auto lastDashPosition = filename.find_last_of("/");
+        auto extensionPointPosition = info.filepath.find_last_of(".");
+        auto lastDashPosition = info.filepath.find_last_of("/");
 
         /*
             e.g. filename:              /whatever/models/test.obj
@@ -445,14 +478,14 @@ Tree<ImportedModelNode> assimpLoadModel(std::string filename, std::vector<Import
             filenameWithoutExtension:   test
         */
 
-        fileType = detectFileType(filename.substr(extensionPointPosition + 1));
-        folderPath = filename.substr(0, lastDashPosition) + "/";
-        filenameWithoutExtension = filename.substr(lastDashPosition + 1, extensionPointPosition - lastDashPosition - 1);
+        fileType = detectFileType(info.filepath.substr(extensionPointPosition + 1));
+        folderPath = info.filepath.substr(0, lastDashPosition) + "/";
+        filenameWithoutExtension = info.filepath.substr(lastDashPosition + 1, extensionPointPosition - lastDashPosition - 1);
     }
 
     switch (fileType) {
         case FileType::GLTF: {
-            materials = assimpLoadMaterialsGLTF(scene, filename, folderPath, filenameWithoutExtension);
+            materials = assimpLoadMaterialsGLTF(scene, info, folderPath, filenameWithoutExtension);
             break;
         }
         case FileType::OBJ: {

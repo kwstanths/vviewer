@@ -26,6 +26,8 @@ public:
     typedef typename std::unordered_map<std::string, Asset *>::iterator Iterator;
 
     AssetMap() {}
+    AssetMap(AssetMap const &) = delete;
+    void operator=(AssetMap const &) = delete;
 
     bool isPresent(const std::string &id)
     {
@@ -52,15 +54,21 @@ public:
         return nullptr;
     }
 
-    Iterator remove(const std::string &id)
+    Iterator remove(const std::string name)
     {
-        auto itr = m_assets.find(id);
+        auto itr = m_assets.find(name);
         if (itr == m_assets.end()) {
-            debug_tools::ConsoleWarning("Erase: Asset not found: " + id);
+            debug_tools::ConsoleWarning("Erase: Asset not found: " + name);
             return m_assets.end();
         }
 
         return m_assets.erase(itr);
+    }
+
+    Iterator remove(const Asset *asset)
+    {
+        const std::string name = asset->name();
+        return remove(name);
     }
 
     void reset() { m_assets.clear(); }
@@ -85,8 +93,6 @@ public:
     void operator=(AssetManager const &) = delete;
 
     AssetMap<Texture> &texturesMap() { return m_texturesMap; }
-    AssetMap<Image<stbi_uc>> &imagesCharMap() { return m_imagesCharMap; }
-    AssetMap<Image<float>> &imagesHDRMap() { return m_imagesFloatMap; }
     AssetMap<Material> &materialsMap() { return m_materialsMap; }
     AssetMap<MaterialSkybox> &materialsSkyboxMap() { return m_materialsSkyboxMap; }
     AssetMap<Light> &lightsMap() { return m_lightsMap; }
@@ -98,8 +104,6 @@ private:
     AssetManager() {}
 
     AssetMap<Texture> m_texturesMap;
-    AssetMap<Image<stbi_uc>> m_imagesCharMap;
-    AssetMap<Image<float>> m_imagesFloatMap;
     AssetMap<Material> m_materialsMap;
     AssetMap<MaterialSkybox> m_materialsSkyboxMap;
     AssetMap<Light> m_lightsMap;

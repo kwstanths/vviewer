@@ -75,7 +75,7 @@ public:
 
     void exportScene(const ExportRenderParams &renderParams) const;
 
-    virtual Light *createLight(const std::string &name, LightType type, glm::vec4 color = {1, 1, 1, 1}) = 0;
+    virtual Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) = 0;
 
 protected:
     std::shared_ptr<Camera> m_camera = nullptr;

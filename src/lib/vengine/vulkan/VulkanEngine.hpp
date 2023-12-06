@@ -38,8 +38,10 @@ public:
     void exit() override;
     void waitIdle() override;
 
-    Model3D *importModel(std::string filename, bool importMaterials = true) override;
-    EnvironmentMap *importEnvironmentMap(std::string imagePath, bool keepTexture = false) override;
+    Model3D *importModel(const AssetInfo &info, bool importMaterials = true) override;
+    EnvironmentMap *importEnvironmentMap(const AssetInfo &info, bool keepTexture = false) override;
+
+    void deleteImportedAssets() override;
 
 private:
     VulkanContext m_context;

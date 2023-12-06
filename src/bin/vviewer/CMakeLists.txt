@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.7)
 
 set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
 

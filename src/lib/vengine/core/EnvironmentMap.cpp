@@ -3,17 +3,17 @@
 namespace vengine
 {
 
-Cubemap *EnvironmentMap::getSkyboxMap() const
+Cubemap *EnvironmentMap::skyboxMap() const
 {
     return m_skyboxMap;
 }
 
-Cubemap *EnvironmentMap::getIrradianceMap() const
+Cubemap *EnvironmentMap::irradianceMap() const
 {
     return m_irradianceMap;
 }
 
-Cubemap *EnvironmentMap::getPrefilteredMap() const
+Cubemap *EnvironmentMap::prefilteredMap() const
 {
     return m_prefilteredMap;
 }

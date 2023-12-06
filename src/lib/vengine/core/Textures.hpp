@@ -12,9 +12,9 @@ namespace vengine
 class Textures
 {
 public:
-    virtual Texture *createTexture(std::string imagePath, ColorSpace colorSpace = ColorSpace::sRGB, bool keepImage = false) = 0;
-    virtual Texture *createTexture(Image<stbi_uc> *image) = 0;
-    virtual Texture *createTextureHDR(std::string imagePath, bool keepImage = false) = 0;
+    virtual Texture *createTexture(const AssetInfo &info, ColorSpace colorSpace = ColorSpace::sRGB) = 0;
+    virtual Texture *createTexture(const Image<stbi_uc> &image) = 0;
+    virtual Texture *createTextureHDR(const AssetInfo &info) = 0;
 };
 
 }  // namespace vengine

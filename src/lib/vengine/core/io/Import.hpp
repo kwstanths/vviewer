@@ -21,7 +21,7 @@ namespace vengine
 std::string importScene(std::string filename,
                         ImportedCamera &c,
                         Tree<ImportedSceneObject> &sceneObjects,
-                        std::vector<std::string> &models,
+                        std::vector<ImportedModel> &models,
                         std::vector<ImportedMaterial> &materials,
                         std::vector<ImportedLight> &lights,
                         ImportedEnvironment &e);

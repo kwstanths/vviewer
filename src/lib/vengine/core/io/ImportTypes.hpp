@@ -25,10 +25,6 @@ enum class ImportedMaterialType {
     STACK = 2,
     EMBEDDED = 3,
 };
-enum class ImportedTextureType {
-    DISK_FILE = 0,
-    EMBEDDED = 1,
-};
 
 struct ImportedModelNode {
     std::string name;
@@ -39,14 +35,13 @@ struct ImportedModelNode {
 };
 
 struct ImportedTexture {
-    ImportedTextureType type;
-    std::string name;
+    AssetLocation location;
+    std::string name = "";
     Image<uint8_t> *image = nullptr;
 };
 
 struct ImportedMaterial {
-    std::string name;
-    std::string filepath;
+    AssetInfo info = AssetInfo("");
     ImportedMaterialType type;
 
     glm::vec4 albedo = glm::vec4(1, 1, 1, 1);
@@ -102,8 +97,13 @@ struct ImportedCamera {
     float fov = 60.F;
 };
 
+struct ImportedModel {
+    std::string name = "";
+    std::string filepath = "";
+};
+
 struct ImportedLight {
-    std::string name;
+    std::string name = "";
     LightType type;
     glm::vec3 color = {1, 1, 1};
     float intensity = 1.F;
@@ -117,7 +117,7 @@ struct ImportedEnvironment {
 
 /* Scene components */
 struct ImportedSceneObjectMesh {
-    std::string path = "";
+    std::string modelName = "";
     std::string submesh = "";
 };
 

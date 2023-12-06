@@ -23,7 +23,7 @@ public:
         Transform transform;
     };
 
-    Model3D(const std::string &name);
+    Model3D(const AssetInfo &info);
 
     Tree<Model3DNode> &data();
 

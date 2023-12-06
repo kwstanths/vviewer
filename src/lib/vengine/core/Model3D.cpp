@@ -3,8 +3,8 @@
 namespace vengine
 {
 
-Model3D::Model3D(const std::string &name)
-    : Asset(name)
+Model3D::Model3D(const AssetInfo &info)
+    : Asset(info)
 {
 }
 

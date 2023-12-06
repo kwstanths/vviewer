@@ -10,8 +10,8 @@ namespace vengine
 class Cubemap : public Asset
 {
 public:
-    Cubemap(std::string name);
-    Cubemap(std::string name, std::string directory);
+    Cubemap(const AssetInfo &info);
+    Cubemap(const AssetInfo &info, std::string directory);
     ~Cubemap();
 
 protected:

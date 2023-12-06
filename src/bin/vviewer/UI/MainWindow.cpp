@@ -288,16 +288,9 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
 
     /* Add mesh component */
     if (object.mesh.has_value()) {
-        if (object.mesh->submesh.empty()) {
-            /* if submesh is not defined, assign the whole model under the parent item */
-            addSceneObjectModel(parentItem, object.mesh->path, std::nullopt);
-            return;
-        } else {
-            /* Else, assign the corresponding submesh to the object */
-            auto model3D = instanceModels.get(object.mesh->path);
-            auto mesh = model3D->mesh(object.mesh->submesh);
-            newSceneObject.second->add<ComponentMesh>().mesh = mesh;
-        }
+        auto model3D = instanceModels.get(object.mesh->modelName);
+        auto mesh = model3D->mesh(object.mesh->submesh);
+        newSceneObject.second->add<ComponentMesh>().mesh = mesh;
     }
 
     /* Add material component */
@@ -348,7 +341,7 @@ void MainWindow::onImportModelSlot()
         std::string filename;
         bool operator()(float &)
         {
-            bool ret = engine->importModel(filename, true) != nullptr;
+            bool ret = engine->importModel(AssetInfo(filename), true) != nullptr;
             if (ret) {
                 debug_tools::ConsoleInfo("Model imported");
             }
@@ -383,7 +376,7 @@ void MainWindow::onImportTextureSRGBSlot()
             bool success = true;
             for (uint32_t t = 0; t < filenames.length(); t++) {
                 const auto &texture = filenames[t];
-                auto tex = textures.createTexture(texture.toStdString(), ColorSpace::sRGB);
+                auto tex = textures.createTexture(AssetInfo(texture.toStdString()), ColorSpace::sRGB);
                 if (tex) {
                     debug_tools::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
@@ -422,7 +415,7 @@ void MainWindow::onImportTextureLinearSlot()
             bool success = true;
             for (uint32_t t = 0; t < filenames.length(); t++) {
                 const auto &texture = filenames[t];
-                auto tex = textures.createTexture(texture.toStdString(), ColorSpace::LINEAR);
+                auto tex = textures.createTexture(AssetInfo(texture.toStdString()), ColorSpace::LINEAR);
                 if (tex) {
                     debug_tools::ConsoleInfo("Texture: " + texture.toStdString() + " imported");
                 } else {
@@ -457,7 +450,7 @@ void MainWindow::onImportEnvironmentMap()
         std::string filename;
         bool operator()(float &)
         {
-            auto envMap = engine->importEnvironmentMap(filename);
+            auto envMap = engine->importEnvironmentMap(AssetInfo(filename));
             if (envMap) {
                 debug_tools::ConsoleInfo("Environment map: " + filename + " imported");
                 return true;
@@ -494,7 +487,7 @@ void MainWindow::onImportMaterial()
         std::string materialName;
         bool operator()(float &)
         {
-            auto material = engine->materials().createMaterialFromDisk(materialName, dir, engine->textures());
+            auto material = engine->materials().createMaterialFromDisk(AssetInfo(materialName), dir, engine->textures());
             if (material) {
                 debug_tools::ConsoleInfo("Material: " + materialName + " has been created");
                 return true;
@@ -535,7 +528,7 @@ void MainWindow::onImportMaterialZipStackSlot()
         std::string materialName;
         bool operator()(float &)
         {
-            auto material = engine->materials().createZipMaterial(materialName, filename, engine->textures());
+            auto material = engine->materials().createZipMaterial(AssetInfo(materialName, filename), engine->textures());
             if (material) {
                 debug_tools::ConsoleInfo("Material: " + materialName + " has been created");
                 return true;
@@ -568,7 +561,7 @@ void MainWindow::onImportScene()
     /* Parse json file */
     ImportedCamera camera;
     Tree<ImportedSceneObject> scene;
-    std::vector<std::string> models;
+    std::vector<ImportedModel> models;
     std::vector<ImportedMaterial> materials;
     std::vector<ImportedLight> lights;
     ImportedEnvironment env;
@@ -597,11 +590,8 @@ void MainWindow::onImportScene()
         m_widgetRightPanel->getEnvironmentWidget()->setCamera(newCamera);
     }
 
-    /* Delete previous assets */
-    // TODO properly destroy and remove all the assets
-    AssetManager::getInstance().materialsMap().reset();
-    AssetManager::getInstance().lightsMap().reset();
-    AssetManager::getInstance().modelsMap().reset();
+    /* Delete previously imported assets */
+    m_engine->deleteImportedAssets();
 
     /* Remove old scene */
     m_sceneGraphWidget->blockSignals(true);
@@ -614,7 +604,7 @@ void MainWindow::onImportScene()
     /* Import models */
     debug_tools::ConsoleInfo("Importing models...");
     for (auto &itr : models) {
-        m_engine->importModel(itr, true);
+        m_engine->importModel(AssetInfo(itr.name, itr.filepath), true);
     }
 
     /* Import materials */
@@ -624,7 +614,7 @@ void MainWindow::onImportScene()
     /* Import light */
     for (auto &itr : lights) {
         AssetManager::getInstance().lightsMap().add(
-            m_engine->scene().createLight(itr.name, itr.type, glm::vec4(itr.color, itr.intensity)));
+            m_engine->scene().createLight(AssetInfo(itr.name), itr.type, glm::vec4(itr.color, itr.intensity)));
     }
 
     /* Create new scene */
@@ -635,7 +625,7 @@ void MainWindow::onImportScene()
 
     /* Create and set the environment */
     if (!env.path.empty()) {
-        auto envMap = m_engine->importEnvironmentMap(sceneFolder + env.path);
+        auto envMap = m_engine->importEnvironmentMap(AssetInfo(sceneFolder + env.path));
         if (envMap) {
             debug_tools::ConsoleInfo("Environment map: " + sceneFolder + env.path + " set");
 
@@ -722,7 +712,7 @@ void MainWindow::onCreateMaterialSlot()
         return;
     }
 
-    auto material = m_engine->materials().createMaterial(materialName, dialog->m_selectedMaterialType);
+    auto material = m_engine->materials().createMaterial(AssetInfo(materialName), dialog->m_selectedMaterialType);
     if (material == nullptr) {
         debug_tools::ConsoleWarning("Failed to create material");
     } else {
@@ -744,7 +734,7 @@ void MainWindow::onCreateLightSlot()
         return;
     }
 
-    auto light = m_engine->scene().createLight(lightName, dialog->m_selectedLightType.value());
+    auto light = m_engine->scene().createLight(AssetInfo(lightName), dialog->m_selectedLightType.value());
     if (light == nullptr) {
         debug_tools::ConsoleWarning("Failed to create light");
     } else {
@@ -765,10 +755,6 @@ void MainWindow::onAddPointLightSlot()
 
     /* Add light component */
     auto &lights = AssetManager::getInstance().lightsMap();
-    if (!lights.isPresent("defaultPointLight")) {
-        lights.add(m_engine->scene().createLight("defaultPointLight", LightType::POINT_LIGHT, glm::vec4(1, 1, 1, 1)));
-    }
-
     newObject.second->add<ComponentLight>().light = lights.get("defaultPointLight");
 
     m_engine->start();
@@ -787,10 +773,6 @@ void MainWindow::onAddDirectionalLightSlot()
 
     /* Add light component */
     auto &lights = AssetManager::getInstance().lightsMap();
-    if (!lights.isPresent("defaultDirectionalLight")) {
-        lights.add(m_engine->scene().createLight("defaultDirectionalLight", LightType::DIRECTIONAL_LIGHT, glm::vec4(1, 1, 1, 1)));
-    }
-
     newObject.second->add<ComponentLight>().light = lights.get("defaultDirectionalLight");
 
     m_engine->start();
@@ -812,9 +794,6 @@ void MainWindow::onAddAreaLightSlot()
 
     auto matDefE = instanceMaterials.get("defaultEmissive");
 
-    if (!instanceModels.isPresent("assets/models/plane.obj")) {
-        m_engine->importModel("assets/models/plane.obj", false);
-    }
     auto plane = instanceModels.get("assets/models/plane.obj");
 
     newObject.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
@@ -1024,7 +1003,7 @@ void MainWindow::onContextMenuSceneGraph(const QPoint &pos)
 void MainWindow::onStartUpInitialization()
 {
     std::string assetName = "assets/models/DamagedHelmet.gltf";
-    m_engine->importModel(assetName, true);
+    m_engine->importModel(AssetInfo(assetName), true);
 
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();

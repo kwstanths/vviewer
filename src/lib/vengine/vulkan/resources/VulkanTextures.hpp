@@ -31,9 +31,9 @@ public:
 
     void updateTextures();
 
-    Texture *createTexture(std::string imagePath, ColorSpace colorSpace = ColorSpace::sRGB, bool keepImage = false) override;
-    Texture *createTexture(Image<stbi_uc> *image) override;
-    Texture *createTextureHDR(std::string imagePath, bool keepImage = false) override;
+    Texture *createTexture(const AssetInfo &info, ColorSpace colorSpace = ColorSpace::sRGB) override;
+    Texture *createTexture(const Image<stbi_uc> &image) override;
+    Texture *createTextureHDR(const AssetInfo &info) override;
 
     Texture *addTexture(Texture *tex);
 
