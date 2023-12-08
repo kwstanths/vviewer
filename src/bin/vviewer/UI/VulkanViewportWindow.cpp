@@ -84,6 +84,9 @@ bool VulkanViewportWindow::event(QEvent *event)
 
                 releaseResources();
             }
+            break;
+        }
+        default: {
         }
     }
 
@@ -160,25 +163,35 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
     QPointF mousePosDiff = newMousePos - m_mousePos;
     m_mousePos = newMousePos;
 
-    /* Perform camera movement if right button is pressed */
     float delta = m_engine->delta();
+    float rotateSensitivity = 0.125F;
+    float panSensitivity = 0.6F;
+    float movementSensitivity = 1.25f;
+
+    /* Perform camera movement if right button is pressed */
     Qt::MouseButtons buttons = ev->buttons();
     Transform &cameraTransform = m_engine->scene().camera()->transform();
     if (buttons & Qt::RightButton) {
-        float mouseSensitivity = 0.125f * delta;
+        float speed = rotateSensitivity * delta;
 
         /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.rotation();
-        glm::quat qPitch = glm::angleAxis(-(float)mousePosDiff.y() * mouseSensitivity, glm::vec3(1, 0, 0));
-        glm::quat qYaw = glm::angleAxis(-(float)mousePosDiff.x() * mouseSensitivity, glm::vec3(0, 1, 0));
+        glm::quat qPitch = glm::angleAxis(static_cast<float>(mousePosDiff.y()) * speed, glm::vec3(1, 0, 0));
+        glm::quat qYaw = glm::angleAxis(static_cast<float>(mousePosDiff.x()) * speed, glm::vec3(0, 1, 0));
 
         cameraTransform.setRotation(glm::normalize(qYaw * rotation * qPitch));
     }
 
+    if (buttons & Qt::MiddleButton) {
+        float speed = panSensitivity * delta;
+        cameraTransform.position() += cameraTransform.right() * static_cast<float>(-mousePosDiff.x()) * speed;
+        cameraTransform.position() += cameraTransform.up() * static_cast<float>(mousePosDiff.y()) * speed;
+    }
+
     /* Perform movement of selected object if left button is pressed */
     VulkanRenderer &renderer = static_cast<VulkanRenderer &>(m_engine->renderer());
-    float movementSensitivity = 1.25f * delta;
     if (buttons & Qt::LeftButton) {
+        float speed = movementSensitivity * delta;
         SceneObject *selectedObject = renderer.getSelectedObject();
         if (selectedObject == nullptr)
             return;
@@ -202,7 +215,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                 } else {
                     movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
                 }
-                position += selectedObjectTransform.X() * movementSensitivity * movement;
+                position += selectedObjectTransform.X() * speed * movement;
                 break;
             }
             case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW): {
@@ -215,7 +228,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                 } else {
                     movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
                 }
-                position += selectedObjectTransform.Z() * movementSensitivity * movement;
+                position += selectedObjectTransform.Z() * speed * movement;
                 break;
             }
             case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW): {
@@ -228,7 +241,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                 } else {
                     movement = ((cameraUpDot > 0) ? 1 : -1) * ((float)-mousePosDiff.y());
                 }
-                position += selectedObjectTransform.Y() * movementSensitivity * movement;
+                position += selectedObjectTransform.Y() * speed * movement;
                 break;
             }
             default:
@@ -237,6 +250,20 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
         selectedObjectTransform.position() = position;
         selectedObject->setLocalTransform(selectedObjectTransform);
         Q_EMIT selectedObjectPositionChanged();
+    }
+}
+
+void VulkanViewportWindow::wheelEvent(QWheelEvent *ev)
+{
+    float delta = m_engine->delta();
+    float zoomSensitivity = 0.2F;
+    float speed = zoomSensitivity * delta;
+    Transform &cameraTransform = m_engine->scene().camera()->transform();
+
+    if (ev->angleDelta().y() > 0) {
+        cameraTransform.position() += cameraTransform.forward() * static_cast<float>(ev->angleDelta().y()) * speed;
+    } else if (ev->angleDelta().y() < 0) {
+        cameraTransform.position() += cameraTransform.forward() * static_cast<float>(ev->angleDelta().y()) * speed;
     }
 }
 

@@ -64,19 +64,19 @@ Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene, const AssetInfo &info)
         vertices[i].position = {mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
 
 #ifdef SANITIZATION_CHECK
-        if (!checkValid(vertices[i].position))
+        if (!checkValid(vertices[i].position) && printErrorMessage) {
             debug_tools::ConsoleCritical("assimpLoadMesh(): Input vertex for mesh [" + meshName + "] is corrupted");
+            printErrorMessage = false;
+        }
 #endif
 
         if (hasNormals) {
-            vertices[i].normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+            vertices[i].normal = glm::normalize(glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z));
 
 #ifdef SANITIZATION_CHECK
-            if (!checkValid(vertices[i].normal))
+            if (!checkValid(vertices[i].normal) && printErrorMessage) {
                 debug_tools::ConsoleCritical("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is corrupted");
-            if (glm::length(vertices[i].normal) < 0.99) {
-                debug_tools::ConsoleWarning("assimpLoadMesh(): Input normal for mesh [" + meshName + "] is not normalized");
-                vertices[i].normal = glm::normalize(vertices[i].normal);
+                printErrorMessage = false;
             }
 #endif
         }
@@ -86,8 +86,10 @@ Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene, const AssetInfo &info)
             vertices[i].uv = {mesh->mTextureCoords[0][i].x, 1.f - mesh->mTextureCoords[0][i].y};
 
 #ifdef SANITIZATION_CHECK
-            if (!checkValid(vertices[i].uv))
+            if (!checkValid(vertices[i].uv) && printErrorMessage) {
                 debug_tools::ConsoleCritical("assimpLoadMesh(): Input uv for mesh [" + meshName + "] is corrupted");
+                printErrorMessage = false;
+            }
 #endif
 
         } else {
@@ -97,8 +99,8 @@ Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene, const AssetInfo &info)
         vertices[i].color = {1, 1, 1};
 
         if (hasTangents) {
-            vertices[i].tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
-            vertices[i].bitangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+            vertices[i].tangent = glm::normalize(glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z));
+            vertices[i].bitangent = glm::normalize(glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z));
 
 #ifdef SANITIZATION_CHECK
             if (!checkValid(vertices[i].tangent) || !checkValid(vertices[i].bitangent)) {
@@ -111,26 +113,12 @@ Mesh assimpLoadMesh(aiMesh *mesh, const aiScene *scene, const AssetInfo &info)
                 auto t1 = glm::cross(vertices[i].normal, Transform::WORLD_Z);
                 auto t2 = glm::cross(vertices[i].normal, Transform::WORLD_X);
                 if (glm::length(t1) > glm::length(t2)) {
-                    vertices[i].tangent = t1;
+                    vertices[i].tangent = glm::normalize(t1);
                 } else {
-                    vertices[i].tangent = t2;
+                    vertices[i].tangent = glm::normalize(t2);
                 }
 
-                vertices[i].bitangent = glm::cross(vertices[i].normal, vertices[i].tangent);
-            }
-            if (glm::length(vertices[i].tangent) < 0.99) {
-                if (printErrorMessage) {
-                    debug_tools::ConsoleWarning("assimpLoadMesh(): Input tangent for mesh [" + meshName + "] is not normalized");
-                    printErrorMessage = false;
-                }
-                vertices[i].tangent = glm::normalize(vertices[i].tangent);
-            }
-            if (glm::length(vertices[i].bitangent) < 0.99) {
-                if (printErrorMessage) {
-                    debug_tools::ConsoleWarning("assimpLoadMesh(): Input bitangent for mesh [" + meshName + "] is not normalized");
-                    printErrorMessage = false;
-                }
-                vertices[i].bitangent = glm::normalize(vertices[i].bitangent);
+                vertices[i].bitangent = glm::normalize(glm::cross(vertices[i].normal, vertices[i].tangent));
             }
 #endif
         }
@@ -224,8 +212,7 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
 #endif
             replaceAll(fullPath, "\\", "/");
 
-            unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, nullptr, STBI_rgb_alpha);
-            channels = 4;
+            unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
             if (textureData == nullptr) {
                 debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + fullPath + " from memory");
             }
@@ -273,6 +260,7 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
         {
             aiString name;
             mat->Get(AI_MATKEY_NAME, name);
+
             importedMaterial.info =
                 AssetInfo(materialNamePrefix + ":" + std::string(name.C_Str()), info.filepath, info.source, AssetLocation::EMBEDDED);
         }

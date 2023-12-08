@@ -46,6 +46,7 @@ private:
     void mousePressEvent(QMouseEvent *ev) override;
     void mouseReleaseEvent(QMouseEvent *ev) override;
     void mouseMoveEvent(QMouseEvent *ev) override;
+    void wheelEvent(QWheelEvent *ev) override;
 
 private Q_SLOTS:
     void onUpdateCamera();
