@@ -1,5 +1,5 @@
 # vviewer 
-A 3D model viewer and scene editor written in Qt and Vulkan
+A 3D model viewer and scene editor written in Vulkan and Qt. Includes a rendering engine that can be built separately as a standalone library, and a UI editor built with Qt
 
 ## Features
 * Import 3D models, textures and equirectangular HDRI maps
@@ -8,12 +8,17 @@ A 3D model viewer and scene editor written in Qt and Vulkan
 * Export/Import scenes
 * Launch a GPU path tracer
 
+## Dependencies 
+* Vulkan. Make sure the VULKAN_SDK environment variable points to the installation folder. Version tested 1.3.204.1
+* GLM
+* assimp. Look into src/lib/SetupEnvironment.cmake and edit the assimp paths based on your installation. Version tested 5.2.5
+
+### vviewer binary
+* Qt. Make sure the Qt6_DIR points to the installation folder. Version tested 6.2.4
+
 ## Building
+* Install dependencies
 * Clone the project and all its submodules
-* Install Qt. Make sure the Qt6_DIR points to the installation folder. Version tested 6.2.4
-* Install vulkan. Makre sure the VULKAN_SDK environment variable points to the installation folder. Version tested 1.3.204.1
-* Install GLM
-* Install assimp. Look into src/lib/SetupEnvironment.cmake and edit the assimp paths based on your installation. Version tested 5.2.5
 * Create build folder, run cmake and build
 * Make sure that runtime dependencies can be found. If the paths are set up correctly, cmake will compile the shaders and paste assets and the shader binaries
 
