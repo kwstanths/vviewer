@@ -8,5 +8,5 @@ layout(location = 1) rayPayloadInEXT RayPayloadSecondary rayPayloadSecondary;
 
 void main()
 {
-	rayPayloadSecondary.shadowed = false;
+    rayPayloadSecondary.shadowed = false;
 }

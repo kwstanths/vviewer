@@ -105,8 +105,8 @@ private Q_SLOTS:
     void onAddPointLightSlot();
     /* Add a directional light as a child of the currently selected node */
     void onAddDirectionalLightSlot();
-    /* Add an area light as a child of the currently selected node */
-    void onAddAreaLightSlot();
+    /* Add a mesh light as a child of the currently selected node */
+    void onAddMeshLightSlot();
     /* Create a material */
     void onCreateMaterialSlot();
     /* Create a light */
@@ -124,6 +124,8 @@ private Q_SLOTS:
     void onSelectedSceneObjectChangedSlot3DScene(vengine::SceneObject *object);
     /* Currently selected item's name in the scene changed */
     void onSelectedSceneObjectNameChangedSlot(QString newName);
+    /* Currently selected item's active property changed */
+    void onSelectedSceneObjectActiveChangedSlot();
 
     /* Show context menu for scene graph */
     void onContextMenuSceneGraph(const QPoint &pos);

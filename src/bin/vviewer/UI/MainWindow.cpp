@@ -96,6 +96,10 @@ QWidget *MainWindow::initRightPanel()
             &WidgetRightPanel::selectedSceneObjectNameChanged,
             this,
             &MainWindow::onSelectedSceneObjectNameChangedSlot);
+    connect(m_widgetRightPanel,
+            &WidgetRightPanel::selectedSceneObjectActiveChanged,
+            this,
+            &MainWindow::onSelectedSceneObjectActiveChangedSlot);
     connect(m_viewport, &ViewportWindow::selectedObjectPositionChanged, m_widgetRightPanel, &WidgetRightPanel::onTransformChanged);
 
     m_widgetRightPanel->setFixedWidth(380);
@@ -203,12 +207,15 @@ void MainWindow::selectObject(QTreeWidgetItem *selectedItem)
     if (previouslySelected != nullptr) {
         previouslySelected->setSelected(false);
         SceneObject *previousSelected = WidgetSceneGraph::getSceneObject(previouslySelected);
-        previousSelected->m_isSelected = false;
+        previousSelected->selected() = false;
     }
 
     /* Set selection to new item */
     m_sceneGraphWidget->setPreviouslySelectedItem(selectedItem);
-    sceneObject->m_isSelected = true;
+    /* Make sure the current item selection is also updated, selected item can change outside of the UI */
+    m_sceneGraphWidget->setCurrentItem(selectedItem);
+
+    sceneObject->selected() = true;
     m_engine->renderer().setSelectedObject(sceneObject);
 
     m_widgetRightPanel->setSelectedObject(sceneObject);
@@ -285,6 +292,10 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
 
     /* Create new scene object */
     auto newSceneObject = createEmptySceneObject(object.name, object.transform, parentItem);
+    if (!object.active) {
+        newSceneObject.second->active() = false;
+        newSceneObject.first->setForeground(0, QBrush(Qt::gray));
+    }
 
     /* Add mesh component */
     if (object.mesh.has_value()) {
@@ -778,7 +789,7 @@ void MainWindow::onAddDirectionalLightSlot()
     m_engine->start();
 }
 
-void MainWindow::onAddAreaLightSlot()
+void MainWindow::onAddMeshLightSlot()
 {
     /* Get currently selected tree item */
     QTreeWidgetItem *selectedItem = m_sceneGraphWidget->currentItem();
@@ -787,7 +798,7 @@ void MainWindow::onAddAreaLightSlot()
     m_engine->waitIdle();
 
     /* Create new empty item under the selected item */
-    auto newObject = createEmptySceneObject("Area light", Transform(), selectedItem);
+    auto newObject = createEmptySceneObject("Mesh light", Transform(), selectedItem);
 
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
@@ -902,7 +913,7 @@ void MainWindow::onDuplicateSceneObjectSlot()
     std::function<void(QTreeWidgetItem *, QTreeWidgetItem *)> duplicate;
     duplicate = [&](QTreeWidgetItem *duplicatedItem, QTreeWidgetItem *parent) {
         SceneObject *so = m_sceneGraphWidget->getSceneObject(duplicatedItem);
-        auto newObject = createEmptySceneObject(so->m_name + " (D)", so->localTransform(), parent);
+        auto newObject = createEmptySceneObject(so->name() + " (D)", so->localTransform(), parent);
 
         if (so->has<ComponentLight>()) {
             auto l = so->get<ComponentLight>().light;
@@ -952,11 +963,27 @@ void MainWindow::onSelectedSceneObjectChangedSlot3DScene(SceneObject *object)
 
 void MainWindow::onSelectedSceneObjectNameChangedSlot(QString newName)
 {
-    QTreeWidgetItem *selectedItem = m_sceneGraphWidget->currentItem();
-    SceneObject *object = WidgetSceneGraph::getSceneObject(selectedItem);
+    auto selectedObject = m_widgetRightPanel->getSelectedObject();
+    QTreeWidgetItem *selectedItem = m_sceneGraphWidget->getTreeWidgetItem(selectedObject);
+    if (selectedItem == nullptr)
+        return;
 
-    object->m_name = newName.toStdString();
+    selectedObject->name() = newName.toStdString();
     selectedItem->setText(0, newName);
+}
+
+void MainWindow::onSelectedSceneObjectActiveChangedSlot()
+{
+    auto selectedObject = m_widgetRightPanel->getSelectedObject();
+    QTreeWidgetItem *selectedItem = m_sceneGraphWidget->getTreeWidgetItem(selectedObject);
+    if (selectedItem == nullptr)
+        return;
+
+    if (selectedObject->active()) {
+        selectedItem->setForeground(0, QBrush(Qt::black));
+    } else {
+        selectedItem->setForeground(0, QBrush(Qt::gray));
+    }
 }
 
 void MainWindow::onContextMenuSceneGraph(const QPoint &pos)
@@ -980,13 +1007,13 @@ void MainWindow::onContextMenuSceneGraph(const QPoint &pos)
     QAction action5("Add directional light", this);
     connect(&action5, SIGNAL(triggered()), this, SLOT(onAddDirectionalLightSlot()));
     lightMenu.addAction(&action5);
-    QAction action6("Add area light", this);
-    connect(&action6, SIGNAL(triggered()), this, SLOT(onAddAreaLightSlot()));
+    QAction action6("Add mesh light", this);
+    connect(&action6, SIGNAL(triggered()), this, SLOT(onAddMeshLightSlot()));
     lightMenu.addAction(&action6);
 
     contextMenu.addMenu(&lightMenu);
 
-    /* Check if it's a valid index */
+    /* Check if the menu is spawned on a selected object */
     QModelIndex index = m_sceneGraphWidget->indexAt(pos);
     QAction *action7 = nullptr;
     if (index.isValid()) {

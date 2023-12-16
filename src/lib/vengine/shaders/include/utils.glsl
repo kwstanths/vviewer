@@ -21,10 +21,10 @@ float distanceSquared(vec3 p0, vec3 p1)
 
 bool isBlack(vec3 c)
 {
-	return c.x == 0 && c.y == 0 && c.z == 0;
+    return c.x == 0 && c.y == 0 && c.z == 0;
 }
 
 bool isBlack(vec3 c, float epsilon)
 {
-	return (abs(c.x) <=  epsilon) && (abs(c.y) <=  epsilon) && (abs(c.z) <=  epsilon);
+    return (abs(c.x) <=  epsilon) && (abs(c.y) <=  epsilon) && (abs(c.z) <=  epsilon);
 }

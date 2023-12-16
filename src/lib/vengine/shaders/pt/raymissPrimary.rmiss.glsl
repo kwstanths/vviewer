@@ -21,5 +21,5 @@ void main()
 
     vec3 backgroundColor = textureLod(skybox, rayDir, 0).xyz;
 
-	rayPayloadPrimary.radiance += sceneData.data.exposure.g * backgroundColor * rayPayloadPrimary.beta;
+    rayPayloadPrimary.radiance += sceneData.data.exposure.g * backgroundColor * rayPayloadPrimary.beta;
 }

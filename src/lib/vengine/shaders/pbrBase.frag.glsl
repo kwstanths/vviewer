@@ -25,19 +25,19 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
 } sceneData;
 
 layout(set = 1, binding = 0) uniform readonly ModelDataDescriptor {
-	ModelData data[1000];
+    ModelData data[1000];
 } modelData;
 
 layout(set = 2, binding = 0) uniform readonly LightDataUBO {
-	LightData data[200];
+    LightData data[200];
 } lightData;
 
 layout(set = 2, binding = 1) uniform readonly LightComponentsUBO {
-	LightComponent data[1000];
+    LightComponent data[1000];
 } lightComponents;
 
 layout(set = 3, binding = 0) uniform readonly MaterialDataUBO {
-	MaterialData data[200];
+    MaterialData data[200];
 } materialData;
 
 layout (set = 4, binding = 0) uniform sampler2D global_textures[];
@@ -47,7 +47,7 @@ layout(set = 5, binding = 1) uniform samplerCube skyboxIrradiance;
 layout(set = 5, binding = 2) uniform samplerCube skyboxPrefiltered;
 
 layout(push_constant) uniform PushConsts {
-	layout (offset = 0) vec4 selected;
+    layout (offset = 0) vec4 selected;
     layout (offset = 16) uvec4 info;
     layout (offset = 32) uvec4 lights;
 } pushConsts;
@@ -136,7 +136,7 @@ void main() {
     vec3 color = sceneData.data.exposure.g * ambient + direct + emissive;
     
     color = tonemapDefault2(color, sceneData.data.exposure.r);
-	
+    
     outColor = vec4(color, alpha);
-	outHighlight = pushConsts.selected;
+    outHighlight = pushConsts.selected;
 }

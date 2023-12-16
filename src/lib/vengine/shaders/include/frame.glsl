@@ -9,12 +9,12 @@ bool fixFrame(inout vec3 normal, inout vec3 tangent, inout vec3 bitangent, vec3 
     bool flipped = false;
     
     /* Flip frame if the ray comes from the other side */
-	if (dot(normal, ray) > 0)
-	{
-		normal = -normal;
-		tangent = -tangent;
+    if (dot(normal, ray) > 0)
+    {
+        normal = -normal;
+        tangent = -tangent;
         flipped = true;
-	}
+    }
 
     normal = normalize(normal);
     tangent = normalize(tangent);
@@ -24,9 +24,9 @@ bool fixFrame(inout vec3 normal, inout vec3 tangent, inout vec3 bitangent, vec3 
     if (abs(dot(normal, tangent)) > 0.999)
     {
         /* If normal and tangent are parallel, construct a frame from the normal only */
-	    bitangent = abs(normal.z) < 0.999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
-	    tangent = cross(bitangent, normal);
-	    bitangent = cross(normal, tangent);
+        bitangent = abs(normal.z) < 0.999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
+        tangent = cross(bitangent, normal);
+        bitangent = cross(normal, tangent);
     } else {
         bitangent = cross(normal, tangent);
         tangent = cross(bitangent, normal);
@@ -49,7 +49,7 @@ void applyNormalToFrame(inout Frame frame, vec3 newNormal)
 {
     vec3 newNormal_world = localToWorld(frame, newNormal);
 
-	frame.normal = newNormal_world;
-	frame.tangent = cross(frame.normal, frame.bitangent);
-	frame.bitangent = cross(frame.tangent, frame.normal);
+    frame.normal = newNormal_world;
+    frame.tangent = cross(frame.normal, frame.bitangent);
+    frame.bitangent = cross(frame.tangent, frame.normal);
 }

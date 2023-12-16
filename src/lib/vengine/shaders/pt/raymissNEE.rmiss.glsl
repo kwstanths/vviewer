@@ -8,7 +8,7 @@ layout(location = 2) rayPayloadInEXT RayPayloadNEE rayPayloadNEE;
 
 void main()
 {
-	// TODO environment map sampling pdf
+    // TODO environment map sampling pdf
     // rayPayloadNEE.emissive = vec3(0, 0, 0);
     // rayPayloadNEE.pdf = 0;
 }

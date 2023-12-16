@@ -12,19 +12,29 @@ namespace vengine
 class SceneObject : public SceneNode<SceneObject>, public Entity
 {
 public:
-    SceneObject(const Transform &t);
+    SceneObject(const std::string &name, const Transform &t);
     virtual ~SceneObject();
 
-    std::string m_name = "";
+    std::string &name() { return m_name; }
+    const std::string &name() const { return m_name; }
 
-    virtual void setModelMatrix(const glm::mat4 &modelMatrix) override;
+    bool &selected() { return m_selected; }
+    const bool &selected() const { return m_selected; }
 
-    bool m_isSelected = false;
+    bool &active() { return m_active; }
+    const bool &active() const { return m_active; }
 
     glm::vec3 getIDRGB() const;
 
+    virtual void setModelMatrix(const glm::mat4 &modelMatrix) override;
+
 protected:
     glm::vec3 m_idRGB;
+
+private:
+    std::string m_name = "";
+    bool m_selected = false;
+    bool m_active = true;
 };
 
 typedef std::vector<SceneObject *> SceneGraph;

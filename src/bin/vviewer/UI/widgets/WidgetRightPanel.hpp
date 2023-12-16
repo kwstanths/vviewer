@@ -25,6 +25,7 @@ public:
     WidgetRightPanel(QWidget *parent, vengine::Engine *engine);
 
     void setSelectedObject(vengine::SceneObject *object);
+    vengine::SceneObject *getSelectedObject() const;
 
     WidgetEnvironment *getEnvironmentWidget();
 
@@ -58,6 +59,7 @@ public Q_SLOTS:
 private Q_SLOTS:
     void onUpdate();
     void onSceneObjectNameChanged();
+    void onSceneObjectActiveChanged(int);
     void onComponentRemoved();
     void onAddComponentMesh();
     void onAddComponentMaterial();
@@ -66,6 +68,7 @@ private Q_SLOTS:
 
 Q_SIGNALS:
     void selectedSceneObjectNameChanged(QString newName);
+    void selectedSceneObjectActiveChanged();
 };
 
 #endif

@@ -24,7 +24,7 @@ void WidgetSceneGraph::setPreviouslySelectedItem(QTreeWidgetItem *item)
 
 QTreeWidgetItem *WidgetSceneGraph::createTreeWidgetItem(SceneObject *object)
 {
-    QTreeWidgetItem *item = new QTreeWidgetItem({QString(object->m_name.c_str())});
+    QTreeWidgetItem *item = new QTreeWidgetItem({QString(object->name().c_str())});
     QVariant data;
     data.setValue(object);
     item->setData(0, Qt::UserRole, data);

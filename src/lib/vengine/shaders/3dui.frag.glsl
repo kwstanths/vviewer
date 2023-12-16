@@ -13,7 +13,7 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
 } sceneData;
 
 layout(push_constant) uniform PushConsts {
-	layout (offset = 64) vec4 color;
+    layout (offset = 64) vec4 color;
     layout (offset = 80) vec4 selected;
 } pushConsts;
 
@@ -22,7 +22,7 @@ void main() {
     vec3 color = pushConsts.color.rgb;
     
     color = tonemapDefault2(color, sceneData.data.exposure.r);
-	
+    
     outColor = vec4(color, 1);
     outHighlight = pushConsts.selected;
 }

@@ -30,7 +30,7 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 
     float num   = NdotV;
     float denom = NdotV * (1.0 - k) + k;
-	
+    
     return num / denom;
 }
 
@@ -38,7 +38,7 @@ float GeometrySmithGGX(float NdotV, float NdotL, float roughness)
 {
     float ggx2  = GeometrySchlickGGX(NdotV, roughness);
     float ggx1  = GeometrySchlickGGX(NdotL, roughness);
-	
+    
     return ggx1 * ggx2;
 }
 

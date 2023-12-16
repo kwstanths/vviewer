@@ -9,11 +9,11 @@ layout(set = 0, binding = 1) uniform sampler2D inputHighlight;
 
 void main()
 {
-	outColor = texture(inputColor, inUV).rgba;
-	vec4 highlightInfo = texture(inputHighlight, inUV).rgba;
+    outColor = texture(inputColor, inUV).rgba;
+    vec4 highlightInfo = texture(inputHighlight, inUV).rgba;
     
-	if (highlightInfo.a > 0.5f){
-		vec2 size = 1.0f / textureSize(inputHighlight, 0);
+    if (highlightInfo.a > 0.5f){
+        vec2 size = 1.0f / textureSize(inputHighlight, 0);
 
         for (int i = -3; i <= +3; i++)
         {
@@ -32,5 +32,5 @@ void main()
                 }
             }
         }
-	}
+    }
 }

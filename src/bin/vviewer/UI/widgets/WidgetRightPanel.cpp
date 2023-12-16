@@ -7,6 +7,7 @@
 #include <qpushbutton.h>
 #include <qwidget.h>
 #include <qmenu.h>
+#include <qcheckbox.h>
 
 #include "vengine/utils/ECS.hpp"
 #include "vengine/core/AssetManager.hpp"
@@ -56,6 +57,11 @@ void WidgetRightPanel::setSelectedObject(SceneObject *object)
     if (m_object != nullptr) {
         createUI(object);
     }
+}
+
+vengine::SceneObject *WidgetRightPanel::getSelectedObject() const
+{
+    return m_object;
 }
 
 WidgetEnvironment *WidgetRightPanel::getEnvironmentWidget()
@@ -108,9 +114,21 @@ void WidgetRightPanel::createUI(SceneObject *object)
     m_layoutControls->setAlignment(Qt::AlignTop);
     m_layoutControls->setSpacing(10);
 
-    m_selectedObjectWidgetName = new WidgetName(nullptr, QString(object->m_name.c_str()));
+    m_selectedObjectWidgetName = new WidgetName(nullptr, QString(object->name().c_str()));
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &WidgetRightPanel::onSceneObjectNameChanged);
-    m_layoutControls->addWidget(m_selectedObjectWidgetName);
+
+    QCheckBox *activeCheckBox = new QCheckBox();
+    activeCheckBox->setChecked(object->active());
+    connect(activeCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onSceneObjectActiveChanged(int)));
+    QHBoxLayout *layoutTest = new QHBoxLayout();
+    layoutTest->addWidget(activeCheckBox);
+    layoutTest->addWidget(m_selectedObjectWidgetName);
+    layoutTest->setContentsMargins(0, 0, 0, 0);
+    QWidget *widgetTest = new QWidget();
+    widgetTest->setLayout(layoutTest);
+    widgetTest->setFixedHeight(30);
+    widgetTest->setContentsMargins(0, 0, 0, 0);
+    m_layoutControls->addWidget(widgetTest);
 
     m_selectedObjectWidgetTransform = new WidgetTransform(nullptr, object, "Transform", true);
     m_layoutControls->addWidget(m_selectedObjectWidgetTransform);
@@ -176,6 +194,12 @@ void WidgetRightPanel::onSceneObjectNameChanged()
 {
     QString newName = m_selectedObjectWidgetName->m_text->toPlainText();
     Q_EMIT selectedSceneObjectNameChanged(newName);
+}
+
+void WidgetRightPanel::onSceneObjectActiveChanged(int)
+{
+    m_object->active() = !m_object->active();
+    Q_EMIT selectedSceneObjectActiveChanged();
 }
 
 void WidgetRightPanel::onComponentRemoved()

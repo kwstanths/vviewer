@@ -131,6 +131,7 @@ struct ImportedSceneObjectLight {
 
 struct ImportedSceneObject {
     std::string name;
+    bool active = true;
     Transform transform = Transform({0, 0, 0}, {1, 1, 1}, {0, 0, 0});
     std::optional<ImportedSceneObjectMesh> mesh = std::nullopt;
     std::optional<ImportedSceneObjectMaterial> material = std::nullopt;

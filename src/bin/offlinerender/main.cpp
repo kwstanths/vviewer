@@ -32,9 +32,12 @@ void createSceneBallOnPlance(Scene &scene)
 
     SceneObject *lightObject = scene.addSceneObject("light", Transform({4, 1.5, 0}));
     lightObject->add<ComponentLight>().light = instanceLights.get("defaultPointLight");
+
+    /* Environment map intensity */
+    scene.environmentIBLFactor() = 1.0F;
 }
 
-void performVideoRender(VulkanEngine &engine, Scene &scene)
+void performRenderSequence(VulkanEngine &engine, Scene &scene)
 {
     engine.renderer().rendererPathTracing().renderInfo().samples = 256;
     engine.renderer().rendererPathTracing().renderInfo().batchSize = 256;
@@ -64,7 +67,7 @@ int main(int argc, char **argv)
 
     scene.updateSceneGraph();
 
-    performVideoRender(engine, scene);
+    performRenderSequence(engine, scene);
 
     engine.releaseResources();
 

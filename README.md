@@ -4,7 +4,7 @@ A 3D model viewer and scene editor written in Qt and Vulkan
 ## Features
 * Import 3D models, textures and equirectangular HDRI maps
 * Create Physically Based or Lambert materials
-* Add Point/Directional/Area lights
+* Add Point/Directional/Mesh lights
 * Export/Import scenes
 * Launch a GPU path tracer
 

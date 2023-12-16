@@ -12,9 +12,9 @@ struct Vertex
 /* SceneData struct. A mirror of the CPU struct */
 struct SceneData {
     mat4 view;
-	mat4 viewInverse;
+    mat4 viewInverse;
     mat4 projection;
-	mat4 projectionInverse;
+    mat4 projectionInverse;
     vec4 exposure; /* R = exposure, G = Ambient environment map multiplier, B = , A = */
 };
 
@@ -60,9 +60,9 @@ struct LightComponent {
 struct ObjDesc
 {
     /* Pointers to GPU buffers */
-	uint64_t vertexAddress;
-	uint64_t indexAddress;
-	uint materialIndex;
+    uint64_t vertexAddress;
+    uint64_t indexAddress;
+    uint materialIndex;
     uint numTriangles;
 };
 
@@ -102,8 +102,8 @@ struct Light {
 
 /* Struct for PT light sampling */
 struct LightSamplingRecord {
-	vec3 direction;
-	vec3 radiance;
-	float pdf;
-	bool isDeltaLight;
+    vec3 direction;
+    vec3 radiance;
+    float pdf;
+    bool isDeltaLight;
 };

@@ -537,8 +537,15 @@ void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
 
     /* name */
     Value name;
-    name.SetString(sceneObject->m_name.c_str(), d.GetAllocator());
+    name.SetString(sceneObject->name().c_str(), d.GetAllocator());
     sceneObjectEntry.AddMember("name", name, d.GetAllocator());
+
+    /* Active */
+    if (!sceneObject->active()) {
+        Value active;
+        active.SetBool(sceneObject->active());
+        sceneObjectEntry.AddMember("active", active, d.GetAllocator());
+    }
 
     /* transform */
     addTransform(d, sceneObjectEntry, sceneObject->localTransform());
@@ -548,6 +555,7 @@ void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
         addMeshComponent(d, sceneObjectEntry, sceneObject);
     }
 
+    /* material */
     if (sceneObject->has<ComponentMaterial>()) {
         addMaterialComponent(d, sceneObjectEntry, sceneObject);
     }

@@ -19,7 +19,7 @@ vec3 evalDisneyDiffuse(const in float NdotL, const in float NdotV, const in floa
 }
 
 void sampleDisneyDiffuse(out vec3 wi, out float pdf, const in vec2 u) {
-	wi = cosineSampleHemisphere(u, pdf);
+    wi = cosineSampleHemisphere(u, pdf);
 }
 
 vec3 evalDisneyMicrofacetIsotropic(float NdotL, float NdotV, float NdotH, float LdotH, const in PBRStandard pbr) {
@@ -123,14 +123,14 @@ float pdfPBRStandard(const in vec3 wi, const in vec3 wo, const in PBRStandard pb
 vec3 samplePBRStandard(out vec3 wi, const in vec3 wo, out float pdf, const in PBRStandard pbr, vec2 randoms2D, float randoms1D) {
     
     pdf = 0.0;
-	wi = vec3(0.0);
+    wi = vec3(0.0);
     
     vec2 u = randoms2D;
     float rnd = randoms1D;
 
     float diffuseSamplingRatio = getDiffuseSamplingRatio(pbr);
 
-	if( rnd <= diffuseSamplingRatio ) {
+    if( rnd <= diffuseSamplingRatio ) {
        sampleDisneyDiffuse(wi, pdf, u);
     }
     else {
@@ -145,5 +145,5 @@ vec3 samplePBRStandard(out vec3 wi, const in vec3 wo, out float pdf, const in PB
         return vec3(0.0);
     }
 
-	return F;
+    return F;
 }

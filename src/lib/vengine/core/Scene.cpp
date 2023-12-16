@@ -30,7 +30,7 @@ SceneData Scene::getSceneData() const
     sceneData.m_viewInverse = m_camera->viewMatrixInverse();
     sceneData.m_projection = m_camera->projectionMatrix();
     sceneData.m_projectionInverse = m_camera->projectionMatrixInverse();
-    sceneData.m_exposure = glm::vec4(exposure(), ambientIBLFactor(), 0, 0);
+    sceneData.m_exposure = glm::vec4(exposure(), environmentIBLFactor(), 0, 0);
     return sceneData;
 }
 

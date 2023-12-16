@@ -21,11 +21,11 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
 } sceneData;
 
 layout(set = 1, binding = 0) uniform readonly ModelDataDescriptor {
-	ModelData data[1000];
+    ModelData data[1000];
 } modelData;
 
 layout(push_constant) uniform PushConsts {
-	layout (offset = 0) vec4 selected;
+    layout (offset = 0) vec4 selected;
     layout (offset = 16) uvec4 info;
     layout (offset = 32) uvec4 lights;
 } pushConsts;

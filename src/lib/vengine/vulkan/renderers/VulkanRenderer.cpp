@@ -266,6 +266,11 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
     /* Parse objects */
     std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects, lights;
     for (auto &itr : sceneGraphArray) {
+        /* Skip inactive objects */
+        if (!itr->active()) {
+            continue;
+        }
+
         if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) {
             Material *mat = itr->get<ComponentMaterial>().material;
             if (mat->transparent()) {

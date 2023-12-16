@@ -24,20 +24,20 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
 } sceneData;
 
 layout(set = 1, binding = 0) uniform readonly ModelDataDescriptor {
-	ModelData data[1000];
+    ModelData data[1000];
 } modelData;
 
 layout(set = 2, binding = 0) uniform readonly LightDataUBO {
-	LightData data[200];
+    LightData data[200];
 } lightData;
 
 layout(set = 2, binding = 1) uniform readonly LightComponentsUBO {
-	LightComponent data[1000];
+    LightComponent data[1000];
 } lightComponents;
 
 layout(set = 3, binding = 0) uniform readonly MaterialDataUBO
 {
-	MaterialData data[200];
+    MaterialData data[200];
 } materialData;
 
 #extension GL_EXT_nonuniform_qualifier : enable
@@ -47,14 +47,14 @@ layout (set = 4, binding = 0) uniform sampler3D global_textures_3d[];
 layout(set = 5, binding = 1) uniform samplerCube skyboxIrradiance;
 
 layout(push_constant) uniform PushConsts {
-	layout (offset = 0) vec4 selected;
+    layout (offset = 0) vec4 selected;
     layout (offset = 16) uvec4 info;
     layout (offset = 32) uvec4 lights;
 } pushConsts;
 
 void main() {
 
-	vec3 cameraPosition_world = getTranslation(sceneData.data.viewInverse);
+    vec3 cameraPosition_world = getTranslation(sceneData.data.viewInverse);
     vec3 V_world = normalize(cameraPosition_world - fragPos_world);
 
     MaterialData material = materialData.data[nonuniformEXT(pushConsts.info.r)];
@@ -73,16 +73,16 @@ void main() {
     vec3 V = worldToLocal(frame, V_world);
     
     /* Calculate material data */
-	vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
+    vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
     float ao = material.metallicRoughnessAO.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
 
     /* Calculate ambient */
-	vec3 irradiance = texture(skyboxIrradiance, frame.normal).rgb;
+    vec3 irradiance = texture(skyboxIrradiance, frame.normal).rgb;
     vec3 diffuse    = irradiance * albedo;
-	vec3 kS = fresnelSchlick(max(V.y, 0.0), vec3(0.04));
-	vec3 kD = 1.0 - kS;
+    vec3 kS = fresnelSchlick(max(V.y, 0.0), vec3(0.04));
+    vec3 kD = 1.0 - kS;
     vec3 ambient = ao * kD * diffuse;
 
     /* Calculate direct */
@@ -133,7 +133,7 @@ void main() {
     vec3 color = sceneData.data.exposure.g * ambient + direct + emissive;
     
     color = tonemapDefault2(color, sceneData.data.exposure.r);
-	
+    
     outColor = vec4(color, alpha);
-	outHighlight = pushConsts.selected;
+    outHighlight = pushConsts.selected;
 }

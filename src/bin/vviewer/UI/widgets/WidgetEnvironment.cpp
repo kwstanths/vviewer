@@ -133,19 +133,19 @@ void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool upd
         case EnvironmentType::SOLID_COLOR:
             m_scene->environmentType() = EnvironmentType::SOLID_COLOR;
             /* Set the contribution of IBL lighting to 0 */
-            m_scene->ambientIBLFactor() = 0;
+            m_scene->environmentIBLFactor() = 0;
             m_comboMaps->hide();
             m_backgroundColorWidget->show();
             break;
         case EnvironmentType::HDRI:
             m_scene->environmentType() = EnvironmentType::HDRI;
-            m_scene->ambientIBLFactor() = 1;
+            m_scene->environmentIBLFactor() = 1;
             m_comboMaps->show();
             m_backgroundColorWidget->hide();
             break;
         case EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING:
             m_scene->environmentType() = EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING;
-            m_scene->ambientIBLFactor() = 1;
+            m_scene->environmentIBLFactor() = 1;
             m_comboMaps->show();
             m_backgroundColorWidget->show();
             break;

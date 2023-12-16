@@ -5,9 +5,9 @@
 namespace vengine
 {
 
-VulkanSceneObject::VulkanSceneObject(VulkanUBO<ModelData> &transformDynamicUBO)
-    : SceneObject(Transform())
-    , VulkanUBOBlock<ModelData>(transformDynamicUBO)
+VulkanSceneObject::VulkanSceneObject(const std::string &name, VulkanUBO<ModelData> &transformUBO)
+    : SceneObject(name, Transform())
+    , VulkanUBOBlock<ModelData>(transformUBO)
 {
     updateModelMatrixData(glm::mat4(1.0f));
 }

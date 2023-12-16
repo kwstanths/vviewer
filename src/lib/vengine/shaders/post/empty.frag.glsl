@@ -8,5 +8,5 @@ layout(set = 0, binding = 0) uniform sampler2D inputColor;
 
 void main()
 {
-	outColor = texture(inputColor, inUV).rgba;
+    outColor = texture(inputColor, inUV).rgba;
 }

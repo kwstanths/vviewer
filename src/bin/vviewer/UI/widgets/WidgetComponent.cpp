@@ -36,6 +36,7 @@ WidgetComponent::WidgetComponent(QWidget *parent, UIComponentWrapper *componentW
     QHBoxLayout *layoutHeadline = new QHBoxLayout();
     layoutHeadline->addWidget(widgetLeftHeadline);
     layoutHeadline->addWidget(widgetRightHeadline);
+    layoutHeadline->setAlignment(Qt::AlignBottom);
     layoutHeadline->setContentsMargins(0, 0, 0, 0);
     QWidget *widgetHeadline = new QWidget();
     widgetHeadline->setLayout(layoutHeadline);

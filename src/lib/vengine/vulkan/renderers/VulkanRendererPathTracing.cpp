@@ -199,6 +199,11 @@ void VulkanRendererPathTracing::render(const Scene &scene)
     /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
     for (size_t i = 0; i < sceneObjects.size(); i++) {
         auto so = sceneObjects[i];
+
+        if (!so->active()) {
+            continue;
+        }
+
         auto transform = sceneObjectMatrices[i];
         if (so->has<ComponentMesh>() && so->has<ComponentMaterial>()) {
             auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
@@ -1314,7 +1319,7 @@ void VulkanRendererPathTracing::prepareSceneLights(const Scene &scene, std::vect
     const SceneData &sceneData = scene.getSceneData();
 
     /* Environment map */
-    if (scene.ambientIBLFactor() > 0.0001F && scene.skyboxMaterial() != nullptr) {
+    if (scene.environmentIBLFactor() > 0.0001F && scene.skyboxMaterial() != nullptr) {
         sceneLights.push_back(LightPT());
         sceneLights.back().position.a = 3.F;
     }

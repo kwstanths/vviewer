@@ -204,7 +204,7 @@ VkResult VulkanRendererBase::renderObjects(VkCommandBuffer &commandBuffer,
 
         Material *material = vkobject->get<ComponentMaterial>().material;
         PushBlockForward pushConstants;
-        pushConstants.selected = glm::vec4(vkobject->getIDRGB(), vkobject->m_isSelected);
+        pushConstants.selected = glm::vec4(vkobject->getIDRGB(), vkobject->selected());
         pushConstants.info.r = material->materialIndex();
         pushConstants.info.g = vkobject->getModelDataUBOIndex();
 

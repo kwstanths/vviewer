@@ -10,7 +10,7 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
 } sceneData;
 
 layout(push_constant) uniform PushConsts {
-	layout (offset = 0) mat4 modelMatrix;
+    layout (offset = 0) mat4 modelMatrix;
 } pushConsts;
 
 void main() {

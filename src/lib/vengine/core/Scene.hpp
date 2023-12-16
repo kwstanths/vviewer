@@ -43,8 +43,8 @@ public:
     const float &exposure() const { return m_exposure; }
     float &exposure() { return m_exposure; }
 
-    const float &ambientIBLFactor() const { return m_ambientIBL; }
-    float &ambientIBLFactor() { return m_ambientIBL; }
+    const float &environmentIBLFactor() const { return m_environmentIBLFactor; }
+    float &environmentIBLFactor() { return m_environmentIBLFactor; }
 
     const MaterialSkybox *skyboxMaterial() const { return m_skybox; }
     MaterialSkybox *&skyboxMaterial() { return m_skybox; }
@@ -80,10 +80,10 @@ public:
 protected:
     std::shared_ptr<Camera> m_camera = nullptr;
     float m_exposure = 0.0f;
-    float m_ambientIBL = 1.0f;
 
     MaterialSkybox *m_skybox;
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
+    float m_environmentIBLFactor = 1.0f;
     glm::vec3 m_backgroundColor = {0, 0.5, 0.5};
 
     std::unordered_map<vengine::ID, SceneObject *> m_objectsMap;

@@ -19,6 +19,6 @@ layout(set = 1, binding = 0) uniform samplerCube skybox;
 void main()
 {
     outColor.xyz = tonemapDefault2(textureLod(skybox, normalize(direction), 0).xyz, sceneData.data.exposure.r);
-	outColor.a = 0;
-	outHighlight = vec4(0., 0., 0., 0.);
+    outColor.a = 0;
+    outHighlight = vec4(0., 0., 0., 0.);
 }

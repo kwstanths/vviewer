@@ -12,7 +12,7 @@ namespace vengine
 class VulkanSceneObject : public SceneObject, public VulkanUBOBlock<ModelData>
 {
 public:
-    VulkanSceneObject(VulkanUBO<ModelData> &transformDynamicUBO);
+    VulkanSceneObject(const std::string &name, VulkanUBO<ModelData> &transformUBO);
 
     ~VulkanSceneObject();
 
