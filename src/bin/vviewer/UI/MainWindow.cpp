@@ -830,19 +830,19 @@ void MainWindow::onRenderSceneSlot()
     DialogSceneRender *dialog = new DialogSceneRender(nullptr, RTrenderer.renderInfo());
     dialog->exec();
 
-    std::string filename = dialog->getRenderOutputFileName();
-    if (filename == "") {
+    if (!dialog->renderRequested()) {
+        return;
+    }
+    RTrenderer.renderInfo() = dialog->getRenderInfo();
+
+    delete dialog;
+
+    if (RTrenderer.renderInfo().filename == "") {
+        debug_tools::ConsoleWarning("Render output filename can't be empty");
         return;
     }
 
-    RTrenderer.renderInfo().samples = dialog->getSamples();
-    RTrenderer.renderInfo().depth = dialog->getDepth();
-    RTrenderer.renderInfo().batchSize = dialog->getBatchSize();
-    RTrenderer.renderInfo().filename = dialog->getRenderOutputFileName();
-    RTrenderer.renderInfo().fileType = dialog->getRenderOutputFileType();
-    RTrenderer.renderInfo().width = dialog->getResolutionWidth();
-    RTrenderer.renderInfo().height = dialog->getResolutionHeight();
-    delete dialog;
+    RTrenderer.renderInfo().exposure = m_scene->exposure();
 
     struct RTRenderTask : public Task {
         RendererPathTracing &renderer;

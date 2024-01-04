@@ -21,5 +21,11 @@ void main()
 
     vec3 backgroundColor = textureLod(skybox, rayDir, 0).xyz;
 
+    if (rayPayloadPrimary.depth == 0)
+    {
+        rayPayloadPrimary.albedo = backgroundColor;
+        rayPayloadPrimary.normal = vec3(0, 0, 0);
+    }
+
     rayPayloadPrimary.radiance += sceneData.data.exposure.g * backgroundColor * rayPayloadPrimary.beta;
 }

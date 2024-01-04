@@ -45,6 +45,9 @@ vec3 worldToLocal(Frame frame, vec3 worldV)
     return vec3(dot(worldV, frame.tangent), dot(worldV, frame.normal), dot(worldV, frame.bitangent));
 }
 
+/*
+    Sets newNormal to be the new frame normal, newNormal must be expressed in the frame coordinate system
+*/
 void applyNormalToFrame(inout Frame frame, vec3 newNormal)
 {
     vec3 newNormal_world = localToWorld(frame, newNormal);

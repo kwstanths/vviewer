@@ -105,6 +105,20 @@ DialogSceneRender::DialogSceneRender(QWidget *parent, const RendererPathTracing:
     layoutRender->setSpacing(0);
     renderGroupBox->setLayout(layoutRender);
 
+    /* Denoise widget */
+    m_denoise = new QCheckBox("Denoise");
+    m_denoise->setChecked(renderInfo.denoise);
+
+    m_writeIntermediateResults = new QCheckBox("Write intermediate results");
+    m_writeIntermediateResults->setChecked(renderInfo.writeAllFiles);
+
+    QGroupBox *denoiseGroupBox = new QGroupBox("Denoise");
+    QVBoxLayout *layoutDenoise = new QVBoxLayout();
+    layoutDenoise->addWidget(m_denoise);
+    layoutDenoise->addWidget(m_writeIntermediateResults);
+    layoutDenoise->setSpacing(0);
+    denoiseGroupBox->setLayout(layoutDenoise);
+
     /* Buttons widget */
     m_buttonRender = new QPushButton(tr("Render"));
     connect(m_buttonRender, &QPushButton::released, this, &DialogSceneRender::onButtonRender);
@@ -121,48 +135,34 @@ DialogSceneRender::DialogSceneRender(QWidget *parent, const RendererPathTracing:
     layoutMain->addWidget(widgetRenderOutputFile);
     layoutMain->addWidget(resolutionGroupBox);
     layoutMain->addWidget(renderGroupBox);
+    layoutMain->addWidget(denoiseGroupBox);
     layoutMain->addWidget(widgetButtons);
     layoutMain->setSpacing(10);
 
     setLayout(layoutMain);
 
     this->setFixedWidth(300);
-    this->setFixedHeight(400);
+    this->setFixedHeight(480);
 }
 
-std::string DialogSceneRender::getRenderOutputFileName() const
+RendererPathTracing::RenderInfo DialogSceneRender::getRenderInfo() const
 {
-    return m_renderOutputFileName;
+    RendererPathTracing::RenderInfo renderInfo;
+    renderInfo.samples = m_samples->value();
+    renderInfo.depth = m_depth->value();
+    renderInfo.batchSize = m_batchSize->value();
+    renderInfo.filename = m_renderOutputFileWidget->text().toStdString();
+    renderInfo.fileType = fileTypesFromExtensions.find(m_renderOutputFileTypeWidget->currentText().toStdString())->second;
+    renderInfo.width = m_resolutionWidth->value();
+    renderInfo.height = m_resolutionHeight->value();
+    renderInfo.denoise = m_denoise->isChecked();
+    renderInfo.writeAllFiles = m_writeIntermediateResults->isChecked();
+    return renderInfo;
 }
 
-FileType DialogSceneRender::getRenderOutputFileType() const
+bool DialogSceneRender::renderRequested() const
 {
-    return fileTypesFromExtensions.find(m_renderOutputFileTypeWidget->currentText().toStdString())->second;
-}
-
-uint32_t DialogSceneRender::getResolutionWidth() const
-{
-    return m_resolutionWidth->value();
-}
-
-uint32_t DialogSceneRender::getResolutionHeight() const
-{
-    return m_resolutionHeight->value();
-}
-
-uint32_t DialogSceneRender::getSamples() const
-{
-    return m_samples->value();
-}
-
-uint32_t DialogSceneRender::getDepth() const
-{
-    return m_depth->value();
-}
-
-uint32_t DialogSceneRender::getBatchSize() const
-{
-    return m_batchSize->value();
+    return m_renderRequested;
 }
 
 void DialogSceneRender::onButtonSetRenderOutputFile()
@@ -176,7 +176,7 @@ void DialogSceneRender::onButtonSetRenderOutputFile()
 
 void DialogSceneRender::onButtonRender()
 {
-    m_renderOutputFileName = m_renderOutputFileWidget->text().toStdString();
+    m_renderRequested = true;
 
     close();
 }

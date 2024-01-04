@@ -87,9 +87,14 @@ void VulkanTextures::updateTextures()
 
 Texture *VulkanTextures::createTexture(const AssetInfo &info, ColorSpace colorSpace)
 {
-    Image<stbi_uc> image(info, colorSpace);
-    auto temp = createTexture(image);
-    return temp;
+    try {
+        Image<stbi_uc> image(info, colorSpace);
+        auto temp = createTexture(image);
+        return temp;
+    } catch (std::exception &e) {
+        debug_tools::ConsoleWarning("VulkanTextures::createTexture(): Unable to create texture: " + std::string(e.what()));
+        return nullptr;
+    }
 }
 
 Texture *VulkanTextures::createTexture(const Image<stbi_uc> &image)

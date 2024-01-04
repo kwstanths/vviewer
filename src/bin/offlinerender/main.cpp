@@ -2,11 +2,9 @@
 
 #include "vengine/vulkan/VulkanEngine.hpp"
 
-#include "vengine/utils/Algorithms.hpp"
-
 using namespace vengine;
 
-void createSceneBallOnPlance(Scene &scene)
+void createSceneBallOnPlane(Scene &scene)
 {
     auto camera = std::make_shared<PerspectiveCamera>();
     camera->fov() = 60.0f;
@@ -39,9 +37,11 @@ void createSceneBallOnPlance(Scene &scene)
 
 void performRenderSequence(VulkanEngine &engine, Scene &scene)
 {
-    engine.renderer().rendererPathTracing().renderInfo().samples = 256;
-    engine.renderer().rendererPathTracing().renderInfo().batchSize = 256;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 64;
+    engine.renderer().rendererPathTracing().renderInfo().batchSize = 64;
     engine.renderer().rendererPathTracing().renderInfo().fileType = FileType::PNG;
+    engine.renderer().rendererPathTracing().renderInfo().denoise = true;
+    engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
 
     uint32_t i = 0;
     float height = 1.0F;
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     engine.initResources();
 
     Scene &scene = engine.scene();
-    createSceneBallOnPlance(scene);
+    createSceneBallOnPlane(scene);
 
     scene.updateSceneGraph();
 

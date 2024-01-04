@@ -18,9 +18,13 @@ public:
 
         std::string filename = "test";
         FileType fileType = FileType::HDR;
+        float exposure = 0.0F;
 
         uint32_t width = 1024u;
         uint32_t height = 1024u;
+
+        bool denoise = false;
+        bool writeAllFiles = false;
     };
 
     RenderInfo &renderInfo() { return m_renderInfo; }

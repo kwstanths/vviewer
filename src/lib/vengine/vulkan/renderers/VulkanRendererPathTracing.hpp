@@ -112,7 +112,7 @@ private:
 
     /* Image result data */
     VkFormat m_format;
-    StorageImage m_renderResult, m_tempImage;
+    StorageImage m_renderResultRadiance, m_renderResultAlbedo, m_renderResultNormal, m_tempImage;
     PathTracingData m_pathTracingData;
 
     bool m_renderInProgress = false;
@@ -181,7 +181,9 @@ private:
 
     VkResult render(VkDescriptorSet skyboxDescriptor);
 
-    VkResult storeToDisk(std::string filename, FileType type) const;
+    VkResult getRenderTargetData(const StorageImage &target, std::vector<float> &data);
+
+    VkResult storeToDisk(std::vector<float> &radiance, std::vector<float> &albedo, std::vector<float> &normal) const;
 
     /**
         Create a scratch buffer to hold temporary data for a ray tracing acceleration structure

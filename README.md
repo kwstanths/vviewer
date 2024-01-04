@@ -6,12 +6,12 @@ A 3D model viewer and scene editor written in Vulkan and Qt. Includes a renderin
 * Create Physically Based or Lambert materials
 * Add Point/Directional/Mesh lights
 * Export/Import scenes
-* Launch a GPU path tracer
+* Launch a GPU path tracer with a denoiser 
 
 ## Dependencies 
 * Vulkan. Make sure the VULKAN_SDK environment variable points to the installation folder. Version tested 1.3.204.1
-* GLM
 * assimp. Look into src/lib/SetupEnvironment.cmake and edit the assimp paths based on your installation. Version tested 5.2.5
+* [OpenImageDenoise](https://github.com/OpenImageDenoise/oidn). Install or build from source OpenImageDenoise
 
 ### vviewer binary
 * Qt. Make sure the Qt6_DIR points to the installation folder. Version tested 6.2.4

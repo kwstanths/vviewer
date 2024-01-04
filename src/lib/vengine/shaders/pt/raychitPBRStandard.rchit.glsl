@@ -108,6 +108,12 @@ void main()
     float ao = material.metallicRoughnessAO.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
+    if (rayPayloadPrimary.depth == 0)
+    {
+        rayPayloadPrimary.albedo = pbr.albedo;
+        rayPayloadPrimary.normal = frame.normal;
+    }
+
     /* Add emissive of first hit */
     if (rayPayloadPrimary.depth == 0 && !isBlack(emissive, 0.1) && !flipped) {
         rayPayloadPrimary.radiance += emissive * rayPayloadPrimary.beta;

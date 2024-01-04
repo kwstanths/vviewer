@@ -8,7 +8,7 @@
 #include "../include/structs.glsl"
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
-layout(set = 0, binding = 1, rgba8) uniform image2D image;
+layout(set = 0, binding = 1, rgba32f) uniform image2D outputImage[3];
 layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
@@ -38,6 +38,8 @@ void main()
     const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
     
     vec3 cumRadiance = vec3(0);
+    vec3 cumAlbedo = vec3(0);
+    vec3 cumNormal = vec3(0);
     for(int s = 0; s < batchSize; s++) 
     {
         /* Calculate first ray target offset */
@@ -52,6 +54,8 @@ void main()
 
         vec3 beta = vec3(1);
         vec3 radiance = vec3(0);
+        vec3 albedo = vec3(0);
+        vec3 normal = vec3(0);
         for (int d = 0; d < depth; d++)
         {
             /* Launch ray */
@@ -65,6 +69,8 @@ void main()
 
             beta = rayPayloadPrimary.beta;
             radiance = rayPayloadPrimary.radiance;
+            albedo = rayPayloadPrimary.albedo;
+            normal = rayPayloadPrimary.normal;
             
             if (rayPayloadPrimary.stop) 
             {
@@ -76,12 +82,22 @@ void main()
         }
 
         cumRadiance += radiance / totalSamples;
+        cumAlbedo += albedo / totalSamples;
+        cumNormal += normal / totalSamples;
     }
     
     /* Store results */
     ivec2 uv = ivec2(gl_LaunchIDEXT.xy);
-    vec4 storedValue = imageLoad(image, uv);
 
-    vec4 newValue = vec4(storedValue.rgb + cumRadiance, 1.F);
-    imageStore(image, uv, newValue);
+    vec4 storedRadiance = imageLoad(outputImage[0], uv);
+    vec4 newRadiance = vec4(storedRadiance.rgb + cumRadiance, 1.F);
+    imageStore(outputImage[0], uv, newRadiance);
+
+    vec4 storedAlbedo = imageLoad(outputImage[1], uv);
+    vec4 newAlbedo = vec4(storedAlbedo.rgb + cumAlbedo, 1.F);
+    imageStore(outputImage[1], uv, newAlbedo);
+
+    vec4 storedNormal = imageLoad(outputImage[2], uv);
+    vec4 newNormal = vec4(storedNormal.rgb + cumNormal, 1.F);
+    imageStore(outputImage[2], uv, newNormal);
 }

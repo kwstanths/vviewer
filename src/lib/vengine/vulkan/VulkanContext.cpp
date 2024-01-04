@@ -18,7 +18,7 @@ VulkanContext::VulkanContext(const std::string &applicationName)
 
 VulkanContext::~VulkanContext()
 {
-    // vkDestroyInstance(m_instance, nullptr);
+    vkDestroyInstance(m_instance, nullptr);
 }
 
 VkResult VulkanContext::init()

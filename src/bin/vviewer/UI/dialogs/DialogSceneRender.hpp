@@ -9,6 +9,7 @@
 #include <qpushbutton.h>
 #include <qlineedit.h>
 #include <qspinbox.h>
+#include <qcheckbox.h>
 
 #include "vengine/core/io/FileTypes.hpp"
 #include "vengine/core/Renderer.hpp"
@@ -22,17 +23,13 @@ class DialogSceneRender : public QDialog
 public:
     DialogSceneRender(QWidget *parent, const RendererPathTracing::RenderInfo &renderInfo);
 
-    std::string getRenderOutputFileName() const;
-    FileType getRenderOutputFileType() const;
+    RendererPathTracing::RenderInfo getRenderInfo() const;
 
-    uint32_t getResolutionWidth() const;
-    uint32_t getResolutionHeight() const;
-
-    uint32_t getSamples() const;
-    uint32_t getDepth() const;
-    uint32_t getBatchSize() const;
+    bool renderRequested() const;
 
 private:
+    bool m_renderRequested = false;
+
     QLineEdit *m_renderOutputFileWidget = nullptr;
     QPushButton *m_renderOutputFileChangeButton = nullptr;
     std::string m_renderOutputFileName = "";
@@ -45,6 +42,9 @@ private:
     QSpinBox *m_samples = nullptr;
     QSpinBox *m_depth = nullptr;
     QSpinBox *m_batchSize = nullptr;
+
+    QCheckBox *m_denoise = nullptr;
+    QCheckBox *m_writeIntermediateResults = nullptr;
 
     QPushButton *m_buttonRender = nullptr;
     QPushButton *m_buttonCancel = nullptr;

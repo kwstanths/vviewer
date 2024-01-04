@@ -10,7 +10,7 @@ macro(SetupEnvironment)
         add_compile_options("/std:c++latest")
         add_compile_options("/Zc:__cplusplus")
     endif()
-	
+    
     set(INTERNAL_LIBRARIES_ROOT ${PROJECT_ROOT}/src/lib)
         
     # VULKAN
@@ -36,8 +36,12 @@ macro(SetupEnvironment)
     set(ZIP_LIBRARIES zip)
 
     # TBB
-    set(TBB_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/external/oneTBB/include)
-    set(TBB_LIBRARIES tbb)
+    #set(TBB_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/external/oneTBB/include)
+    #set(TBB_LIBRARIES tbb)
+
+    # OIDN
+    find_package(OpenImageDenoise REQUIRED)
+    set(OIDN_LIBRARIES OpenImageDenoise)
 
     # DEBUG_TOOLS
     set(DEBUG_TOOLS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/debug_tools/)
@@ -69,15 +73,16 @@ macro(SetupEnvironment)
         ${DEBUG_TOOLS_INCLUDE_DIRS}
         ${VENGINE_INCLUDE_DIRS}
         ${ASSIMP_INCLUDE_DIRS}
-	)
-	
-	set(ENGINE_LIBS
-		${VULKAN_LIBRARIES}
-		${ZIP_LIBRARIES}
-		${TBB_LIBRARIES}
-		${DEBUG_TOOLS_LIBRARIES}
-		${VENGINE_LIBRARIES}
-		${ASSIMP_LIBRARIES}
-	)
+    )
+    
+    set(ENGINE_LIBS
+        ${VULKAN_LIBRARIES}
+        ${ZIP_LIBRARIES}
+        ${TBB_LIBRARIES}
+        ${DEBUG_TOOLS_LIBRARIES}
+        ${VENGINE_LIBRARIES}
+        ${ASSIMP_LIBRARIES}
+        ${OIDN_LIBRARIES}
+    )
 
 endmacro()

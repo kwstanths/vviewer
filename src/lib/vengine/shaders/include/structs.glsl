@@ -72,6 +72,9 @@ struct RayPayloadPrimary {
     vec3 beta;              /* Current throughput */
     uint depth;             /* Current depth */
 
+    vec3 albedo;            /* First hit albedo */
+    vec3 normal;            /* First hit normal */
+
     vec3 origin;            /* Ray origin */
     vec3 direction;         /* Ray direction */
     bool stop;              /* If true stop tracing */
