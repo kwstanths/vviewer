@@ -326,11 +326,6 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
             skybox->updateDescriptorSet(m_vkctx.device(), imageIndex);
         }
 
-        /* Draw skybox if needed */
-        if (m_scene.environmentType() == EnvironmentType::HDRI) {
-            m_rendererSkybox.renderSkybox(commandBuffer, m_scene.descriptorSetSceneData(imageIndex), imageIndex, skybox);
-        }
-
         /* Draw opaque */
         {
             m_rendererLambert.renderObjectsForwardOpaque(commandBuffer,
@@ -351,6 +346,11 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                                      m_textures.descriptorSet(),
                                                      opaquePBRStandardObjects,
                                                      lights);
+        }
+
+        /* Draw skybox if needed */
+        if (m_scene.environmentType() == EnvironmentType::HDRI) {
+            m_rendererSkybox.renderSkybox(commandBuffer, m_scene.descriptorSetSceneData(imageIndex), imageIndex, skybox);
         }
 
         /* Draw transparent */

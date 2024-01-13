@@ -94,6 +94,8 @@ struct ImportedCamera {
     glm::vec3 position = {0, 0, 0};
     glm::vec3 target = {0, 0, -1};
     glm::vec3 up{0, 1, 0};
+    float znear = 0.01F, zfar = 200.F;
+    float lensRadius = 0.F, focalDistance = 10.F;
     float fov = 60.F;
 };
 

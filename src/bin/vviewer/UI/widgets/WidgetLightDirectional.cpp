@@ -25,7 +25,7 @@ WidgetLightDirectional::WidgetLightDirectional(QWidget *parent, Light *light)
     connect(m_lightColorWidget, SIGNAL(colorChanged(glm::vec3)), this, SLOT(onLightColorChanged(glm::vec3)));
 
     /* Create intensity slider */
-    m_lightIntensityWidget = new WidgetSliderValue(this, 0, 100, m_light->color().a, 1);
+    m_lightIntensityWidget = new WidgetSliderValue(this, 0, 1000, m_light->color().a, 1);
     connect(m_lightIntensityWidget, SIGNAL(valueChanged(double)), this, SLOT(onLightIntensityChanged(double)));
     QHBoxLayout *lightIntensityLayout = new QHBoxLayout();
     lightIntensityLayout->addWidget(new QLabel("Intensity:"));

@@ -594,6 +594,11 @@ void MainWindow::onImportScene()
         cameraTransform.position() = camera.position;
         cameraTransform.setRotation(glm::normalize(camera.target - camera.position), camera.up);
 
+        newCamera->znear() = camera.znear;
+        newCamera->zfar() = camera.zfar;
+        newCamera->lensRadius() = camera.lensRadius;
+        newCamera->focalDistance() = camera.focalDistance;
+
         newCamera->fov() = camera.fov;
         newCamera->setWindowSize(m_viewport->size().width(), m_viewport->size().height());
 

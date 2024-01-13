@@ -221,10 +221,11 @@ ImportedCamera parseCamera(const rapidjson::Value &o)
         throw std::runtime_error("parseCamera(): Missing target or rotation information");
     }
 
-    if (!o.HasMember("fov")) {
-        throw std::runtime_error("parseCamera(): Can't find fov");
-    }
     c.fov = parseFloat(o, "fov", c.fov);
+    c.znear = parseFloat(o, "znear", c.znear);
+    c.zfar = parseFloat(o, "zfar", c.zfar);
+    c.lensRadius = parseFloat(o, "lensRadius", c.lensRadius);
+    c.focalDistance = parseFloat(o, "focalDistance", c.focalDistance);
 
     return c;
 }

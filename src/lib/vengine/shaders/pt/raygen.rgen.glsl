@@ -4,7 +4,6 @@
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-#include "../include/constants.glsl"
 #include "../include/structs.glsl"
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
@@ -18,6 +17,7 @@ layout(set = 0, binding = 3) uniform PathTracingData
     uvec4 lights;
 } pathTracingData;
 
+#include "../include/sampling.glsl"
 #include "../include/rng.glsl"
 
 layout(location = 0) rayPayloadEXT RayPayloadPrimary rayPayloadPrimary;
@@ -37,20 +37,40 @@ void main()
     /* Calculate pixel uvs */
     const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
     
+    float lensRadius = sceneData.data.exposure.b;
+    float focalDistance = sceneData.data.exposure.a;
+
     vec3 cumRadiance = vec3(0);
     vec3 cumAlbedo = vec3(0);
     vec3 cumNormal = vec3(0);
     for(int s = 0; s < batchSize; s++) 
     {
         /* Calculate first ray target offset */
-        vec2 offset = rand2D(rayPayloadPrimary);
-        const vec2 inUV = (pixelLeftCorner + offset) / vec2(gl_LaunchSizeEXT.xy);
+        vec2 pixelOffset = rand2D(rayPayloadPrimary);
+        const vec2 inUV = (pixelLeftCorner + pixelOffset) / vec2(gl_LaunchSizeEXT.xy);
         vec2 d = inUV * 2.0 - 1.0;
+        vec4 target = sceneData.data.projectionInverse * vec4(d.x, d.y, 1, 1);
 
-        /* Calculate first ray direction */
-        vec4 origin = sceneData.data.viewInverse * vec4(0, 0, 0, 1);
-        vec4 target = sceneData.data.projectionInverse * vec4(d.x, d.y, 1, 1) ;
-        vec4 direction = sceneData.data.viewInverse * vec4(normalize(target.xyz), 0) ;
+        /* Calculate new ray */
+        vec4 originCameraSpace = vec4(0, 0, 0, 1);
+        vec4 directionCameraSpace = vec4(normalize(target.xyz), 0);
+
+        /* Depth of field */
+        if (lensRadius > 0)
+        {
+            /* PBRT */
+            vec2 lensOffset = rand2D(rayPayloadPrimary);
+            vec2 lensOrigin = lensRadius * concentricSampleDisk(lensOffset);
+
+            float ft = focalDistance / (-directionCameraSpace.z);   /* Camera forward is at -z */
+            vec4 focusPoint = directionCameraSpace * ft;
+
+            originCameraSpace = vec4(lensOrigin.x, lensOrigin.y, 0, 1);
+            directionCameraSpace = vec4(normalize(focusPoint.xyz - originCameraSpace.xyz), 0);
+        }
+
+        vec4 origin = sceneData.data.viewInverse * originCameraSpace;
+        vec4 direction = sceneData.data.viewInverse * directionCameraSpace;
 
         vec3 beta = vec3(1);
         vec3 radiance = vec3(0);

@@ -45,3 +45,23 @@ vec2 uniformSampleTriangle(vec2 rng)
     return vec2(1 - a, a * rng.y);
 }
 
+vec2 concentricSampleDisk(const in vec2 randoms) {
+    /* Map uniform random numbers to $[-1,1]^2$ */
+    vec2 uOffset = 2.0 * randoms - vec2(1, 1);
+
+    /* Handle degeneracy at the origin */
+    if (uOffset.x == 0 && uOffset.y == 0) {
+        return vec2(0, 0);
+    }
+
+    /* Apply concentric mapping to point */
+    float theta, r;
+    if (abs(uOffset.x) > abs(uOffset.y)) {
+        r = uOffset.x;
+        theta = PI_OVER_FOUR * (uOffset.y / uOffset.x);
+    } else {
+        r = uOffset.y;
+        theta = PI_OVER_TWO - PI_OVER_FOUR * (uOffset.x / uOffset.y);
+    }
+    return r * vec2(cos(theta), sin(theta));
+}

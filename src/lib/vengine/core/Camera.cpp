@@ -48,6 +48,45 @@ void Camera::setWindowSize(int width, int height)
     m_aspectRatio = (float)m_width / (float)m_height;
 }
 
+const float &Camera::znear() const
+{
+    return m_znear;
+}
+float &Camera::znear()
+{
+    return m_znear;
+}
+
+const float &Camera::zfar() const
+{
+    return m_zfar;
+}
+
+float &Camera::zfar()
+{
+    return m_zfar;
+}
+
+const float &Camera::lensRadius() const
+{
+    return m_lensRadius;
+}
+
+float &Camera::lensRadius()
+{
+    return m_lensRadius;
+}
+
+const float &Camera::focalDistance() const
+{
+    return m_focalDistance;
+}
+
+float &Camera::focalDistance()
+{
+    return m_focalDistance;
+}
+
 /* ------------- PerspectiveCamera ------------- */
 
 CameraType PerspectiveCamera::type() const
@@ -58,7 +97,7 @@ CameraType PerspectiveCamera::type() const
 glm::mat4 PerspectiveCamera::projectionMatrix() const
 {
     assert(m_aspectRatio != 0);
-    return glm::perspective(glm::radians(m_fov), m_aspectRatio, 0.01f, 200.0f);
+    return glm::perspective(glm::radians(m_fov), m_aspectRatio, znear(), zfar());
 }
 
 glm::mat4 PerspectiveCamera::projectionMatrixInverse() const
@@ -84,7 +123,7 @@ CameraType OrthographicCamera::type() const
 
 glm::mat4 OrthographicCamera::projectionMatrix() const
 {
-    return glm::ortho(-m_orthoWidth / 2, m_orthoWidth / 2, -m_orthoHeight / 2, m_orthoHeight / 2, -100.0f, 100.0f);
+    return glm::ortho(-m_orthoWidth / 2, m_orthoWidth / 2, -m_orthoHeight / 2, m_orthoHeight / 2, znear(), zfar());
 }
 
 glm::mat4 OrthographicCamera::projectionMatrixInverse() const

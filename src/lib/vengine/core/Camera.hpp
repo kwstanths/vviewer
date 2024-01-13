@@ -37,6 +37,18 @@ public:
 
     virtual void setWindowSize(int width, int height);
 
+    const float &znear() const;
+    float &znear();
+
+    const float &zfar() const;
+    float &zfar();
+
+    const float &lensRadius() const;
+    float &lensRadius();
+
+    const float &focalDistance() const;
+    float &focalDistance();
+
 protected:
     int m_width{};
     int m_height{};
@@ -44,6 +56,12 @@ protected:
 
 private:
     Transform m_transform;
+
+    float m_znear = 0.01F;
+    float m_zfar = 200.F;
+
+    float m_lensRadius = 0.0F;
+    float m_focalDistance = 10.F;
 };
 
 class PerspectiveCamera : public Camera

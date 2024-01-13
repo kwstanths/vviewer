@@ -628,6 +628,22 @@ void exportJson(const ExportRenderParams &renderParams,
             addVec3(d, camera, "up", cameraUp);
         }
         {
+            Value znear;
+            znear.SetFloat(sceneCamera->znear());
+            camera.AddMember("znear", znear, d.GetAllocator());
+
+            Value zfar;
+            zfar.SetFloat(sceneCamera->zfar());
+            camera.AddMember("zfar", zfar, d.GetAllocator());
+
+            Value lensRadius;
+            lensRadius.SetFloat(sceneCamera->lensRadius());
+            camera.AddMember("lensRadius", lensRadius, d.GetAllocator());
+
+            Value focalDistance;
+            focalDistance.SetFloat(sceneCamera->focalDistance());
+            camera.AddMember("focalDistance", focalDistance, d.GetAllocator());
+
             if (sceneCamera->type() != CameraType::PERSPECTIVE) {
                 throw std::runtime_error("SceneExport: Only perspective camera supported");
             }

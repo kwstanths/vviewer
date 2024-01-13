@@ -43,11 +43,56 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
     layoutCameraFoV->setContentsMargins(0, 0, 0, 0);
     QWidget *widgetCameraFoV = new QWidget();
     widgetCameraFoV->setLayout(layoutCameraFoV);
+    /* Initialize camera z min and z far */
+    m_cameraZNearPlane = new QDoubleSpinBox(nullptr);
+    m_cameraZNearPlane->setMinimum(0.001F);
+    m_cameraZNearPlane->setMaximum(1000);
+    m_cameraZNearPlane->setValue(m_camera->znear());
+    connect(m_cameraZNearPlane, SIGNAL(valueChanged(double)), this, SLOT(onCameraZNearChanged(double)));
+    m_cameraZFarPlane = new QDoubleSpinBox(nullptr);
+    m_cameraZFarPlane->setMinimum(1.0F);
+    m_cameraZFarPlane->setMaximum(1000);
+    m_cameraZFarPlane->setValue(m_camera->zfar());
+    connect(m_cameraZFarPlane, SIGNAL(valueChanged(double)), this, SLOT(onCameraZFarChanged(double)));
+    QHBoxLayout *layoutCameraZ = new QHBoxLayout();
+    layoutCameraZ->addWidget(new QLabel("Z min plane: "));
+    layoutCameraZ->addWidget(m_cameraZNearPlane);
+    layoutCameraZ->addSpacerItem(new QSpacerItem(6, 5));
+    layoutCameraZ->addWidget(new QLabel("Z far plane: "));
+    layoutCameraZ->addWidget(m_cameraZFarPlane);
+    layoutCameraZ->setContentsMargins(0, 0, 0, 0);
+    QWidget *widgetCameraZ = new QWidget();
+    widgetCameraZ->setLayout(layoutCameraZ);
+    /* Initialize camera lens radius and focal distance */
+    m_cameraLensRadius = new QDoubleSpinBox(nullptr);
+    m_cameraLensRadius->setMinimum(0.0F);
+    m_cameraLensRadius->setMaximum(1000);
+    m_cameraLensRadius->setValue(m_camera->lensRadius());
+    m_cameraLensRadius->setSingleStep(0.01);
+    connect(m_cameraLensRadius, SIGNAL(valueChanged(double)), this, SLOT(onCameraLensRadiusChanged(double)));
+    m_cameraFocalDistance = new QDoubleSpinBox(nullptr);
+    m_cameraFocalDistance->setMinimum(0.0F);
+    m_cameraFocalDistance->setMaximum(1000);
+    m_cameraFocalDistance->setValue(m_camera->focalDistance());
+    connect(m_cameraFocalDistance, SIGNAL(valueChanged(double)), this, SLOT(onCameraFocalDistanceChanged(double)));
+    QHBoxLayout *layoutCameraDOF = new QHBoxLayout();
+    layoutCameraDOF->addWidget(new QLabel("Lens Radius: "));
+    layoutCameraDOF->addWidget(m_cameraLensRadius);
+    layoutCameraDOF->addSpacerItem(new QSpacerItem(6, 5));
+    QLabel *focalDistanceLabel = new QLabel("Focal Dist.: ");
+    focalDistanceLabel->setToolTip("Focal Distance");
+    layoutCameraDOF->addWidget(focalDistanceLabel);
+    layoutCameraDOF->addWidget(m_cameraFocalDistance);
+    layoutCameraDOF->setContentsMargins(0, 0, 0, 0);
+    QWidget *widgetCameraDOF = new QWidget();
+    widgetCameraDOF->setLayout(layoutCameraDOF);
     /* Prepate group box */
     QGroupBox *cameraGroupBox = new QGroupBox("Camera:");
     QVBoxLayout *cameraLayout = new QVBoxLayout();
     cameraLayout->addWidget(m_cameraTransformWidget);
     cameraLayout->addWidget(widgetCameraFoV);
+    cameraLayout->addWidget(widgetCameraZ);
+    cameraLayout->addWidget(widgetCameraDOF);
     cameraGroupBox->setLayout(cameraLayout);
 
     /* Initialize environment maps dropdown list widget */
@@ -121,6 +166,10 @@ void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
 {
     m_camera = std::dynamic_pointer_cast<PerspectiveCamera>(c);
     m_cameraFov->setValue(m_camera->fov());
+    m_cameraZNearPlane->setValue(m_camera->znear());
+    m_cameraZFarPlane->setValue(m_camera->zfar());
+    m_cameraLensRadius->setValue(m_camera->lensRadius());
+    m_cameraFocalDistance->setValue(m_camera->focalDistance());
 }
 
 void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool updateUI)
@@ -133,19 +182,19 @@ void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool upd
         case EnvironmentType::SOLID_COLOR:
             m_scene->environmentType() = EnvironmentType::SOLID_COLOR;
             /* Set the contribution of IBL lighting to 0 */
-            m_scene->environmentIBLFactor() = 0;
+            m_scene->environmentIntensity() = 0;
             m_comboMaps->hide();
             m_backgroundColorWidget->show();
             break;
         case EnvironmentType::HDRI:
             m_scene->environmentType() = EnvironmentType::HDRI;
-            m_scene->environmentIBLFactor() = 1;
+            m_scene->environmentIntensity() = 1;
             m_comboMaps->show();
             m_backgroundColorWidget->hide();
             break;
         case EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING:
             m_scene->environmentType() = EnvironmentType::SOLID_COLOR_WITH_HDRI_LIGHTING;
-            m_scene->environmentIBLFactor() = 1;
+            m_scene->environmentIntensity() = 1;
             m_comboMaps->show();
             m_backgroundColorWidget->show();
             break;
@@ -215,6 +264,26 @@ void WidgetEnvironment::onEnvironmentChanged(int)
 void WidgetEnvironment::onCameraFovChanged(double)
 {
     m_camera->fov() = m_cameraFov->value();
+}
+
+void WidgetEnvironment::onCameraZFarChanged(double)
+{
+    m_camera->zfar() = m_cameraZFarPlane->value();
+}
+
+void WidgetEnvironment::onCameraZNearChanged(double)
+{
+    m_camera->znear() = m_cameraZNearPlane->value();
+}
+
+void WidgetEnvironment::onCameraLensRadiusChanged(double)
+{
+    m_camera->lensRadius() = m_cameraLensRadius->value();
+}
+
+void WidgetEnvironment::onCameraFocalDistanceChanged(double)
+{
+    m_camera->focalDistance() = m_cameraFocalDistance->value();
 }
 
 void WidgetEnvironment::onEnvironmentMapChanged(int)

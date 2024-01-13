@@ -18,5 +18,6 @@ void main()
     mat4 view = mat4(mat3(sceneData.data.view));
     
     direction = inPosition;
-    gl_Position = sceneData.data.projection * view * vec4(inPosition, 1);
+    vec4 pos  = sceneData.data.projection * view * vec4(inPosition, 1);
+    gl_Position = pos.xyww;
 }  

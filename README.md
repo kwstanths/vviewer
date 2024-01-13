@@ -1,14 +1,17 @@
 # vviewer 
-A 3D model viewer and scene editor written in Vulkan and Qt. Includes a rendering engine that can be built separately as a standalone library, and a UI editor built with Qt
+A 3D scene editor, a real time renderer and an offline path tracer written in Vulkan and Qt. The rendering engine can be built separately as a standalone library
 
 ## Features
 * Import 3D models, textures and equirectangular HDRI maps
 * Create Physically Based or Lambert materials
 * Add Point/Directional/Mesh lights
 * Export/Import scenes
-* Launch a GPU path tracer with a denoiser 
+* Launch a GPU path traced render
+* Denoiser
+* Depth of field
 
 ## Dependencies 
+### vengine library
 * Vulkan. Make sure the VULKAN_SDK environment variable points to the installation folder. Version tested 1.3.204.1
 * assimp. Look into src/lib/SetupEnvironment.cmake and edit the assimp paths based on your installation. Version tested 5.2.5
 * [OpenImageDenoise](https://github.com/OpenImageDenoise/oidn). Install or build from source OpenImageDenoise
@@ -20,7 +23,7 @@ A 3D model viewer and scene editor written in Vulkan and Qt. Includes a renderin
 * Install dependencies
 * Clone the project and all its submodules
 * Create build folder, run cmake and build
-* Make sure that runtime dependencies can be found. If the paths are set up correctly, cmake will compile the shaders and paste assets and the shader binaries
+* Make sure that runtime dependencies can be found. If the paths are set up correctly, cmake will compile the shaders and paste the assets and the shader binaries
 
 ## Images
 

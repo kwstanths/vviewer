@@ -177,13 +177,13 @@ void VulkanRendererPathTracing::render(const Scene &scene)
         uint32_t width = renderInfo().width;
         uint32_t height = renderInfo().height;
 
-        /* Change to requested resolution */
+        /* Change to requested render resolution */
         auto camera = scene.camera();
         switch (camera->type()) {
             case CameraType::PERSPECTIVE: {
                 auto perspectiveCamera = std::static_pointer_cast<PerspectiveCamera>(camera);
-                sceneData.m_projection =
-                    glm::perspective(glm::radians(perspectiveCamera->fov()), static_cast<float>(width) / height, 0.01f, 200.0f);
+                sceneData.m_projection = glm::perspective(
+                    glm::radians(perspectiveCamera->fov()), static_cast<float>(width) / height, camera->znear(), camera->zfar());
                 sceneData.m_projection[1][1] *= -1;
                 sceneData.m_projectionInverse = glm::inverse(sceneData.m_projection);
                 break;
@@ -192,7 +192,8 @@ void VulkanRendererPathTracing::render(const Scene &scene)
                 auto orthoCamera = std::static_pointer_cast<OrthographicCamera>(camera);
                 auto owidth = static_cast<float>(width);
                 auto oheight = static_cast<float>(height);
-                sceneData.m_projection = glm::ortho(-owidth / 2, owidth / 2, -oheight / 2, oheight / 2, -100.0f, 100.0f);
+                sceneData.m_projection =
+                    glm::ortho(-owidth / 2, owidth / 2, -oheight / 2, oheight / 2, camera->znear(), camera->zfar());
                 sceneData.m_projection[1][1] *= -1;
                 sceneData.m_projectionInverse = glm::inverse(sceneData.m_projection);
             }
@@ -1434,7 +1435,7 @@ void VulkanRendererPathTracing::prepareSceneLights(const Scene &scene, std::vect
     const SceneData &sceneData = scene.getSceneData();
 
     /* Environment map */
-    if (scene.environmentIBLFactor() > 0.0001F && scene.skyboxMaterial() != nullptr) {
+    if (scene.environmentIntensity() > 0.0001F && scene.skyboxMaterial() != nullptr) {
         sceneLights.push_back(LightPT());
         sceneLights.back().position.a = 3.F;
     }

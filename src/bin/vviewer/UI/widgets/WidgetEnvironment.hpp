@@ -54,6 +54,10 @@ private:
     WidgetTransform *m_cameraTransformWidget;
     bool m_cameraTransformWidgetChanged = false;
     QDoubleSpinBox *m_cameraFov = nullptr;
+    QDoubleSpinBox *m_cameraZFarPlane = nullptr;
+    QDoubleSpinBox *m_cameraZNearPlane = nullptr;
+    QDoubleSpinBox *m_cameraLensRadius = nullptr;
+    QDoubleSpinBox *m_cameraFocalDistance = nullptr;
 
     /* Update timer */
     QTimer *m_updateTimer;
@@ -67,6 +71,10 @@ private Q_SLOTS:
     void onExposureChanged(int);
     void onCameraWidgetChanged(double);
     void onCameraFovChanged(double);
+    void onCameraZFarChanged(double);
+    void onCameraZNearChanged(double);
+    void onCameraLensRadiusChanged(double);
+    void onCameraFocalDistanceChanged(double);
 
     void updateCamera();
 };

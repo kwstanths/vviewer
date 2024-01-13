@@ -7,9 +7,11 @@ using namespace vengine;
 void createSceneBallOnPlane(Scene &scene)
 {
     auto camera = std::make_shared<PerspectiveCamera>();
-    camera->fov() = 60.0f;
     camera->transform().position() = glm::vec3(0, 3, 10);
     camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(-15.F), 0, 0)));
+    camera->fov() = 60.0f;
+    camera->lensRadius() = 0.03F;
+    camera->focalDistance() = 7.0F;
     scene.camera() = camera;
 
     auto &instanceModels = AssetManager::getInstance().modelsMap();
@@ -31,8 +33,7 @@ void createSceneBallOnPlane(Scene &scene)
     SceneObject *lightObject = scene.addSceneObject("light", Transform({4, 1.5, 0}));
     lightObject->add<ComponentLight>().light = instanceLights.get("defaultPointLight");
 
-    /* Environment map intensity */
-    scene.environmentIBLFactor() = 1.0F;
+    scene.environmentIntensity() = 1.0F;
 }
 
 void performRenderSequence(VulkanEngine &engine, Scene &scene)
