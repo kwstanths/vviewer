@@ -24,7 +24,7 @@
 
 #define SANITIZATION_CHECK
 // #define DEBUG_MATERIAL_WRITE_EMBEDDED_IMAGES
-// #define DEBUG_MATERIAL_PRINT_IMPORTED_IMAGES
+// #define DEBUG_MATERIAL_PRINT_IMPORTED_IMAGE_NAMES
 
 namespace vengine
 {
@@ -226,7 +226,7 @@ Image<uint8_t> *
 assimpCreateImage(const AssetInfo &info, uint8_t *data, int width, int height, int channels, ColorSpace colorSpace, int channel = -1)
 {
     if (channel == -1) {
-#ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGES
+#ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGE_NAMES
         debug_tools::ConsoleInfo("Loaded image: " + name);
 #endif
         return new Image<uint8_t>(info, data, width, height, channels, colorSpace, true);
@@ -238,11 +238,102 @@ assimpCreateImage(const AssetInfo &info, uint8_t *data, int width, int height, i
                 channelData[index++] = data[width * channels * i + j * channels + channel];
             }
         }
-#ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGES
+#ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGE_NAMES
         debug_tools::ConsoleInfo("Loaded image: " + name);
 #endif
         return new Image<uint8_t>(info, channelData, width, height, 1, colorSpace, true);
     }
+}
+
+std::vector<ImportedMaterial> assimpLoadMaterialsOBJ(const aiScene *scene,
+                                                     const AssetInfo &info,
+                                                     std::string folderPath,
+                                                     std::string materialNamePrefix = "")
+{
+    std::vector<ImportedMaterial> materials(scene->mNumMaterials);
+
+    for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
+        aiMaterial *mat = scene->mMaterials[i];
+
+        ImportedMaterial &importedMaterial = materials[i];
+
+        {
+            aiString name;
+            mat->Get(AI_MATKEY_NAME, name);
+
+            importedMaterial.info =
+                AssetInfo(materialNamePrefix + ":" + std::string(name.C_Str()), info.filepath, info.source, AssetLocation::EMBEDDED);
+        }
+
+        importedMaterial.type = ImportedMaterialType::PBR_STANDARD;
+
+        {
+            aiColor4D diffuseColor;
+            mat->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
+            importedMaterial.albedo = glm::vec4(diffuseColor.r, diffuseColor.g, diffuseColor.b, diffuseColor.a);
+
+            aiString diffuseColorTexture;
+            mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseColorTexture);
+
+            int width, height, channels;
+            auto *texData = assimpLoadTextureData(scene, folderPath, diffuseColorTexture, width, height, channels);
+            if (texData != nullptr) {
+                ImportedTexture diffuseColorTex;
+                diffuseColorTex.location = AssetLocation::EMBEDDED;
+                diffuseColorTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":albedo", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::sRGB);
+                importedMaterial.albedoTexture = diffuseColorTex;
+
+                if (isBlack(glm::vec3(importedMaterial.albedo))) {
+                    importedMaterial.albedo = glm::vec4(1, 1, 1, importedMaterial.albedo.a);
+                }
+            }
+            if (texData != nullptr && channels == 4) {
+                ImportedTexture alphaTex;
+                alphaTex.location = AssetLocation::EMBEDDED;
+                alphaTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":alpha", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::LINEAR,
+                    3);
+                importedMaterial.alphaTexture = alphaTex;
+
+                if (importedMaterial.albedo.a == 0) {
+                    importedMaterial.albedo.a = 1;
+                }
+
+                importedMaterial.transparent = true;
+            }
+        }
+
+        /* Try to simulate a PBR material from the .mtl shading model illum 4 */
+        aiColor4D Ks;
+        mat->Get(AI_MATKEY_COLOR_SPECULAR, Ks);
+
+        aiColor4D Ns;
+        mat->Get(AI_MATKEY_SHININESS, Ns);
+
+        float diffuseAmount = std::max(std::max(importedMaterial.albedo.r, importedMaterial.albedo.g), importedMaterial.albedo.b);
+        float specularAmount = std::max(std::max(Ks.r, Ks.g), Ks.b);
+
+        importedMaterial.metallic = 1 - diffuseAmount / (diffuseAmount + specularAmount);
+        importedMaterial.roughness = 1 - Ns.r / 100;
+
+        if (isBlack(glm::vec3(importedMaterial.albedo)) && specularAmount != 0) {
+            importedMaterial.albedo = glm::vec4(Ks.r, Ks.g, Ks.b, importedMaterial.albedo.a);
+        }
+
+        /* TODO bump map */
+    }
+    return materials;
 }
 
 std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
@@ -477,7 +568,7 @@ Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info, std::vector<Impor
             break;
         }
         case FileType::OBJ: {
-            debug_tools::ConsoleWarning("AssimpLoadMaterials(): .obj materials not implemented");
+            materials = assimpLoadMaterialsOBJ(scene, info, folderPath, filenameWithoutExtension);
             break;
         }
         case FileType::FBX: {

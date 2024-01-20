@@ -385,7 +385,7 @@ VkResult VulkanMaterialSkybox::createDescriptors(VkDevice device, VkDescriptorPo
     return VK_SUCCESS;
 }
 
-void VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
+void VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images) const
 {
     /* Write descriptor sets */
     for (size_t i = 0; i < images; i++) {
@@ -393,7 +393,7 @@ void VulkanMaterialSkybox::updateDescriptorSets(VkDevice device, size_t images)
     }
 }
 
-void VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index)
+void VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index) const
 {
     VkDescriptorImageInfo skyboxInfo = vkinit::descriptorImageInfo(static_cast<VulkanCubemap *>(m_envMap->skyboxMap())->sampler(),
                                                                    static_cast<VulkanCubemap *>(m_envMap->skyboxMap())->imageView(),

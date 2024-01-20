@@ -238,7 +238,10 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem *treeItem)
     m_sceneGraphWidget->removeItem(treeItem);
 }
 
-void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem, std::string modelName, std::optional<std::string> overrideMaterial)
+void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem,
+                                     std::string modelName,
+                                     std::optional<vengine::Transform> overrideRootTransform,
+                                     std::optional<std::string> overrideMaterial)
 {
     auto &instanceModels = AssetManager::getInstance().modelsMap();
     if (!instanceModels.isPresent(modelName)) {
@@ -252,34 +255,42 @@ void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem, std::string mo
     Material *defaultMat = instanceMaterials.get("defaultMaterial");
     Material *overrideMat = (overrideMaterial.has_value() ? instanceMaterials.get(overrideMaterial.value()) : nullptr);
 
-    std::function<void(QTreeWidgetItem *, Tree<Model3D::Model3DNode> &)> addModelF = [&](QTreeWidgetItem *parent,
-                                                                                         Tree<Model3D::Model3DNode> &modelData) {
-        auto &modelNode = modelData.data();
-        for (uint32_t i = 0; i < modelNode.meshes.size(); i++) {
-            auto &mesh = modelNode.meshes[i];
-            auto mat = modelNode.materials[i];
+    std::function<void(QTreeWidgetItem *, Tree<Model3D::Model3DNode> &, bool)> addModelF =
+        [&](QTreeWidgetItem *parent, Tree<Model3D::Model3DNode> &modelData, bool isRoot) {
+            auto &modelNode = modelData.data();
+            for (uint32_t i = 0; i < modelNode.meshes.size(); i++) {
+                auto &mesh = modelNode.meshes[i];
+                auto mat = modelNode.materials[i];
 
-            auto child = createEmptySceneObject(mesh->name(), modelNode.transform, parent);
+                Transform nodeTransform = modelNode.transform;
+                if (isRoot && overrideRootTransform.has_value()) {
+                    nodeTransform = overrideRootTransform.value();
+                }
+                auto child = createEmptySceneObject(mesh->name(), nodeTransform, parent);
 
-            child.second->add<ComponentMesh>().mesh = mesh;
-            if (overrideMat != nullptr) {
-                child.second->add<ComponentMaterial>().material = overrideMat;
-            } else if (mat != nullptr) {
-                child.second->add<ComponentMaterial>().material = mat;
-            } else {
-                child.second->add<ComponentMaterial>().material = defaultMat;
+                child.second->add<ComponentMesh>().mesh = mesh;
+                if (overrideMat != nullptr) {
+                    child.second->add<ComponentMaterial>().material = overrideMat;
+                } else if (mat != nullptr) {
+                    child.second->add<ComponentMaterial>().material = mat;
+                } else {
+                    child.second->add<ComponentMaterial>().material = defaultMat;
+                }
             }
-        }
 
-        if (modelData.size() > 0) {
-            auto so = createEmptySceneObject(modelNode.name, modelNode.transform, parent);
-            for (uint32_t i = 0; i < modelData.size(); i++) {
-                addModelF(so.first, modelData.child(i));
+            if (modelData.size() > 0) {
+                Transform nodeTransform = modelNode.transform;
+                if (isRoot && overrideRootTransform.has_value()) {
+                    nodeTransform = overrideRootTransform.value();
+                }
+                auto so = createEmptySceneObject(modelNode.name, nodeTransform, parent);
+                for (uint32_t i = 0; i < modelData.size(); i++) {
+                    addModelF(so.first, modelData.child(i), false);
+                }
             }
-        }
-    };
+        };
 
-    addModelF(parentItem, modelData);
+    addModelF(parentItem, modelData, true);
 }
 
 void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, QTreeWidgetItem *parentItem)
@@ -689,7 +700,7 @@ void MainWindow::onAddSceneObjectSlot()
     m_engine->stop();
     m_engine->waitIdle();
 
-    addSceneObjectModel(selectedItem, selectedModel, dialog->getSelectedOverrideMaterial());
+    addSceneObjectModel(selectedItem, selectedModel, dialog->getOverrideTransform(), dialog->getSelectedOverrideMaterial());
 
     m_engine->start();
 }
@@ -1053,7 +1064,7 @@ void MainWindow::onStartUpInitialization()
         o1.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
         o1.second->add<ComponentMaterial>().material = matDef;
 
-        addSceneObjectModel(NULL, assetName, std::nullopt);
+        addSceneObjectModel(NULL, assetName);
 
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));

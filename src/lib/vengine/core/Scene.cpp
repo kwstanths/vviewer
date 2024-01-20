@@ -36,20 +36,18 @@ SceneData Scene::getSceneData() const
 
 SceneObject *Scene::addSceneObject(std::string name, Transform transform)
 {
-    SceneObject *object = createObject(name);
-    object->setLocalTransform(transform);
-    m_sceneGraph.push_back(object);
-
-    m_objectsMap.insert({object->getID(), object});
-
-    return object;
+    return addSceneObject(name, nullptr, transform);
 }
 
 SceneObject *Scene::addSceneObject(std::string name, SceneObject *parentNode, Transform transform)
 {
     SceneObject *object = createObject(name);
     object->setLocalTransform(transform);
-    parentNode->addChild(object);
+    if (parentNode == nullptr) {
+        m_sceneGraph.push_back(object);
+    } else {
+        parentNode->addChild(object);
+    }
 
     m_objectsMap.insert({object->getID(), object});
 
@@ -102,7 +100,7 @@ std::vector<SceneObject *> Scene::getSceneObjectsArray() const
 
     for (auto &&rootNode : m_sceneGraph) {
         temp.push_back(rootNode);
-        auto rootNodeObjects = rootNode->getSceneObjectsArray();
+        auto rootNodeObjects = rootNode->getSceneNodesArray();
 
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
     }
@@ -119,7 +117,7 @@ std::vector<SceneObject *> Scene::getSceneObjectsArray(std::vector<glm::mat4> &m
         temp.push_back(rootNode);
         modelMatrices.push_back(rootNode->modelMatrix());
         std::vector<glm::mat4> rootNodeMatrices;
-        auto rootNodeObjects = rootNode->getSceneObjectsArray(rootNodeMatrices);
+        auto rootNodeObjects = rootNode->getSceneNodesArray(rootNodeMatrices);
 
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
         modelMatrices.insert(modelMatrices.end(), rootNodeMatrices.begin(), rootNodeMatrices.end());

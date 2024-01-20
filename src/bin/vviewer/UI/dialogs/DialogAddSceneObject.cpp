@@ -23,18 +23,21 @@ DialogAddSceneObject::DialogAddSceneObject(QWidget *parent,
     layoutPickModel->setAlignment(Qt::AlignTop);
     boxPickModel->setLayout(layoutPickModel);
 
+    m_checkBoxTransform = new QCheckBox("Override Transform:");
+    connect(m_checkBoxTransform, SIGNAL(stateChanged(int)), this, SLOT(onCheckBoxOverrideTransform(int)));
     m_widgetTransform = new WidgetTransform(nullptr, nullptr);
+    m_widgetTransform->setEnabled(false);
 
     m_comboBoxAvailableMaterials = new QComboBox();
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
     m_comboBoxAvailableMaterials->setEnabled(false);
 
     QGroupBox *groupBoxOverrideMaterial = new QGroupBox(tr("Material"));
-    m_checkBox = new QCheckBox("Override material:");
-    connect(m_checkBox, SIGNAL(stateChanged(int)), this, SLOT(onCheckBoxOverride(int)));
+    m_checkBoxMaterial = new QCheckBox("Override material:");
+    connect(m_checkBoxMaterial, SIGNAL(stateChanged(int)), this, SLOT(onCheckBoxOverrideMaterial(int)));
 
     QVBoxLayout *layoutMaterials = new QVBoxLayout();
-    layoutMaterials->addWidget(m_checkBox);
+    layoutMaterials->addWidget(m_checkBoxMaterial);
     layoutMaterials->addWidget(m_comboBoxAvailableMaterials);
     layoutMaterials->setContentsMargins(5, 5, 5, 5);
     groupBoxOverrideMaterial->setLayout(layoutMaterials);
@@ -52,6 +55,7 @@ DialogAddSceneObject::DialogAddSceneObject(QWidget *parent,
 
     QVBoxLayout *layoutMain = new QVBoxLayout();
     layoutMain->addWidget(boxPickModel);
+    layoutMain->addWidget(m_checkBoxTransform);
     layoutMain->addWidget(m_widgetTransform);
     layoutMain->addWidget(groupBoxOverrideMaterial);
     layoutMain->addWidget(widgetButtons);
@@ -65,9 +69,9 @@ std::string DialogAddSceneObject::getSelectedModel() const
     return m_pickedModel;
 }
 
-Transform DialogAddSceneObject::getTransform() const
+std::optional<Transform> DialogAddSceneObject::getOverrideTransform() const
 {
-    return m_widgetTransform->getTransform();
+    return m_pickedOverrideTransform;
 }
 
 std::optional<std::string> DialogAddSceneObject::getSelectedOverrideMaterial() const
@@ -75,9 +79,18 @@ std::optional<std::string> DialogAddSceneObject::getSelectedOverrideMaterial() c
     return m_pickedOverrideMaterial;
 }
 
-void DialogAddSceneObject::onCheckBoxOverride(int)
+void DialogAddSceneObject::onCheckBoxOverrideTransform(int)
 {
-    if (m_checkBox->isChecked()) {
+    if (m_checkBoxTransform->isChecked()) {
+        m_widgetTransform->setEnabled(true);
+    } else {
+        m_widgetTransform->setEnabled(false);
+    }
+}
+
+void DialogAddSceneObject::onCheckBoxOverrideMaterial(int)
+{
+    if (m_checkBoxMaterial->isChecked()) {
         m_comboBoxAvailableMaterials->setEnabled(true);
     } else {
         m_comboBoxAvailableMaterials->setEnabled(false);
@@ -87,8 +100,11 @@ void DialogAddSceneObject::onCheckBoxOverride(int)
 void DialogAddSceneObject::onButtonOk()
 {
     m_pickedModel = m_models->currentText().toStdString();
-    if (m_checkBox->isChecked()) {
+    if (m_checkBoxMaterial->isChecked()) {
         m_pickedOverrideMaterial = m_comboBoxAvailableMaterials->currentText().toStdString();
+    }
+    if (m_checkBoxTransform->isChecked()) {
+        m_pickedOverrideTransform = m_widgetTransform->getTransform();
     }
     close();
 }

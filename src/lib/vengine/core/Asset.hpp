@@ -15,7 +15,22 @@ struct AssetInfo {
     AssetSource source;
     AssetLocation location;
 
+    /**
+     * @brief Construct a new Asset Info object
+     *
+     * @param n Name and filename of the asset
+     * @param s
+     */
     explicit AssetInfo(const std::string &n, const AssetSource &s = AssetSource::IMPORTED);
+
+    /**
+     * @brief Construct a new Asset Info object
+     *
+     * @param n Name of the asset
+     * @param f Filename of the asset
+     * @param s
+     * @param l
+     */
     explicit AssetInfo(const std::string &n,
                        const std::string &f,
                        const AssetSource &s = AssetSource::IMPORTED,

@@ -73,7 +73,10 @@ private:
      */
     void removeObjectFromScene(QTreeWidgetItem *treeItem);
 
-    void addSceneObjectModel(QTreeWidgetItem *parentItem, std::string modelName, std::optional<std::string> overrideMaterial);
+    void addSceneObjectModel(QTreeWidgetItem *parentItem,
+                             std::string modelName,
+                             std::optional<vengine::Transform> overrideRootTransform = std::nullopt,
+                             std::optional<std::string> overrideMaterial = std::nullopt);
 
     void addImportedSceneObject(const vengine::Tree<vengine::ImportedSceneObject> &object, QTreeWidgetItem *parentItem);
 

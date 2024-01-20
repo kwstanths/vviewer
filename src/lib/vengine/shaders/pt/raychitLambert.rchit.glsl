@@ -109,7 +109,7 @@ void main()
     }
 
     /* Add emissive of first hit */
-    if (rayPayloadPrimary.depth == 0 && !isBlack(emissive, 0.1) && !flipped) {
+    if (rayPayloadPrimary.depth == 0 && !isBlack(emissive, 0.05) && !flipped) {
         rayPayloadPrimary.radiance += emissive * rayPayloadPrimary.beta;
         rayPayloadPrimary.stop = true;
         return;

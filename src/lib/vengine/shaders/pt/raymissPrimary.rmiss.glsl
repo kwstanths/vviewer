@@ -23,7 +23,7 @@ void main()
 
     if (rayPayloadPrimary.depth == 0)
     {
-        rayPayloadPrimary.albedo = backgroundColor;
+        rayPayloadPrimary.albedo = sceneData.data.exposure.g * backgroundColor;
         rayPayloadPrimary.normal = vec3(0, 0, 0);
     }
 

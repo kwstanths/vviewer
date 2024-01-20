@@ -1,4 +1,7 @@
 # vviewer 
+
+![Alt text](images/1.png?raw=true)
+
 A 3D scene editor, a real time renderer and an offline path tracer written in Vulkan and Qt. The rendering engine can be built separately as a standalone library
 
 ## Features
@@ -27,8 +30,6 @@ A 3D scene editor, a real time renderer and an offline path tracer written in Vu
 
 ## Images
 
-![Alt text](images/1.png?raw=true)
-
 ![Alt text](images/2.png?raw=true)
 
 ![Alt text](images/3.png?raw=true)
@@ -38,3 +39,6 @@ A 3D scene editor, a real time renderer and an offline path tracer written in Vu
 ![Alt text](images/5.png?raw=true)
 
 ![Alt text](images/6.png?raw=true)
+
+### Bugs
+* If a render fails with error -2, render the scene with a smaller batch size. Needs to restart the application after such a crash

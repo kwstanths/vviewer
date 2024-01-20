@@ -247,10 +247,14 @@ void VulkanRendererPathTracing::render(const Scene &scene)
 
     /* We will use the materials from buffer index 0 for this renderer */
     m_materials.updateBuffers(0);
+    m_textures.updateTextures();
 
     /* Get skybox descriptor */
     auto skybox = dynamic_cast<const VulkanMaterialSkybox *>(scene.skyboxMaterial());
     assert(skybox != nullptr);
+    if (skybox->needsUpdate(0)) {
+        skybox->updateDescriptorSet(m_device, 0);
+    }
 
     setResolution();
     render(skybox->getDescriptor(0));

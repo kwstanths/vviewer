@@ -68,7 +68,7 @@ void main()
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
     /* If it's not an emissive surface, compute throughput and continue */
-    if (isBlack(emissive, 0.1))
+    if (isBlack(emissive, 0.05))
     {
         rayPayloadNEE.throughput *= (1.0 - alpha);
         if (rayPayloadNEE.throughput > EPSILON)

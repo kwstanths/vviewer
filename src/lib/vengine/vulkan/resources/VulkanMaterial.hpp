@@ -17,8 +17,8 @@ public:
     VulkanMaterialDescriptor(VkDescriptorSetLayout descriptorSetLayout);
 
     virtual VkResult createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) = 0;
-    virtual void updateDescriptorSets(VkDevice device, size_t images) = 0;
-    virtual void updateDescriptorSet(VkDevice device, size_t index) = 0;
+    virtual void updateDescriptorSets(VkDevice device, size_t images) const = 0;
+    virtual void updateDescriptorSet(VkDevice device, size_t index) const = 0;
 
     VkDescriptorSet getDescriptor(size_t index) const;
     bool needsUpdate(size_t index) const;
@@ -114,8 +114,8 @@ public:
     virtual void setMap(EnvironmentMap *envMap) override;
 
     VkResult createDescriptors(VkDevice device, VkDescriptorPool pool, size_t images) override;
-    void updateDescriptorSets(VkDevice device, size_t images) override;
-    void updateDescriptorSet(VkDevice device, size_t index) override;
+    void updateDescriptorSets(VkDevice device, size_t images) const override;
+    void updateDescriptorSet(VkDevice device, size_t index) const override;
 
 private:
 };
