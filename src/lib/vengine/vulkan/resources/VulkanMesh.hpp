@@ -6,7 +6,8 @@
 #include "core/Mesh.hpp"
 
 #include "vulkan/common/IncludeVulkan.hpp"
-#include "vulkan/resources/VulkanBuffer.hpp"
+#include "VulkanBuffer.hpp"
+#include "VulkanAccelerationStructure.hpp"
 
 namespace vengine
 {
@@ -75,29 +76,27 @@ public:
                const std::vector<uint32_t> &indices,
                bool hasNormals,
                bool hasUVs,
-               VkPhysicalDevice physicalDevice,
-               VkDevice device,
-               VkQueue transferQueue,
-               VkCommandPool transferCommandPool);
-    VulkanMesh(const Mesh &mesh,
-               VkPhysicalDevice physicalDevice,
-               VkDevice device,
-               VkQueue transferQueue,
-               VkCommandPool transferCommandPool);
+               VulkanCommandInfo vci,
+               bool generateBLAS);
+    VulkanMesh(const Mesh &mesh, VulkanCommandInfo vci, bool generateBLAS);
 
     void destroy(VkDevice device);
 
-    inline VulkanBuffer &vertexBuffer() { return m_vertexBuffer; }
-    inline const VulkanBuffer &vertexBuffer() const { return m_vertexBuffer; }
+    VulkanBuffer &vertexBuffer() { return m_vertexBuffer; }
+    const VulkanBuffer &vertexBuffer() const { return m_vertexBuffer; }
 
-    inline VulkanBuffer &indexBuffer() { return m_indexBuffer; }
-    inline const VulkanBuffer &indexBuffer() const { return m_indexBuffer; }
+    VulkanBuffer &indexBuffer() { return m_indexBuffer; }
+    const VulkanBuffer &indexBuffer() const { return m_indexBuffer; }
 
-    inline VkIndexType indexType() const { return VK_INDEX_TYPE_UINT32; }
+    VkIndexType indexType() const { return VK_INDEX_TYPE_UINT32; }
+
+    VulkanAccelerationStructure &blas() { return m_blas; }
+    const VulkanAccelerationStructure &blas() const { return m_blas; }
 
 protected:
     VulkanBuffer m_vertexBuffer;
     VulkanBuffer m_indexBuffer;
+    VulkanAccelerationStructure m_blas;
 };
 
 /* ---------- Some shapes ---------- */
@@ -105,11 +104,7 @@ protected:
 class VulkanCube : public VulkanMesh
 {
 public:
-    VulkanCube(const AssetInfo &info,
-               VkPhysicalDevice physicalDevice,
-               VkDevice device,
-               VkQueue transferQueue,
-               VkCommandPool transferCommandPool);
+    VulkanCube(const AssetInfo &info, VulkanCommandInfo vci, bool generateBLAS);
 
 private:
 };

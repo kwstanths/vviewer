@@ -7,12 +7,7 @@
 namespace vengine
 {
 
-VulkanTexture::VulkanTexture(const Image<stbi_uc> &image,
-                             VkPhysicalDevice physicalDevice,
-                             VkDevice device,
-                             VkQueue queue,
-                             VkCommandPool commandPool,
-                             bool genMipMaps)
+VulkanTexture::VulkanTexture(const Image<stbi_uc> &image, VulkanCommandInfo vci, bool genMipMaps)
     : Texture(image.info(), image.colorSpace(), image.colorDepth(), image.width(), image.height(), image.channels())
 {
     uint32_t imageWidth = image.width();
@@ -30,8 +25,8 @@ VulkanTexture::VulkanTexture(const Image<stbi_uc> &image,
 
     /* Create staging buffer */
     VulkanBuffer stagingBuffer;
-    createBuffer(physicalDevice,
-                 device,
+    createBuffer(vci.physicalDevice,
+                 vci.device,
                  imageSize,
                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -39,9 +34,9 @@ VulkanTexture::VulkanTexture(const Image<stbi_uc> &image,
 
     /* Copy image data to staging buffer */
     void *data;
-    vkMapMemory(device, stagingBuffer.memory(), 0, imageSize, 0, &data);
+    vkMapMemory(vci.device, stagingBuffer.memory(), 0, imageSize, 0, &data);
     memcpy(data, image.data(), static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBuffer.memory());
+    vkUnmapMemory(vci.device, stagingBuffer.memory());
 
     /* Create vulkan image and memory */
     VkImageUsageFlags imageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -52,11 +47,10 @@ VulkanTexture::VulkanTexture(const Image<stbi_uc> &image,
 
     VkImageCreateInfo imageInfo = vkinit::imageCreateInfo(
         {imageWidth, imageHeight, 1}, m_format, m_numMips, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, imageFlags);
-    createImage(physicalDevice, device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
+    createImage(vci.physicalDevice, vci.device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
 
     /* Transition image to DST_OPTIMAL in order to transfer the data */
-    transitionImageLayout(
-        device, queue, commandPool, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_numMips);
+    transitionImageLayout(vci, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_numMips);
 
     /* copy data fronm staging buffer to image */
     VkBufferImageCopy region{};
@@ -69,39 +63,28 @@ VulkanTexture::VulkanTexture(const Image<stbi_uc> &image,
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {static_cast<uint32_t>(imageWidth), static_cast<uint32_t>(imageHeight), 1};
-    copyBufferToImage(device, queue, commandPool, stagingBuffer.buffer(), m_image, {region});
+    copyBufferToImage(vci, stagingBuffer.buffer(), m_image, {region});
 
     if (genMipMaps) {
         /* If mip maps are to be generated, transition to shader read only while creating the mip maps */
-        generateMipMaps(device, commandPool, queue);
+        generateMipMaps(vci);
     } else {
         /* Transition to SHADER_READ_ONLY layout */
-        transitionImageLayout(device,
-                              queue,
-                              commandPool,
-                              m_image,
-                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              m_numMips);
+        transitionImageLayout(vci, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_numMips);
     }
 
     /* Cleanup staging buffer */
-    stagingBuffer.destroy(device);
+    stagingBuffer.destroy(vci.device);
 
     /* Create view */
     VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
-    vkCreateImageView(device, &imageViewInfo, nullptr, &m_imageView);
+    vkCreateImageView(vci.device, &imageViewInfo, nullptr, &m_imageView);
 
     /* Create a sampler */
-    createSampler(device, m_sampler);
+    createSampler(vci.device, m_sampler);
 }
 
-VulkanTexture::VulkanTexture(const Image<float> &image,
-                             VkPhysicalDevice physicalDevice,
-                             VkDevice device,
-                             VkQueue queue,
-                             VkCommandPool commandPool,
-                             bool genMipMaps)
+VulkanTexture::VulkanTexture(const Image<float> &image, VulkanCommandInfo vci, bool genMipMaps)
     : Texture(image.info(), image.colorSpace(), image.colorDepth(), image.width(), image.height(), image.channels())
 {
     uint32_t imageWidth = image.width();
@@ -119,8 +102,8 @@ VulkanTexture::VulkanTexture(const Image<float> &image,
 
     /* Create staging buffer */
     VulkanBuffer stagingBuffer;
-    createBuffer(physicalDevice,
-                 device,
+    createBuffer(vci.physicalDevice,
+                 vci.device,
                  imageSize,
                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -128,9 +111,9 @@ VulkanTexture::VulkanTexture(const Image<float> &image,
 
     /* Copy image data to staging buffer */
     void *data;
-    vkMapMemory(device, stagingBuffer.memory(), 0, imageSize, 0, &data);
+    vkMapMemory(vci.device, stagingBuffer.memory(), 0, imageSize, 0, &data);
     memcpy(data, image.data(), static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBuffer.memory());
+    vkUnmapMemory(vci.device, stagingBuffer.memory());
 
     /* Create vulkan image and memory */
     VkImageUsageFlags imageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -141,11 +124,10 @@ VulkanTexture::VulkanTexture(const Image<float> &image,
 
     VkImageCreateInfo imageInfo = vkinit::imageCreateInfo(
         {imageWidth, imageHeight, 1}, m_format, m_numMips, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, imageFlags);
-    createImage(physicalDevice, device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
+    createImage(vci.physicalDevice, vci.device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
 
     /* Transition image to DST_OPTIMAL in order to transfer the data */
-    transitionImageLayout(
-        device, queue, commandPool, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_numMips);
+    transitionImageLayout(vci, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_numMips);
 
     /* copy data fronm staging buffer to image */
     VkBufferImageCopy region{};
@@ -158,31 +140,25 @@ VulkanTexture::VulkanTexture(const Image<float> &image,
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {static_cast<uint32_t>(imageWidth), static_cast<uint32_t>(imageHeight), 1};
-    copyBufferToImage(device, queue, commandPool, stagingBuffer.buffer(), m_image, {region});
+    copyBufferToImage(vci, stagingBuffer.buffer(), m_image, {region});
 
     if (genMipMaps) {
         /* If mip maps are to be generated, transition to shader read only while creating the mip maps */
-        generateMipMaps(device, commandPool, queue);
+        generateMipMaps(vci);
     } else {
         /* Transition to SHADER_READ_ONLY layout */
-        transitionImageLayout(device,
-                              queue,
-                              commandPool,
-                              m_image,
-                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              m_numMips);
+        transitionImageLayout(vci, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_numMips);
     }
 
     /* Cleanup staging buffer */
-    stagingBuffer.destroy(device);
+    stagingBuffer.destroy(vci.device);
 
     /* Create view */
     VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
-    vkCreateImageView(device, &imageViewInfo, nullptr, &m_imageView);
+    vkCreateImageView(vci.device, &imageViewInfo, nullptr, &m_imageView);
 
     /* Create a sampler */
-    createSampler(device, m_sampler);
+    createSampler(vci.device, m_sampler);
 }
 
 VulkanTexture::VulkanTexture(const AssetInfo &info,
@@ -265,10 +241,10 @@ VkResult VulkanTexture::createSampler(VkDevice device, VkSampler &sampler) const
     return VK_SUCCESS;
 }
 
-void VulkanTexture::generateMipMaps(VkDevice device, VkCommandPool commandPool, VkQueue queue)
+void VulkanTexture::generateMipMaps(VulkanCommandInfo vci)
 {
     VkCommandBuffer cmdBuf;
-    beginSingleTimeCommands(device, commandPool, cmdBuf);
+    beginSingleTimeCommands(vci.device, vci.commandPool, cmdBuf);
 
     VkImageSubresourceRange resourceRange = {};
     resourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -316,7 +292,7 @@ void VulkanTexture::generateMipMaps(VkDevice device, VkCommandPool commandPool, 
     transitionImageLayout(
         cmdBuf, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, resourceRange);
 
-    endSingleTimeCommands(device, commandPool, queue, cmdBuf);
+    endSingleTimeCommands(vci.device, vci.commandPool, vci.queue, cmdBuf);
 }
 
 }  // namespace vengine

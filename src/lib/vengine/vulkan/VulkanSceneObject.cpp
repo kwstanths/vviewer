@@ -26,4 +26,9 @@ void VulkanSceneObject::updateModelMatrixData(const glm::mat4 &modelMatrix)
     m_block->m_modelMatrix = modelMatrix;
 }
 
+uint32_t VulkanSceneObject::getModelDataUBOIndex() const
+{
+    return UBOBlockIndex();
+}
+
 }  // namespace vengine

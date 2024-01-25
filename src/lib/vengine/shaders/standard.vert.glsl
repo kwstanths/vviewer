@@ -35,10 +35,12 @@ void main() {
     vec4 worldPos = m.model * vec4(inPosition, 1.0);
     gl_Position = sceneData.data.projection * sceneData.data.view * worldPos;
     
+    mat4 invTransModel = transpose(inverse(m.model));
+
     fragPos_world = worldPos.xyz;
-    fragNormal_world = normalize(vec3(m.model * vec4(inNormal, 0.0)));
-    fragTangent_world = normalize(vec3(m.model * vec4(inTangent, 0.0)));
-    fragBiTangent_world = normalize(vec3(m.model * vec4(inBitangent, 0.0)));
+    fragNormal_world = normalize(vec3(invTransModel * vec4(inNormal, 0.0)));
+    fragTangent_world = normalize(vec3(invTransModel * vec4(inTangent, 0.0)));
     fragTangent_world = normalize(fragTangent_world - dot(fragTangent_world, fragNormal_world) * fragNormal_world);
+    fragBiTangent_world = cross(fragNormal_world, fragTangent_world);
     fragUV = inUV;
 }

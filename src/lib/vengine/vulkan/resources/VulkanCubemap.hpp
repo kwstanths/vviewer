@@ -4,6 +4,7 @@
 #include <core/Cubemap.hpp>
 
 #include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/common/VulkanStructs.hpp"
 
 namespace vengine
 {
@@ -11,12 +12,7 @@ namespace vengine
 class VulkanCubemap : public Cubemap
 {
 public:
-    VulkanCubemap(const AssetInfo &info,
-                  std::string directory,
-                  VkPhysicalDevice physicalDevice,
-                  VkDevice device,
-                  VkQueue queue,
-                  VkCommandPool commandPool);
+    VulkanCubemap(const AssetInfo &info, std::string directory, VulkanCommandInfo vci);
     VulkanCubemap(const AssetInfo &info,
                   VkImage cubemapImage,
                   VkDeviceMemory m_cubemapMemory,
@@ -36,7 +32,7 @@ private:
     VkImageView m_cubemapImageView;
     VkSampler m_cubemapSampler;
 
-    VkResult createCubemap(VkPhysicalDevice physicalDevice, VkDevice device, VkQueue queue, VkCommandPool commandPool);
+    VkResult createCubemap(VulkanCommandInfo vci);
 };
 
 }  // namespace vengine

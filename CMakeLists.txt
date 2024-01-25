@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(vviewer)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+
 add_subdirectory(src/lib)
 add_subdirectory(src/bin/vviewer)
 add_subdirectory(src/bin/offlinerender)

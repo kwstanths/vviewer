@@ -30,7 +30,7 @@ VkResult VulkanRenderer3DUI::initResources(VkPhysicalDevice physicalDevice,
 
     AssetInfo arrowInfo = AssetInfo("assets/models/arrow.obj", AssetSource::INTERNAL);
     Tree<ImportedModelNode> modelData = assimpLoadModel(arrowInfo);
-    m_arrow = new VulkanModel3D(arrowInfo, modelData, m_physicalDevice, m_device, queue, commandPool);
+    m_arrow = new VulkanModel3D(arrowInfo, modelData, {m_physicalDevice, m_device, m_commandPool, m_queue}, false);
 
     ID rightID = static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW);
     m_rightID = IDGeneration::toRGB(rightID);

@@ -23,6 +23,7 @@
 #include "vulkan/common/VulkanUtils.hpp"
 #include "vulkan/common/VulkanShader.hpp"
 #include "vulkan/common/VulkanLimits.hpp"
+#include "vulkan/common/VulkanDeviceFunctions.hpp"
 #include "vulkan/resources/VulkanLight.hpp"
 
 namespace vengine
@@ -62,29 +63,6 @@ VkResult VulkanRendererPathTracing::initResources(VkFormat format, VkDescriptorS
     m_commandPool = m_vkctx.graphicsCommandPool();
     m_queue = m_vkctx.graphicsQueue();
 
-    /* Get ray tracing specific device functions pointers */
-    {
-        m_devF.vkGetBufferDeviceAddressKHR =
-            reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(m_device, "vkGetBufferDeviceAddressKHR"));
-        m_devF.vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
-            vkGetDeviceProcAddr(m_device, "vkCmdBuildAccelerationStructuresKHR"));
-        m_devF.vkBuildAccelerationStructuresKHR =
-            reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(m_device, "vkBuildAccelerationStructuresKHR"));
-        m_devF.vkCreateAccelerationStructureKHR =
-            reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(vkGetDeviceProcAddr(m_device, "vkCreateAccelerationStructureKHR"));
-        m_devF.vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
-            vkGetDeviceProcAddr(m_device, "vkDestroyAccelerationStructureKHR"));
-        m_devF.vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
-            vkGetDeviceProcAddr(m_device, "vkGetAccelerationStructureBuildSizesKHR"));
-        m_devF.vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(
-            vkGetDeviceProcAddr(m_device, "vkGetAccelerationStructureDeviceAddressKHR"));
-        m_devF.vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(m_device, "vkCmdTraceRaysKHR"));
-        m_devF.vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
-            vkGetDeviceProcAddr(m_device, "vkGetRayTracingShaderGroupHandlesKHR"));
-        m_devF.vkCreateRayTracingPipelinesKHR =
-            reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(m_device, "vkCreateRayTracingPipelinesKHR"));
-    }
-
     /* Get ray tracing pipeline properties */
     {
         m_rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
@@ -112,11 +90,6 @@ VkResult VulkanRendererPathTracing::initResources(VkFormat format, VkDescriptorS
 
 VkResult VulkanRendererPathTracing::releaseRenderResources()
 {
-    for (auto &mb : m_renderBuffers) {
-        mb.destroy(m_device);
-    }
-    m_renderBuffers.clear();
-
     destroyAccellerationStructures();
 
     return VK_SUCCESS;
@@ -204,7 +177,8 @@ void VulkanRendererPathTracing::render(const Scene &scene)
 
     std::vector<LightPT> sceneLights;
 
-    /* Create bottom level acceleration sturcutres out of all the meshes in the scene */
+    /* Parse all objects in the scene that have a mesh and a material */
+    m_blasInstances.clear();
     for (size_t i = 0; i < sceneObjects.size(); i++) {
         auto so = sceneObjects[i];
 
@@ -217,8 +191,6 @@ void VulkanRendererPathTracing::render(const Scene &scene)
             auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
             auto material = so->get<ComponentMaterial>().material;
 
-            AccelerationStructure blas = createBottomLevelAccelerationStructure(*mesh, glm::mat4(1.0f), material);
-
             uint32_t nTypeRays = 3U; /* Types of rays */
             uint32_t instanceOffset; /* Ioffset in SBT is based on the type of material */
             if (material->type() == MaterialType::MATERIAL_LAMBERT)
@@ -229,7 +201,12 @@ void VulkanRendererPathTracing::render(const Scene &scene)
                 throw std::runtime_error("VulkanRendererPathTracing::renderScene(): Unexpected material");
             }
 
-            m_blas.emplace_back(blas, transform, instanceOffset);
+            assert(mesh->blas().initialized());
+            m_blasInstances.emplace_back(mesh->blas(), transform, instanceOffset);
+            m_sceneObjectsDescription.push_back({mesh->vertexBuffer().address().deviceAddress,
+                                                 mesh->indexBuffer().address().deviceAddress,
+                                                 material->materialIndex(),
+                                                 mesh->nTriangles()});
         }
 
         if (so->has<ComponentLight>() || isMeshLight(so)) {
@@ -238,7 +215,7 @@ void VulkanRendererPathTracing::render(const Scene &scene)
     }
 
     /* Create a top level accelleration structure out of all the blas */
-    m_tlas = createTopLevelAccelerationStructure();
+    createTopLevelAccelerationStructure();
 
     /* Prepare scene lights */
     prepareSceneLights(scene, sceneLights);
@@ -257,15 +234,17 @@ void VulkanRendererPathTracing::render(const Scene &scene)
     }
 
     setResolution();
-    render(skybox->getDescriptor(0));
+    auto res = render(skybox->getDescriptor(0));
 
     releaseRenderResources();
 
     timer.Stop();
 
-    std::string fileExtension = (renderInfo().fileType == FileType::PNG) ? "png" : "hdr";
-    std::string filename = renderInfo().filename + "." + fileExtension;
-    debug_tools::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(timer.ToInt()) + "ms");
+    if (res == VK_SUCCESS) {
+        std::string fileExtension = (renderInfo().fileType == FileType::PNG) ? "png" : "hdr";
+        std::string filename = renderInfo().filename + "." + fileExtension;
+        debug_tools::ConsoleInfo("Scene rendered: " + filename + " in: " + std::to_string(timer.ToInt()) + "ms");
+    }
 
     m_renderInProgress = false;
 }
@@ -325,160 +304,12 @@ bool VulkanRendererPathTracing::checkRayTracingSupport(VkPhysicalDevice device)
     return true;
 }
 
-uint64_t VulkanRendererPathTracing::getBufferDeviceAddress(VkDevice device, VkBuffer buffer)
-{
-    VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
-    bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-    bufferDeviceAI.buffer = buffer;
-    return m_devF.vkGetBufferDeviceAddressKHR(device, &bufferDeviceAI);
-}
-
-VulkanRendererPathTracing::AccelerationStructure
-VulkanRendererPathTracing::createBottomLevelAccelerationStructure(const VulkanMesh &mesh, const glm::mat4 &t, const Material *material)
-{
-    // TODO compute BLAS per VulkanMesh object
-
-    const std::vector<Vertex> &vertices = mesh.vertices();
-    const std::vector<uint32_t> indices = mesh.indices();
-    uint32_t indexCount = static_cast<uint32_t>(indices.size());
-
-    VkTransformMatrixKHR transformMatrix = {
-        t[0][0], t[1][0], t[2][0], t[3][0], t[0][1], t[1][1], t[2][1], t[3][1], t[0][2], t[1][2], t[2][2], t[3][2]};
-
-    /* Create buffers for RT for mesh data and the transformation matrix */
-    VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-                                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-
-    VkBuffer vertexBuffer = mesh.vertexBuffer().buffer();
-    VkDeviceMemory vertexBufferMemory = mesh.vertexBuffer().memory();
-
-    VkBuffer indexBuffer = mesh.indexBuffer().buffer();
-    VkDeviceMemory indexBufferMemory = mesh.indexBuffer().memory();
-
-    // TODO use transform buffer from the dybamic UBO that stores the mvp matrices?
-    VulkanBuffer transformBuffer;
-    createBuffer(m_vkctx.physicalDevice(),
-                 m_device,
-                 sizeof(transformMatrix),
-                 usageFlags,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 &transformMatrix,
-                 transformBuffer);
-
-    /* Get the device address of the geometry buffers and push them to the scene objects vector */
-    VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{};
-    vertexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, vertexBuffer);
-    VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{};
-    indexBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, indexBuffer);
-    VkDeviceOrHostAddressConstKHR transformBufferDeviceAddress{};
-    transformBufferDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, transformBuffer.buffer());
-
-    std::vector<uint32_t> numTriangles = {indexCount / 3};
-    uint32_t maxVertex = static_cast<uint32_t>(vertices.size());
-
-    m_sceneObjectsDescription.push_back(
-        {vertexBufferDeviceAddress.deviceAddress, indexBufferDeviceAddress.deviceAddress, material->materialIndex(), numTriangles[0]});
-
-    /* Specify an acceleration structure geometry for the mesh */
-    VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
-    accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-    // accelerationStructureGeometry.flags =
-    //     (material->transparent() ? VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR : VK_GEOMETRY_OPAQUE_BIT_KHR);
-    accelerationStructureGeometry.flags = VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR;
-    accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-    accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-    accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-    accelerationStructureGeometry.geometry.triangles.vertexData = vertexBufferDeviceAddress;
-    accelerationStructureGeometry.geometry.triangles.maxVertex = maxVertex;
-    accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(Vertex);
-    accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
-    accelerationStructureGeometry.geometry.triangles.indexData = indexBufferDeviceAddress;
-    accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
-    accelerationStructureGeometry.geometry.triangles.transformData.hostAddress = nullptr;
-    accelerationStructureGeometry.geometry.triangles.transformData = transformBufferDeviceAddress;
-    /* Specify all acceleration structure geometries */
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
-    accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-    accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-    accelerationStructureBuildGeometryInfo.geometryCount = 1;
-    accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-
-    /* Get required size for the acceleration structure */
-    VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
-    accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-    m_devF.vkGetAccelerationStructureBuildSizesKHR(m_device,
-                                                   VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-                                                   &accelerationStructureBuildGeometryInfo,
-                                                   numTriangles.data(),
-                                                   &accelerationStructureBuildSizesInfo);
-    /* Create bottom level acceleration structure buffer with the specified size */
-    AccelerationStructure blas;
-    createAccelerationStructureBuffer(m_vkctx.physicalDevice(),
-                                      m_device,
-                                      accelerationStructureBuildSizesInfo,
-                                      blas.handle,
-                                      blas.deviceAddress,
-                                      blas.memory,
-                                      blas.buffer);
-    /* Create the bottom level accelleration structure */
-    VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
-    accelerationStructureCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-    accelerationStructureCreateInfo.buffer = blas.buffer;
-    accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
-    accelerationStructureCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    m_devF.vkCreateAccelerationStructureKHR(m_device, &accelerationStructureCreateInfo, nullptr, &blas.handle);
-
-    /* Create a scratch buffer used during the build of the bottom level acceleration structure */
-    ScratchBuffer scratchBuffer;
-    createScratchBuffer(accelerationStructureBuildSizesInfo.buildScratchSize, scratchBuffer);
-
-    /* Build accelleration structure */
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{};
-    accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-    accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-    accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    accelerationBuildGeometryInfo.dstAccelerationStructure = blas.handle;
-    accelerationBuildGeometryInfo.geometryCount = 1;
-    accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-    accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.deviceAddress;
-
-    VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-    accelerationStructureBuildRangeInfo.primitiveCount = numTriangles[0];
-    accelerationStructureBuildRangeInfo.primitiveOffset = 0;
-    accelerationStructureBuildRangeInfo.firstVertex = 0;
-    accelerationStructureBuildRangeInfo.transformOffset = 0;
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR *> accelerationBuildStructureRangeInfos = {
-        &accelerationStructureBuildRangeInfo};
-
-    /* Build the acceleration structure on the device via a one - time command buffer submission */
-    VkCommandBuffer commandBuffer;
-    beginSingleTimeCommands(m_device, m_commandPool, commandBuffer);
-
-    m_devF.vkCmdBuildAccelerationStructuresKHR(
-        commandBuffer, 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data());
-
-    endSingleTimeCommands(m_device, m_commandPool, m_queue, commandBuffer);
-
-    /* Get the device address */
-    VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
-    accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-    accelerationDeviceAddressInfo.accelerationStructure = blas.handle;
-    blas.deviceAddress = m_devF.vkGetAccelerationStructureDeviceAddressKHR(m_device, &accelerationDeviceAddressInfo);
-
-    m_renderBuffers.push_back(transformBuffer);
-    deleteScratchBuffer(scratchBuffer);
-
-    return blas;
-}
-
-VulkanRendererPathTracing::AccelerationStructure VulkanRendererPathTracing::createTopLevelAccelerationStructure()
+void VulkanRendererPathTracing::createTopLevelAccelerationStructure()
 {
     /* Create a buffer to hold top level instances */
-    std::vector<VkAccelerationStructureInstanceKHR> instances(m_blas.size());
-    for (size_t i = 0; i < m_blas.size(); i++) {
-        auto &t = m_blas[i].transform;
+    std::vector<VkAccelerationStructureInstanceKHR> instances(m_blasInstances.size());
+    for (size_t i = 0; i < m_blasInstances.size(); i++) {
+        auto &t = m_blasInstances[i].transform;
         /* Set transform matrix per blas */
         VkTransformMatrixKHR transformMatrix = {
             t[0][0], t[1][0], t[2][0], t[3][0], t[0][1], t[1][1], t[2][1], t[3][1], t[0][2], t[1][2], t[2][2], t[3][2]};
@@ -490,124 +321,20 @@ VulkanRendererPathTracing::AccelerationStructure VulkanRendererPathTracing::crea
                                                                      geometry buffers for this object are, the mesh's position inside
                                                                      the ObjectDescription buffer */
         instances[i].mask = 0xFF;
-        instances[i].instanceShaderBindingTableRecordOffset = m_blas[i].instanceOffset;
+        instances[i].instanceShaderBindingTableRecordOffset = m_blasInstances[i].instanceOffset;
         instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-        instances[i].accelerationStructureReference = m_blas[i].as.deviceAddress;
+        instances[i].accelerationStructureReference = m_blasInstances[i].accelerationStructure.buffer().address().deviceAddress;
     }
-    uint32_t instancesCount = static_cast<uint32_t>(instances.size());
 
-    /* Create buffer to copy the instances */
-    VulkanBuffer instancesBuffer;
-    createBuffer(m_vkctx.physicalDevice(),
-                 m_device,
-                 instances.size() * sizeof(VkAccelerationStructureInstanceKHR),
-                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 instances.data(),
-                 instancesBuffer);
-    /* Get address of the instances buffer */
-    VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
-    instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(m_device, instancesBuffer.buffer());
-
-    /* Create an acceleration structure geometry to reference the instances buffer */
-    VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
-    accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-    accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
-    accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-    accelerationStructureGeometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
-    accelerationStructureGeometry.geometry.instances.arrayOfPointers = VK_FALSE;
-    accelerationStructureGeometry.geometry.instances.data = instanceDataDeviceAddress;
-    /* Get the size info for the acceleration structure */
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
-    accelerationStructureBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-    accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-    accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-    accelerationStructureBuildGeometryInfo.geometryCount = 1;
-    accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-    /* Get build size of accelleration structure */
-    VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
-    accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-    m_devF.vkGetAccelerationStructureBuildSizesKHR(m_device,
-                                                   VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-                                                   &accelerationStructureBuildGeometryInfo,
-                                                   &instancesCount,
-                                                   &accelerationStructureBuildSizesInfo);
-
-    /* Create acceleration structure buffer */
-    AccelerationStructure tlas;
-    createAccelerationStructureBuffer(m_vkctx.physicalDevice(),
-                                      m_device,
-                                      accelerationStructureBuildSizesInfo,
-                                      tlas.handle,
-                                      tlas.deviceAddress,
-                                      tlas.memory,
-                                      tlas.buffer);
-    /* Create acceleration structure */
-    VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
-    accelerationStructureCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-    accelerationStructureCreateInfo.buffer = tlas.buffer;
-    accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
-    accelerationStructureCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-    m_devF.vkCreateAccelerationStructureKHR(m_device, &accelerationStructureCreateInfo, nullptr, &tlas.handle);
-
-    /* Create a scratch buffer used during build of the top level acceleration structure */
-    ScratchBuffer scratchBuffer;
-    createScratchBuffer(accelerationStructureBuildSizesInfo.buildScratchSize, scratchBuffer);
-
-    /* Build accelleration structure */
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{};
-    accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-    accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-    accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-    accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    accelerationBuildGeometryInfo.dstAccelerationStructure = tlas.handle;
-    accelerationBuildGeometryInfo.geometryCount = 1;
-    accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-    accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.deviceAddress;
-
-    VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-    accelerationStructureBuildRangeInfo.primitiveCount = instancesCount;
-    accelerationStructureBuildRangeInfo.primitiveOffset = 0;
-    accelerationStructureBuildRangeInfo.firstVertex = 0;
-    accelerationStructureBuildRangeInfo.transformOffset = 0;
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR *> accelerationBuildStructureRangeInfos = {
-        &accelerationStructureBuildRangeInfo};
-
-    /* Build the acceleration structure on the device via a one - time command buffer submission */
-    VkCommandBuffer commandBuffer;
-    beginSingleTimeCommands(m_device, m_commandPool, commandBuffer);
-
-    m_devF.vkCmdBuildAccelerationStructuresKHR(
-        commandBuffer, 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data());
-
-    endSingleTimeCommands(m_device, m_commandPool, m_queue, commandBuffer);
-
-    /* Get device address of accelleration structure */
-    VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
-    accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-    accelerationDeviceAddressInfo.accelerationStructure = tlas.handle;
-    tlas.deviceAddress = m_devF.vkGetAccelerationStructureDeviceAddressKHR(m_device, &accelerationDeviceAddressInfo);
-
-    deleteScratchBuffer(scratchBuffer);
-    m_renderBuffers.push_back(instancesBuffer);
-
-    return tlas;
+    m_tlas.initializeTopLevelAcceslerationStructure(
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, instances);
 }
 
 void VulkanRendererPathTracing::destroyAccellerationStructures()
 {
     m_sceneObjectsDescription.clear();
 
-    for (auto &blas : m_blas) {
-        m_devF.vkDestroyAccelerationStructureKHR(m_device, blas.as.handle, nullptr);
-        vkDestroyBuffer(m_device, blas.as.buffer, nullptr);
-        vkFreeMemory(m_device, blas.as.memory, nullptr);
-    }
-    m_blas.clear();
-
-    m_devF.vkDestroyAccelerationStructureKHR(m_device, m_tlas.handle, nullptr);
-    vkDestroyBuffer(m_device, m_tlas.buffer, nullptr);
-    vkFreeMemory(m_device, m_tlas.memory, nullptr);
+    m_tlas.destroy(m_vkctx.device());
 }
 
 VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t height)
@@ -833,7 +560,7 @@ void VulkanRendererPathTracing::updateDescriptorSets()
     VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
     descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-    descriptorAccelerationStructureInfo.pAccelerationStructures = &m_tlas.handle;
+    descriptorAccelerationStructureInfo.pAccelerationStructures = &m_tlas.handle();
     VkWriteDescriptorSet accelerationStructureWrite{};
     accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     /* The specialized acceleration structure descriptor has to be chained */
@@ -1062,6 +789,8 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
         throw std::runtime_error("VulkanRendererPathTracing::createRayTracingPipeline(): Device doesn't support ray recursion");
     }
 
+    auto devF = VulkanDeviceFunctions::getInstance().rayTracingPipeline();
+
     /*
         Create the ray tracing pipeline
     */
@@ -1073,7 +802,7 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
     rayTracingPipelineInfo.pGroups = m_shaderGroups.data();
     rayTracingPipelineInfo.maxPipelineRayRecursionDepth = 2;
     rayTracingPipelineInfo.layout = m_pipelineLayout;
-    VULKAN_CHECK_CRITICAL(m_devF.vkCreateRayTracingPipelinesKHR(
+    VULKAN_CHECK_CRITICAL(devF->vkCreateRayTracingPipelinesKHR(
         m_device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineInfo, nullptr, &m_pipeline));
 
     /* Destroy shader modules */
@@ -1092,9 +821,11 @@ VkResult VulkanRendererPathTracing::createShaderBindingTable()
     const uint32_t groupCount = static_cast<uint32_t>(m_shaderGroups.size());
     const uint32_t sbtSize = groupCount * handleSizeAligned; /* Size in bytes */
 
+    auto devF = VulkanDeviceFunctions::getInstance().rayTracingPipeline();
+
     std::vector<uint8_t> shaderHandleStorage(sbtSize);
     VkResult res =
-        m_devF.vkGetRayTracingShaderGroupHandlesKHR(m_device, m_pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data());
+        devF->vkGetRayTracingShaderGroupHandlesKHR(m_device, m_pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data());
     if (res != VK_SUCCESS) {
         throw std::runtime_error("VulkanRendererPathTracing::createShaderBindingTable(): Failed to get the shader group handles: " +
                                  std::to_string(res));
@@ -1136,13 +867,13 @@ VkResult VulkanRendererPathTracing::createShaderBindingTable()
     }
 
     /* Get strided device addresses for the shader binding tables where the shader group handles are stored */
-    m_sbt.raygenSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raygenBuffer.buffer());
+    m_sbt.raygenSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raygenBuffer.buffer()).deviceAddress;
     m_sbt.raygenSbtEntry.stride = handleSizeAligned;
     m_sbt.raygenSbtEntry.size = handleSizeAligned;
-    m_sbt.raymissSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raymissBuffer.buffer());
+    m_sbt.raymissSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raymissBuffer.buffer()).deviceAddress;
     m_sbt.raymissSbtEntry.stride = handleSizeAligned;
     m_sbt.raymissSbtEntry.size = 3 * handleSizeAligned;
-    m_sbt.raychitSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raychitBuffer.buffer());
+    m_sbt.raychitSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raychitBuffer.buffer()).deviceAddress;
     m_sbt.raychitSbtEntry.stride = handleSizeAligned;
     m_sbt.raychitSbtEntry.size = 6 * handleSizeAligned;
     m_sbt.callableSbtEntry = {};
@@ -1169,7 +900,10 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
     VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
+    auto devF = VulkanDeviceFunctions::getInstance().rayTracingPipeline();
+
     debug_tools::ConsoleInfo("Launching render with: " + std::to_string(batches * batchSize) + " samples");
+    VkResult res = VK_SUCCESS;
     for (uint32_t batch = 0; batch < batches; batch++) {
         VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
@@ -1196,14 +930,14 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
         /*
             Dispatch the ray tracing commands
         */
-        m_devF.vkCmdTraceRaysKHR(commandBuffer,
-                                 &m_sbt.raygenSbtEntry,
-                                 &m_sbt.raymissSbtEntry,
-                                 &m_sbt.raychitSbtEntry,
-                                 &m_sbt.callableSbtEntry,
-                                 renderInfo().width,
-                                 renderInfo().height,
-                                 1);
+        devF->vkCmdTraceRaysKHR(commandBuffer,
+                                &m_sbt.raygenSbtEntry,
+                                &m_sbt.raymissSbtEntry,
+                                &m_sbt.raychitSbtEntry,
+                                &m_sbt.callableSbtEntry,
+                                renderInfo().width,
+                                renderInfo().height,
+                                1);
 
         vkEndCommandBuffer(commandBuffer);
 
@@ -1217,31 +951,41 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
         VULKAN_CHECK_CRITICAL(vkQueueSubmit(m_queue, 1, &submitInfo, fence));
 
         /* Wait for the fence to signal that the command buffer has finished executing */
-        VkResult res = vkWaitForFences(m_device, 1, &fence, VK_TRUE, VULKAN_TIMEOUT_1S);
+        res = vkWaitForFences(m_device, 1, &fence, VK_TRUE, VULKAN_TIMEOUT_1S);
         if (res == VK_SUCCESS) {
             vkDestroyFence(m_device, fence, nullptr);
+        } else if (res == VK_TIMEOUT) {
+            debug_tools::ConsoleCritical(
+                "VulkanRendererPathTracing::render(): Render failed with timeout. Please again with smaller batch size");
+            break;
+        } else if (res == VK_ERROR_DEVICE_LOST) {
+            debug_tools::ConsoleCritical("VulkanRendererPathTracing::render(): Render failed with Device Lost");
+            break;
         } else {
             debug_tools::ConsoleCritical("VulkanRendererPathTracing::render(): Render failed: " + std::to_string(res));
+            break;
         }
 
         m_renderProgress = static_cast<float>(batch) / static_cast<float>(batches);
     }
 
-    vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+    if (res == VK_SUCCESS) {
+        vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 
-    std::vector<float> radiance, albedo, normal;
-    VULKAN_CHECK_CRITICAL(getRenderTargetData(m_renderResultRadiance, radiance));
-    VULKAN_CHECK_CRITICAL(getRenderTargetData(m_renderResultAlbedo, albedo));
-    VULKAN_CHECK_CRITICAL(getRenderTargetData(m_renderResultNormal, normal));
+        std::vector<float> radiance, albedo, normal;
+        VULKAN_CHECK_CRITICAL(getRenderTargetData(m_renderResultRadiance, radiance));
+        VULKAN_CHECK_CRITICAL(getRenderTargetData(m_renderResultAlbedo, albedo));
+        VULKAN_CHECK_CRITICAL(getRenderTargetData(m_renderResultNormal, normal));
 
-    VULKAN_CHECK_CRITICAL(storeToDisk(radiance, albedo, normal));
+        VULKAN_CHECK_CRITICAL(storeToDisk(radiance, albedo, normal));
+    }
 
     VULKAN_CHECK_CRITICAL(vkQueueWaitIdle(m_queue));
 
-    return VK_SUCCESS;
+    return res;
 }
 
-VkResult VulkanRendererPathTracing::getRenderTargetData(const StorageImage &target, std::vector<float> &data)
+VkResult VulkanRendererPathTracing::getRenderTargetData(const VulkanStorageImage &target, std::vector<float> &data)
 {
     VkCommandBuffer cmdBuf;
     VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(m_device, m_commandPool, cmdBuf));
@@ -1360,51 +1104,6 @@ VkResult VulkanRendererPathTracing::storeToDisk(std::vector<float> &radiance,
     writeToDisk(radiance, renderInfo().filename, renderInfo().fileType, width, height, 4);
 
     return VK_SUCCESS;
-}
-
-VkResult VulkanRendererPathTracing::createScratchBuffer(VkDeviceSize size, ScratchBuffer &scratchBuffer)
-{
-    scratchBuffer = {};
-
-    VkBufferCreateInfo bufferCreateInfo{};
-    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferCreateInfo.size = size;
-    bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    VULKAN_CHECK_CRITICAL(vkCreateBuffer(m_device, &bufferCreateInfo, nullptr, &scratchBuffer.handle));
-
-    VkMemoryRequirements memoryRequirements{};
-    vkGetBufferMemoryRequirements(m_device, scratchBuffer.handle, &memoryRequirements);
-
-    VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
-    memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
-    memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
-
-    VkMemoryAllocateInfo memoryAllocateInfo = {};
-    memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
-    memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex =
-        findMemoryType(m_vkctx.physicalDevice(), memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    VULKAN_CHECK_CRITICAL(vkAllocateMemory(m_device, &memoryAllocateInfo, nullptr, &scratchBuffer.memory));
-
-    VULKAN_CHECK_CRITICAL(vkBindBufferMemory(m_device, scratchBuffer.handle, scratchBuffer.memory, 0));
-
-    VkBufferDeviceAddressInfoKHR bufferDeviceAddressInfo{};
-    bufferDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-    bufferDeviceAddressInfo.buffer = scratchBuffer.handle;
-    scratchBuffer.deviceAddress = m_devF.vkGetBufferDeviceAddressKHR(m_device, &bufferDeviceAddressInfo);
-
-    return VK_SUCCESS;
-}
-
-void VulkanRendererPathTracing::deleteScratchBuffer(ScratchBuffer &scratchBuffer)
-{
-    if (scratchBuffer.memory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_device, scratchBuffer.memory, nullptr);
-    }
-    if (scratchBuffer.handle != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, scratchBuffer.handle, nullptr);
-    }
 }
 
 bool VulkanRendererPathTracing::isMeshLight(const SceneObject *so)

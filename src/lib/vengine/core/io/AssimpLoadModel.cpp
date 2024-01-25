@@ -568,7 +568,7 @@ Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info, std::vector<Impor
             break;
         }
         case FileType::OBJ: {
-            materials = assimpLoadMaterialsOBJ(scene, info, folderPath, filenameWithoutExtension);
+            // materials = assimpLoadMaterialsOBJ(scene, info, folderPath, filenameWithoutExtension);
             break;
         }
         case FileType::FBX: {

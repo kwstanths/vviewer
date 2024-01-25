@@ -40,7 +40,7 @@ VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice,
  * @param device
  * @return * Find
  */
-QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+VulkanQueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 /**
  * @brief Get supported swapchain information
@@ -48,7 +48,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
  * @param device
  * @return SwapChainDetails
  */
-SwapChainDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
+VulkanSwapChainDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 /**
  * @brief
@@ -75,18 +75,12 @@ VkResult createBuffer(VkPhysicalDevice physicalDevice,
                       const void *data,
                       VulkanBuffer &outBuffer);
 
-VkResult createVertexBuffer(VkPhysicalDevice physicalDevice,
-                            VkDevice device,
-                            VkQueue transferQueue,
-                            VkCommandPool transferCommandPool,
+VkResult createVertexBuffer(VulkanCommandInfo vci,
                             const std::vector<Vertex> &vertices,
                             VkBufferUsageFlags extraUsageFlags,
                             VulkanBuffer &outBuffer);
 
-VkResult createIndexBuffer(VkPhysicalDevice physicalDevice,
-                           VkDevice device,
-                           VkQueue transferQueue,
-                           VkCommandPool transferCommandPool,
+VkResult createIndexBuffer(VulkanCommandInfo vci,
                            const std::vector<uint32_t> &indices,
                            VkBufferUsageFlags extraUsageFlags,
                            VulkanBuffer &outBuffer);
@@ -98,19 +92,9 @@ VkResult createImage(VkPhysicalDevice physicalDevice,
                      VkImage &image,
                      VkDeviceMemory &imageMemory);
 
-VkResult copyBufferToBuffer(VkDevice device,
-                            VkQueue transferQueue,
-                            VkCommandPool transferCommandPool,
-                            VkBuffer srcBuffer,
-                            VkBuffer dstBuffer,
-                            VkDeviceSize size);
+VkResult copyBufferToBuffer(VulkanCommandInfo vci, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-VkResult copyBufferToImage(VkDevice device,
-                           VkQueue transferQueue,
-                           VkCommandPool transferCommandPool,
-                           VkBuffer buffer,
-                           VkImage image,
-                           std::vector<VkBufferImageCopy> regions);
+VkResult copyBufferToImage(VulkanCommandInfo vci, VkBuffer buffer, VkImage image, std::vector<VkBufferImageCopy> regions);
 
 VkResult beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer &commandBuffer);
 VkResult endSingleTimeCommands(VkDevice device,
@@ -123,9 +107,7 @@ VkResult endSingleTimeCommands(VkDevice device,
 /**
     Submit a command to transition the layout of an image from oldLayout to newLayout, creates and destroys a command buffer
 */
-VkResult transitionImageLayout(VkDevice device,
-                               VkQueue queue,
-                               VkCommandPool commandPool,
+VkResult transitionImageLayout(VulkanCommandInfo vci,
                                VkImage image,
                                VkImageLayout oldLayout,
                                VkImageLayout newLayout,
@@ -144,9 +126,7 @@ void transitionImageLayout(VkCommandBuffer cmdBuf,
     Submit a command to transition the layout of an image from oldLayout to newLayout, using a custom resource range for the image
     creates and destroys a command buffer
 */
-VkResult transitionImageLayout(VkDevice device,
-                               VkQueue queue,
-                               VkCommandPool commandPool,
+VkResult transitionImageLayout(VulkanCommandInfo vci,
                                VkImage image,
                                VkImageLayout oldLayout,
                                VkImageLayout newLayout,
@@ -163,15 +143,9 @@ void transitionImageLayout(VkCommandBuffer cmdBuf,
 
 VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat);
 
-VkResult createAccelerationStructureBuffer(VkPhysicalDevice physicalDevice,
-                                           VkDevice device,
-                                           VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo,
-                                           VkAccelerationStructureKHR &handle,
-                                           uint64_t &deviceAddress,
-                                           VkDeviceMemory &memory,
-                                           VkBuffer &buffer);
-
 VkFormat autoChooseFormat(ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels);
+
+VkDeviceOrHostAddressKHR getBufferDeviceAddress(VkDevice device, VkBuffer buffer);
 
 }  // namespace vengine
 

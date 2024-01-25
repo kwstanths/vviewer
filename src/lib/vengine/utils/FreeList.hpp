@@ -10,7 +10,6 @@
 namespace vengine
 {
 
-/* A thread safe class that manages free indices */
 class FreeList
 {
 public:
@@ -24,13 +23,14 @@ public:
 
     void reset();
 
+    size_t size() const;
+
 private:
     size_t m_end;
     size_t m_nElements;
     Stack<size_t> m_freeElements;
 };
 
-/* A thread safe class that manages free blocks */
 template <typename T>
 class FreeBlockList : private FreeList
 {
@@ -45,6 +45,10 @@ public:
     T *get()
     {
         size_t index = getFree();
+        if (index == size()) {
+            return nullptr;
+        }
+
         m_valid[index] = true;
         return &m_blocks[index];
     }

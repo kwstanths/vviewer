@@ -24,7 +24,7 @@ size_t FreeList::getFree()
     }
 
     debug_tools::ConsoleCritical("FreeList::getFree(): FreeList is empty");
-    return m_end;
+    return m_nElements;
 }
 
 void FreeList::setFree(size_t index)
@@ -42,6 +42,11 @@ void FreeList::reset()
 {
     m_end = 0;
     m_freeElements.clear();
+}
+
+size_t FreeList::size() const
+{
+    return m_nElements;
 }
 
 }  // namespace vengine

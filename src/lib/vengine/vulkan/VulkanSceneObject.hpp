@@ -9,7 +9,7 @@
 namespace vengine
 {
 
-class VulkanSceneObject : public SceneObject, public VulkanUBOBlock<ModelData>
+class VulkanSceneObject : public SceneObject, private VulkanUBOBlock<ModelData>
 {
 public:
     VulkanSceneObject(const std::string &name, VulkanUBO<ModelData> &transformUBO);
@@ -20,7 +20,7 @@ public:
 
     void updateModelMatrixData(const glm::mat4 &modelMatrix);
 
-    inline uint32_t getModelDataUBOIndex() const { return UBOBlockIndex(); }
+    uint32_t getModelDataUBOIndex() const;
 
 private:
 };

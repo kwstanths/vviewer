@@ -1,5 +1,7 @@
 #include "PtSceneDragonsOnPlane.hpp"
 
+#include <filesystem>
+
 #include "SceneUtils.hpp"
 
 PtSceneDragonsOnPlane::PtSceneDragonsOnPlane(vengine::Engine &engine)
@@ -7,7 +9,12 @@ PtSceneDragonsOnPlane::PtSceneDragonsOnPlane(vengine::Engine &engine)
 
 bool PtSceneDragonsOnPlane::create()
 {
-    engine().importModel(vengine::AssetInfo("assets/models/dragon/scene.gltf"));
+    std::string assetName = "assets/models/dragon/scene.gltf";
+    if (!std::filesystem::exists(assetName)) {
+        debug_tools::ConsoleFatal("Asset: " + assetName + " is missing");
+        exit(-1);
+    }
+    engine().importModel(vengine::AssetInfo(assetName));
 
     auto camera = std::make_shared<vengine::PerspectiveCamera>();
     camera->transform().position() = glm::vec3(84, 6, 13);
@@ -65,7 +72,7 @@ bool PtSceneDragonsOnPlane::create()
 bool PtSceneDragonsOnPlane::render()
 {
     engine().renderer().rendererPathTracing().renderInfo().width = 1600;
-    engine().renderer().rendererPathTracing().renderInfo().height = 1024;
+    engine().renderer().rendererPathTracing().renderInfo().height = 1080;
     engine().renderer().rendererPathTracing().renderInfo().samples = 64;
     engine().renderer().rendererPathTracing().renderInfo().batchSize = 64;
     engine().renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;

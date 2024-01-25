@@ -20,8 +20,8 @@ public:
         FileType fileType = FileType::HDR;
         float exposure = 0.0F;
 
-        uint32_t width = 1024u;
-        uint32_t height = 1024u;
+        uint32_t width = 1080u;
+        uint32_t height = 1080u;
 
         bool denoise = false;
         bool writeAllFiles = false;

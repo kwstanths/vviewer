@@ -34,7 +34,7 @@ VkResult VulkanRendererSkybox::initResources(VkPhysicalDevice physicalDevice,
 
     VULKAN_CHECK_CRITICAL(createDescriptorSetsLayout());
 
-    m_cube = new VulkanCube(AssetInfo("Cube", AssetSource::INTERNAL), m_physicalDevice, m_device, queue, commandPool);
+    m_cube = new VulkanCube(AssetInfo("Cube", AssetSource::INTERNAL), {m_physicalDevice, m_device, commandPool, queue}, false);
 
     return VK_SUCCESS;
 }
@@ -135,9 +135,7 @@ VkResult VulkanRendererSkybox::createCubemap(VulkanTexture *inputImage, VulkanCu
         VULKAN_CHECK_CRITICAL(vkCreateSampler(m_device, &cubemapSamplerInfo, nullptr, &cubemapSampler));
 
         /* Transition cubemap faces to be optimal to copy data to them */
-        transitionImageLayout(m_device,
-                              m_queue,
-                              m_commandPool,
+        transitionImageLayout({m_physicalDevice, m_device, m_commandPool, m_queue},
                               cubemapImage,
                               VK_IMAGE_LAYOUT_UNDEFINED,
                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -219,8 +217,11 @@ VkResult VulkanRendererSkybox::createCubemap(VulkanTexture *inputImage, VulkanCu
         VULKAN_CHECK_CRITICAL(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &offscreen.framebuffer));
 
         /* Transition offscreen render target to color attachment optimal */
-        transitionImageLayout(
-            m_device, m_queue, m_commandPool, offscreen.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1);
+        transitionImageLayout({m_physicalDevice, m_device, m_commandPool, m_queue},
+                              offscreen.image,
+                              VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                              1);
     }
 
     /* Push constant to hold the mvp matrix for each cubemap face render */
@@ -554,8 +555,12 @@ VkResult VulkanRendererSkybox::createIrradianceMap(VulkanCubemap *inputMap, Vulk
         VULKAN_CHECK_CRITICAL(vkCreateSampler(m_device, &samplerInfo, nullptr, &cubemapSampler));
 
         /* Transition cubemap faces to be optimal to copy data to them */
-        transitionImageLayout(
-            m_device, m_queue, m_commandPool, cubemapImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, 6);
+        transitionImageLayout({m_physicalDevice, m_device, m_commandPool, m_queue},
+                              cubemapImage,
+                              VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                              1,
+                              6);
     }
 
     /* Create render pass to render each face of the irradiance cubemap to an offscreen render target */
@@ -627,8 +632,11 @@ VkResult VulkanRendererSkybox::createIrradianceMap(VulkanCubemap *inputMap, Vulk
         VULKAN_CHECK_CRITICAL(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &offscreen.framebuffer));
 
         /* Transition offscreen render target to color attachment optimal */
-        transitionImageLayout(
-            m_device, m_queue, m_commandPool, offscreen.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1);
+        transitionImageLayout({m_physicalDevice, m_device, m_commandPool, m_queue},
+                              offscreen.image,
+                              VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                              1);
     }
 
     /* Push constant to hold the mvp matrix for each cubemap face render, and the delta phi and delta theta for the convolution */
@@ -972,8 +980,11 @@ VkResult VulkanRendererSkybox::createPrefilteredCubemap(VulkanCubemap *inputMap,
         VULKAN_CHECK_CRITICAL(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &offscreen.framebuffer));
 
         /* Transition offscreen render target to color attachment optimal */
-        transitionImageLayout(
-            m_device, m_queue, m_commandPool, offscreen.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1);
+        transitionImageLayout({m_physicalDevice, m_device, m_commandPool, m_queue},
+                              offscreen.image,
+                              VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                              1);
     }
 
     /* Push constant to hold the mvp matrix for each cubemap face render, the roughness value and the number of samples */

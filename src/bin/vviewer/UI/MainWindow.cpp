@@ -598,6 +598,8 @@ void MainWindow::onImportScene()
     m_engine->stop();
     m_engine->waitIdle();
 
+    m_widgetRightPanel->pauseUpdate(true);
+
     /* Set camera */
     {
         auto newCamera = std::make_shared<PerspectiveCamera>();
@@ -629,8 +631,8 @@ void MainWindow::onImportScene()
     m_sceneGraphWidget->blockSignals(false);
 
     /* Import models */
-    debug_tools::ConsoleInfo("Importing models...");
     for (auto &itr : models) {
+        debug_tools::ConsoleInfo("Importing model: " + itr.filepath);
         m_engine->importModel(AssetInfo(itr.name, itr.filepath), true);
     }
 
@@ -666,6 +668,10 @@ void MainWindow::onImportScene()
     m_widgetRightPanel->getEnvironmentWidget()->setEnvironmentType(env.environmentType);
 
     m_engine->start();
+
+    m_widgetRightPanel->setSelectedObject(nullptr);
+    m_widgetRightPanel->pauseUpdate(false);
+
     debug_tools::ConsoleInfo(sceneFile.toStdString() + " imported");
 }
 

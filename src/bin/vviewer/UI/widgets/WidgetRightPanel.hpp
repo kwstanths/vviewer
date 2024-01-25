@@ -32,6 +32,8 @@ public:
     void updateAvailableMaterials();
     void updateAvailableLights();
 
+    void pauseUpdate(bool pause);
+
 private:
     QVBoxLayout *m_layoutControls;
     QWidget *m_widgetControls;

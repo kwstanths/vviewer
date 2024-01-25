@@ -1,6 +1,16 @@
 #include "VulkanBuffer.hpp"
 
-namespace vengine {
+namespace vengine
+{
+
+VulkanBuffer::VulkanBuffer(){};
+
+VulkanBuffer::VulkanBuffer(VkBuffer buffer, VkDeviceMemory memory, VkDeviceOrHostAddressKHR address)
+    : m_buffer(buffer)
+    , m_memory(memory)
+    , m_address(address)
+{
+}
 
 void VulkanBuffer::destroy(VkDevice device)
 {
@@ -8,4 +18,4 @@ void VulkanBuffer::destroy(VkDevice device)
     vkFreeMemory(device, m_memory, nullptr);
 }
 
-}
+}  // namespace vengine

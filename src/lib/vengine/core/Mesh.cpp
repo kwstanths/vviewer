@@ -21,6 +21,7 @@ Mesh::Mesh(const AssetInfo &info,
     m_indices = indices;
     m_hasNormals = hasNormals;
     m_hasUVs = hasUVs;
+    m_nTriangles = indices.size() / 3;
 
     if (!hasNormals)
         computeNormals();
@@ -34,6 +35,11 @@ const std::vector<Vertex> &Mesh::vertices() const
 const std::vector<uint32_t> &Mesh::indices() const
 {
     return m_indices;
+}
+
+uint32_t Mesh::nTriangles() const
+{
+    return m_nTriangles;
 }
 
 bool Mesh::hasNormals() const

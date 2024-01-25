@@ -30,9 +30,9 @@ VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice,
     return VK_FORMAT_UNDEFINED;
 }
 
-QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
+VulkanQueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    QueueFamilyIndices indices;
+    VulkanQueueFamilyIndices indices;
 
     uint32_t queueFamilyCount;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -63,9 +63,9 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
     return indices;
 }
 
-SwapChainDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
+VulkanSwapChainDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    SwapChainDetails details;
+    VulkanSwapChainDetails details;
 
     /* Query surface capabilities */
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -150,6 +150,11 @@ VkResult createBuffer(VkPhysicalDevice physicalDevice,
     /* Bind memory to buffer */
     VULKAN_CHECK_CRITICAL(vkBindBufferMemory(device, outBuffer.buffer(), outBuffer.memory(), 0));
 
+    /* Set the buffer device address if usage is requested s*/
+    if (bufferUsage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+        outBuffer.address() = getBufferDeviceAddress(device, outBuffer.buffer());
+    }
+
     return VK_SUCCESS;
 }
 
@@ -183,10 +188,7 @@ VkResult createBuffer(VkPhysicalDevice physicalDevice,
     return VK_SUCCESS;
 }
 
-VkResult createVertexBuffer(VkPhysicalDevice physicalDevice,
-                            VkDevice device,
-                            VkQueue transferQueue,
-                            VkCommandPool transferCommandPool,
+VkResult createVertexBuffer(VulkanCommandInfo vci,
                             const std::vector<Vertex> &vertices,
                             VkBufferUsageFlags extraUsageFlags,
                             VulkanBuffer &outBuffer)
@@ -194,37 +196,33 @@ VkResult createVertexBuffer(VkPhysicalDevice physicalDevice,
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
     VulkanBuffer stagingBuffer;
-    VULKAN_CHECK_CRITICAL(createBuffer(physicalDevice,
-                                       device,
+    VULKAN_CHECK_CRITICAL(createBuffer(vci.physicalDevice,
+                                       vci.device,
                                        bufferSize,
                                        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                        stagingBuffer));
 
     void *data;
-    VULKAN_CHECK_CRITICAL(vkMapMemory(device, stagingBuffer.memory(), 0, bufferSize, 0, &data));
+    VULKAN_CHECK_CRITICAL(vkMapMemory(vci.device, stagingBuffer.memory(), 0, bufferSize, 0, &data));
     memcpy(data, vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBuffer.memory());
+    vkUnmapMemory(vci.device, stagingBuffer.memory());
 
-    VULKAN_CHECK_CRITICAL(createBuffer(physicalDevice,
-                                       device,
+    VULKAN_CHECK_CRITICAL(createBuffer(vci.physicalDevice,
+                                       vci.device,
                                        bufferSize,
                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraUsageFlags,
                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                        outBuffer));
 
-    VULKAN_CHECK_CRITICAL(
-        copyBufferToBuffer(device, transferQueue, transferCommandPool, stagingBuffer.buffer(), outBuffer.buffer(), bufferSize));
+    VULKAN_CHECK_CRITICAL(copyBufferToBuffer(vci, stagingBuffer.buffer(), outBuffer.buffer(), bufferSize));
 
-    stagingBuffer.destroy(device);
+    stagingBuffer.destroy(vci.device);
 
     return VK_SUCCESS;
 }
 
-VkResult createIndexBuffer(VkPhysicalDevice physicalDevice,
-                           VkDevice device,
-                           VkQueue transferQueue,
-                           VkCommandPool transferCommandPool,
+VkResult createIndexBuffer(VulkanCommandInfo vci,
                            const std::vector<uint32_t> &indices,
                            VkBufferUsageFlags extraUsageFlags,
                            VulkanBuffer &outBuffer)
@@ -232,29 +230,28 @@ VkResult createIndexBuffer(VkPhysicalDevice physicalDevice,
     VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
     VulkanBuffer stagingBuffer;
-    VULKAN_CHECK_CRITICAL(createBuffer(physicalDevice,
-                                       device,
+    VULKAN_CHECK_CRITICAL(createBuffer(vci.physicalDevice,
+                                       vci.device,
                                        bufferSize,
                                        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                        stagingBuffer));
 
     void *data;
-    VULKAN_CHECK_CRITICAL(vkMapMemory(device, stagingBuffer.memory(), 0, bufferSize, 0, &data));
+    VULKAN_CHECK_CRITICAL(vkMapMemory(vci.device, stagingBuffer.memory(), 0, bufferSize, 0, &data));
     memcpy(data, indices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBuffer.memory());
+    vkUnmapMemory(vci.device, stagingBuffer.memory());
 
-    VULKAN_CHECK_CRITICAL(createBuffer(physicalDevice,
-                                       device,
+    VULKAN_CHECK_CRITICAL(createBuffer(vci.physicalDevice,
+                                       vci.device,
                                        bufferSize,
                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraUsageFlags,
                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                        outBuffer));
 
-    VULKAN_CHECK_CRITICAL(
-        copyBufferToBuffer(device, transferQueue, transferCommandPool, stagingBuffer.buffer(), outBuffer.buffer(), bufferSize));
+    VULKAN_CHECK_CRITICAL(copyBufferToBuffer(vci, stagingBuffer.buffer(), outBuffer.buffer(), bufferSize));
 
-    stagingBuffer.destroy(device);
+    stagingBuffer.destroy(vci.device);
 
     return VK_SUCCESS;
 }
@@ -281,16 +278,11 @@ VkResult createImage(VkPhysicalDevice physicalDevice,
     return VK_SUCCESS;
 }
 
-VkResult copyBufferToBuffer(VkDevice device,
-                            VkQueue transferQueue,
-                            VkCommandPool transferCommandPool,
-                            VkBuffer srcBuffer,
-                            VkBuffer dstBuffer,
-                            VkDeviceSize size)
+VkResult copyBufferToBuffer(VulkanCommandInfo vci, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
     /* Create command buffer for transfer operation */
     VkCommandBuffer commandBuffer;
-    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(device, transferCommandPool, commandBuffer));
+    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(vci.device, vci.commandPool, commandBuffer));
 
     /* Record transfer command */
     VkBufferCopy copyRegion{};
@@ -300,25 +292,20 @@ VkResult copyBufferToBuffer(VkDevice device,
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
     /* End recording and submit */
-    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(device, transferCommandPool, transferQueue, commandBuffer));
+    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(vci.device, vci.commandPool, vci.queue, commandBuffer));
 
     return VK_SUCCESS;
 }
 
-VkResult copyBufferToImage(VkDevice device,
-                           VkQueue transferQueue,
-                           VkCommandPool transferCommandPool,
-                           VkBuffer buffer,
-                           VkImage image,
-                           std::vector<VkBufferImageCopy> regions)
+VkResult copyBufferToImage(VulkanCommandInfo vci, VkBuffer buffer, VkImage image, std::vector<VkBufferImageCopy> regions)
 {
     VkCommandBuffer commandBuffer;
-    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(device, transferCommandPool, commandBuffer));
+    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(vci.device, vci.commandPool, commandBuffer));
 
     vkCmdCopyBufferToImage(
         commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<uint32_t>(regions.size()), regions.data());
 
-    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(device, transferCommandPool, transferQueue, commandBuffer));
+    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(vci.device, vci.commandPool, vci.queue, commandBuffer));
 
     return VK_SUCCESS;
 }
@@ -368,9 +355,7 @@ VkResult endSingleTimeCommands(VkDevice device,
     return ret;
 }
 
-VkResult transitionImageLayout(VkDevice device,
-                               VkQueue queue,
-                               VkCommandPool commandPool,
+VkResult transitionImageLayout(VulkanCommandInfo vci,
                                VkImage image,
                                VkImageLayout oldLayout,
                                VkImageLayout newLayout,
@@ -378,11 +363,11 @@ VkResult transitionImageLayout(VkDevice device,
                                uint32_t nLayers)
 {
     VkCommandBuffer commandBuffer;
-    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(device, commandPool, commandBuffer));
+    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(vci.device, vci.commandPool, commandBuffer));
 
     transitionImageLayout(commandBuffer, image, oldLayout, newLayout, numMips, nLayers);
 
-    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(device, commandPool, queue, commandBuffer));
+    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(vci.device, vci.commandPool, vci.queue, commandBuffer));
 
     return VK_SUCCESS;
 }
@@ -404,20 +389,18 @@ void transitionImageLayout(VkCommandBuffer cmdBuf,
     transitionImageLayout(cmdBuf, image, oldLayout, newLayout, resourceRange);
 }
 
-VkResult transitionImageLayout(VkDevice device,
-                               VkQueue queue,
-                               VkCommandPool commandPool,
+VkResult transitionImageLayout(VulkanCommandInfo vci,
                                VkImage image,
                                VkImageLayout oldLayout,
                                VkImageLayout newLayout,
                                VkImageSubresourceRange resourceRange)
 {
     VkCommandBuffer commandBuffer;
-    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(device, commandPool, commandBuffer));
+    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(vci.device, vci.commandPool, commandBuffer));
 
     transitionImageLayout(commandBuffer, image, oldLayout, newLayout, resourceRange);
 
-    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(device, commandPool, queue, commandBuffer));
+    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(vci.device, vci.commandPool, vci.queue, commandBuffer));
 
     return VK_SUCCESS;
 }
@@ -558,38 +541,6 @@ VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *dept
     return false;
 }
 
-VkResult createAccelerationStructureBuffer(VkPhysicalDevice physicalDevice,
-                                           VkDevice device,
-                                           VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo,
-                                           VkAccelerationStructureKHR &handle,
-                                           uint64_t &deviceAddress,
-                                           VkDeviceMemory &memory,
-                                           VkBuffer &buffer)
-{
-    VkBufferCreateInfo bufferCreateInfo{};
-    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferCreateInfo.size = buildSizeInfo.accelerationStructureSize;
-    bufferCreateInfo.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    VULKAN_CHECK_CRITICAL(vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer));
-
-    VkMemoryRequirements memoryRequirements{};
-    vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
-    VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
-    memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
-    memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
-    VkMemoryAllocateInfo memoryAllocateInfo{};
-    memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
-    memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex =
-        findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    VULKAN_CHECK_CRITICAL(vkAllocateMemory(device, &memoryAllocateInfo, nullptr, &memory));
-
-    VULKAN_CHECK_CRITICAL(vkBindBufferMemory(device, buffer, memory, 0));
-
-    return VK_SUCCESS;
-}
-
 VkFormat autoChooseFormat(ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels)
 {
     auto uid = [&](ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels) {
@@ -609,6 +560,18 @@ VkFormat autoChooseFormat(ColorSpace colorSpace, ColorDepth colorDepth, uint32_t
     }
 
     return static_cast<VkFormat>(itr->second);
+}
+
+VkDeviceOrHostAddressKHR getBufferDeviceAddress(VkDevice device, VkBuffer buffer)
+{
+    VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
+    bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    bufferDeviceAI.buffer = buffer;
+
+    VkDeviceOrHostAddressKHR adress;
+    adress.deviceAddress = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(
+        vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"))(device, &bufferDeviceAI);
+    return adress;
 }
 
 }  // namespace vengine

@@ -284,7 +284,7 @@ VkResult VulkanScene::createDescriptorSets(uint32_t nImages)
         auto bufferInfoLightData = vkinit::descriptorBufferInfo(m_lightDataUBO.buffer(i), 0, VK_WHOLE_SIZE);
         auto descriptorWriteLightData =
             vkinit::writeDescriptorSet(m_descriptorSetsLight[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, &bufferInfoLightData);
-        // /* Light components */
+        /* Light components */
         auto bufferInfoLightComponents = vkinit::descriptorBufferInfo(m_lightComponentsUBO.buffer(i), 0, VK_WHOLE_SIZE);
         auto descriptorWriteLightComponents =
             vkinit::writeDescriptorSet(m_descriptorSetsLight[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, &bufferInfoLightComponents);

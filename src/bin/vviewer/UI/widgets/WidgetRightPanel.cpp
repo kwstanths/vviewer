@@ -83,6 +83,15 @@ void WidgetRightPanel::updateAvailableLights()
     }
 }
 
+void WidgetRightPanel::pauseUpdate(bool pause)
+{
+    if (pause) {
+        m_updateTimer->stop();
+    } else {
+        m_updateTimer->start();
+    }
+}
+
 void WidgetRightPanel::onUpdate()
 {
     if (m_selectedObjectWidgetMaterial != nullptr) {

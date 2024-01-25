@@ -96,7 +96,7 @@ private:
     VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
     std::vector<VulkanFrameBufferAttachment> m_attachmentColorForwardOutput;
     std::vector<VulkanFrameBufferAttachment> m_attachmentHighlightForwardOutput;
-    StorageImage m_imageTempColorSelection;
+    VulkanStorageImage m_imageTempColorSelection;
 
     /* Renderers */
     VulkanRendererPBR m_rendererPBR;

@@ -1,37 +1,54 @@
 # vviewer 
+A real time renderer and an offline path tracer written in Vulkan and a 3D scene editor written in Qt. Uses [VK_KHR_ray_tracing_pipeline.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_tracing_pipeline.html) for GPU accelerated ray tracing with ray generation, ray closest hit, ray any hit and ray miss shaders. The rendering engine can be built separately as a standalone library, independent of the UI.
 
 ![Alt text](images/1.png?raw=true)
 
-A 3D scene editor, a real time renderer and an offline path tracer written in Vulkan and Qt. The rendering engine can be built separately as a standalone library
-
 ## Features
-* Import 3D models, textures and equirectangular HDRI maps
-* Create Physically Based or Lambert materials
-* Add Point/Directional/Mesh lights
-* Export/Import scenes
-* Launch a GPU path traced render
-* Denoiser
-* Depth of field
+* Load any 3D model through assimp and its materials (only .gltf and .obj)
+* Physically based (Metallic/Roughness) and Lambert materials
+    * Transparency, normal mapping, emissiveness, ambient occlusion
+* Spatially varying materials
+* Bindless resource management (transforms, textures, materials, lights)
+* Perspective and Orthographic cameras
+* Point, Directional and Mesh lights
+* HDRI environment maps and cubemaps
+* Tone mapping
+* Scene graph
+* Entity component system
+* Export and Import scenes
+* GPU path traced rendering
+    * Multiple importance sampling
+        * Light sampling
+        * BRDF sampling
+    * Next event estimation
+    * Depth of field
+    * Denoising
 
-## Dependencies 
+## Dependencies
 ### vengine library
-* Vulkan. Make sure the VULKAN_SDK environment variable points to the installation folder. Version tested 1.3.204.1
-* assimp. Look into src/lib/SetupEnvironment.cmake and edit the assimp paths based on your installation. Version tested 5.2.5
+* Vulkan. Set the VULKAN_SDK environment variable. Version tested 1.3.204.1
+* assimp. Set the ASSIMP_ROOT_DIR environment variable. Version tested 5.2.5
 * [OpenImageDenoise](https://github.com/OpenImageDenoise/oidn). Install or build from source OpenImageDenoise
 
 ### vviewer binary
-* Qt. Make sure the Qt6_DIR points to the installation folder. Version tested 6.2.4
+* Qt. Set the Qt6_DIR environment variable. Version tested 6.2.4
 
 ## Building
 * Install dependencies
 * Clone the project and all its submodules
 * Create build folder, run cmake and build
-* Make sure that runtime dependencies can be found. If the paths are set up correctly, cmake will compile the shaders and paste the assets and the shader binaries
+* Runtime dependencies like the shaders and the assets folders are copied automatically, but in any case, make sure they are besides the binary
+
+## Usage
+* Run [vviewer](/src/bin/vviewer/) binary for the scene editor. Needs Qt dependency
+* See [offlinerender](src/bin/offlinerender/) to use the rendering library without UI
 
 ## Images
 
+### UI
 ![Alt text](images/2.png?raw=true)
 
+### Path traced renders
 ![Alt text](images/3.png?raw=true)
 
 ![Alt text](images/4.png?raw=true)
@@ -40,5 +57,12 @@ A 3D scene editor, a real time renderer and an offline path tracer written in Vu
 
 ![Alt text](images/6.png?raw=true)
 
-### Bugs
-* If a render fails with error -2, render the scene with a smaller batch size. Needs to restart the application after such a crash
+## Known issues
+* If a render fails with Device Lost, restart the application and render the scene with a smaller batch size
+* Given the use of Vulkan Uniform Buffer objects, there are certain limits that impact scene building. These are:
+    * Maximum number scene nodes: 1024
+    * Maximum number of materials: 200
+    * Maximum number of textures: 500
+    * Maximum number of unique lights: 200
+    * Maximum number of light instances in a scene: 1024
+    * Maximum number of light instances in a scene [Path Tracing]: 200

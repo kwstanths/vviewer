@@ -53,6 +53,8 @@ public:
     const std::vector<Vertex> &vertices() const;
     const std::vector<uint32_t> &indices() const;
 
+    uint32_t nTriangles() const;
+
     bool hasNormals() const;
     bool hasUVs() const;
     bool hasTangents() const;
@@ -64,6 +66,7 @@ public:
 protected:
     std::vector<Vertex> m_vertices;
     std::vector<uint32_t> m_indices;
+    uint32_t m_nTriangles = 0;
 
     bool m_hasNormals = false;
     bool m_hasUVs = false;

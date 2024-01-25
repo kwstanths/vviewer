@@ -14,7 +14,7 @@ namespace vengine
 
 /* --------------- CPU only structs --------------- */
 /* Stores supported queue family indices */
-struct QueueFamilyIndices {
+struct VulkanQueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
 
@@ -24,19 +24,26 @@ struct QueueFamilyIndices {
 };
 
 /* Stores supported swapchain details */
-struct SwapChainDetails {
+struct VulkanSwapChainDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct StorageImage {
+struct VulkanStorageImage {
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkImage image = VK_NULL_HANDLE;
     VkImageView view = VK_NULL_HANDLE;
     VkFormat format;
 
     void destroy(VkDevice device);
+};
+
+struct VulkanCommandInfo {
+    VkPhysicalDevice physicalDevice;
+    VkDevice device;
+    VkCommandPool commandPool;
+    VkQueue queue;
 };
 
 /* --------------- GPU + CPU structs --------------- */

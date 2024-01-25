@@ -4,6 +4,7 @@
 #include "core/Model3D.hpp"
 #include "core/io/AssimpLoadModel.hpp"
 #include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/common/VulkanStructs.hpp"
 
 namespace vengine
 {
@@ -12,19 +13,12 @@ class VulkanModel3D : public Model3D
 {
 public:
     VulkanModel3D(const AssetInfo &info);
-    VulkanModel3D(const AssetInfo &info,
-                  const Tree<ImportedModelNode> &importedData,
-                  VkPhysicalDevice physicalDevice,
-                  VkDevice device,
-                  VkQueue queue,
-                  VkCommandPool commandPool);
+    VulkanModel3D(const AssetInfo &info, const Tree<ImportedModelNode> &importedData, VulkanCommandInfo vci, bool generateBLAS);
     VulkanModel3D(const AssetInfo &info,
                   const Tree<ImportedModelNode> &importedData,
                   const std::vector<Material *> &materials,
-                  VkPhysicalDevice physicalDevice,
-                  VkDevice device,
-                  VkQueue queue,
-                  VkCommandPool commandPool);
+                  VulkanCommandInfo vci,
+                  bool generateBLAS);
 
     void destroy(VkDevice device);
 
@@ -42,10 +36,8 @@ private:
      */
     void importNode(const Tree<ImportedModelNode> &importedNode,
                     Tree<Model3DNode> &data,
-                    VkPhysicalDevice physicalDevice,
-                    VkDevice device,
-                    VkQueue queue,
-                    VkCommandPool commandPool,
+                    VulkanCommandInfo vci,
+                    bool generateBLAS,
                     const std::vector<Material *> &materials);
 };
 

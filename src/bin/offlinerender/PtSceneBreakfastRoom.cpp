@@ -49,7 +49,7 @@ bool PtSceneBreakfastRoom::create()
 bool PtSceneBreakfastRoom::render()
 {
     engine().renderer().rendererPathTracing().renderInfo().width = 1600;
-    engine().renderer().rendererPathTracing().renderInfo().height = 1024;
+    engine().renderer().rendererPathTracing().renderInfo().height = 1080;
     engine().renderer().rendererPathTracing().renderInfo().samples = 64;
     engine().renderer().rendererPathTracing().renderInfo().batchSize = 16;
     engine().renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;

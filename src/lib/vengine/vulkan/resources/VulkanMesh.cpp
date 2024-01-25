@@ -17,32 +17,22 @@ VulkanMesh::VulkanMesh(const AssetInfo &info,
                        const std::vector<uint32_t> &indices,
                        bool hasNormals,
                        bool hasUVs,
-                       VkPhysicalDevice physicalDevice,
-                       VkDevice device,
-                       VkQueue transferQueue,
-                       VkCommandPool transferCommandPool)
+                       VulkanCommandInfo vci,
+                       bool generateBLAS)
     : Mesh(info, vertices, indices, hasNormals, hasUVs)
 {
     VkBufferUsageFlags rayTracingUsageFlags = VulkanRendererPathTracing::getBufferUsageFlags();
 
-    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_vertices, rayTracingUsageFlags, m_vertexBuffer);
-    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_indices, rayTracingUsageFlags, m_indexBuffer);
+    createVertexBuffer(vci, m_vertices, rayTracingUsageFlags, m_vertexBuffer);
+    createIndexBuffer(vci, m_indices, rayTracingUsageFlags, m_indexBuffer);
+
+    if (generateBLAS) {
+        m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F));
+    }
 }
 
-VulkanMesh::VulkanMesh(const Mesh &mesh,
-                       VkPhysicalDevice physicalDevice,
-                       VkDevice device,
-                       VkQueue transferQueue,
-                       VkCommandPool transferCommandPool)
-    : VulkanMesh(mesh.info(),
-                 mesh.vertices(),
-                 mesh.indices(),
-                 mesh.hasNormals(),
-                 mesh.hasUVs(),
-                 physicalDevice,
-                 device,
-                 transferQueue,
-                 transferCommandPool)
+VulkanMesh::VulkanMesh(const Mesh &mesh, VulkanCommandInfo vci, bool generateBLAS)
+    : VulkanMesh(mesh.info(), mesh.vertices(), mesh.indices(), mesh.hasNormals(), mesh.hasUVs(), vci, generateBLAS)
 {
 }
 
@@ -50,13 +40,13 @@ void VulkanMesh::destroy(VkDevice device)
 {
     m_vertexBuffer.destroy(device);
     m_indexBuffer.destroy(device);
+
+    if (m_blas.initialized()) {
+        m_blas.destroy(device);
+    }
 }
 
-VulkanCube::VulkanCube(const AssetInfo &info,
-                       VkPhysicalDevice physicalDevice,
-                       VkDevice device,
-                       VkQueue transferQueue,
-                       VkCommandPool transferCommandPool)
+VulkanCube::VulkanCube(const AssetInfo &info, VulkanCommandInfo vci, bool generateBLAS)
     : VulkanMesh(info)
 {
     m_vertices = {{{-1.0, -1.0, 1.0}, glm::vec2(0), glm::vec3(0), glm::vec3(0), glm::vec3(0), glm::vec3(0)},
@@ -72,8 +62,12 @@ VulkanCube::VulkanCube(const AssetInfo &info,
 
     Mesh mesh(info, m_vertices, m_indices, false, false);
 
-    createVertexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_vertices, {}, m_vertexBuffer);
-    createIndexBuffer(physicalDevice, device, transferQueue, transferCommandPool, m_indices, {}, m_indexBuffer);
+    createVertexBuffer(vci, m_vertices, {}, m_vertexBuffer);
+    createIndexBuffer(vci, m_indices, {}, m_indexBuffer);
+
+    if (generateBLAS) {
+        m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F));
+    }
 }
 
 }  // namespace vengine

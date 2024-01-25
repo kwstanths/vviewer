@@ -5,6 +5,7 @@
 #include "debug_tools/Console.hpp"
 
 #include "vulkan/common/VulkanUtils.hpp"
+#include "vulkan/common/VulkanDeviceFunctions.hpp"
 
 namespace vengine
 {
@@ -33,6 +34,8 @@ VkResult VulkanContext::init()
     VULKAN_CHECK_CRITICAL(createLogicalDevice());
     VULKAN_CHECK_CRITICAL(createCommandPool());
 
+    VulkanDeviceFunctions::getInstance().init(m_device);
+
     m_initialized = true;
 
     return VK_SUCCESS;
@@ -54,6 +57,8 @@ VkResult VulkanContext::init(VkSurfaceKHR surface)
 
     VULKAN_CHECK_CRITICAL(createLogicalDevice());
     VULKAN_CHECK_CRITICAL(createCommandPool());
+
+    VulkanDeviceFunctions::getInstance().init(m_device);
 
     m_initialized = true;
 
@@ -165,7 +170,7 @@ bool VulkanContext::isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, Vk
     suitable = suitable && (getMaxUsableSampleCount(physicalDeviceProperties) != VK_SAMPLE_COUNT_1_BIT);
     suitable = suitable && (checkDeviceExtensionSupport(physicalDevice) == VK_SUCCESS);
 
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice, m_surface);
+    VulkanQueueFamilyIndices indices = findQueueFamilies(physicalDevice, m_surface);
     if (!offlineMode()) {
         suitable = suitable && indices.isComplete();
     } else {
@@ -173,7 +178,7 @@ bool VulkanContext::isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, Vk
     }
 
     if (suitable && !offlineMode()) {
-        SwapChainDetails details = querySwapChainSupport(physicalDevice, m_surface);
+        VulkanSwapChainDetails details = querySwapChainSupport(physicalDevice, m_surface);
         suitable = suitable && !details.formats.empty() && !details.presentModes.empty();
     }
 

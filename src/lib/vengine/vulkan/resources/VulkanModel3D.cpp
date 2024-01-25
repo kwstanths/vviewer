@@ -12,25 +12,21 @@ VulkanModel3D::VulkanModel3D(const AssetInfo &info)
 
 VulkanModel3D::VulkanModel3D(const AssetInfo &info,
                              const Tree<ImportedModelNode> &importedData,
-                             VkPhysicalDevice physicalDevice,
-                             VkDevice device,
-                             VkQueue queue,
-                             VkCommandPool commandPool)
+                             VulkanCommandInfo vci,
+                             bool generateBLAS)
     : Model3D(info)
 {
-    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, {});
+    importNode(importedData, m_data, vci, generateBLAS, {});
 }
 
 VulkanModel3D::VulkanModel3D(const AssetInfo &info,
                              const Tree<ImportedModelNode> &importedData,
                              const std::vector<Material *> &materials,
-                             VkPhysicalDevice physicalDevice,
-                             VkDevice device,
-                             VkQueue queue,
-                             VkCommandPool commandPool)
+                             VulkanCommandInfo vci,
+                             bool generateBLAS)
     : Model3D(info)
 {
-    importNode(importedData, m_data, physicalDevice, device, queue, commandPool, materials);
+    importNode(importedData, m_data, vci, generateBLAS, materials);
 }
 
 void VulkanModel3D::destroy(VkDevice device)
@@ -52,10 +48,8 @@ void VulkanModel3D::destroy(VkDevice device)
 
 void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
                                Tree<Model3DNode> &data,
-                               VkPhysicalDevice physicalDevice,
-                               VkDevice device,
-                               VkQueue queue,
-                               VkCommandPool commandPool,
+                               VulkanCommandInfo vci,
+                               bool generateBLAS,
                                const std::vector<Material *> &materials)
 {
     Model3DNode model3DNode;
@@ -64,7 +58,7 @@ void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
         auto &mesh = node.data().meshes[i];
         auto *mat = (materials.size() > 0 ? materials[node.data().materialIndices[i]] : nullptr);
 
-        auto vkmesh = new VulkanMesh(mesh, physicalDevice, device, queue, commandPool);
+        auto vkmesh = new VulkanMesh(mesh, vci, generateBLAS);
         vkmesh->m_model = this;
 
         model3DNode.meshes.emplace_back(vkmesh);
@@ -76,7 +70,7 @@ void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
     data.data() = model3DNode;
 
     for (uint32_t i = 0; i < node.size(); i++) {
-        importNode(node.child(i), m_data.add(), physicalDevice, device, queue, commandPool, materials);
+        importNode(node.child(i), m_data.add(), vci, generateBLAS, materials);
     }
 }
 

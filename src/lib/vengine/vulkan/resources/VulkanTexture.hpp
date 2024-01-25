@@ -7,6 +7,7 @@
 #include <core/Texture.hpp>
 
 #include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/common/VulkanStructs.hpp"
 
 namespace vengine
 {
@@ -14,19 +15,9 @@ namespace vengine
 class VulkanTexture : public Texture
 {
 public:
-    VulkanTexture(const Image<stbi_uc> &image,
-                  VkPhysicalDevice physicalDevice,
-                  VkDevice device,
-                  VkQueue queue,
-                  VkCommandPool commandPool,
-                  bool genMipMaps);
+    VulkanTexture(const Image<stbi_uc> &image, VulkanCommandInfo vci, bool genMipMaps);
 
-    VulkanTexture(const Image<float> &image,
-                  VkPhysicalDevice physicalDevice,
-                  VkDevice device,
-                  VkQueue queue,
-                  VkCommandPool commandPool,
-                  bool genMipMaps);
+    VulkanTexture(const Image<float> &image, VulkanCommandInfo vci, bool genMipMaps);
 
     VulkanTexture(const AssetInfo &info,
                   ColorSpace colorSpace,
@@ -64,7 +55,7 @@ private:
     int32_t m_bindlessResourceIndex = -1;
 
     VkResult createSampler(VkDevice device, VkSampler &sampler) const;
-    void generateMipMaps(VkDevice device, VkCommandPool commandPool, VkQueue queue);
+    void generateMipMaps(VulkanCommandInfo vci);
 };
 
 }  // namespace vengine

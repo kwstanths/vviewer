@@ -5,22 +5,22 @@
 namespace vengine
 {
 
-bool QueueFamilyIndices::hasGraphics() const
+bool VulkanQueueFamilyIndices::hasGraphics() const
 {
     return graphicsFamily.has_value();
 }
 
-bool QueueFamilyIndices::hasPresent() const
+bool VulkanQueueFamilyIndices::hasPresent() const
 {
     return presentFamily.has_value();
 }
 
-bool QueueFamilyIndices::isComplete() const
+bool VulkanQueueFamilyIndices::isComplete() const
 {
     return hasGraphics() && hasPresent();
 }
 
-void StorageImage::destroy(VkDevice device)
+void VulkanStorageImage::destroy(VkDevice device)
 {
     if (image != VK_NULL_HANDLE)
         vkDestroyImage(device, image, nullptr);

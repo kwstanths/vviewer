@@ -19,7 +19,7 @@ VulkanSwapchain::~VulkanSwapchain()
 
 VkResult VulkanSwapchain::initResources(uint32_t width, uint32_t height)
 {
-    SwapChainDetails details = querySwapChainSupport(m_vkctx.physicalDevice(), m_vkctx.surface());
+    VulkanSwapChainDetails details = querySwapChainSupport(m_vkctx.physicalDevice(), m_vkctx.surface());
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(details.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(details.presentModes);
@@ -40,7 +40,7 @@ VkResult VulkanSwapchain::initResources(uint32_t width, uint32_t height)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices &indices = m_vkctx.queueFamilyIndices();
+    VulkanQueueFamilyIndices &indices = m_vkctx.queueFamilyIndices();
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
     if (indices.graphicsFamily != indices.presentFamily) {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;

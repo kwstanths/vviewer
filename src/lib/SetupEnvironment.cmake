@@ -35,6 +35,7 @@ macro(SetupEnvironment)
     set(ZIP_INCLUDE_DIRS ${ZIP_DIR}/src)
     set(ZIP_LIBRARIES zip)
 
+    # unused
     # TBB
     #set(TBB_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/external/oneTBB/include)
     #set(TBB_LIBRARIES tbb)
@@ -47,21 +48,15 @@ macro(SetupEnvironment)
     set(DEBUG_TOOLS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/debug_tools/)
     set(DEBUG_TOOLS_LIBRARIES debug_tools)
     
+    # ASSIMP
+    find_package(assimp REQUIRED)
+    set(ASSIMP_INCLUDE_DIRS ${assimp_INCLUDE_DIRS})
+    set(ASSIMP_LIBRARIES ${assimp_LIBRARIES})
+    
     # VENGINE
     set(VENGINE_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/vengine/)
     set(VENGINE_LIBRARIES vengine)
    
-    if(MSVC)
-        #ASSIMP
-        set(ASSIMP_DIR ${LIBS_ROOT}/ASSIMP_LIBS)
-        set(ASSIMP_INCLUDE_DIRS ${ASSIMP_DIR}/include)
-        set(ASSIMP_LIBS_DIR ${ASSIMP_DIR}/lib64)
-        set(ASSIMP_LIBRARIES ${ASSIMP_LIBS_DIR}/assimp-vc143-mt.lib)
-    elseif(UNIX)
-        #UNIX
-        set(ASSIMP_LIBRARIES /usr/local/lib/libassimp.so)
-    endif()
-
     set(ENGINE_INCLUDE_DIRS 
         ${INTERNAL_LIBRARIES_ROOT}        
         ${VULKAN_INCLUDE_DIRS}

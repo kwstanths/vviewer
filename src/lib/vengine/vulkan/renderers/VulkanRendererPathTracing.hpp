@@ -20,6 +20,7 @@
 #include "vulkan/resources/VulkanBuffer.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
 #include "vulkan/resources/VulkanRandom.hpp"
+#include "vulkan/resources/VulkanAccelerationStructure.hpp"
 
 namespace vengine
 {
@@ -47,46 +48,20 @@ public:
     }
 
 private:
-    struct DeviceFunctionsRayTracing {
-        PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
-        PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
-        PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
-        PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
-        PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR;
-        PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR;
-        PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR;
-        PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
-        PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
-        PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
-    } m_devF;
-
     struct PathTracingData {
         glm::uvec4 samplesBatchesDepthIndex =
             glm::vec4(256, 16, 5, 0); /* R = total samples, G = Total number of batches, B = max depth per ray, A = batch index */
         glm::uvec4 lights;            /* R = total number of lights */
     };
 
-    struct AccelerationStructure {
-        VkAccelerationStructureKHR handle;
-        uint64_t deviceAddress = 0;
-        VkDeviceMemory memory;
-        VkBuffer buffer;
-    };
-
-    struct BLAS {
-        AccelerationStructure as;
+    struct BLASInstance {
+        VulkanAccelerationStructure accelerationStructure;
         glm::mat4 transform;
         uint32_t instanceOffset; /* SBT Ioffset */
-        BLAS(const AccelerationStructure &_as, const glm::mat4 &_transform, uint32_t _instanceOffset)
-            : as(_as)
+        BLASInstance(const VulkanAccelerationStructure &_accelerationStructure, const glm::mat4 &_transform, uint32_t _instanceOffset)
+            : accelerationStructure(_accelerationStructure)
             , transform(_transform)
             , instanceOffset(_instanceOffset){};
-    };
-
-    struct ScratchBuffer {
-        uint64_t deviceAddress = 0;
-        VkBuffer handle = VK_NULL_HANDLE;
-        VkDeviceMemory memory = VK_NULL_HANDLE;
     };
 
     VulkanContext &m_vkctx;
@@ -104,15 +79,12 @@ private:
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rayTracingPipelineProperties{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures{};
 
-    /* Buffers used during rendering */
-    std::vector<VulkanBuffer> m_renderBuffers;
-
-    std::vector<BLAS> m_blas;
-    AccelerationStructure m_tlas;
+    std::vector<BLASInstance> m_blasInstances;
+    VulkanAccelerationStructure m_tlas;
 
     /* Image result data */
     VkFormat m_format;
-    StorageImage m_renderResultRadiance, m_renderResultAlbedo, m_renderResultNormal, m_tempImage;
+    VulkanStorageImage m_renderResultRadiance, m_renderResultAlbedo, m_renderResultNormal, m_tempImage;
     PathTracingData m_pathTracingData;
 
     bool m_renderInProgress = false;
@@ -145,22 +117,9 @@ private:
     static std::vector<const char *> getRequiredExtensions();
     static bool checkRayTracingSupport(VkPhysicalDevice device);
 
-    uint64_t getBufferDeviceAddress(VkDevice device, VkBuffer buffer);
-
     static VkDevice createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t &queueFamilyIndex);
 
-    /**
-     * @brief Create a Bottom Level Acceleration Structure object for a mesh
-     *
-     * @param mesh Mesh object
-     * @param transformationMatrix Transform matrix
-     * @param materialIndex The material index of the mesh object
-     * @return AccelerationStructure
-     */
-    AccelerationStructure createBottomLevelAccelerationStructure(const VulkanMesh &mesh,
-                                                                 const glm::mat4 &transformationMatrix,
-                                                                 const Material *material);
-    AccelerationStructure createTopLevelAccelerationStructure();
+    void createTopLevelAccelerationStructure();
     void destroyAccellerationStructures();
 
     void setResolution();
@@ -181,15 +140,9 @@ private:
 
     VkResult render(VkDescriptorSet skyboxDescriptor);
 
-    VkResult getRenderTargetData(const StorageImage &target, std::vector<float> &data);
+    VkResult getRenderTargetData(const VulkanStorageImage &target, std::vector<float> &data);
 
     VkResult storeToDisk(std::vector<float> &radiance, std::vector<float> &albedo, std::vector<float> &normal) const;
-
-    /**
-        Create a scratch buffer to hold temporary data for a ray tracing acceleration structure
-    */
-    VkResult createScratchBuffer(VkDeviceSize size, ScratchBuffer &scratchBuffer);
-    void deleteScratchBuffer(ScratchBuffer &scratchBuffer);
 
     /* Scene lights functions */
     bool isMeshLight(const SceneObject *so);

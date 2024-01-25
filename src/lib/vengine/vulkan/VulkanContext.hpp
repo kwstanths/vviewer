@@ -70,7 +70,7 @@ public:
     VkDevice &device() { return m_device; }
 
     VkSurfaceKHR &surface() { return m_surface; }
-    QueueFamilyIndices &queueFamilyIndices() { return m_queueFamilyIndices; }
+    VulkanQueueFamilyIndices &queueFamilyIndices() { return m_queueFamilyIndices; }
 
     VkQueue &graphicsQueue() { return m_graphicsQueue; }
     VkQueue &presentQueue() { return m_presentQueue; }
@@ -96,7 +96,7 @@ private:
     VkDebugUtilsMessengerEXT m_debugCallback;
 
     /* Queues */
-    QueueFamilyIndices m_queueFamilyIndices;
+    VulkanQueueFamilyIndices m_queueFamilyIndices;
     VkQueue m_graphicsQueue, m_presentQueue, m_renderQueue;
 
     /* Command pools */

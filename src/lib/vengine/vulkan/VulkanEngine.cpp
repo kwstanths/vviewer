@@ -152,13 +152,12 @@ Model3D *VulkanEngine::importModel(const AssetInfo &info, bool importMaterials)
             importedNode = assimpLoadModel(info);
         }
 
-        auto vkmodel = new VulkanModel3D(info,
-                                         importedNode,
-                                         materials,
-                                         m_context.physicalDevice(),
-                                         m_context.device(),
-                                         m_context.graphicsQueue(),
-                                         m_context.graphicsCommandPool());
+        auto vkmodel = new VulkanModel3D(
+            info,
+            importedNode,
+            materials,
+            {m_context.physicalDevice(), m_context.device(), m_context.graphicsCommandPool(), m_context.graphicsQueue()},
+            true);
 
         return modelsMap.add(vkmodel);
     } catch (std::runtime_error &e) {

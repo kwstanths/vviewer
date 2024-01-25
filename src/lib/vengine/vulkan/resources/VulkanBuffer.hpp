@@ -9,6 +9,9 @@ namespace vengine
 class VulkanBuffer
 {
 public:
+    VulkanBuffer();
+    VulkanBuffer(VkBuffer buffer, VkDeviceMemory memory, VkDeviceOrHostAddressKHR address);
+
     void destroy(VkDevice device);
 
     inline VkBuffer &buffer() { return m_buffer; }
@@ -17,9 +20,13 @@ public:
     inline VkDeviceMemory &memory() { return m_memory; }
     inline const VkDeviceMemory &memory() const { return m_memory; }
 
+    inline VkDeviceOrHostAddressKHR &address() { return m_address; }
+    inline const VkDeviceOrHostAddressKHR &address() const { return m_address; }
+
 private:
-    VkBuffer m_buffer;
-    VkDeviceMemory m_memory;
+    VkBuffer m_buffer = {};
+    VkDeviceMemory m_memory = {};
+    VkDeviceOrHostAddressKHR m_address = {};
 };
 
 }  // namespace vengine
