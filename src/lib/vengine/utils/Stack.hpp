@@ -41,6 +41,12 @@ public:
 
     void clear() { m_top = -1; }
 
+    void resize(size_t N)
+    {
+        m_data = std::vector<T>(N);
+        clear();
+    }
+
 private:
     std::vector<T> m_data;
     std::atomic<int> m_top;

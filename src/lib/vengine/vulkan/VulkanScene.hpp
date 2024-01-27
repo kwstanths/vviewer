@@ -10,7 +10,7 @@
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "vulkan/common/VulkanStructs.hpp"
-#include "vulkan/resources/VulkanUBO.hpp"
+#include "vulkan/resources/VulkanUBOAccessors.hpp"
 
 namespace vengine
 {
@@ -56,15 +56,15 @@ private:
     std::vector<VkDescriptorSet> m_descriptorSetsScene;
 
     /* Buffers to hold model matrices */
-    VulkanUBO<ModelData> m_modelDataUBO;
+    VulkanUBOCached<ModelData> m_modelDataUBO;
     /* ModelData descriptor */
     VkDescriptorSetLayout m_descriptorSetLayoutModel;
     std::vector<VkDescriptorSet> m_descriptorSetsModel;
 
     /* Buffers to hold light data */
-    VulkanUBO<LightData> m_lightDataUBO;
+    VulkanUBODefault<LightData> m_lightDataUBO;
     /* Buffers to hold light components */
-    VulkanUBO<LightComponent> m_lightComponentsUBO;
+    VulkanUBODefault<LightComponent> m_lightComponentsUBO;
     /* Lights descriptor sets */
     VkDescriptorSetLayout m_descriptorSetLayoutLight;
     std::vector<VkDescriptorSet> m_descriptorSetsLight;

@@ -4,10 +4,12 @@
 #include <cstdint>
 #include <optional>
 #include <vector>
+#include <functional>
 
 #include <glm/glm.hpp>
 
 #include "IncludeVulkan.hpp"
+#include "vengine/utils/Hash.hpp"
 
 namespace vengine
 {
@@ -49,6 +51,7 @@ struct VulkanCommandInfo {
 /* --------------- GPU + CPU structs --------------- */
 struct ModelData {
     glm::mat4 m_modelMatrix;
+    bool operator==(const ModelData &o) const { return m_modelMatrix == o.m_modelMatrix; };
 };
 
 struct MaterialData {
@@ -112,5 +115,11 @@ struct LightPT {
 };
 
 }  // namespace vengine
+
+/* Hash function for ModeData struct */
+template <>
+struct std::hash<vengine::ModelData> {
+    size_t operator()(const vengine::ModelData &m) const { return Hash(m); }
+};
 
 #endif

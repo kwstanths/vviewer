@@ -59,10 +59,3 @@ A real time renderer and an offline path tracer written in Vulkan and a 3D scene
 
 ## Known issues
 * If a render fails with Device Lost, restart the application and render the scene with a smaller batch size
-* Given the use of Vulkan Uniform Buffer objects, there are certain limits that impact scene building. These are:
-    * Maximum number scene nodes: 1024
-    * Maximum number of materials: 200
-    * Maximum number of textures: 500
-    * Maximum number of unique lights: 200
-    * Maximum number of light instances in a scene: 1024
-    * Maximum number of light instances in a scene [Path Tracing]: 200

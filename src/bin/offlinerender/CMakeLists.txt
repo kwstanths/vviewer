@@ -20,7 +20,7 @@ add_executable(${NAME}
 	${${NAME}_HEADERS} ${${NAME}_SOURCES} 
 	)
 
-target_compile_features(${NAME} PRIVATE cxx_std_17)
+target_compile_features(${NAME} PRIVATE cxx_std_20)
     
 # Libraries
 target_link_libraries(${NAME} ${ENGINE_LIBS})

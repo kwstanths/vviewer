@@ -16,16 +16,10 @@ namespace vengine
     A class to manage a uniform buffer that stores data of type Block
 */
 template <typename Block>
-class VulkanUBO : public vengine::FreeList
+class VulkanUBO
 {
-    friend class VulkanRenderer;
-
 public:
-    VulkanUBO(uint32_t nBlocks)
-        : vengine::FreeList(nBlocks)
-    {
-        m_nBlocks = nBlocks;
-    };
+    VulkanUBO(uint32_t nBlocks) { m_nBlocks = nBlocks; };
 
     VulkanUBO(VulkanUBO const &) = delete;
     void operator=(VulkanUBO const &) = delete;
@@ -161,9 +155,11 @@ public:
         m_buffers = 0;
     }
 
+protected:
+    Block *m_dataTransferSpace = nullptr;
+
 private:
     bool isInited = false;
-    Block *m_dataTransferSpace = nullptr;
 
     uint32_t m_minUniformBufferOffsetAlignment;
     uint32_t m_blockAlignment;
@@ -171,34 +167,6 @@ private:
     uint32_t m_buffers = 0;
 
     std::vector<VulkanBuffer> m_gpuBuffers;
-};
-
-/* A class to handle access to a UBO block */
-template <typename T>
-class VulkanUBOBlock
-{
-public:
-    VulkanUBOBlock(VulkanUBO<T> &ubo)
-        : m_ubo(ubo)
-    {
-        /* Get an index for a free block in the ubo */
-        m_blockIndex = static_cast<uint32_t>(m_ubo.getFree());
-        /* Get pointer to free block */
-        m_block = m_ubo.block(m_blockIndex);
-    }
-
-    ~VulkanUBOBlock()
-    {
-        /* Remove block index from the buffers */
-        m_ubo.setFree(m_blockIndex);
-    }
-
-    const uint32_t &UBOBlockIndex() const { return m_blockIndex; }
-
-protected:
-    VulkanUBO<T> &m_ubo;
-    uint32_t m_blockIndex = -1;
-    T *m_block = nullptr;
 };
 
 }  // namespace vengine

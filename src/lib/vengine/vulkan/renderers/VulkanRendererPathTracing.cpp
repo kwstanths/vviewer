@@ -447,10 +447,10 @@ VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t 
 
 VkResult VulkanRendererPathTracing::createBuffers()
 {
-    /* The scene buffer holds [SceneData | PathTracingData | VULKAN_LIMITS_MAX_LIGHTS * LightPT ] */
+    /* The scene buffer holds [SceneData | PathTracingData | VULKAN_LIMITS_MAX_LIGHT_INSTANCES * LightPT ] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
     uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(PathTracingData), alignment) +
-                                    alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightPT), alignment);
+                                    alignedSize(VULKAN_LIMITS_MAX_LIGHT_INSTANCES * sizeof(LightPT), alignment);
 
     /* Create a buffer to hold the scene buffer */
     VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
@@ -478,7 +478,7 @@ VkResult VulkanRendererPathTracing::updateBuffers(const SceneData &sceneData,
     if (m_sceneObjectsDescription.size() > VULKAN_LIMITS_MAX_OBJECTS) {
         throw std::runtime_error("VulkanRendererPathTracing::updateUniformBuffers(): Number of objects exceeded");
     }
-    if (lights.size() > VULKAN_LIMITS_MAX_LIGHTS) {
+    if (lights.size() > VULKAN_LIMITS_MAX_LIGHT_INSTANCES) {
         throw std::runtime_error("VulkanRendererPathTracing::updateUniformBuffers(): Number of lights exceeded");
     }
 
@@ -599,7 +599,7 @@ void VulkanRendererPathTracing::updateDescriptorSets()
     VkDescriptorBufferInfo lightsDescriptor = vkinit::descriptorBufferInfo(
         m_uniformBufferScene.buffer(),
         alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(PathTracingData), uniformBufferAlignment),
-        alignedSize(VULKAN_LIMITS_MAX_LIGHTS * sizeof(LightPT), uniformBufferAlignment));
+        alignedSize(VULKAN_LIMITS_MAX_LIGHT_INSTANCES * sizeof(LightPT), uniformBufferAlignment));
     VkWriteDescriptorSet lightsWrite =
         vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5, 1, &lightsDescriptor);
 

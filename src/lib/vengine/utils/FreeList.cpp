@@ -49,4 +49,11 @@ size_t FreeList::size() const
     return m_nElements;
 }
 
+void FreeList::resize(size_t N)
+{
+    m_nElements = N;
+    m_freeElements.resize(N);
+    m_end = 0;
+}
+
 }  // namespace vengine

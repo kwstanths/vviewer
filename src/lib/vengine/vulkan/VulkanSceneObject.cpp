@@ -5,11 +5,10 @@
 namespace vengine
 {
 
-VulkanSceneObject::VulkanSceneObject(const std::string &name, VulkanUBO<ModelData> &transformUBO)
+VulkanSceneObject::VulkanSceneObject(const std::string &name, VulkanUBOCached<ModelData> &transformUBO)
     : SceneObject(name, Transform())
-    , VulkanUBOBlock<ModelData>(transformUBO)
+    , VulkanUBOCached<ModelData>::Block(transformUBO, {glm::mat4(1.0f)})
 {
-    updateModelMatrixData(glm::mat4(1.0f));
 }
 
 VulkanSceneObject::~VulkanSceneObject()
@@ -23,7 +22,7 @@ void VulkanSceneObject::setModelMatrix(const glm::mat4 &modelMatrix)
 
 void VulkanSceneObject::updateModelMatrixData(const glm::mat4 &modelMatrix)
 {
-    m_block->m_modelMatrix = modelMatrix;
+    VulkanUBOCached<ModelData>::Block::updateValue({modelMatrix});
 }
 
 uint32_t VulkanSceneObject::getModelDataUBOIndex() const

@@ -29,8 +29,8 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
 VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info,
                                                      VkDevice device,
                                                      VkDescriptorSetLayout descriptorLayout,
-                                                     VulkanUBO<MaterialData> &materialsUBO)
-    : VulkanUBOBlock<MaterialData>(materialsUBO)
+                                                     VulkanUBODefault<MaterialData> &materialsUBO)
+    : VulkanUBODefault<MaterialData>::Block(materialsUBO)
     , MaterialPBRStandard(info)
 {
     albedo() = glm::vec4(1, 1, 1, 1);
@@ -216,8 +216,8 @@ void VulkanMaterialPBRStandard::setAlphaTexture(Texture *texture)
 VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info,
                                              VkDevice device,
                                              VkDescriptorSetLayout descriptorLayout,
-                                             VulkanUBO<MaterialData> &materialsUBO)
-    : VulkanUBOBlock<MaterialData>(materialsUBO)
+                                             VulkanUBODefault<MaterialData> &materialsUBO)
+    : VulkanUBODefault<MaterialData>::Block(materialsUBO)
     , MaterialLambert(info)
 {
     albedo() = glm::vec4(1, 1, 1, 1);

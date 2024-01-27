@@ -25,6 +25,8 @@ public:
 
     size_t size() const;
 
+    void resize(size_t N);
+
 private:
     size_t m_end;
     size_t m_nElements;

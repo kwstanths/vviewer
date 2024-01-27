@@ -7,7 +7,7 @@
 #include "core/Materials.hpp"
 #include "core/io/AssimpLoadModel.hpp"
 #include "vulkan/common/IncludeVulkan.hpp"
-#include "vulkan/resources/VulkanUBO.hpp"
+#include "vulkan/resources/VulkanUBOAccessors.hpp"
 #include "vulkan/resources/VulkanMaterial.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
 #include "vulkan/VulkanContext.hpp"
@@ -45,7 +45,7 @@ private:
     VkDescriptorPool m_descriptorPool;
     uint32_t m_swapchainImages = 0;
 
-    VulkanUBO<MaterialData> m_materialsStorage;
+    VulkanUBODefault<MaterialData> m_materialsStorage;
 
     VkDescriptorSetLayout m_descriptorSetLayout;
     std::vector<VkDescriptorSet> m_descriptorSets;

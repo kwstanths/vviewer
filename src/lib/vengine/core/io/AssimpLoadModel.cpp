@@ -331,7 +331,26 @@ std::vector<ImportedMaterial> assimpLoadMaterialsOBJ(const aiScene *scene,
             importedMaterial.albedo = glm::vec4(Ks.r, Ks.g, Ks.b, importedMaterial.albedo.a);
         }
 
-        /* TODO bump map */
+        {
+            // Parses map_Bump
+            aiString normalTexture;
+            mat->Get(AI_MATKEY_TEXTURE(aiTextureType_HEIGHT, 0), normalTexture);
+
+            int width, height, channels;
+            auto *texData = assimpLoadTextureData(scene, folderPath, normalTexture, width, height, channels);
+            if (texData != nullptr) {
+                ImportedTexture normalTex;
+                normalTex.location = AssetLocation::EMBEDDED;
+                normalTex.image = assimpCreateImage(
+                    AssetInfo(importedMaterial.info.name + ":normal", info.filepath, info.source, AssetLocation::EMBEDDED),
+                    texData,
+                    width,
+                    height,
+                    4,
+                    ColorSpace::LINEAR);
+                importedMaterial.normalTexture = normalTex;
+            }
+        }
     }
     return materials;
 }
@@ -568,7 +587,7 @@ Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info, std::vector<Impor
             break;
         }
         case FileType::OBJ: {
-            // materials = assimpLoadMaterialsOBJ(scene, info, folderPath, filenameWithoutExtension);
+            materials = assimpLoadMaterialsOBJ(scene, info, folderPath, filenameWithoutExtension);
             break;
         }
         case FileType::FBX: {

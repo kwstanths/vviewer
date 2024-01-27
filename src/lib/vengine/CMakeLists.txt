@@ -30,7 +30,7 @@ add_library(${NAME}
 	${${NAME}_UTILS_HEADERS} ${${NAME}_UTILS_SOURCES}
 	)
 
-target_compile_features(${NAME} PRIVATE cxx_std_17)
+target_compile_features(${NAME} PRIVATE cxx_std_20)
     
 # Libraries
 target_link_libraries(${NAME} ${VULKAN_LIBRARIES}

@@ -19,7 +19,7 @@
 namespace vengine
 {
 
-static const uint32_t MAX_COMPONENTS = 1024;
+static const uint32_t MAX_COMPONENTS = 16384;
 
 /* Component types */
 class Component

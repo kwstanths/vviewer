@@ -4,7 +4,7 @@
 #include <core/Materials.hpp>
 
 #include "vulkan/common/VulkanStructs.hpp"
-#include "vulkan/resources/VulkanUBO.hpp"
+#include "vulkan/resources/VulkanUBOAccessors.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 
 namespace vengine
@@ -32,13 +32,13 @@ protected:
 /** MATERIALS **/
 
 /* Default PBR material */
-class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanUBOBlock<MaterialData>
+class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanUBODefault<MaterialData>::Block
 {
 public:
     VulkanMaterialPBRStandard(const AssetInfo &info,
                               VkDevice device,
                               VkDescriptorSetLayout descriptorLayout,
-                              VulkanUBO<MaterialData> &materialsUBO);
+                              VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
 
@@ -72,13 +72,13 @@ private:
 };
 
 /* Lambert material */
-class VulkanMaterialLambert : public MaterialLambert, public VulkanUBOBlock<MaterialData>
+class VulkanMaterialLambert : public MaterialLambert, public VulkanUBODefault<MaterialData>::Block
 {
 public:
     VulkanMaterialLambert(const AssetInfo &info,
                           VkDevice device,
                           VkDescriptorSetLayout descriptorLayout,
-                          VulkanUBO<MaterialData> &materialsUBO);
+                          VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
 

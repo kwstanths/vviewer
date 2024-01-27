@@ -3,16 +3,16 @@
 
 #include <core/SceneObject.hpp>
 #include <vulkan/common/VulkanStructs.hpp>
-#include <vulkan/resources/VulkanUBO.hpp>
+#include <vulkan/resources/VulkanUBOAccessors.hpp>
 #include <vulkan/resources/VulkanMesh.hpp>
 
 namespace vengine
 {
 
-class VulkanSceneObject : public SceneObject, private VulkanUBOBlock<ModelData>
+class VulkanSceneObject : public SceneObject, protected VulkanUBOCached<ModelData>::Block
 {
 public:
-    VulkanSceneObject(const std::string &name, VulkanUBO<ModelData> &transformUBO);
+    VulkanSceneObject(const std::string &name, VulkanUBOCached<ModelData> &transformUBO);
 
     ~VulkanSceneObject();
 

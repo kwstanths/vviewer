@@ -35,7 +35,7 @@ add_executable(${NAME} ${GUI_TYPE}
 	${${NAME}_RESOURCES_RCC}
 	)
 
-target_compile_features(${NAME} PRIVATE cxx_std_17)
+target_compile_features(${NAME} PRIVATE cxx_std_20)
 target_compile_definitions(${NAME} PRIVATE QT_NO_KEYWORDS)
     
 # Libraries

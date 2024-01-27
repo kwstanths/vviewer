@@ -13,9 +13,9 @@ namespace vengine
 
 VulkanScene::VulkanScene(VulkanContext &vkctx)
     : m_vkctx(vkctx)
-    , m_modelDataUBO(VULKAN_LIMITS_MAX_OBJECTS)
+    , m_modelDataUBO(VULKAN_LIMITS_MAX_UNIQUE_TRANSFORMS)
     , m_lightDataUBO(VULKAN_LIMITS_MAX_UNIQUE_LIGHTS)
-    , m_lightComponentsUBO(MAX_COMPONENTS)
+    , m_lightComponentsUBO(VULKAN_LIMITS_MAX_LIGHT_INSTANCES)
 {
 }
 
@@ -123,6 +123,7 @@ void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights, uint32
     }
 
     /* Update light components */
+    assert(lights.size() < m_lightComponentsUBO.nblocks());
     /* TODO check if anything has changed */
     for (uint32_t l = 0; l < lights.size(); l++) {
         auto vo = static_cast<VulkanSceneObject *>(lights[l]);
