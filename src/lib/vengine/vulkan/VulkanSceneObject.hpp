@@ -12,7 +12,7 @@ namespace vengine
 class VulkanSceneObject : public SceneObject, protected VulkanUBOCached<ModelData>::Block
 {
 public:
-    VulkanSceneObject(const std::string &name, VulkanUBOCached<ModelData> &transformUBO);
+    VulkanSceneObject(Scene *scene, const std::string &name, VulkanUBOCached<ModelData> &transformUBO);
 
     ~VulkanSceneObject();
 

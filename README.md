@@ -4,18 +4,22 @@ A real time renderer and an offline path tracer written in Vulkan and a 3D scene
 ![Alt text](images/1.png?raw=true)
 
 ## Features
-* Load any 3D model through assimp and its materials (only .gltf and .obj)
+* 3D model loading with assimp and materials (only .gltf and .obj materials)
 * Physically based (Metallic/Roughness) and Lambert materials
     * Transparency, normal mapping, emissiveness, ambient occlusion
 * Spatially varying materials
 * Bindless resource management (transforms, textures, materials, lights)
 * Perspective and Orthographic cameras
 * Point, Directional and Mesh lights
-* HDRI environment maps and cubemaps
+* HDR equirectangular and cubemap environment maps
 * Tone mapping
 * Scene graph
 * Entity component system
 * Export and Import scenes
+* Real time rendering
+    * Image Based Lighting
+    * Object Highlighting
+    * Object Transform visualization
 * GPU path traced rendering
     * Multiple importance sampling
         * Light sampling

@@ -23,13 +23,13 @@ layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 /* Descriptor with the buffer for the object description structs */
 layout(set = 0, binding = 4, scalar) buffer ObjDesc_ 
 { 
-    ObjDesc i[200]; 
+    ObjDesc i[16384]; 
 } objDesc;
 
 /* Descriptor with materials */
 layout(set = 1, binding = 0) uniform readonly MaterialDataUBO
 {
-    MaterialData data[200];
+    MaterialData data[512];
 } materialData;
 
 /* Descriptor for global textures arrays */

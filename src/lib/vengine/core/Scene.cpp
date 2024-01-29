@@ -89,8 +89,11 @@ void Scene::removeSceneObject(SceneObject *node)
 
 void Scene::updateSceneGraph()
 {
-    for (auto &node : m_sceneGraph) {
-        node->update();
+    if (m_needsUpdate) {
+        m_needsUpdate = false;
+        for (auto &node : m_sceneGraph) {
+            node->update();
+        }
     }
 }
 
@@ -147,6 +150,11 @@ void Scene::exportScene(const ExportRenderParams &renderParams) const
     }
 
     exportJson(renderParams, m_camera, m_sceneGraph, envMap);
+}
+
+void Scene::needsUpdate(bool changed)
+{
+    m_needsUpdate = changed;
 }
 
 }  // namespace vengine

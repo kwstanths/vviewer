@@ -24,20 +24,20 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
 } sceneData;
 
 layout(set = 1, binding = 0) uniform readonly ModelDataDescriptor {
-    ModelData data[1000];
+    ModelData data[1024];
 } modelData;
 
 layout(set = 2, binding = 0) uniform readonly LightDataUBO {
-    LightData data[200];
+    LightData data[1024];
 } lightData;
 
 layout(set = 2, binding = 1) uniform readonly LightComponentsUBO {
-    LightComponent data[1000];
+    LightComponent data[1024];
 } lightComponents;
 
 layout(set = 3, binding = 0) uniform readonly MaterialDataUBO
 {
-    MaterialData data[200];
+    MaterialData data[512];
 } materialData;
 
 #extension GL_EXT_nonuniform_qualifier : enable

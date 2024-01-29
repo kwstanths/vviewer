@@ -33,6 +33,8 @@ struct SceneData {
 
 class Scene
 {
+    friend class SceneObject;
+
 public:
     Scene();
     ~Scene();
@@ -92,6 +94,10 @@ protected:
     virtual void deleteObject(SceneObject *) = 0;
 
     SceneGraph m_sceneGraph;
+    bool m_needsUpdate = true;
+
+private:
+    void needsUpdate(bool changed);
 };
 
 }  // namespace vengine

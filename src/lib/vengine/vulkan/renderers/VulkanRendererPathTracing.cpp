@@ -186,7 +186,7 @@ void VulkanRendererPathTracing::render(const Scene &scene)
             continue;
         }
 
-        auto transform = sceneObjectMatrices[i];
+        auto &transform = sceneObjectMatrices[i];
         if (so->has<ComponentMesh>() && so->has<ComponentMaterial>()) {
             auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
             auto material = so->get<ComponentMaterial>().material;

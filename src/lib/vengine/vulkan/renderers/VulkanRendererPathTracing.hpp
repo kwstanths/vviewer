@@ -55,8 +55,8 @@ private:
     };
 
     struct BLASInstance {
-        VulkanAccelerationStructure accelerationStructure;
-        glm::mat4 transform;
+        const VulkanAccelerationStructure &accelerationStructure;
+        const glm::mat4 &transform;
         uint32_t instanceOffset; /* SBT Ioffset */
         BLASInstance(const VulkanAccelerationStructure &_accelerationStructure, const glm::mat4 &_transform, uint32_t _instanceOffset)
             : accelerationStructure(_accelerationStructure)

@@ -36,19 +36,19 @@ layout(set = 0, binding = 3) uniform PathTracingData
 /* Descriptor with the buffer for the object description structs */
 layout(set = 0, binding = 4, scalar) buffer ObjDesc_ 
 { 
-    ObjDesc i[200]; 
+    ObjDesc i[16384]; 
 } objDesc;
 
 /* Descriptor with the buffer for the light structs */
 layout(set = 0, binding = 5) uniform readonly Lights 
 { 
-    Light i[20]; 
+    Light i[1024]; 
 } lights;
 
 /* Descriptor with materials */
 layout(set = 1, binding = 0) uniform readonly MaterialDataUBO
 {
-    MaterialData data[200];
+    MaterialData data[512];
 } materialData;
 
 /* Descriptor for global textures arrays */

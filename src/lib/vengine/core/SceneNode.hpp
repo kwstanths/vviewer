@@ -23,7 +23,9 @@ public:
     {
         m_localTransform = transform;
         m_localTransformDirty = true;
+        transformChanged();
     }
+    virtual void transformChanged(){};
 
     const glm::mat4 &modelMatrix() const { return m_modelMatrix; }
     virtual void setModelMatrix(const glm::mat4 &modelMatrix) = 0;

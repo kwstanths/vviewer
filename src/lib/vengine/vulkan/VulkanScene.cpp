@@ -176,7 +176,7 @@ Light *VulkanScene::createLight(const AssetInfo &info, LightType type, glm::vec4
 
 SceneObject *VulkanScene::createObject(std::string name)
 {
-    auto object = new VulkanSceneObject(name, m_modelDataUBO);
+    auto object = new VulkanSceneObject(this, name, m_modelDataUBO);
     return object;
 }
 

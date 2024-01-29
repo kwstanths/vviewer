@@ -5,8 +5,8 @@
 namespace vengine
 {
 
-VulkanSceneObject::VulkanSceneObject(const std::string &name, VulkanUBOCached<ModelData> &transformUBO)
-    : SceneObject(name, Transform())
+VulkanSceneObject::VulkanSceneObject(Scene *scene, const std::string &name, VulkanUBOCached<ModelData> &transformUBO)
+    : SceneObject(scene, name, Transform())
     , VulkanUBOCached<ModelData>::Block(transformUBO, {glm::mat4(1.0f)})
 {
 }
