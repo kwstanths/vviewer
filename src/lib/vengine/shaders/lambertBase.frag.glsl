@@ -31,9 +31,9 @@ layout(set = 2, binding = 0) uniform readonly LightDataUBO {
     LightData data[1024];
 } lightData;
 
-layout(set = 2, binding = 1) uniform readonly LightComponentsUBO {
-    LightComponent data[1024];
-} lightComponents;
+layout(set = 2, binding = 1) uniform readonly LightInstancesUBO {
+    LightInstance data[1024];
+} lightInstances;
 
 layout(set = 3, binding = 0) uniform readonly MaterialDataUBO
 {
@@ -98,9 +98,8 @@ void main() {
 
         uint lightIndex = lights[i];
 
-        LightComponent lc = lightComponents.data[nonuniformEXT(lightIndex)];
+        LightInstance lc = lightInstances.data[nonuniformEXT(lightIndex)];
         LightData ld = lightData.data[nonuniformEXT(lc.info.r)];
-        ModelData md = modelData.data[nonuniformEXT(lc.info.g)];
 
         vec3 L_color = ld.color.rgb * ld.color.a;
         if (!isBlack(L_color))
@@ -108,7 +107,7 @@ void main() {
             if (ld.type.r == 0)
             {
                 /* Point light */
-                vec3 L_world = getTranslation(md.model);
+                vec3 L_world = lc.position.rgb;
                 vec3 L = worldToLocal(frame, normalize(L_world - fragPos_world));
         
                 float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
@@ -120,7 +119,7 @@ void main() {
                 direct += L_color * albedo * max(L.y, 0.0) * INV_PI * attenuation;
 
             } else if (ld.type.r == 1) {
-                vec3 L_world = vec3(md.model * vec4(0, 0, 1, 0));
+                vec3 L_world = lc.position.rgb;
                 vec3 L = worldToLocal(frame, normalize(-L_world));
                    
                 /* Calculate light contrubution from directional light */

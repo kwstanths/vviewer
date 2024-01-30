@@ -30,7 +30,11 @@ class VulkanRendererPathTracing : public RendererPathTracing
     friend class VulkanRenderer;
 
 public:
-    VulkanRendererPathTracing(VulkanContext &vkctx, VulkanMaterials &materials, VulkanTextures &textures, VulkanRandom &random);
+    VulkanRendererPathTracing(VulkanContext &vkctx,
+                              VulkanScene &scene,
+                              VulkanMaterials &materials,
+                              VulkanTextures &textures,
+                              VulkanRandom &random);
 
     VkResult initResources(VkFormat colorFormat, VkDescriptorSetLayout skyboxDescriptorLayout);
 
@@ -38,7 +42,7 @@ public:
     VkResult releaseResources();
 
     bool isRayTracingEnabled() const override;
-    void render(const Scene &scene) override;
+    void render() override;
     float renderProgress() override;
 
     static VkBufferUsageFlags getBufferUsageFlags()
@@ -65,6 +69,7 @@ private:
     };
 
     VulkanContext &m_vkctx;
+    VulkanScene &m_scene;
     VulkanMaterials &m_materials;
     VulkanTextures &m_textures;
     VulkanRandom &m_random;
@@ -93,7 +98,7 @@ private:
     std::vector<ObjectDescriptionPT> m_sceneObjectsDescription;
 
     /* Descriptor sets */
-    VulkanBuffer m_uniformBufferScene;             /* Holds scene data, path tracing data and light data */
+    VulkanBuffer m_uniformBufferScene;             /* Holds scene data and path tracing data */
     VulkanBuffer m_storageBufferObjectDescription; /* Holds references to scene objects */
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSet m_descriptorSet;
@@ -128,7 +133,7 @@ private:
 
     /* Buffers */
     VkResult createBuffers();
-    VkResult updateBuffers(const SceneData &sceneData, const PathTracingData &ptData, const std::vector<LightPT> &lights);
+    VkResult updateBuffers(const SceneData &sceneData, const PathTracingData &ptData);
     VkResult updateBuffersPathTracingData(const PathTracingData &ptData);
 
     /* Descriptor sets */
@@ -143,14 +148,6 @@ private:
     VkResult getRenderTargetData(const VulkanStorageImage &target, std::vector<float> &data);
 
     VkResult storeToDisk(std::vector<float> &radiance, std::vector<float> &albedo, std::vector<float> &normal) const;
-
-    /* Scene lights functions */
-    bool isMeshLight(const SceneObject *so);
-    void prepareSceneLights(const Scene &scene, std::vector<LightPT> &sceneLights);
-    void prepareSceneObjectLight(const SceneObject *so,
-                                 uint32_t objectDescriptionIndex,
-                                 const glm::mat4 &worldTransform,
-                                 std::vector<LightPT> &sceneLights);
 };
 
 }  // namespace vengine

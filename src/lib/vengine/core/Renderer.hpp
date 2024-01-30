@@ -31,7 +31,7 @@ public:
     const RenderInfo &renderInfo() const { return m_renderInfo; }
 
     virtual bool isRayTracingEnabled() const = 0;
-    virtual void render(const Scene &scene) = 0;
+    virtual void render() = 0;
     virtual float renderProgress() = 0;
 
 private:

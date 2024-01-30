@@ -15,7 +15,7 @@ VulkanScene::VulkanScene(VulkanContext &vkctx)
     : m_vkctx(vkctx)
     , m_modelDataUBO(VULKAN_LIMITS_MAX_UNIQUE_TRANSFORMS)
     , m_lightDataUBO(VULKAN_LIMITS_MAX_UNIQUE_LIGHTS)
-    , m_lightComponentsUBO(VULKAN_LIMITS_MAX_LIGHT_INSTANCES)
+    , m_lightInstancesUBO(VULKAN_LIMITS_MAX_LIGHT_INSTANCES)
 {
 }
 
@@ -29,8 +29,8 @@ VkResult VulkanScene::initResources()
     m_modelDataUBO.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
     /* Initialize uniform buffers for light data */
     m_lightDataUBO.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
-    /* Initialize uniform buffers for light components */
-    m_lightComponentsUBO.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
+    /* Initialize uniform buffers for light instances */
+    m_lightInstancesUBO.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
 
     VULKAN_CHECK_CRITICAL(createDescriptorSetsLayouts());
 
@@ -49,7 +49,7 @@ VkResult VulkanScene::releaseResources()
 {
     m_modelDataUBO.destroyCPUMemory();
     m_lightDataUBO.destroyCPUMemory();
-    m_lightComponentsUBO.destroyCPUMemory();
+    m_lightInstancesUBO.destroyCPUMemory();
 
     vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutLight, nullptr);
     vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutModel, nullptr);
@@ -66,7 +66,7 @@ VkResult VulkanScene::releaseSwapchainResources()
 
     m_modelDataUBO.destroyGPUBuffers(m_vkctx.device());
     m_lightDataUBO.destroyGPUBuffers(m_vkctx.device());
-    m_lightComponentsUBO.destroyGPUBuffers(m_vkctx.device());
+    m_lightInstancesUBO.destroyGPUBuffers(m_vkctx.device());
 
     vkDestroyDescriptorPool(m_vkctx.device(), m_descriptorPool, nullptr);
 
@@ -82,7 +82,9 @@ SceneData VulkanScene::getSceneData() const
     return sceneData;
 }
 
-void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights, uint32_t imageIndex) const
+void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights,
+                                const std::vector<std::pair<SceneObject *, uint32_t>> &meshLights,
+                                uint32_t imageIndex) const
 {
     /* TODO check if something has changed */
 
@@ -122,29 +124,58 @@ void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights, uint32
         vkUnmapMemory(m_vkctx.device(), m_lightDataUBO.memory(imageIndex));
     }
 
-    /* Update light components */
-    assert(lights.size() < m_lightComponentsUBO.nblocks());
-    /* TODO check if anything has changed */
+    /* Update light instances */
     for (uint32_t l = 0; l < lights.size(); l++) {
-        auto vo = static_cast<VulkanSceneObject *>(lights[l]);
-        Light *light = lights[l]->get<ComponentLight>().light;
+        assert(l < m_lightInstancesUBO.nblocks());
 
-        LightComponent *lightComponentBlock = m_lightComponentsUBO.block(l);
-        lightComponentBlock->info.r = light->lightIndex();
-        lightComponentBlock->info.g = vo->getModelDataUBOIndex();
+        auto vo = static_cast<VulkanSceneObject *>(lights[l]);
+        Light *light = vo->get<ComponentLight>().light;
+
+        assert(light != nullptr);
+
+        LightInstance *lightInstanceBlock = m_lightInstancesUBO.block(l);
+        lightInstanceBlock->info.r = light->lightIndex();
+        lightInstanceBlock->info.g = vo->getModelDataUBOIndex();
+        lightInstanceBlock->info.a = static_cast<int32_t>(light->type());
+
+        if (light->type() == LightType::POINT_LIGHT) {
+            lightInstanceBlock->position = glm::vec4(vo->worldPosition(), LightType::POINT_LIGHT);
+        } else if (light->type() == LightType::DIRECTIONAL_LIGHT) {
+            lightInstanceBlock->position = glm::vec4(vo->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0));
+        }
+    }
+    for (uint32_t l = 0; l < meshLights.size(); l++) {
+        uint32_t nl = lights.size() + l;
+        assert(nl < m_lightInstancesUBO.nblocks());
+
+        auto vo = static_cast<VulkanSceneObject *>(meshLights[l].first);
+        auto objectDescriptionIndex = meshLights[l].second;
+        Material *material = vo->get<ComponentMaterial>().material;
+
+        assert(material != nullptr);
+
+        LightInstance *lightInstanceBlock = m_lightInstancesUBO.block(nl);
+        lightInstanceBlock->info.g = vo->getModelDataUBOIndex();
+        lightInstanceBlock->info.b = objectDescriptionIndex;
+        lightInstanceBlock->info.a = static_cast<int32_t>(LightType::MESH_LIGHT);
+
+        const auto &m = vo->modelMatrix();
+        lightInstanceBlock->position = glm::vec4(m[0][0], m[1][0], m[2][0], m[3][0]);
+        lightInstanceBlock->position1 = glm::vec4(m[0][1], m[1][1], m[2][1], m[3][1]);
+        lightInstanceBlock->position2 = glm::vec4(m[0][2], m[1][2], m[2][2], m[3][2]);
     }
 
-    /* Update light components to buffer */
+    /* Update light instances to buffer */
     {
         void *data;
         vkMapMemory(m_vkctx.device(),
-                    m_lightComponentsUBO.memory(imageIndex),
+                    m_lightInstancesUBO.memory(imageIndex),
                     0,
-                    m_lightComponentsUBO.blockSizeAligned() * m_lightComponentsUBO.nblocks(),
+                    m_lightInstancesUBO.blockSizeAligned() * m_lightInstancesUBO.nblocks(),
                     0,
                     &data);
-        memcpy(data, m_lightComponentsUBO.block(0), m_lightComponentsUBO.blockSizeAligned() * m_lightComponentsUBO.nblocks());
-        vkUnmapMemory(m_vkctx.device(), m_lightComponentsUBO.memory(imageIndex));
+        memcpy(data, m_lightInstancesUBO.block(0), m_lightInstancesUBO.blockSizeAligned() * m_lightInstancesUBO.nblocks());
+        vkUnmapMemory(m_vkctx.device(), m_lightInstancesUBO.memory(imageIndex));
     }
 }
 
@@ -199,21 +230,24 @@ VkResult VulkanScene::createDescriptorSetsLayouts()
     {
         /* Create descriptor layout for the model data */
         VkDescriptorSetLayoutBinding modelDataLayoutBinding = vkinit::descriptorSetLayoutBinding(
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1);
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+            0,
+            1);
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = vkinit::descriptorSetLayoutCreateInfo(1, &modelDataLayoutBinding);
         VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutModel));
     }
 
     {
-        /* Create descriptor layout for the light data and light components */
-        VkDescriptorSetLayoutBinding lightDataLayoutBinding =
-            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1);
+        /* Create descriptor layout for the light data and light instances */
+        VkDescriptorSetLayoutBinding lightDataLayoutBinding = vkinit::descriptorSetLayoutBinding(
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, 1);
 
-        VkDescriptorSetLayoutBinding lightComponentsLayoutBinding =
-            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1);
+        VkDescriptorSetLayoutBinding lightInstancesLayoutBinding = vkinit::descriptorSetLayoutBinding(
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1, 1);
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {lightDataLayoutBinding, lightComponentsLayoutBinding};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {lightDataLayoutBinding, lightInstancesLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo =
             vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(bindings.size()), bindings.data());
         VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutLight));
@@ -227,8 +261,8 @@ VkResult VulkanScene::createDescriptorPool(uint32_t nImages)
     VkDescriptorPoolSize sceneDataPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
     VkDescriptorPoolSize modelDataPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
     VkDescriptorPoolSize lightDataPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
-    VkDescriptorPoolSize lightComponentsPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
-    std::array<VkDescriptorPoolSize, 4> poolSizes = {sceneDataPoolSize, modelDataPoolSize, lightDataPoolSize, lightComponentsPoolSize};
+    VkDescriptorPoolSize lightInstancesPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
+    std::array<VkDescriptorPoolSize, 4> poolSizes = {sceneDataPoolSize, modelDataPoolSize, lightDataPoolSize, lightInstancesPoolSize};
 
     VkDescriptorPoolCreateInfo poolInfo =
         vkinit::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()),
@@ -285,13 +319,13 @@ VkResult VulkanScene::createDescriptorSets(uint32_t nImages)
         auto bufferInfoLightData = vkinit::descriptorBufferInfo(m_lightDataUBO.buffer(i), 0, VK_WHOLE_SIZE);
         auto descriptorWriteLightData =
             vkinit::writeDescriptorSet(m_descriptorSetsLight[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, &bufferInfoLightData);
-        /* Light components */
-        auto bufferInfoLightComponents = vkinit::descriptorBufferInfo(m_lightComponentsUBO.buffer(i), 0, VK_WHOLE_SIZE);
-        auto descriptorWriteLightComponents =
-            vkinit::writeDescriptorSet(m_descriptorSetsLight[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, &bufferInfoLightComponents);
+        /* Light instances */
+        auto bufferInfoLightInstances = vkinit::descriptorBufferInfo(m_lightInstancesUBO.buffer(i), 0, VK_WHOLE_SIZE);
+        auto descriptorWriteLightInstances =
+            vkinit::writeDescriptorSet(m_descriptorSetsLight[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, &bufferInfoLightInstances);
 
         std::array<VkWriteDescriptorSet, 4> writeSets = {
-            descriptorWriteScene, descriptorWriteModel, descriptorWriteLightData, descriptorWriteLightComponents};
+            descriptorWriteScene, descriptorWriteModel, descriptorWriteLightData, descriptorWriteLightInstances};
         vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
     }
 
@@ -314,7 +348,7 @@ VkResult VulkanScene::createBuffers(uint32_t nImages)
 
     m_modelDataUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
     m_lightDataUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
-    m_lightComponentsUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
+    m_lightInstancesUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
 
     return VK_SUCCESS;
 }

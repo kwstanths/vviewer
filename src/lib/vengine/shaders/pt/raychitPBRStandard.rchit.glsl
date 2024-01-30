@@ -39,12 +39,6 @@ layout(set = 0, binding = 4, scalar) buffer ObjDesc_
     ObjDesc i[16384]; 
 } objDesc;
 
-/* Descriptor with the buffer for the light structs */
-layout(set = 0, binding = 5) uniform readonly Lights 
-{ 
-    Light i[1024]; 
-} lights;
-
 /* Descriptor with materials */
 layout(set = 1, binding = 0) uniform readonly MaterialDataUBO
 {
@@ -54,6 +48,15 @@ layout(set = 1, binding = 0) uniform readonly MaterialDataUBO
 /* Descriptor for global textures arrays */
 layout (set = 2, binding = 0) uniform sampler2D global_textures[];
 layout (set = 2, binding = 0) uniform sampler3D global_textures_3d[];
+
+/* Descriptor for lights and light instances */
+layout(set = 3, binding = 0) uniform readonly LightDataUBO {
+    LightData data[1024];
+} lightData;
+
+layout(set = 3, binding = 1) uniform readonly LightInstancesUBO {
+    LightInstance data[1024];
+} lightInstances;
 
 #include "../include/rng.glsl"
 #include "lightSampling.glsl"

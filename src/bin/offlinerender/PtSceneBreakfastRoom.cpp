@@ -56,7 +56,7 @@ bool PtSceneBreakfastRoom::render()
     engine().renderer().rendererPathTracing().renderInfo().denoise = true;
     engine().renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
     engine().renderer().rendererPathTracing().renderInfo().filename = "test";
-    engine().renderer().rendererPathTracing().render(scene());
+    engine().renderer().rendererPathTracing().render();
 
     return true;
 }

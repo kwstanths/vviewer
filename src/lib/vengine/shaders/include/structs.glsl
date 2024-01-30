@@ -46,13 +46,12 @@ struct LightData {
     uvec4 padding2;
 };
 
-/* LightComponent struct. A mirror of the CPU struct */
-struct LightComponent {
-    uvec4 info; /* R = LightData index, G = ModelData index, BA = unused */
-    
-    uvec4 padding1;
-    uvec4 padding2;
-    uvec4 padding3;
+/* LightInstance struct. A mirror of the CPU struct */
+struct LightInstance {
+    uvec4 info;     /* R = LightData index, G = ModelData index, B = Object Description index if Mesh type, A = type (LightType) */
+    vec4 position;  /* RGB = world position/direction, A = unused or RGBA = row 0 of transform matrix if mesh type */
+    vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
+    vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
 };
 
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
@@ -93,14 +92,6 @@ struct RayPayloadNEE {
     vec3 emissive;
     float throughput;
     float pdf;    
-};
-
-/* Struct to represent lights in PT */
-struct Light {
-    vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
-    vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */
-    vec4 color;     /* RGB = color or column 3 of transform matrix, A = ... */
-    vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
 
 /* Struct for PT light sampling */

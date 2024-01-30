@@ -869,29 +869,27 @@ void MainWindow::onRenderSceneSlot()
     struct RTRenderTask : public Task {
         RendererPathTracing &renderer;
 
-        RTRenderTask(RendererPathTracing &r, Scene &s)
+        RTRenderTask(RendererPathTracing &r)
             : renderer(r)
         {
-            function = Funct(renderer, s);
+            function = Funct(renderer);
         };
 
         struct Funct {
             RendererPathTracing &renderer;
-            Scene &scene;
 
-            Funct(RendererPathTracing &r, Scene &s)
-                : renderer(r)
-                , scene(s){};
+            Funct(RendererPathTracing &r)
+                : renderer(r){};
             bool operator()(float &)
             {
-                renderer.render(scene);
+                renderer.render();
                 return true;
             }
         };
 
         float getProgress() const override { return renderer.renderProgress(); }
     };
-    auto task = RTRenderTask(RTrenderer, *m_scene);
+    auto task = RTRenderTask(RTrenderer);
 
     /* Wait for the render loop to idle */
     m_engine->stop();

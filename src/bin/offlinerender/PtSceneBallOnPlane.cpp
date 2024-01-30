@@ -48,7 +48,7 @@ bool PtSceneBallOnPlane::render()
         scene().camera()->transform().position() = glm::vec3(radius * sin(a), height, radius * cos(a));
         scene().camera()->transform().setRotationEuler(0, a, 0);
 
-        engine().renderer().rendererPathTracing().render(scene());
+        engine().renderer().rendererPathTracing().render();
     }
 
     return true;

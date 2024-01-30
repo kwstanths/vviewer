@@ -75,13 +75,12 @@ struct LightData {
     glm::uvec4 padding2;
 }; /* sizeof(LightData) = 64 */
 
-struct LightComponent {
-    glm::uvec4 info; /* R = LightData index, G = ModelData index, BA = unused */
-
-    glm::uvec4 padding1;
-    glm::uvec4 padding2;
-    glm::uvec4 padding3;
-}; /* sizeof(LightComponent) = 64 */
+struct LightInstance {
+    glm::uvec4 info;    /* R = LightData index, G = ModelData index, B = Object Description index if Mesh type, A = type (LightType) */
+    glm::vec4 position; /* RGB = world position/direction, A = unused or RGBA = row 0 of transform matrix if mesh type */
+    glm::vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
+    glm::vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
+};                       /* sizeof(LightInstance) = 64 */
 
 struct PushBlockForward {
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
@@ -105,13 +104,6 @@ struct ObjectDescriptionPT {
     uint32_t materialIndex;
     /* The number of triangles in the buffer */
     uint32_t numTriangles;
-};
-
-struct LightPT {
-    glm::vec4 position;  /* RGB = world space position or column 1 of transform matrix, A = light type  */
-    glm::vec4 direction; /* RGB = world space direction or column 2 of transform matrix, A = mesh id */
-    glm::vec4 color;     /* RGB = color or column 3 of transform matrix, A = ... */
-    glm::vec4 transform; /* RGB = column 4 of transform matrix, A = ... */
 };
 
 }  // namespace vengine

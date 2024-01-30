@@ -44,7 +44,7 @@ VulkanRenderer::VulkanRenderer(VulkanContext &context,
     , m_materials(materials)
     , m_scene(scene)
     , m_random(context)
-    , m_rendererPathTracing(context, materials, textures, m_random)
+    , m_rendererPathTracing(context, scene, materials, textures, m_random)
 {
 }
 
@@ -264,7 +264,9 @@ VkResult VulkanRenderer::renderFrame(SceneGraph &sceneGraphArray)
 VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {
     /* Parse objects */
+    uint32_t objectDescriptionIndex = 0;
     std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects, lights;
+    std::vector<std::pair<SceneObject *, uint32_t>> meshLights;
     for (auto &itr : sceneGraphArray) {
         /* Skip inactive objects */
         if (!itr->active()) {
@@ -287,6 +289,12 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                         debug_tools::ConsoleWarning("VulkanRenderer::buildFrame(): Unexpected material");
                 }
             }
+
+            if (mat->isEmissive()) {
+                meshLights.push_back({itr, objectDescriptionIndex});
+            }
+
+            objectDescriptionIndex++;
         }
 
         if (itr->has<ComponentLight>()) {
@@ -294,7 +302,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         }
     }
 
-    m_scene.updateBuffers(lights, static_cast<uint32_t>(imageIndex));
+    m_scene.updateBuffers(lights, meshLights, static_cast<uint32_t>(imageIndex));
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
     m_textures.updateTextures();
 

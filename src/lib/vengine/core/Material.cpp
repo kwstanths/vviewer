@@ -1,5 +1,7 @@
 #include "Material.hpp"
 
+#include "vengine/math/MathUtils.hpp"
+
 namespace vengine
 {
 
@@ -73,6 +75,11 @@ Texture *MaterialPBRStandard::getAlphaTexture() const
     return m_alphaTexture;
 }
 
+bool MaterialPBRStandard::isEmissive() const
+{
+    return (emissiveIntensity() > std::numeric_limits<float>::epsilon()) && !isBlack(emissiveColor(), 0.01F);
+}
+
 void MaterialLambert::setAlbedoTexture(Texture *texture)
 {
     m_albedoTexture = texture;
@@ -121,6 +128,11 @@ Texture *MaterialLambert::getNormalTexture() const
 Texture *MaterialLambert::getAlphaTexture() const
 {
     return m_alphaTexture;
+}
+
+bool MaterialLambert::isEmissive() const
+{
+    return (emissiveIntensity() > std::numeric_limits<float>::epsilon()) && !isBlack(emissiveColor(), 0.01F);
 }
 
 void MaterialSkybox::setMap(EnvironmentMap *envMap)

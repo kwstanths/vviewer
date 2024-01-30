@@ -14,38 +14,43 @@ LightSamplingRecord sampleLight(vec3 originPosition)
     /* Uniformly pick a light */
     float pdf = 1.0 / totalLights;
     uint randomLight = uint(rand1D(rayPayloadPrimary) * totalLights);
-    Light light = lights.i[randomLight];
+    LightInstance light = lightInstances.data[randomLight];
 
     float tmin = 0.001;
     float tmax = 10000.0;
-    if (light.position.a == 0)
+    if (light.info.a == 0)
     {
+        LightData ld = lightData.data[light.info.r];
+
         /* Point light */
         vec3 direction = light.position.rgb - originPosition;
         tmax = length(direction);
         lsr.direction = direction / tmax;
-        lsr.radiance = light.color.rgb * squareDistanceAttenuation(originPosition, light.position.rgb);
+        lsr.radiance = ld.color.rgb * squareDistanceAttenuation(originPosition, light.position.rgb) * ld.color.a;
         lsr.pdf = pdf * 1.0;
         lsr.isDeltaLight = true;
     } 
-    else if (light.position.a == 1)
+    else if (light.info.a == 1)
     {
+        LightData ld = lightData.data[light.info.r];
+
         /* Directional light */
-        lsr.direction = -light.direction.rgb;
-        lsr.radiance = light.color.rgb;
+        lsr.direction = -light.position.rgb;
+        lsr.radiance = ld.color.rgb * ld.color.a;
         lsr.pdf = pdf * 1.0;
         lsr.isDeltaLight = true;
     }
-    else if (light.position.a == 2)
+    else if (light.info.a == 2)
     {
         /* Mesh light */
-        uint meshIndex = uint(light.direction.a);
+        uint meshIndex = uint(light.info.b);
 
         ObjDesc objResource = objDesc.i[meshIndex];
         Indices indices = Indices(objResource.indexAddress);
         Vertices vertices = Vertices(objResource.vertexAddress);
         MaterialData material = materialData.data[objResource.materialIndex];
-        mat4 transform = mat4(vec4(light.position.xyz, 0), vec4(light.direction.xyz, 0), vec4(light.color.xyz, 0), vec4(light.transform.xyz, 1));
+        mat4 transform = mat4(light.position, light.position1, light.position2, vec4(0, 0, 0, 1));
+        transform = transpose(transform);
         
         uint randomTriangle = uint(rand1D(rayPayloadPrimary) * objResource.numTriangles);
         ivec3 ind = indices.i[randomTriangle];

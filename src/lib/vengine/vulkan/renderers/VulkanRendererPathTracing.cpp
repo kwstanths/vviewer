@@ -30,10 +30,12 @@ namespace vengine
 {
 
 VulkanRendererPathTracing::VulkanRendererPathTracing(VulkanContext &vkctx,
+                                                     VulkanScene &scene,
                                                      VulkanMaterials &materials,
                                                      VulkanTextures &textures,
                                                      VulkanRandom &random)
     : m_vkctx(vkctx)
+    , m_scene(scene)
     , m_materials(materials)
     , m_textures(textures)
     , m_random(random)
@@ -124,7 +126,7 @@ bool VulkanRendererPathTracing::isRayTracingEnabled() const
     return m_isInitialized;
 }
 
-void VulkanRendererPathTracing::render(const Scene &scene)
+void VulkanRendererPathTracing::render()
 {
     if (m_renderInProgress)
         return;
@@ -136,7 +138,7 @@ void VulkanRendererPathTracing::render(const Scene &scene)
 
     /* Get the scene objects */
     std::vector<glm::mat4> sceneObjectMatrices;
-    SceneGraph sceneObjects = scene.getSceneObjectsArray(sceneObjectMatrices);
+    SceneGraph sceneObjects = m_scene.getSceneObjectsArray(sceneObjectMatrices);
     if (sceneObjects.size() == 0) {
         debug_tools::ConsoleWarning("Trying to render an empty scene");
         return;
@@ -145,13 +147,13 @@ void VulkanRendererPathTracing::render(const Scene &scene)
     m_renderInProgress = true;
 
     /* Prepare sceneData */
-    SceneData sceneData = scene.getSceneData();
+    SceneData sceneData = m_scene.getSceneData();
     {
         uint32_t width = renderInfo().width;
         uint32_t height = renderInfo().height;
 
         /* Change to requested render resolution */
-        auto camera = scene.camera();
+        auto camera = m_scene.camera();
         switch (camera->type()) {
             case CameraType::PERSPECTIVE: {
                 auto perspectiveCamera = std::static_pointer_cast<PerspectiveCamera>(camera);
@@ -175,10 +177,10 @@ void VulkanRendererPathTracing::render(const Scene &scene)
         }
     }
 
-    std::vector<LightPT> sceneLights;
-
     /* Parse all objects in the scene that have a mesh and a material */
     m_blasInstances.clear();
+    std::vector<SceneObject *> lights;
+    std::vector<std::pair<SceneObject *, uint32_t>> meshLights;
     for (size_t i = 0; i < sceneObjects.size(); i++) {
         auto so = sceneObjects[i];
 
@@ -207,10 +209,13 @@ void VulkanRendererPathTracing::render(const Scene &scene)
                                                  mesh->indexBuffer().address().deviceAddress,
                                                  material->materialIndex(),
                                                  mesh->nTriangles()});
-        }
 
-        if (so->has<ComponentLight>() || isMeshLight(so)) {
-            prepareSceneObjectLight(so, m_sceneObjectsDescription.size() - 1, transform, sceneLights);
+            if (material->isEmissive()) {
+                meshLights.push_back({so, m_sceneObjectsDescription.size() - 1});
+            }
+        }
+        if (so->has<ComponentLight>()) {
+            lights.push_back(so);
         }
     }
 
@@ -218,16 +223,16 @@ void VulkanRendererPathTracing::render(const Scene &scene)
     createTopLevelAccelerationStructure();
 
     /* Prepare scene lights */
-    prepareSceneLights(scene, sceneLights);
-    m_pathTracingData.lights.r = sceneLights.size();
-    updateBuffers(sceneData, m_pathTracingData, sceneLights);
+    m_pathTracingData.lights.r = lights.size() + meshLights.size();
+    updateBuffers(sceneData, m_pathTracingData);
 
     /* We will use the materials from buffer index 0 for this renderer */
+    m_scene.updateBuffers(lights, meshLights, 0);
     m_materials.updateBuffers(0);
     m_textures.updateTextures();
 
     /* Get skybox descriptor */
-    auto skybox = dynamic_cast<const VulkanMaterialSkybox *>(scene.skyboxMaterial());
+    auto skybox = dynamic_cast<const VulkanMaterialSkybox *>(m_scene.skyboxMaterial());
     assert(skybox != nullptr);
     if (skybox->needsUpdate(0)) {
         skybox->updateDescriptorSet(m_device, 0);
@@ -447,10 +452,9 @@ VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t 
 
 VkResult VulkanRendererPathTracing::createBuffers()
 {
-    /* The scene buffer holds [SceneData | PathTracingData | VULKAN_LIMITS_MAX_LIGHT_INSTANCES * LightPT ] */
+    /* The scene buffer holds [SceneData | PathTracingData ] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(PathTracingData), alignment) +
-                                    alignedSize(VULKAN_LIMITS_MAX_LIGHT_INSTANCES * sizeof(LightPT), alignment);
+    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(PathTracingData), alignment);
 
     /* Create a buffer to hold the scene buffer */
     VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
@@ -471,15 +475,10 @@ VkResult VulkanRendererPathTracing::createBuffers()
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererPathTracing::updateBuffers(const SceneData &sceneData,
-                                                  const PathTracingData &rtData,
-                                                  const std::vector<LightPT> &lights)
+VkResult VulkanRendererPathTracing::updateBuffers(const SceneData &sceneData, const PathTracingData &rtData)
 {
     if (m_sceneObjectsDescription.size() > VULKAN_LIMITS_MAX_OBJECTS) {
         throw std::runtime_error("VulkanRendererPathTracing::updateUniformBuffers(): Number of objects exceeded");
-    }
-    if (lights.size() > VULKAN_LIMITS_MAX_LIGHT_INSTANCES) {
-        throw std::runtime_error("VulkanRendererPathTracing::updateUniformBuffers(): Number of lights exceeded");
     }
 
     /* Update scene buffer */
@@ -492,9 +491,6 @@ VkResult VulkanRendererPathTracing::updateBuffers(const SceneData &sceneData,
         memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment),
                &rtData,
                sizeof(PathTracingData)); /* Copy path tracing data struct */
-        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(PathTracingData), alignment),
-               lights.data(),
-               lights.size() * sizeof(LightPT)); /* Copy lights vector */
         vkUnmapMemory(m_device, m_uniformBufferScene.memory());
     }
 
@@ -531,7 +527,6 @@ VkResult VulkanRendererPathTracing::createDescriptorSets()
      * 1 storage image for output
      * 1 uniform buffer for scene data
      * 1 storage buffer for references to scene object geometry
-     * 1 uniform buffer for light data
      */
     std::vector<VkDescriptorPoolSize> poolSizes = {
         {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1},
@@ -539,7 +534,6 @@ VkResult VulkanRendererPathTracing::createDescriptorSets()
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
         {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
     };
     VkDescriptorPoolCreateInfo descriptorPoolInfo =
         vkinit::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 1);
@@ -595,16 +589,8 @@ void VulkanRendererPathTracing::updateDescriptorSets()
     VkWriteDescriptorSet objectDescriptionWrite =
         vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, 1, &objectDescriptionDataDesriptor);
 
-    /* Update lights buffer binding */
-    VkDescriptorBufferInfo lightsDescriptor = vkinit::descriptorBufferInfo(
-        m_uniformBufferScene.buffer(),
-        alignedSize(sizeof(SceneData), uniformBufferAlignment) + alignedSize(sizeof(PathTracingData), uniformBufferAlignment),
-        alignedSize(VULKAN_LIMITS_MAX_LIGHT_INSTANCES * sizeof(LightPT), uniformBufferAlignment));
-    VkWriteDescriptorSet lightsWrite =
-        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5, 1, &lightsDescriptor);
-
     std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-        accelerationStructureWrite, resultImageWrite, sceneDataWrite, pathTracingDataWrite, objectDescriptionWrite, lightsWrite};
+        accelerationStructureWrite, resultImageWrite, sceneDataWrite, pathTracingDataWrite, objectDescriptionWrite};
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 }
 
@@ -633,15 +619,11 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
         /* Binding 4, the object descriptions buffer */
         VkDescriptorSetLayoutBinding objectDescrptionBufferBinding = vkinit::descriptorSetLayoutBinding(
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 4, 1);
-        /* Binding 5, the pt lights buffer */
-        VkDescriptorSetLayoutBinding lightsBufferBinding =
-            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 5, 1);
         std::vector<VkDescriptorSetLayoutBinding> bindings({accelerationStructureLayoutBinding,
                                                             resultImageLayoutBinding,
                                                             sceneDataBufferBinding,
                                                             pathTracingDataBufferBinding,
-                                                            objectDescrptionBufferBinding,
-                                                            lightsBufferBinding});
+                                                            objectDescrptionBufferBinding});
 
         VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo =
             vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(bindings.size()), bindings.data());
@@ -650,9 +632,10 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
 
     /* Create pipeline layout */
     {
-        std::array<VkDescriptorSetLayout, 4> setsLayouts = {m_descriptorSetLayoutMain,
+        std::array<VkDescriptorSetLayout, 5> setsLayouts = {m_descriptorSetLayoutMain,
                                                             m_materials.descriptorSetLayout(),
                                                             m_textures.descriptorSetLayout(),
+                                                            m_scene.layoutLights(),
                                                             m_descriptorSetLayoutSkybox};
         VkPipelineLayoutCreateInfo pipelineLayoutInfo =
             vkinit::pipelineLayoutCreateInfo(static_cast<uint32_t>(setsLayouts.size()), setsLayouts.data(), 0, nullptr);
@@ -916,8 +899,11 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
 
-        std::array<VkDescriptorSet, 4> descriptorSets = {
-            m_descriptorSet, m_materials.descriptorSet(0), m_textures.descriptorSet(), skyboxDescriptor};
+        std::array<VkDescriptorSet, 5> descriptorSets = {m_descriptorSet,
+                                                         m_materials.descriptorSet(0),
+                                                         m_textures.descriptorSet(),
+                                                         m_scene.descriptorSetLight(0),
+                                                         skyboxDescriptor};
         vkCmdBindDescriptorSets(commandBuffer,
                                 VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                                 m_pipelineLayout,
@@ -1104,78 +1090,6 @@ VkResult VulkanRendererPathTracing::storeToDisk(std::vector<float> &radiance,
     writeToDisk(radiance, renderInfo().filename, renderInfo().fileType, width, height, 4);
 
     return VK_SUCCESS;
-}
-
-bool VulkanRendererPathTracing::isMeshLight(const SceneObject *so)
-{
-    if (so->has<ComponentMaterial>()) {
-        auto material = so->get<ComponentMaterial>().material;
-        switch (material->type()) {
-            case MaterialType::MATERIAL_PBR_STANDARD: {
-                auto pbrStandard = static_cast<VulkanMaterialPBRStandard *>(material);
-                if (!isBlack(pbrStandard->emissiveColor(), 0.01F)) {
-                    return true;
-                }
-                break;
-            }
-            case MaterialType::MATERIAL_LAMBERT: {
-                auto lambert = static_cast<VulkanMaterialPBRStandard *>(material);
-                if (!isBlack(lambert->emissiveColor(), 0.01F)) {
-                    return true;
-                }
-                break;
-            }
-            default:
-                throw std::runtime_error("VulkanPathTracing::isLight(): Unexpected material");
-        }
-    }
-
-    return false;
-}
-
-void VulkanRendererPathTracing::prepareSceneLights(const Scene &scene, std::vector<LightPT> &sceneLights)
-{
-    const SceneData &sceneData = scene.getSceneData();
-
-    /* Environment map */
-    if (scene.environmentIntensity() > 0.0001F && scene.skyboxMaterial() != nullptr) {
-        sceneLights.push_back(LightPT());
-        sceneLights.back().position.a = 3.F;
-    }
-}
-
-void VulkanRendererPathTracing::prepareSceneObjectLight(const SceneObject *so,
-                                                        uint32_t objectDescriptionIndex,
-                                                        const glm::mat4 &t,
-                                                        std::vector<LightPT> &sceneLights)
-{
-    if (so->has<ComponentLight>()) {
-        auto cl = so->get<ComponentLight>().light;
-        sceneLights.push_back(LightPT());
-        if (cl->type() == LightType::POINT_LIGHT) {
-            auto l = static_cast<VulkanPointLight *>(cl);
-            auto color = l->color();
-
-            sceneLights.back().position = glm::vec4(so->worldPosition(), LightType::POINT_LIGHT);
-            sceneLights.back().color = glm::vec4(glm::vec3(color) * color.a, 0.F);
-        } else if (cl->type() == LightType::DIRECTIONAL_LIGHT) {
-            auto l = static_cast<VulkanDirectionalLight *>(cl);
-            auto color = l->color();
-
-            sceneLights.back().position = glm::vec4(0, 0, 0, LightType::DIRECTIONAL_LIGHT);
-            sceneLights.back().direction = glm::vec4(so->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0));
-            sceneLights.back().color = glm::vec4(glm::vec3(color) * color.a, 0.F);
-        }
-    }
-
-    if (so->has<ComponentMaterial>() && isMeshLight(so)) {
-        auto material = so->get<ComponentMaterial>().material;
-        sceneLights.push_back(LightPT());
-        sceneLights.back().position = glm::vec4(t[0][0], t[0][1], t[0][2], LightType::MESH_LIGHT);
-        sceneLights.back().direction = glm::vec4(t[1][0], t[1][1], t[1][2], objectDescriptionIndex);
-        sceneLights.back().color = glm::vec4(t[2][0], t[2][1], t[2][2], 0);
-        sceneLights.back().transform = glm::vec4(t[3][0], t[3][1], t[3][2], 0);
-    }
 }
 
 }  // namespace vengine

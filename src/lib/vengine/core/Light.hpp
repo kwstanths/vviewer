@@ -17,11 +17,14 @@ enum class LightType {
     POINT_LIGHT = 0,
     DIRECTIONAL_LIGHT = 1,
     MESH_LIGHT = 2,
+    ENVIRONMENT_MAP = 3,
 };
 
 static const std::unordered_map<LightType, std::string> lightTypeNames = {
     {LightType::POINT_LIGHT, "Point light"},
     {LightType::DIRECTIONAL_LIGHT, "Directional light"},
+    {LightType::MESH_LIGHT, "Mesh light"},
+    {LightType::ENVIRONMENT_MAP, "Environment map"},
 };
 
 typedef uint32_t LightIndex;

@@ -11,7 +11,7 @@ layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
 
-layout(set = 3, binding = 0) uniform samplerCube skybox;
+layout(set = 4, binding = 0) uniform samplerCube skybox;
 
 void main()
 {

@@ -40,7 +40,9 @@ public:
     virtual SceneData getSceneData() const override;
 
     /* Flush buffer changes to gpu */
-    void updateBuffers(const std::vector<SceneObject *> &lights, uint32_t imageIndex) const;
+    void updateBuffers(const std::vector<SceneObject *> &lights,
+                       const std::vector<std::pair<SceneObject *, uint32_t>> &meshLights,
+                       uint32_t imageIndex) const;
 
     Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) override;
 
@@ -63,8 +65,8 @@ private:
 
     /* Buffers to hold light data */
     VulkanUBODefault<LightData> m_lightDataUBO;
-    /* Buffers to hold light components */
-    VulkanUBODefault<LightComponent> m_lightComponentsUBO;
+    /* Buffers to hold light instances */
+    VulkanUBODefault<LightInstance> m_lightInstancesUBO;
     /* Lights descriptor sets */
     VkDescriptorSetLayout m_descriptorSetLayoutLight;
     std::vector<VkDescriptorSet> m_descriptorSetsLight;
