@@ -164,17 +164,18 @@ VkResult VulkanAccelerationStructure::initializeTopLevelAcceslerationStructure(
 
     /* Create buffer to copy the instances */
     VulkanBuffer instancesBuffer;
-    VULKAN_CHECK_CRITICAL(
-        createBuffer(vci.physicalDevice,
-                     vci.device,
-                     instances.size() * sizeof(VkAccelerationStructureInstanceKHR),
-                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     instances.data(),
-                     instancesBuffer));
-    /* Get address of the instances buffer */
     VkDeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
-    instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(vci.device, instancesBuffer.buffer()).deviceAddress;
+    if (instancesCount > 0) {
+        VULKAN_CHECK_CRITICAL(createBuffer(
+            vci.physicalDevice,
+            vci.device,
+            instances.size() * sizeof(VkAccelerationStructureInstanceKHR),
+            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            instances.data(),
+            instancesBuffer));
+        instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(vci.device, instancesBuffer.buffer()).deviceAddress;
+    }
 
     /* Create an acceleration structure geometry to reference the instances buffer */
     VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
@@ -201,13 +202,15 @@ VkResult VulkanAccelerationStructure::initializeTopLevelAcceslerationStructure(
                                                   &accelerationStructureBuildSizesInfo);
 
     /* Create acceleration structure buffer */
-    VULKAN_CHECK_CRITICAL(
-        createBuffer(vci.physicalDevice,
-                     vci.device,
-                     accelerationStructureBuildSizesInfo.accelerationStructureSize,
-                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                     m_buffer));
+    if (accelerationStructureBuildSizesInfo.accelerationStructureSize > 0) {
+        VULKAN_CHECK_CRITICAL(
+            createBuffer(vci.physicalDevice,
+                         vci.device,
+                         accelerationStructureBuildSizesInfo.accelerationStructureSize,
+                         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                         m_buffer));
+    }
 
     /* Create acceleration structure */
     VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
@@ -219,12 +222,14 @@ VkResult VulkanAccelerationStructure::initializeTopLevelAcceslerationStructure(
 
     /* Create a scratch buffer used during build of the top level acceleration structure */
     VulkanBuffer scratchBuffer;
-    VULKAN_CHECK_CRITICAL(createBuffer(vci.physicalDevice,
-                                       vci.device,
-                                       accelerationStructureBuildSizesInfo.buildScratchSize,
-                                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                       scratchBuffer));
+    if (accelerationStructureBuildSizesInfo.buildScratchSize > 0) {
+        VULKAN_CHECK_CRITICAL(createBuffer(vci.physicalDevice,
+                                           vci.device,
+                                           accelerationStructureBuildSizesInfo.buildScratchSize,
+                                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                           scratchBuffer));
+    }
 
     /* Build accelleration structure */
     VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{};
@@ -246,13 +251,15 @@ VkResult VulkanAccelerationStructure::initializeTopLevelAcceslerationStructure(
         &accelerationStructureBuildRangeInfo};
 
     /* Build the acceleration structure on the device via a one - time command buffer submission */
-    VkCommandBuffer commandBuffer;
-    VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(vci.device, vci.commandPool, commandBuffer));
+    if (instancesCount > 0) {
+        VkCommandBuffer commandBuffer;
+        VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(vci.device, vci.commandPool, commandBuffer));
 
-    devF->vkCmdBuildAccelerationStructuresKHR(
-        commandBuffer, 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data());
+        devF->vkCmdBuildAccelerationStructuresKHR(
+            commandBuffer, 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data());
 
-    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(vci.device, vci.commandPool, vci.queue, commandBuffer));
+        VULKAN_CHECK_CRITICAL(endSingleTimeCommands(vci.device, vci.commandPool, vci.queue, commandBuffer));
+    }
 
     /* Get device address of accelleration structure */
     VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
@@ -260,8 +267,10 @@ VkResult VulkanAccelerationStructure::initializeTopLevelAcceslerationStructure(
     accelerationDeviceAddressInfo.accelerationStructure = m_handle;
     m_buffer.address().deviceAddress = devF->vkGetAccelerationStructureDeviceAddressKHR(vci.device, &accelerationDeviceAddressInfo);
 
-    instancesBuffer.destroy(vci.device);
-    scratchBuffer.destroy(vci.device);
+    if (instancesCount > 0) {
+        instancesBuffer.destroy(vci.device);
+        scratchBuffer.destroy(vci.device);
+    }
 
     m_initialzed = true;
     return VK_SUCCESS;
@@ -269,6 +278,10 @@ VkResult VulkanAccelerationStructure::initializeTopLevelAcceslerationStructure(
 
 void VulkanAccelerationStructure::destroy(VkDevice device)
 {
+    if (!m_initialzed) {
+        return;
+    }
+
     auto devF = VulkanDeviceFunctions::getInstance().rayTracingPipeline();
 
     devF->vkDestroyAccelerationStructureKHR(device, m_handle, nullptr);

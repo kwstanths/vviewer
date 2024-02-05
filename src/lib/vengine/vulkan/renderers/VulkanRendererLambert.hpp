@@ -26,7 +26,8 @@ public:
                            VkDescriptorSetLayout lightDescriptorLayout,
                            VkDescriptorSetLayout skyboxDescriptorLayout,
                            VkDescriptorSetLayout materialDescriptorLayout,
-                           VkDescriptorSetLayout texturesDescriptorLayout);
+                           VkDescriptorSetLayout texturesDescriptorLayout,
+                           VkDescriptorSetLayout tlasDescriptorLayout);
     VkResult initSwapChainResources(VkExtent2D swapchainExtent,
                                     VkRenderPass renderPass,
                                     uint32_t swapchainImages,
@@ -42,6 +43,7 @@ public:
                                         VkDescriptorSet descriptorSkybox,
                                         VkDescriptorSet &descriptorMaterial,
                                         VkDescriptorSet &descriptorTextures,
+                                        VkDescriptorSet &descriptorTLAS,
                                         const SceneGraph &objects,
                                         const SceneGraph &lights) const override;
 
@@ -52,6 +54,7 @@ public:
                                              VkDescriptorSet descriptorSkybox,
                                              VkDescriptorSet &descriptorMaterials,
                                              VkDescriptorSet &descriptorTextures,
+                                             VkDescriptorSet &descriptorTLAS,
                                              SceneObject *object,
                                              const SceneGraph &lights) const override;
 

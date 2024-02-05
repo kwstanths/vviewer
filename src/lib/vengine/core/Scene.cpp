@@ -89,8 +89,8 @@ void Scene::removeSceneObject(SceneObject *node)
 
 void Scene::updateSceneGraph()
 {
-    if (m_needsUpdate) {
-        m_needsUpdate = false;
+    if (m_sceneGraphNeedsUpdate) {
+        m_sceneGraphNeedsUpdate = false;
         for (auto &node : m_sceneGraph) {
             node->update();
         }
@@ -106,24 +106,6 @@ std::vector<SceneObject *> Scene::getSceneObjectsArray() const
         auto rootNodeObjects = rootNode->getSceneNodesArray();
 
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
-    }
-
-    return temp;
-}
-
-std::vector<SceneObject *> Scene::getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices) const
-{
-    std::vector<SceneObject *> temp;
-    modelMatrices.clear();
-
-    for (auto &&rootNode : m_sceneGraph) {
-        temp.push_back(rootNode);
-        modelMatrices.push_back(rootNode->modelMatrix());
-        std::vector<glm::mat4> rootNodeMatrices;
-        auto rootNodeObjects = rootNode->getSceneNodesArray(rootNodeMatrices);
-
-        temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
-        modelMatrices.insert(modelMatrices.end(), rootNodeMatrices.begin(), rootNodeMatrices.end());
     }
 
     return temp;
@@ -154,7 +136,7 @@ void Scene::exportScene(const ExportRenderParams &renderParams) const
 
 void Scene::needsUpdate(bool changed)
 {
-    m_needsUpdate = changed;
+    m_sceneGraphNeedsUpdate = changed;
 }
 
 }  // namespace vengine

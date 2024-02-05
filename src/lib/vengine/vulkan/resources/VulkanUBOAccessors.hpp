@@ -101,6 +101,8 @@ public:
             *m_block = b;
         }
 
+        const B *value() { return m_block; }
+
         ~Block()
         {
             /* Remove block index from the buffers */
@@ -109,7 +111,7 @@ public:
 
         const uint32_t &UBOBlockIndex() const { return m_blockIndex; }
 
-    protected:
+    private:
         VulkanUBOCached<B> &m_ubo;
         uint32_t m_blockIndex = -1;
         B *m_block = nullptr;

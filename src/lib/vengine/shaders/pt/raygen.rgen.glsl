@@ -6,16 +6,19 @@
 
 #include "../include/structs.glsl"
 
-layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
-layout(set = 0, binding = 1, rgba32f) uniform image2D outputImage[3];
-layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
+/* Main PT descriptor set */
+layout(set = 0, binding = 0, rgba32f) uniform image2D outputImage[3];
+layout(set = 0, binding = 1) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
-layout(set = 0, binding = 3) uniform PathTracingData 
+layout(set = 0, binding = 2) uniform PathTracingData 
 {
     uvec4 samplesBatchesDepthIndex;
     uvec4 lights;
 } pathTracingData;
+
+/* Descriptor set with TLAS and buffer for object description */
+layout(set = 1, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
 #include "../include/sampling.glsl"
 #include "../include/rng.glsl"

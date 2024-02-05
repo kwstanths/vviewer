@@ -25,6 +25,7 @@
 #include "vulkan/common/VulkanLimits.hpp"
 #include "vulkan/common/VulkanDeviceFunctions.hpp"
 #include "vulkan/resources/VulkanLight.hpp"
+#include "vulkan/renderers/VulkanRenderUtils.hpp"
 
 namespace vengine
 {
@@ -90,13 +91,6 @@ VkResult VulkanRendererPathTracing::initResources(VkFormat format, VkDescriptorS
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererPathTracing::releaseRenderResources()
-{
-    destroyAccellerationStructures();
-
-    return VK_SUCCESS;
-}
-
 VkResult VulkanRendererPathTracing::releaseResources()
 {
     vkDestroyPipeline(m_device, m_pipeline, nullptr);
@@ -111,7 +105,6 @@ VkResult VulkanRendererPathTracing::releaseResources()
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayoutMain, nullptr);
 
     m_uniformBufferScene.destroy(m_device);
-    m_storageBufferObjectDescription.destroy(m_device);
 
     m_tempImage.destroy(m_device);
     m_renderResultRadiance.destroy(m_device);
@@ -137,8 +130,7 @@ void VulkanRendererPathTracing::render()
     timer.Start();
 
     /* Get the scene objects */
-    std::vector<glm::mat4> sceneObjectMatrices;
-    SceneGraph sceneObjects = m_scene.getSceneObjectsArray(sceneObjectMatrices);
+    SceneGraph sceneObjects = m_scene.getSceneObjectsArray();
     if (sceneObjects.size() == 0) {
         debug_tools::ConsoleWarning("Trying to render an empty scene");
         return;
@@ -146,7 +138,7 @@ void VulkanRendererPathTracing::render()
 
     m_renderInProgress = true;
 
-    /* Prepare sceneData */
+    /* Prepare sceneData with custom render resolution requested */
     SceneData sceneData = m_scene.getSceneData();
     {
         uint32_t width = renderInfo().width;
@@ -177,57 +169,16 @@ void VulkanRendererPathTracing::render()
         }
     }
 
-    /* Parse all objects in the scene that have a mesh and a material */
-    m_blasInstances.clear();
-    std::vector<SceneObject *> lights;
+    std::vector<SceneObject *> meshes, lights;
     std::vector<std::pair<SceneObject *, uint32_t>> meshLights;
-    for (size_t i = 0; i < sceneObjects.size(); i++) {
-        auto so = sceneObjects[i];
-
-        if (!so->active()) {
-            continue;
-        }
-
-        auto &transform = sceneObjectMatrices[i];
-        if (so->has<ComponentMesh>() && so->has<ComponentMaterial>()) {
-            auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
-            auto material = so->get<ComponentMaterial>().material;
-
-            uint32_t nTypeRays = 3U; /* Types of rays */
-            uint32_t instanceOffset; /* Ioffset in SBT is based on the type of material */
-            if (material->type() == MaterialType::MATERIAL_LAMBERT)
-                instanceOffset = 0 * nTypeRays;
-            else if (material->type() == MaterialType::MATERIAL_PBR_STANDARD)
-                instanceOffset = 1 * nTypeRays;
-            else {
-                throw std::runtime_error("VulkanRendererPathTracing::renderScene(): Unexpected material");
-            }
-
-            assert(mesh->blas().initialized());
-            m_blasInstances.emplace_back(mesh->blas(), transform, instanceOffset);
-            m_sceneObjectsDescription.push_back({mesh->vertexBuffer().address().deviceAddress,
-                                                 mesh->indexBuffer().address().deviceAddress,
-                                                 material->materialIndex(),
-                                                 mesh->nTriangles()});
-
-            if (material->isEmissive()) {
-                meshLights.push_back({so, m_sceneObjectsDescription.size() - 1});
-            }
-        }
-        if (so->has<ComponentLight>()) {
-            lights.push_back(so);
-        }
-    }
-
-    /* Create a top level accelleration structure out of all the blas */
-    createTopLevelAccelerationStructure();
+    parseSceneGraph(sceneObjects, meshes, lights, meshLights);
 
     /* Prepare scene lights */
     m_pathTracingData.lights.r = static_cast<unsigned int>(lights.size() + meshLights.size());
     updateBuffers(sceneData, m_pathTracingData);
 
     /* We will use the materials from buffer index 0 for this renderer */
-    m_scene.updateBuffers(lights, meshLights, 0);
+    m_scene.updateBuffers(meshes, lights, meshLights, 0);
     m_materials.updateBuffers(0);
     m_textures.updateTextures();
 
@@ -240,8 +191,6 @@ void VulkanRendererPathTracing::render()
 
     setResolution();
     auto res = render(skybox->getDescriptor(0));
-
-    releaseRenderResources();
 
     timer.Stop();
 
@@ -307,39 +256,6 @@ bool VulkanRendererPathTracing::checkRayTracingSupport(VkPhysicalDevice device)
     }
 
     return true;
-}
-
-void VulkanRendererPathTracing::createTopLevelAccelerationStructure()
-{
-    /* Create a buffer to hold top level instances */
-    std::vector<VkAccelerationStructureInstanceKHR> instances(m_blasInstances.size());
-    for (size_t i = 0; i < m_blasInstances.size(); i++) {
-        auto &t = m_blasInstances[i].transform;
-        /* Set transform matrix per blas */
-        VkTransformMatrixKHR transformMatrix = {
-            t[0][0], t[1][0], t[2][0], t[3][0], t[0][1], t[1][1], t[2][1], t[3][1], t[0][2], t[1][2], t[2][2], t[3][2]};
-
-        instances[i].transform = transformMatrix;
-        instances[i].instanceCustomIndex = static_cast<uint32_t>(i); /* The custom index specifies where the reference of this object
-                                                                     is inside the array of references that is passed in the shader.
-                                                                     More specifically, this reference will tell the shader where the
-                                                                     geometry buffers for this object are, the mesh's position inside
-                                                                     the ObjectDescription buffer */
-        instances[i].mask = 0xFF;
-        instances[i].instanceShaderBindingTableRecordOffset = m_blasInstances[i].instanceOffset;
-        instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-        instances[i].accelerationStructureReference = m_blasInstances[i].accelerationStructure.buffer().address().deviceAddress;
-    }
-
-    m_tlas.initializeTopLevelAcceslerationStructure(
-        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, instances);
-}
-
-void VulkanRendererPathTracing::destroyAccellerationStructures()
-{
-    m_sceneObjectsDescription.clear();
-
-    m_tlas.destroy(m_vkctx.device());
 }
 
 VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t height)
@@ -464,23 +380,11 @@ VkResult VulkanRendererPathTracing::createBuffers()
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                        m_uniformBufferScene));
 
-    /* Create a buffer to hold the object descriptions data */
-    VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
-                                       m_device,
-                                       VULKAN_LIMITS_MAX_OBJECTS * sizeof(ObjectDescriptionPT),
-                                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                       m_storageBufferObjectDescription));
-
     return VK_SUCCESS;
 }
 
 VkResult VulkanRendererPathTracing::updateBuffers(const SceneData &sceneData, const PathTracingData &rtData)
 {
-    if (m_sceneObjectsDescription.size() > VULKAN_LIMITS_MAX_OBJECTS) {
-        throw std::runtime_error("VulkanRendererPathTracing::updateUniformBuffers(): Number of objects exceeded");
-    }
-
     /* Update scene buffer */
     {
         VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
@@ -492,14 +396,6 @@ VkResult VulkanRendererPathTracing::updateBuffers(const SceneData &sceneData, co
                &rtData,
                sizeof(PathTracingData)); /* Copy path tracing data struct */
         vkUnmapMemory(m_device, m_uniformBufferScene.memory());
-    }
-
-    /* Update description of geometry objects */
-    {
-        void *data;
-        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_storageBufferObjectDescription.memory(), 0, VK_WHOLE_SIZE, 0, &data));
-        memcpy(data, m_sceneObjectsDescription.data(), m_sceneObjectsDescription.size() * sizeof(ObjectDescriptionPT));
-        vkUnmapMemory(m_device, m_storageBufferObjectDescription.memory());
     }
 
     return VK_SUCCESS;
@@ -522,18 +418,14 @@ VkResult VulkanRendererPathTracing::updateBuffersPathTracingData(const PathTraci
 
 VkResult VulkanRendererPathTracing::createDescriptorSets()
 {
-    /* First set is:
-     * 1 accelleration structure
+    /* Main set is:
      * 1 storage image for output
      * 1 uniform buffer for scene data
-     * 1 storage buffer for references to scene object geometry
      */
     std::vector<VkDescriptorPoolSize> poolSizes = {
-        {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1},
-        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
     };
     VkDescriptorPoolCreateInfo descriptorPoolInfo =
         vkinit::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 1);
@@ -550,47 +442,26 @@ void VulkanRendererPathTracing::updateDescriptorSets()
 {
     VkDeviceSize uniformBufferAlignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
 
-    /* Update accelleration structure binding */
-    VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
-    descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-    descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-    descriptorAccelerationStructureInfo.pAccelerationStructures = &m_tlas.handle();
-    VkWriteDescriptorSet accelerationStructureWrite{};
-    accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    /* The specialized acceleration structure descriptor has to be chained */
-    accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
-    accelerationStructureWrite.dstSet = m_descriptorSet;
-    accelerationStructureWrite.dstBinding = 0;
-    accelerationStructureWrite.descriptorCount = 1;
-    accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-
     /* Update render target storage images binding */
     VkDescriptorImageInfo storageImageDescriptor[3];
     storageImageDescriptor[0] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultRadiance.view, VK_IMAGE_LAYOUT_GENERAL);
     storageImageDescriptor[1] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultAlbedo.view, VK_IMAGE_LAYOUT_GENERAL);
     storageImageDescriptor[2] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultNormal.view, VK_IMAGE_LAYOUT_GENERAL);
     VkWriteDescriptorSet resultImageWrite =
-        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 3, storageImageDescriptor);
+        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 3, storageImageDescriptor);
 
     /* Update scene data binding */
     VkDescriptorBufferInfo sceneDataDescriptor = vkinit::descriptorBufferInfo(m_uniformBufferScene.buffer(), 0, sizeof(SceneData));
     VkWriteDescriptorSet sceneDataWrite =
-        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, 1, &sceneDataDescriptor);
+        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, &sceneDataDescriptor);
 
     /* Update path tracing data binding, uses the same buffer with the scene data */
     VkDescriptorBufferInfo pathTracingDataDescriptor = vkinit::descriptorBufferInfo(
         m_uniformBufferScene.buffer(), alignedSize(sizeof(SceneData), uniformBufferAlignment), sizeof(PathTracingData));
     VkWriteDescriptorSet pathTracingDataWrite =
-        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, 1, &pathTracingDataDescriptor);
+        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, 1, &pathTracingDataDescriptor);
 
-    /* Update object description binding */
-    VkDescriptorBufferInfo objectDescriptionDataDesriptor =
-        vkinit::descriptorBufferInfo(m_storageBufferObjectDescription.buffer(), 0, VK_WHOLE_SIZE);
-    VkWriteDescriptorSet objectDescriptionWrite =
-        vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, 1, &objectDescriptionDataDesriptor);
-
-    std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-        accelerationStructureWrite, resultImageWrite, sceneDataWrite, pathTracingDataWrite, objectDescriptionWrite};
+    std::vector<VkWriteDescriptorSet> writeDescriptorSets = {resultImageWrite, sceneDataWrite, pathTracingDataWrite};
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 }
 
@@ -598,33 +469,24 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
 {
     /* Create the main descriptor set */
     {
-        /* binding 0, the accelleration strucure */
-        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding = vkinit::descriptorSetLayoutBinding(
-            VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, 1);
-        /* Binding 1, the output image */
+        /* Binding 0, the output image */
         VkDescriptorSetLayoutBinding resultImageLayoutBinding =
-            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 1, 3);
-        /* Binding 2, the scene data */
+            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, 3);
+        /* Binding 1, the scene data */
         VkDescriptorSetLayoutBinding sceneDataBufferBinding = vkinit::descriptorSetLayoutBinding(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
-            2,
+            1,
             1);
-        /* Binding 3, the path tracing data */
+        /* Binding 2, the path tracing data */
         VkDescriptorSetLayoutBinding pathTracingDataBufferBinding = vkinit::descriptorSetLayoutBinding(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
-            3,
+            2,
             1);
-        /* Binding 4, the object descriptions buffer */
-        VkDescriptorSetLayoutBinding objectDescrptionBufferBinding = vkinit::descriptorSetLayoutBinding(
-            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 4, 1);
-        std::vector<VkDescriptorSetLayoutBinding> bindings({accelerationStructureLayoutBinding,
-                                                            resultImageLayoutBinding,
-                                                            sceneDataBufferBinding,
-                                                            pathTracingDataBufferBinding,
-                                                            objectDescrptionBufferBinding});
 
+        std::vector<VkDescriptorSetLayoutBinding> bindings(
+            {resultImageLayoutBinding, sceneDataBufferBinding, pathTracingDataBufferBinding});
         VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo =
             vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(bindings.size()), bindings.data());
         VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_device, &descriptorSetlayoutInfo, nullptr, &m_descriptorSetLayoutMain));
@@ -632,11 +494,12 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
 
     /* Create pipeline layout */
     {
-        std::array<VkDescriptorSetLayout, 5> setsLayouts = {m_descriptorSetLayoutMain,
-                                                            m_materials.descriptorSetLayout(),
-                                                            m_textures.descriptorSetLayout(),
-                                                            m_scene.layoutLights(),
-                                                            m_descriptorSetLayoutSkybox};
+        std::vector<VkDescriptorSetLayout> setsLayouts = {m_descriptorSetLayoutMain,
+                                                          m_scene.layoutTLAS(),
+                                                          m_materials.descriptorSetLayout(),
+                                                          m_textures.descriptorSetLayout(),
+                                                          m_scene.layoutLights(),
+                                                          m_descriptorSetLayoutSkybox};
         VkPipelineLayoutCreateInfo pipelineLayoutInfo =
             vkinit::pipelineLayoutCreateInfo(static_cast<uint32_t>(setsLayouts.size()), setsLayouts.data(), 0, nullptr);
         VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
@@ -899,11 +762,12 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
 
-        std::array<VkDescriptorSet, 5> descriptorSets = {m_descriptorSet,
-                                                         m_materials.descriptorSet(0),
-                                                         m_textures.descriptorSet(),
-                                                         m_scene.descriptorSetLight(0),
-                                                         skyboxDescriptor};
+        std::vector<VkDescriptorSet> descriptorSets = {m_descriptorSet,
+                                                       m_scene.descriptorSetTLAS(0),
+                                                       m_materials.descriptorSet(0),
+                                                       m_textures.descriptorSet(),
+                                                       m_scene.descriptorSetLight(0),
+                                                       skyboxDescriptor};
         vkCmdBindDescriptorSets(commandBuffer,
                                 VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                                 m_pipelineLayout,

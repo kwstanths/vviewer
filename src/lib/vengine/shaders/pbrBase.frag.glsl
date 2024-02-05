@@ -1,7 +1,9 @@
-#version 450
+#version 460
 
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
 
 #include "include/brdfs/pbrStandard.glsl"
 #include "skybox/ibl.glsl"
@@ -45,6 +47,8 @@ layout (set = 4, binding = 0) uniform sampler3D global_textures_3d[];
 
 layout(set = 5, binding = 1) uniform samplerCube skyboxIrradiance;
 layout(set = 5, binding = 2) uniform samplerCube skyboxPrefiltered;
+
+layout(set = 6, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
 layout(push_constant) uniform PushConsts {
     layout (offset = 0) vec4 selected;
@@ -104,20 +108,31 @@ void main() {
             if (ld.type.r == 0)
             {
                 /* Point light */
-                vec3 L_world = lc.position.rgb;
+                vec3 L_world_position = lc.position.rgb;
+                vec3 L_world_direction = L_world_position - fragPos_world;
+                float L_distance = length(L_world_direction);
+                vec3 L_world_direction_normalized = normalize(L_world_direction); 
 
-                vec3 L = worldToLocal(frame, normalize(L_world - fragPos_world));
+                vec3 L = worldToLocal(frame, L_world_direction_normalized);
                 vec3 V = worldToLocal(frame, V_world);
                 vec3 H = normalize(V + L);
 
                 /* Calculate light contrubution from point light */
-                float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
+                float attenuation = squareDistanceAttenuation(L_distance);
                 /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
                 if (attenuation * max3(L_color) < 0.05)
                 {
                     continue;
                 }
-                direct += L_color * evalPBRStandard(pbr, L, V, H) * attenuation;
+
+                rayQueryEXT rayQuery;
+	            rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, fragPos_world, 0.001, L_world_direction_normalized, L_distance);
+    	        while(rayQueryProceedEXT(rayQuery))
+                {
+                }
+	            if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT ) {
+                    direct += L_color * evalPBRStandard(pbr, L, V, H) * attenuation;
+	            }
 
             } else if (ld.type.r == 1) {
                 vec3 L_world = lc.position.rgb;
@@ -127,7 +142,15 @@ void main() {
                 vec3 V = worldToLocal(frame, V_world);
                 vec3 H = normalize(V + L);
 
-                direct += L_color * evalPBRStandard(pbr, L, V, H);
+                rayQueryEXT rayQuery;
+	            rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, fragPos_world, 0.001, normalize(-L_world), 10000.0);
+    	        while(rayQueryProceedEXT(rayQuery))
+                {
+                }
+	            if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT ) {
+                    direct += L_color * evalPBRStandard(pbr, L, V, H);
+	            }
+
             }
         }
     }

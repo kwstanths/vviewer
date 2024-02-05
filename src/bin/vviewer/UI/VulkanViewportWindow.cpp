@@ -43,7 +43,7 @@ Engine *VulkanViewportWindow::engine() const
     return m_engine;
 }
 
-void VulkanViewportWindow::windowActicated(bool activated)
+void VulkanViewportWindow::windowActivated(bool activated)
 {
     if (activated && m_initialized)
         m_engine->start();

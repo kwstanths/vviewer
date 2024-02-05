@@ -24,7 +24,8 @@ VkResult VulkanRendererBase::initResources(VkPhysicalDevice physicalDevice,
                                            VkDescriptorSetLayout lightDescriptorLayout,
                                            VkDescriptorSetLayout skyboxDescriptorLayout,
                                            VkDescriptorSetLayout materialDescriptorLayout,
-                                           VkDescriptorSetLayout texturesDescriptorLayout)
+                                           VkDescriptorSetLayout texturesDescriptorLayout,
+                                           VkDescriptorSetLayout tlasDescriptorLayout)
 {
     m_physicalDevice = physicalDevice;
     m_device = device;
@@ -36,6 +37,7 @@ VkResult VulkanRendererBase::initResources(VkPhysicalDevice physicalDevice,
     m_descriptorSetLayoutSkybox = skyboxDescriptorLayout;
     m_descriptorSetLayoutMaterial = materialDescriptorLayout;
     m_descriptorSetLayoutTextures = texturesDescriptorLayout;
+    m_descriptorSetLayoutTLAS = tlasDescriptorLayout;
 
     return VK_SUCCESS;
 }
@@ -86,12 +88,13 @@ VkResult VulkanRendererBase::createPipelineForwardOpaque(VkShaderModule vertexSh
     VkPipelineColorBlendStateCreateInfo colorBlending =
         vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
 
-    std::array<VkDescriptorSetLayout, 6> descriptorSetsLayouts{m_descriptorSetLayoutCamera,
-                                                               m_descriptorSetLayoutModel,
-                                                               m_descriptorSetLayoutLight,
-                                                               m_descriptorSetLayoutMaterial,
-                                                               m_descriptorSetLayoutTextures,
-                                                               m_descriptorSetLayoutSkybox};
+    std::vector<VkDescriptorSetLayout> descriptorSetsLayouts{m_descriptorSetLayoutCamera,
+                                                             m_descriptorSetLayoutModel,
+                                                             m_descriptorSetLayoutLight,
+                                                             m_descriptorSetLayoutMaterial,
+                                                             m_descriptorSetLayoutTextures,
+                                                             m_descriptorSetLayoutSkybox,
+                                                             m_descriptorSetLayoutTLAS};
     VkPushConstantRange pushConstantRange =
         vkinit::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushBlockForward), 0);
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(
@@ -156,12 +159,13 @@ VkResult VulkanRendererBase::createPipelineForwardTransparent(VkShaderModule ver
     VkPipelineColorBlendStateCreateInfo colorBlending =
         vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
 
-    std::array<VkDescriptorSetLayout, 6> descriptorSetsLayouts{m_descriptorSetLayoutCamera,
+    std::array<VkDescriptorSetLayout, 7> descriptorSetsLayouts{m_descriptorSetLayoutCamera,
                                                                m_descriptorSetLayoutModel,
                                                                m_descriptorSetLayoutLight,
                                                                m_descriptorSetLayoutMaterial,
                                                                m_descriptorSetLayoutTextures,
-                                                               m_descriptorSetLayoutSkybox};
+                                                               m_descriptorSetLayoutSkybox,
+                                                               m_descriptorSetLayoutTLAS};
     VkPushConstantRange pushConstantRange =
         vkinit::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushBlockForward), 0);
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(

@@ -38,7 +38,6 @@ public:
 
     VkResult initResources(VkFormat colorFormat, VkDescriptorSetLayout skyboxDescriptorLayout);
 
-    VkResult releaseRenderResources();
     VkResult releaseResources();
 
     bool isRayTracingEnabled() const override;
@@ -58,16 +57,6 @@ private:
         glm::uvec4 lights;            /* R = total number of lights */
     };
 
-    struct BLASInstance {
-        const VulkanAccelerationStructure &accelerationStructure;
-        const glm::mat4 &transform;
-        uint32_t instanceOffset; /* SBT Ioffset */
-        BLASInstance(const VulkanAccelerationStructure &_accelerationStructure, const glm::mat4 &_transform, uint32_t _instanceOffset)
-            : accelerationStructure(_accelerationStructure)
-            , transform(_transform)
-            , instanceOffset(_instanceOffset){};
-    };
-
     VulkanContext &m_vkctx;
     VulkanScene &m_scene;
     VulkanMaterials &m_materials;
@@ -84,9 +73,6 @@ private:
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rayTracingPipelineProperties{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures{};
 
-    std::vector<BLASInstance> m_blasInstances;
-    VulkanAccelerationStructure m_tlas;
-
     /* Image result data */
     VkFormat m_format;
     VulkanStorageImage m_renderResultRadiance, m_renderResultAlbedo, m_renderResultNormal, m_tempImage;
@@ -95,11 +81,8 @@ private:
     bool m_renderInProgress = false;
     float m_renderProgress = 0.0F;
 
-    std::vector<ObjectDescriptionPT> m_sceneObjectsDescription;
-
     /* Descriptor sets */
-    VulkanBuffer m_uniformBufferScene;             /* Holds scene data and path tracing data */
-    VulkanBuffer m_storageBufferObjectDescription; /* Holds references to scene objects */
+    VulkanBuffer m_uniformBufferScene; /* Holds scene data and path tracing data */
     VkDescriptorPool m_descriptorPool;
     VkDescriptorSet m_descriptorSet;
 
@@ -123,9 +106,6 @@ private:
     static bool checkRayTracingSupport(VkPhysicalDevice device);
 
     static VkDevice createLogicalDevice(VkPhysicalDevice physicalDevice, uint32_t &queueFamilyIndex);
-
-    void createTopLevelAccelerationStructure();
-    void destroyAccellerationStructures();
 
     void setResolution();
     /* Create render target image */

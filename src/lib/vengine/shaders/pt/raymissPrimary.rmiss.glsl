@@ -7,11 +7,11 @@
 
 layout(location = 0) rayPayloadInEXT RayPayloadPrimary rayPayloadPrimary;
 
-layout(set = 0, binding = 2) uniform readonly SceneDataUBO {
+layout(set = 0, binding = 1) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
 
-layout(set = 4, binding = 0) uniform samplerCube skybox;
+layout(set = 5, binding = 0) uniform samplerCube skybox;
 
 void main()
 {

@@ -299,13 +299,17 @@ VkResult VulkanContext::createLogicalDevice()
     indexing_features.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
     indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     indexing_features.pNext = &deviceFeatures16Storage;
+    VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures;
+    rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    rayQueryFeatures.rayQuery = VK_TRUE;
+    rayQueryFeatures.pNext = &indexing_features;
     VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures2.features.geometryShader = VK_TRUE;
     deviceFeatures2.features.shaderInt64 = VK_TRUE;
     deviceFeatures2.features.shaderInt16 = VK_TRUE;
     deviceFeatures2.features.independentBlend = VK_TRUE;
-    deviceFeatures2.pNext = &indexing_features;
+    deviceFeatures2.pNext = &rayQueryFeatures;
 
     std::vector<const char *> extensionNames;
     for (auto e : VULKAN_DEVICE_EXTENSIONS)

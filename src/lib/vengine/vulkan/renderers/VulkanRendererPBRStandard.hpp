@@ -27,7 +27,8 @@ public:
                            VkDescriptorSetLayout lightDescriptorLayout,
                            VkDescriptorSetLayout skyboxDescriptorLayout,
                            VkDescriptorSetLayout materialDescriptorLayout,
-                           VulkanTextures &textures);
+                           VulkanTextures &textures,
+                           VkDescriptorSetLayout tlasDescriptorLayout);
     VkResult initSwapChainResources(VkExtent2D swapchainExtent,
                                     VkRenderPass renderPass,
                                     uint32_t swapchainImages,
@@ -43,8 +44,9 @@ public:
                                         VkDescriptorSet descriptorSkybox,
                                         VkDescriptorSet &descriptorMaterials,
                                         VkDescriptorSet &descriptorTextures,
+                                        VkDescriptorSet &descriptorTLAS,
                                         const SceneGraph &objects,
-                                        const SceneGraph &lights) const;
+                                        const SceneGraph &lights) const override;
 
     VkResult renderObjectsForwardTransparent(VkCommandBuffer &cmdBuf,
                                              VkDescriptorSet &descriptorScene,
@@ -53,8 +55,9 @@ public:
                                              VkDescriptorSet descriptorSkybox,
                                              VkDescriptorSet &descriptorMaterials,
                                              VkDescriptorSet &descriptorTextures,
+                                             VkDescriptorSet &descriptorTLAS,
                                              SceneObject *object,
-                                             const SceneGraph &lights) const;
+                                             const SceneGraph &lights) const override;
 
 private:
     VkPipelineLayout m_pipelineLayoutForwardOpaque, m_pipelineLayoutForwardTransparent;

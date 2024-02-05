@@ -32,17 +32,20 @@ public:
     VkDescriptorSetLayout &layoutSceneData() { return m_descriptorSetLayoutScene; }
     VkDescriptorSetLayout &layoutModelData() { return m_descriptorSetLayoutModel; }
     VkDescriptorSetLayout &layoutLights() { return m_descriptorSetLayoutLight; }
+    VkDescriptorSetLayout &layoutTLAS() { return m_descriptorSetLayoutTLAS; }
 
     VkDescriptorSet &descriptorSetSceneData(uint32_t imageIndex) { return m_descriptorSetsScene[imageIndex]; };
     VkDescriptorSet &descriptorSetModelData(uint32_t imageIndex) { return m_descriptorSetsModel[imageIndex]; };
     VkDescriptorSet &descriptorSetLight(uint32_t imageIndex) { return m_descriptorSetsLight[imageIndex]; };
+    VkDescriptorSet &descriptorSetTLAS(uint32_t imageIndex) { return m_descriptorSetsTLAS[0]; };
 
     virtual SceneData getSceneData() const override;
 
     /* Flush buffer changes to gpu */
-    void updateBuffers(const std::vector<SceneObject *> &lights,
+    void updateBuffers(const std::vector<SceneObject *> &meshes,
+                       const std::vector<SceneObject *> &lights,
                        const std::vector<std::pair<SceneObject *, uint32_t>> &meshLights,
-                       uint32_t imageIndex) const;
+                       uint32_t imageIndex);
 
     Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) override;
 
@@ -71,6 +74,25 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayoutLight;
     std::vector<VkDescriptorSet> m_descriptorSetsLight;
 
+    /* Data for TLAS and scene object description */
+    struct BLASInstance {
+        const VulkanAccelerationStructure &accelerationStructure;
+        const glm::mat4 &modelMatrix;
+        uint32_t instanceOffset; /* SBT Ioffset */
+        BLASInstance(const VulkanAccelerationStructure &_accelerationStructure,
+                     const glm::mat4 &_modelMatrix,
+                     uint32_t _instanceOffset)
+            : accelerationStructure(_accelerationStructure)
+            , modelMatrix(_modelMatrix)
+            , instanceOffset(_instanceOffset){};
+    };
+    std::vector<BLASInstance> m_blasInstances;
+    std::vector<ObjectDescriptionPT> m_sceneObjectsDescription;
+    std::vector<VulkanAccelerationStructure> m_tlas;
+    std::vector<VulkanBuffer> m_storageBufferObjectDescription;
+    VkDescriptorSetLayout m_descriptorSetLayoutTLAS;
+    std::vector<VkDescriptorSet> m_descriptorSetsTLAS;
+
     VkResult createDescriptorSetsLayouts();
     VkResult createDescriptorPool(uint32_t nImages);
     VkResult createDescriptorSets(uint32_t nImages);
@@ -78,6 +100,8 @@ private:
 
     SceneObject *createObject(std::string name) override;
     void deleteObject(SceneObject *object) override;
+
+    void createTopLevelAccelerationStructure(uint32_t imageIndex);
 };
 
 }  // namespace vengine

@@ -1,6 +1,8 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
 
 #include "include/constants.glsl"
 #include "include/brdfs/common.glsl"
@@ -45,6 +47,8 @@ layout (set = 4, binding = 0) uniform sampler2D global_textures[];
 layout (set = 4, binding = 0) uniform sampler3D global_textures_3d[];
 
 layout(set = 5, binding = 1) uniform samplerCube skyboxIrradiance;
+
+layout (set = 6, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
 layout(push_constant) uniform PushConsts {
     layout (offset = 0) vec4 selected;

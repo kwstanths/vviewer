@@ -21,7 +21,7 @@ public:
 
     vengine::Engine *engine() const override;
 
-    void windowActicated(bool activated) override;
+    void windowActivated(bool activated) override;
 
 protected:
     void releaseResources();

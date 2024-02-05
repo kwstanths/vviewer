@@ -29,7 +29,8 @@ VkResult VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
                                           VkDescriptorSetLayout lightDescriptorLayout,
                                           VkDescriptorSetLayout skyboxDescriptorLayout,
                                           VkDescriptorSetLayout materialDescriptorLayout,
-                                          VulkanTextures &textures)
+                                          VulkanTextures &textures,
+                                          VkDescriptorSetLayout tlasDescriptorLayout)
 {
     VULKAN_CHECK_CRITICAL(VulkanRendererBase::initResources(physicalDevice,
                                                             device,
@@ -41,7 +42,8 @@ VkResult VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
                                                             lightDescriptorLayout,
                                                             skyboxDescriptorLayout,
                                                             materialDescriptorLayout,
-                                                            textures.descriptorSetLayout()));
+                                                            textures.descriptorSetLayout(),
+                                                            tlasDescriptorLayout));
 
     VULKAN_CHECK_CRITICAL(createBRDFLUT(textures));
 
@@ -301,13 +303,14 @@ VkResult VulkanRendererPBR::renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
                                                        VkDescriptorSet descriptorSkybox,
                                                        VkDescriptorSet &descriptorMaterials,
                                                        VkDescriptorSet &descriptorTextures,
+                                                       VkDescriptorSet &descriptorTLAS,
                                                        const SceneGraph &objects,
                                                        const SceneGraph &lights) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardOpaque);
 
-    std::array<VkDescriptorSet, 6> descriptorSets = {
-        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox};
+    std::array<VkDescriptorSet, 7> descriptorSets = {
+        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox, descriptorTLAS};
     vkCmdBindDescriptorSets(cmdBuf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipelineLayoutForwardOpaque,
@@ -329,13 +332,14 @@ VkResult VulkanRendererPBR::renderObjectsForwardTransparent(VkCommandBuffer &cmd
                                                             VkDescriptorSet descriptorSkybox,
                                                             VkDescriptorSet &descriptorMaterials,
                                                             VkDescriptorSet &descriptorTextures,
+                                                            VkDescriptorSet &descriptorTLAS,
                                                             SceneObject *object,
                                                             const SceneGraph &lights) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardTransparent);
 
-    std::array<VkDescriptorSet, 6> descriptorSets = {
-        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox};
+    std::array<VkDescriptorSet, 7> descriptorSets = {
+        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox, descriptorTLAS};
     vkCmdBindDescriptorSets(cmdBuf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipelineLayoutForwardTransparent,

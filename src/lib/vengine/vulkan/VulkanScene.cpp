@@ -39,6 +39,8 @@ VkResult VulkanScene::initResources()
 
 VkResult VulkanScene::initSwapchainResources(uint32_t nImages)
 {
+    m_tlas.resize(nImages);
+
     VULKAN_CHECK_CRITICAL(createBuffers(nImages));
     VULKAN_CHECK_CRITICAL(createDescriptorPool(nImages));
     VULKAN_CHECK_CRITICAL(createDescriptorSets(nImages));
@@ -54,6 +56,7 @@ VkResult VulkanScene::releaseResources()
     vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutLight, nullptr);
     vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutModel, nullptr);
     vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutScene, nullptr);
+    vkDestroyDescriptorSetLayout(m_vkctx.device(), m_descriptorSetLayoutTLAS, nullptr);
 
     return VK_SUCCESS;
 }
@@ -62,6 +65,12 @@ VkResult VulkanScene::releaseSwapchainResources()
 {
     for (uint32_t i = 0; i < m_uniformBuffersScene.size(); i++) {
         m_uniformBuffersScene[i].destroy(m_vkctx.device());
+    }
+    for (uint32_t i = 0; i < m_uniformBuffersScene.size(); i++) {
+        m_storageBufferObjectDescription[i].destroy(m_vkctx.device());
+    }
+    for (uint32_t i = 0; i < m_tlas.size(); i++) {
+        m_tlas[i].destroy(m_vkctx.device());
     }
 
     m_modelDataUBO.destroyGPUBuffers(m_vkctx.device());
@@ -82,9 +91,10 @@ SceneData VulkanScene::getSceneData() const
     return sceneData;
 }
 
-void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights,
+void VulkanScene::updateBuffers(const std::vector<SceneObject *> &meshes,
+                                const std::vector<SceneObject *> &lights,
                                 const std::vector<std::pair<SceneObject *, uint32_t>> &meshLights,
-                                uint32_t imageIndex) const
+                                uint32_t imageIndex)
 {
     /* TODO check if something has changed */
 
@@ -177,6 +187,68 @@ void VulkanScene::updateBuffers(const std::vector<SceneObject *> &lights,
         memcpy(data, m_lightInstancesUBO.block(0), m_lightInstancesUBO.blockSizeAligned() * m_lightInstancesUBO.nblocks());
         vkUnmapMemory(m_vkctx.device(), m_lightInstancesUBO.memory(imageIndex));
     }
+
+    /* Create TLAS */
+    static bool built = false;
+    if (!built && imageIndex == 0) {
+        m_tlas[imageIndex].destroy(m_vkctx.device());
+        built = true;
+
+        m_blasInstances.clear();
+        m_sceneObjectsDescription.clear();
+        for (size_t i = 0; i < meshes.size(); i++) {
+            auto so = meshes[i];
+
+            auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
+            auto material = so->get<ComponentMaterial>().material;
+
+            uint32_t nTypeRays = 3U; /* Types of rays */
+            uint32_t instanceOffset; /* Ioffset in SBT is based on the type of material */
+            if (material->type() == MaterialType::MATERIAL_LAMBERT)
+                instanceOffset = 0 * nTypeRays;
+            else if (material->type() == MaterialType::MATERIAL_PBR_STANDARD)
+                instanceOffset = 1 * nTypeRays;
+            else {
+                throw std::runtime_error("VulkanScene::updateBuffers(): Unexpected material");
+            }
+
+            assert(mesh->blas().initialized());
+            m_blasInstances.emplace_back(mesh->blas(), so->modelMatrix(), instanceOffset);
+            m_sceneObjectsDescription.push_back({mesh->vertexBuffer().address().deviceAddress,
+                                                 mesh->indexBuffer().address().deviceAddress,
+                                                 material->materialIndex(),
+                                                 mesh->nTriangles()});
+        }
+        createTopLevelAccelerationStructure(imageIndex);
+
+        /* Update accelleration structure binding */
+        VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+        descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+        descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+        descriptorAccelerationStructureInfo.pAccelerationStructures = &m_tlas[imageIndex].handle();
+        VkWriteDescriptorSet accelerationStructureWrite{};
+        accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        /* The specialized acceleration structure descriptor has to be chained */
+        accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
+        accelerationStructureWrite.dstSet = m_descriptorSetsTLAS[imageIndex];
+        accelerationStructureWrite.dstBinding = 0;
+        accelerationStructureWrite.descriptorCount = 1;
+        accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+        vkUpdateDescriptorSets(m_vkctx.device(), 1, &accelerationStructureWrite, 0, nullptr);
+    }
+
+    /* Update description of scene meshes */
+    if (m_sceneObjectsDescription.size() > VULKAN_LIMITS_MAX_OBJECTS) {
+        throw std::runtime_error("VulkaScene::updateBuffers(): Number of objects exceeded");
+    }
+    {
+        {
+            void *data;
+            vkMapMemory(m_vkctx.device(), m_storageBufferObjectDescription[imageIndex].memory(), 0, VK_WHOLE_SIZE, 0, &data);
+            memcpy(data, m_sceneObjectsDescription.data(), m_sceneObjectsDescription.size() * sizeof(ObjectDescriptionPT));
+            vkUnmapMemory(m_vkctx.device(), m_storageBufferObjectDescription[imageIndex].memory());
+        }
+    }
 }
 
 Light *VulkanScene::createLight(const AssetInfo &info, LightType type, glm::vec4 color)
@@ -218,7 +290,7 @@ void VulkanScene::deleteObject(SceneObject *object)
 
 VkResult VulkanScene::createDescriptorSetsLayouts()
 {
-    /* Create descriptor layout for the scene data */
+    /* Create descriptor set layout for the scene data */
     {
         VkDescriptorSetLayoutBinding sceneDataLayoutBinding = vkinit::descriptorSetLayoutBinding(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1);
@@ -227,8 +299,8 @@ VkResult VulkanScene::createDescriptorSetsLayouts()
         VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutScene));
     }
 
+    /* Create descriptor set layout for the model data */
     {
-        /* Create descriptor layout for the model data */
         VkDescriptorSetLayoutBinding modelDataLayoutBinding = vkinit::descriptorSetLayoutBinding(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
@@ -239,11 +311,13 @@ VkResult VulkanScene::createDescriptorSetsLayouts()
         VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutModel));
     }
 
+    /* Create descriptor set layout for the light data and light instances */
     {
-        /* Create descriptor layout for the light data and light instances */
+        /* binding 0, LightData matrix */
         VkDescriptorSetLayoutBinding lightDataLayoutBinding = vkinit::descriptorSetLayoutBinding(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, 1);
 
+        /* binding 0, LightInstance matrix */
         VkDescriptorSetLayoutBinding lightInstancesLayoutBinding = vkinit::descriptorSetLayoutBinding(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1, 1);
 
@@ -251,6 +325,26 @@ VkResult VulkanScene::createDescriptorSetsLayouts()
         VkDescriptorSetLayoutCreateInfo layoutInfo =
             vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(bindings.size()), bindings.data());
         VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_vkctx.device(), &layoutInfo, nullptr, &m_descriptorSetLayoutLight));
+    }
+
+    /* Create descriptor set layout for the TLAS */
+    {
+        /* binding 0, the accelleration strucure */
+        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding = vkinit::descriptorSetLayoutBinding(
+            VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+            VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+            0,
+            1);
+
+        /* Binding 1, the object descriptions buffer */
+        VkDescriptorSetLayoutBinding objectDescrptionBufferBinding = vkinit::descriptorSetLayoutBinding(
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR, 1, 1);
+
+        std::vector<VkDescriptorSetLayoutBinding> bindings({accelerationStructureLayoutBinding, objectDescrptionBufferBinding});
+        VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo =
+            vkinit::descriptorSetLayoutCreateInfo(static_cast<uint32_t>(bindings.size()), bindings.data());
+        VULKAN_CHECK_CRITICAL(
+            vkCreateDescriptorSetLayout(m_vkctx.device(), &descriptorSetlayoutInfo, nullptr, &m_descriptorSetLayoutTLAS));
     }
 
     return VK_SUCCESS;
@@ -262,7 +356,10 @@ VkResult VulkanScene::createDescriptorPool(uint32_t nImages)
     VkDescriptorPoolSize modelDataPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
     VkDescriptorPoolSize lightDataPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
     VkDescriptorPoolSize lightInstancesPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nImages);
-    std::array<VkDescriptorPoolSize, 4> poolSizes = {sceneDataPoolSize, modelDataPoolSize, lightDataPoolSize, lightInstancesPoolSize};
+    VkDescriptorPoolSize TLASPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, nImages);
+    VkDescriptorPoolSize objectDescrptionPoolSize = vkinit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nImages);
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+        sceneDataPoolSize, modelDataPoolSize, lightDataPoolSize, lightInstancesPoolSize, TLASPoolSize, objectDescrptionPoolSize};
 
     VkDescriptorPoolCreateInfo poolInfo =
         vkinit::descriptorPoolCreateInfo(static_cast<uint32_t>(poolSizes.size()),
@@ -302,6 +399,14 @@ VkResult VulkanScene::createDescriptorSets(uint32_t nImages)
         VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, m_descriptorSetsLight.data()));
     }
 
+    {
+        m_descriptorSetsTLAS.resize(nImages);
+
+        std::vector<VkDescriptorSetLayout> layouts(nImages, m_descriptorSetLayoutTLAS);
+        VkDescriptorSetAllocateInfo allocInfo = vkinit::descriptorSetAllocateInfo(m_descriptorPool, nImages, layouts.data());
+        VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_vkctx.device(), &allocInfo, m_descriptorSetsTLAS.data()));
+    }
+
     /* Write descriptor sets */
     for (size_t i = 0; i < nImages; i++) {
         /* SceneData */
@@ -324,8 +429,17 @@ VkResult VulkanScene::createDescriptorSets(uint32_t nImages)
         auto descriptorWriteLightInstances =
             vkinit::writeDescriptorSet(m_descriptorSetsLight[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, &bufferInfoLightInstances);
 
-        std::array<VkWriteDescriptorSet, 4> writeSets = {
-            descriptorWriteScene, descriptorWriteModel, descriptorWriteLightData, descriptorWriteLightInstances};
+        /* Object description */
+        VkDescriptorBufferInfo objectDescriptionDataDesriptor =
+            vkinit::descriptorBufferInfo(m_storageBufferObjectDescription[i].buffer(), 0, VK_WHOLE_SIZE);
+        VkWriteDescriptorSet objectDescriptionWrite = vkinit::writeDescriptorSet(
+            m_descriptorSetsTLAS[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 1, &objectDescriptionDataDesriptor);
+
+        std::vector<VkWriteDescriptorSet> writeSets = {descriptorWriteScene,
+                                                       descriptorWriteModel,
+                                                       descriptorWriteLightData,
+                                                       descriptorWriteLightInstances,
+                                                       objectDescriptionWrite};
         vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
     }
 
@@ -346,11 +460,48 @@ VkResult VulkanScene::createBuffers(uint32_t nImages)
                                            m_uniformBuffersScene[i]));
     }
 
+    m_storageBufferObjectDescription.reserve(nImages);
+    for (int i = 0; i < nImages; i++) {
+        VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
+                                           m_vkctx.device(),
+                                           VULKAN_LIMITS_MAX_OBJECTS * sizeof(ObjectDescriptionPT),
+                                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                           m_storageBufferObjectDescription[i]));
+    }
+
     m_modelDataUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
     m_lightDataUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
     m_lightInstancesUBO.createBuffers(m_vkctx.physicalDevice(), m_vkctx.device(), nImages);
 
     return VK_SUCCESS;
+}
+
+void VulkanScene::createTopLevelAccelerationStructure(uint32_t imageIndex)
+{
+    /* Create a buffer to hold top level instances */
+    std::vector<VkAccelerationStructureInstanceKHR> instances(m_blasInstances.size());
+    for (size_t i = 0; i < m_blasInstances.size(); i++) {
+        auto &t = m_blasInstances[i].modelMatrix;
+        /* Set transform matrix per blas */
+        VkTransformMatrixKHR transformMatrix = {
+            t[0][0], t[1][0], t[2][0], t[3][0], t[0][1], t[1][1], t[2][1], t[3][1], t[0][2], t[1][2], t[2][2], t[3][2]};
+
+        instances[i].transform = transformMatrix;
+        instances[i].instanceCustomIndex = static_cast<uint32_t>(i); /* The custom index specifies where the reference of this
+        object
+                                                                     is inside the array of references that is passed in the shader.
+                                                                     More specifically, this reference will tell the shader where
+                                                                     the geometry buffers for this object are, the mesh's position
+                                                                     inside the ObjectDescription buffer */
+        instances[i].mask = 0xFF;
+        instances[i].instanceShaderBindingTableRecordOffset = m_blasInstances[i].instanceOffset;
+        instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+        instances[i].accelerationStructureReference = m_blasInstances[i].accelerationStructure.buffer().address().deviceAddress;
+    }
+
+    m_tlas[imageIndex].initializeTopLevelAcceslerationStructure(
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, instances);
 }
 
 }  // namespace vengine

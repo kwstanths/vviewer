@@ -71,7 +71,6 @@ public:
     SceneGraph &sceneGraph();
     /* Get all scene objects in a flat array */
     SceneGraph getSceneObjectsArray() const;
-    SceneGraph getSceneObjectsArray(std::vector<glm::mat4> &modelMatrices) const;
 
     SceneObject *getSceneObject(vengine::ID id) const;
 
@@ -94,7 +93,7 @@ protected:
     virtual void deleteObject(SceneObject *) = 0;
 
     SceneGraph m_sceneGraph;
-    bool m_needsUpdate = true;
+    bool m_sceneGraphNeedsUpdate = true;
 
 private:
     void needsUpdate(bool changed);

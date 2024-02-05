@@ -16,7 +16,7 @@ static const std::vector<const char *> VULKAN_INSTANCE_EXTENSIONS = {"VK_EXT_deb
                                                                      "VK_KHR_get_physical_device_properties2",
                                                                      "VK_KHR_surface",
 #ifdef __linux__
-                                                                     "VK_KHR_wayland_surface",
+                                                                    //  "VK_KHR_wayland_surface",
                                                                      "VK_KHR_xcb_surface",
                                                                      "VK_KHR_xlib_surface"
 #elif _WIN32
@@ -35,6 +35,7 @@ static const std::vector<std::pair<const char *, bool>> VULKAN_DEVICE_EXTENSIONS
     {"VK_KHR_spirv_1_4", false},
     {"VK_KHR_shader_float_controls", false},
     {"VK_KHR_maintenance3", false},
+    {"VK_KHR_ray_query", true},
 };
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

@@ -21,20 +21,20 @@ layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 /* Descriptor with the buffer for the object description structs */
-layout(set = 0, binding = 4, scalar) buffer ObjDesc_ 
+layout(set = 1, binding = 1, scalar) buffer ObjDesc_ 
 { 
     ObjDesc i[16384]; 
 } objDesc;
 
 /* Descriptor with materials */
-layout(set = 1, binding = 0) uniform readonly MaterialDataUBO
+layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
 {
     MaterialData data[512];
 } materialData;
 
 /* Descriptor for global textures arrays */
-layout (set = 2, binding = 0) uniform sampler2D global_textures[];
-layout (set = 2, binding = 0) uniform sampler3D global_textures_3d[];
+layout (set = 3, binding = 0) uniform sampler2D global_textures[];
+layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
 
 void main()
 {

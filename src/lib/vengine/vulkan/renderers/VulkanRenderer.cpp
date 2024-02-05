@@ -28,6 +28,7 @@
 #include "vulkan/common/VulkanLimits.hpp"
 #include "vulkan/resources/VulkanModel3D.hpp"
 #include "vulkan/resources/VulkanLight.hpp"
+#include "VulkanRenderUtils.hpp"
 
 namespace vengine
 {
@@ -71,7 +72,8 @@ VkResult VulkanRenderer::initResources()
                                                       m_scene.layoutLights(),
                                                       m_rendererSkybox.descriptorSetLayout(),
                                                       m_materials.descriptorSetLayout(),
-                                                      m_textures));
+                                                      m_textures,
+                                                      m_scene.layoutTLAS()));
     VULKAN_CHECK_CRITICAL(m_rendererLambert.initResources(m_vkctx.physicalDevice(),
                                                           m_vkctx.device(),
                                                           m_vkctx.graphicsQueue(),
@@ -82,7 +84,8 @@ VkResult VulkanRenderer::initResources()
                                                           m_scene.layoutLights(),
                                                           m_rendererSkybox.descriptorSetLayout(),
                                                           m_materials.descriptorSetLayout(),
-                                                          m_textures.descriptorSetLayout()));
+                                                          m_textures.descriptorSetLayout(),
+                                                          m_scene.layoutTLAS()));
     VULKAN_CHECK_CRITICAL(m_rendererPost.initResources(
         m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsQueue(), m_vkctx.graphicsCommandPool()));
 
@@ -263,46 +266,31 @@ VkResult VulkanRenderer::renderFrame(SceneGraph &sceneGraphArray)
 
 VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {
-    /* Parse objects */
-    uint32_t objectDescriptionIndex = 0;
-    std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects, lights;
+    std::vector<SceneObject *> meshes, lights;
     std::vector<std::pair<SceneObject *, uint32_t>> meshLights;
-    for (auto &itr : sceneGraphArray) {
-        /* Skip inactive objects */
-        if (!itr->active()) {
-            continue;
-        }
+    parseSceneGraph(sceneGraphArray, meshes, lights, meshLights);
 
-        if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) {
-            Material *mat = itr->get<ComponentMaterial>().material;
-            if (mat->transparent()) {
-                transparentObjects.push_back(itr);
-            } else {
-                switch (mat->type()) {
-                    case MaterialType::MATERIAL_PBR_STANDARD:
-                        opaquePBRStandardObjects.push_back(itr);
-                        break;
-                    case MaterialType::MATERIAL_LAMBERT:
-                        opaqueLambertObjects.push_back(itr);
-                        break;
-                    default:
-                        debug_tools::ConsoleWarning("VulkanRenderer::buildFrame(): Unexpected material");
-                }
+    /* split meshes into materials */
+    std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects;
+    for (auto &itr : meshes) {
+        Material *mat = itr->get<ComponentMaterial>().material;
+        if (mat->transparent()) {
+            transparentObjects.push_back(itr);
+        } else {
+            switch (mat->type()) {
+                case MaterialType::MATERIAL_PBR_STANDARD:
+                    opaquePBRStandardObjects.push_back(itr);
+                    break;
+                case MaterialType::MATERIAL_LAMBERT:
+                    opaqueLambertObjects.push_back(itr);
+                    break;
+                default:
+                    debug_tools::ConsoleWarning("VulkanRenderer::buildFrame(): Unexpected material");
             }
-
-            if (mat->isEmissive()) {
-                meshLights.push_back({itr, objectDescriptionIndex});
-            }
-
-            objectDescriptionIndex++;
-        }
-
-        if (itr->has<ComponentLight>()) {
-            lights.push_back(itr);
         }
     }
 
-    m_scene.updateBuffers(lights, meshLights, static_cast<uint32_t>(imageIndex));
+    m_scene.updateBuffers(meshes, lights, meshLights, static_cast<uint32_t>(imageIndex));
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
     m_textures.updateTextures();
 
@@ -343,6 +331,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                                          skybox->getDescriptor(imageIndex),
                                                          m_materials.descriptorSet(imageIndex),
                                                          m_textures.descriptorSet(),
+                                                         m_scene.descriptorSetTLAS(imageIndex),
                                                          opaqueLambertObjects,
                                                          lights);
             m_rendererPBR.renderObjectsForwardOpaque(commandBuffer,
@@ -352,6 +341,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                                      skybox->getDescriptor(imageIndex),
                                                      m_materials.descriptorSet(imageIndex),
                                                      m_textures.descriptorSet(),
+                                                     m_scene.descriptorSetTLAS(imageIndex),
                                                      opaquePBRStandardObjects,
                                                      lights);
         }
@@ -383,6 +373,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                                           skybox->getDescriptor(imageIndex),
                                                           m_materials.descriptorSet(imageIndex),
                                                           m_textures.descriptorSet(),
+                                                          m_scene.descriptorSetTLAS(imageIndex),
                                                           itr,
                                                           lights);
             }

@@ -30,7 +30,8 @@ VkResult VulkanRendererLambert::initResources(VkPhysicalDevice physicalDevice,
                                               VkDescriptorSetLayout lightDescriptorLayout,
                                               VkDescriptorSetLayout skyboxDescriptorLayout,
                                               VkDescriptorSetLayout materialDescriptorLayout,
-                                              VkDescriptorSetLayout texturesDescriptorLayout)
+                                              VkDescriptorSetLayout texturesDescriptorLayout,
+                                              VkDescriptorSetLayout tlasDescriptorLayout)
 {
     VULKAN_CHECK_CRITICAL(VulkanRendererBase::initResources(physicalDevice,
                                                             device,
@@ -42,7 +43,8 @@ VkResult VulkanRendererLambert::initResources(VkPhysicalDevice physicalDevice,
                                                             lightDescriptorLayout,
                                                             skyboxDescriptorLayout,
                                                             materialDescriptorLayout,
-                                                            texturesDescriptorLayout));
+                                                            texturesDescriptorLayout,
+                                                            tlasDescriptorLayout));
 
     return VK_SUCCESS;
 }
@@ -90,13 +92,21 @@ VkResult VulkanRendererLambert::renderObjectsForwardOpaque(VkCommandBuffer &cmdB
                                                            VkDescriptorSet descriptorSkybox,
                                                            VkDescriptorSet &descriptorMaterial,
                                                            VkDescriptorSet &descriptorTextures,
+                                                           VkDescriptorSet &descriptorTLAS,
                                                            const SceneGraph &objects,
                                                            const SceneGraph &lights) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardOpaque);
 
-    std::array<VkDescriptorSet, 6> descriptorSets = {
-        descriptorScene, descriptorModel, descriptorLight, descriptorMaterial, descriptorTextures, descriptorSkybox};
+    std::array<VkDescriptorSet, 7> descriptorSets = {
+        descriptorScene,
+        descriptorModel,
+        descriptorLight,
+        descriptorMaterial,
+        descriptorTextures,
+        descriptorSkybox,
+        descriptorTLAS,
+    };
     vkCmdBindDescriptorSets(cmdBuf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipelineLayoutForwardOpaque,
@@ -118,13 +128,14 @@ VkResult VulkanRendererLambert::renderObjectsForwardTransparent(VkCommandBuffer 
                                                                 VkDescriptorSet descriptorSkybox,
                                                                 VkDescriptorSet &descriptorMaterials,
                                                                 VkDescriptorSet &descriptorTextures,
+                                                                VkDescriptorSet &descriptorTLAS,
                                                                 SceneObject *object,
                                                                 const SceneGraph &lights) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardTransparent);
 
-    std::array<VkDescriptorSet, 6> descriptorSets = {
-        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox};
+    std::array<VkDescriptorSet, 7> descriptorSets = {
+        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox, descriptorTLAS};
     vkCmdBindDescriptorSets(cmdBuf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipelineLayoutForwardTransparent,

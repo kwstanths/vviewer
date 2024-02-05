@@ -21,27 +21,27 @@ layout(location = 2) rayPayloadInEXT RayPayloadNEE rayPayloadNEE;
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
-layout(set = 0, binding = 3) uniform PathTracingData 
+layout(set = 0, binding = 2) uniform PathTracingData 
 {
     uvec4 samplesBatchesDepthIndex;
     uvec4 lights;
 } pathTracingData;
 
 /* Descriptor with the buffer for the object description structs */
-layout(set = 0, binding = 4, scalar) buffer ObjDesc_ 
+layout(set = 1, binding = 1, scalar) buffer ObjDesc_ 
 { 
     ObjDesc i[16384]; 
 } objDesc;
 
 /* Descriptor with materials */
-layout(set = 1, binding = 0) uniform readonly MaterialDataUBO
+layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
 {
     MaterialData data[512];
 } materialData;
 
 /* Descriptor for global textures arrays */
-layout (set = 2, binding = 0) uniform sampler2D global_textures[];
-layout (set = 2, binding = 0) uniform sampler3D global_textures_3d[];
+layout (set = 3, binding = 0) uniform sampler2D global_textures[];
+layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
 
 void main()
 {

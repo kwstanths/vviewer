@@ -18,7 +18,7 @@ public:
 
     virtual vengine::Engine *engine() const = 0;
 
-    virtual void windowActicated(bool activated) = 0;
+    virtual void windowActivated(bool activated) = 0;
 
 Q_SIGNALS:
     /* emitted when the initialization has finished */

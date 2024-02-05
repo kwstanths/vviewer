@@ -18,6 +18,7 @@ public:
                                                 VkDescriptorSet descriptorSkybox,
                                                 VkDescriptorSet &descriptorMaterial,
                                                 VkDescriptorSet &descriptorTextures,
+                                                VkDescriptorSet &descriptorTLAS,
                                                 const SceneGraph &objects,
                                                 const SceneGraph &lights) const = 0;
 
@@ -28,6 +29,7 @@ public:
                                                      VkDescriptorSet descriptorSkybox,
                                                      VkDescriptorSet &descriptorMaterials,
                                                      VkDescriptorSet &descriptorTextures,
+                                                     VkDescriptorSet &descriptorTLAS,
                                                      SceneObject *object,
                                                      const SceneGraph &lights) const = 0;
 
@@ -39,7 +41,7 @@ protected:
     VkExtent2D m_swapchainExtent;
 
     VkDescriptorSetLayout m_descriptorSetLayoutCamera, m_descriptorSetLayoutModel, m_descriptorSetLayoutLight,
-        m_descriptorSetLayoutSkybox, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutTextures;
+        m_descriptorSetLayoutSkybox, m_descriptorSetLayoutMaterial, m_descriptorSetLayoutTextures, m_descriptorSetLayoutTLAS;
 
     VkRenderPass m_renderPass;
     VkSampleCountFlagBits m_msaaSamples;
@@ -54,7 +56,8 @@ protected:
                            VkDescriptorSetLayout lightDescriptorLayout,
                            VkDescriptorSetLayout skyboxDescriptorLayout,
                            VkDescriptorSetLayout materialDescriptorLayout,
-                           VkDescriptorSetLayout texturesDescriptorLayout);
+                           VkDescriptorSetLayout texturesDescriptorLayout,
+                           VkDescriptorSetLayout tlasDescriptorLayout);
 
     VkResult initSwapChainResources(VkExtent2D swapchainExtent,
                                     VkRenderPass renderPass,
