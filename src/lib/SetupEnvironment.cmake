@@ -33,9 +33,8 @@ macro(SetupEnvironment)
     #set(TBB_LIBRARIES tbb)
 
     # OIDN
-    find_package(OpenImageDenoise REQUIRED)
-    set(OIDN_LIBRARIES OpenImageDenoise)
-
+    find_package(OIDN REQUIRED)
+    
     # DEBUG_TOOLS
     set(DEBUG_TOOLS_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/debug_tools/)
     set(DEBUG_TOOLS_LIBRARIES debug_tools)
@@ -49,6 +48,10 @@ macro(SetupEnvironment)
     set(VENGINE_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/vengine/)
     set(VENGINE_LIBRARIES vengine)
    
+    # Threads
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    
     set(ENGINE_INCLUDE_DIRS 
         ${INTERNAL_LIBRARIES_ROOT}        
         ${VULKAN_INCLUDE_DIRS}
@@ -60,6 +63,7 @@ macro(SetupEnvironment)
         ${DEBUG_TOOLS_INCLUDE_DIRS}
         ${VENGINE_INCLUDE_DIRS}
         ${ASSIMP_INCLUDE_DIRS}
+        ${OIDN_INCLUDE_DIRS}
     )
     
     set(ENGINE_LIBS

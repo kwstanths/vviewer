@@ -72,7 +72,7 @@ public:
         using value_type = T;
         using pointer = T *;
         using reference = T &;
-        using index = uint32_t;
+        using index = size_t;
 
         Iterator(std::vector<T> &blocks, const std::vector<bool> &valid, index i)
             : m_blocks(blocks)

@@ -215,7 +215,7 @@ VkResult VulkanRendererBase::renderObjects(VkCommandBuffer &commandBuffer,
             auto lnp = n->get<ComponentLight>().light->power(n->worldPosition(), pos);
             return lmp > lnp;
         });
-        pushConstants.info.b = std::min<size_t>(lights.size(), 4U);
+        pushConstants.info.b = std::min<unsigned int>(lights.size(), 4U);
         pushConstants.lights = glm::vec4(closestLights[0], closestLights[1], closestLights[2], closestLights[3]);
 
         vkCmdPushConstants(commandBuffer,

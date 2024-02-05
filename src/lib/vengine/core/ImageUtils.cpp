@@ -59,7 +59,7 @@ void writeToDisk(const std::vector<float> &in,
         case FileType::PNG: {
             std::vector<unsigned char> imageDataInt(width * height * channels, 255);
             for (size_t i = 0; i < width * height * channels; i++) {
-                imageDataInt[i] = 255.F * linearToSRGB(std::clamp(in[i], 0.0F, 1.0F));
+                imageDataInt[i] = static_cast<unsigned char>(255.F * linearToSRGB(std::clamp(in[i], 0.0F, 1.0F)));
             }
             stbi_write_png((filename + ".png").c_str(), width, height, channels, imageDataInt.data(), width * channels * sizeof(char));
             break;

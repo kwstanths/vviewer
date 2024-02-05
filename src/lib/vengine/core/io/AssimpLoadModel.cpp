@@ -200,7 +200,7 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
             } else {
                 /* Not encoded */
                 /* TODO */
-                assert(0 == 1);
+                debug_tools::ConsoleWarning("assimpLoadTexture(): Not implemented");
             }
         } else {
             /* Parse from disk */
@@ -208,7 +208,8 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
 
 #ifdef _WIN32
             // TODO
-            assert(0 == 1);
+            debug_tools::ConsoleWarning("assimpLoadTexture(): Not implemented");
+            return nullptr;
 #endif
             replaceAll(fullPath, "\\", "/");
 
@@ -233,8 +234,8 @@ assimpCreateImage(const AssetInfo &info, uint8_t *data, int width, int height, i
     } else {
         uint8_t *channelData = new uint8_t[width * height];
         uint32_t index = 0;
-        for (uint32_t i = 0; i < height; i++) {
-            for (uint32_t j = 0; j < width; j++) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
                 channelData[index++] = data[width * channels * i + j * channels + channel];
             }
         }

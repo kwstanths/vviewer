@@ -20,7 +20,7 @@ static const std::vector<const char *> VULKAN_INSTANCE_EXTENSIONS = {"VK_EXT_deb
                                                                      "VK_KHR_xcb_surface",
                                                                      "VK_KHR_xlib_surface"
 #elif _WIN32
-                                                                     error TODO
+                                                                     "VK_KHR_win32_surface"
 #endif
 };
 

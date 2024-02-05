@@ -38,7 +38,7 @@ target_link_libraries(${NAME} ${VULKAN_LIBRARIES}
 		${TBB_LIBRARIES}
 		${DEBUG_TOOLS_LIBRARIES}
 		${ASSIMP_LIBRARIES}
-		pthread)
+		Threads::Threads)
 
 source_group("math\\"		FILES	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES})
 source_group("core\\"		FILES	${${NAME}_CORE_HEADERS} ${${NAME}_CORE_SOURCES})

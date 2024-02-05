@@ -223,7 +223,7 @@ void VulkanRendererPathTracing::render()
     createTopLevelAccelerationStructure();
 
     /* Prepare scene lights */
-    m_pathTracingData.lights.r = lights.size() + meshLights.size();
+    m_pathTracingData.lights.r = static_cast<unsigned int>(lights.size() + meshLights.size());
     updateBuffers(sceneData, m_pathTracingData);
 
     /* We will use the materials from buffer index 0 for this renderer */

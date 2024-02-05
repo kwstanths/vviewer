@@ -1,5 +1,5 @@
 # vviewer 
-A real time renderer and an offline path tracer written in Vulkan and a 3D scene editor written in Qt. Uses [VK_KHR_ray_tracing_pipeline.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_tracing_pipeline.html) for GPU accelerated ray tracing with ray generation, ray closest hit, ray any hit and ray miss shaders. The rendering engine can be built separately as a standalone library, independent of the UI.
+A cross platform real time renderer and an offline path tracer written in Vulkan and a 3D scene editor written in Qt. Uses [VK_KHR_ray_tracing_pipeline.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_tracing_pipeline.html) for GPU accelerated ray tracing with ray generation, ray closest hit, ray any hit and ray miss shaders. The rendering engine can be built separately as a standalone library, independent of the UI.
 
 ![Alt text](images/1.png?raw=true)
 
@@ -30,9 +30,9 @@ A real time renderer and an offline path tracer written in Vulkan and a 3D scene
 
 ## Dependencies
 ### vengine library
-* Vulkan. Set the VULKAN_SDK environment variable. Version tested 1.3.204.1
-* assimp. Set the ASSIMP_ROOT_DIR environment variable. Version tested 5.2.5
-* [OpenImageDenoise](https://github.com/OpenImageDenoise/oidn). Install or build from source OpenImageDenoise
+* [Vulkan SDK](https://vulkan.lunarg.com/sdk/home). Set the VULKAN_SDK environment variable. Version tested 1.3.204.1
+* [assimp](https://github.com/assimp/assimp). Set the ASSIMP_ROOT_DIR environment variable. Version tested 5.2.5
+* [OpenImageDenoise](https://github.com/OpenImageDenoise/oidn). Set the OIDN_ROOT_DIR environment variable. Version tested 2.1.0
 
 ### vviewer binary
 * Qt. Set the Qt6_DIR environment variable. Version tested 6.2.4

@@ -42,7 +42,7 @@ public:
         auto itr = m_uniqueData.find(t);
         if (itr == m_uniqueData.end()) {
             /* Add new element */
-            uint32_t index = m_freeList.getFree();
+            uint32_t index = static_cast<uint32_t>(m_freeList.getFree());
             T *p = &m_data[index];
             m_uniqueData[t] = {1, p};
             return index;
@@ -79,7 +79,7 @@ private:
 
     FreeList m_freeList;
 
-    uint32_t getIndex(T *t) { return (t - m_data.data()); };
+    uint32_t getIndex(T *t) { return (static_cast<uint32_t>(t - m_data.data())); };
 };
 
 }  // namespace vengine

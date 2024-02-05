@@ -20,9 +20,9 @@ public:
         , m_height(height)
         , m_channels(channels){};
 
-    const uint32_t width() const { return m_width; }
-    const uint32_t height() const { return m_height; }
-    const uint32_t channels() const { return m_channels; }
+    const uint32_t width() const { return static_cast<uint32_t>(m_width); }
+    const uint32_t height() const { return static_cast<uint32_t>(m_height); }
+    const uint32_t channels() const { return static_cast<uint32_t>(m_channels); }
     const ColorSpace colorSpace() const { return m_colorSpace; }
     const ColorDepth colorDepth() const { return m_colorDepth; }
 

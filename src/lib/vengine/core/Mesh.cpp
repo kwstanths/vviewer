@@ -21,7 +21,7 @@ Mesh::Mesh(const AssetInfo &info,
     m_indices = indices;
     m_hasNormals = hasNormals;
     m_hasUVs = hasUVs;
-    m_nTriangles = indices.size() / 3;
+    m_nTriangles = static_cast<uint32_t>(indices.size() / 3U);
 
     if (!hasNormals)
         computeNormals();

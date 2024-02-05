@@ -1,5 +1,7 @@
 #include "VulkanTextures.hpp"
 
+#include <array>
+
 #include <debug_tools/Console.hpp>
 
 #include "core/AssetManager.hpp"

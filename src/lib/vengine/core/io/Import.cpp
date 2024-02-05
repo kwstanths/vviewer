@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#define RAPIDJSON_NO_SIZETYPEDEFINE
+namespace rapidjson { typedef ::std::size_t SizeType; }
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/writer.h>
@@ -193,7 +195,7 @@ glm::quat parseRotation(const rapidjson::Value &o, std::string name, glm::quat d
         glm::vec3 vec3 = parseVec3(o, name, glm::vec3());
         value = glm::quat(glm::radians(vec3));
         return value;
-    } catch (std::exception &e) {
+    } catch (std::exception &) {
         glm::vec4 vec4 = parseVec4(o, name, glm::vec4());
         value.x = vec4.x;
         value.y = vec4.y;

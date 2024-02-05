@@ -40,7 +40,7 @@ std::array<unsigned int, N> findNSmallest(const std::vector<T> &o, std::function
     }
 
     unsigned int i = 0;
-    std::array<unsigned int, N> out;
+    std::array<unsigned int, N> out{0};
     while (!q.empty()) {
         auto e = q.top();
         out[i++] = e.second;

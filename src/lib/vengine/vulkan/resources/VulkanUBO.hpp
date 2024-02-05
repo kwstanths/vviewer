@@ -148,7 +148,7 @@ public:
     */
     void destroyGPUBuffers(VkDevice device)
     {
-        for (int i = 0; i < m_buffers; i++) {
+        for (size_t i = 0U; i < m_buffers; i++) {
             vkDestroyBuffer(device, buffer(i), nullptr);
             vkFreeMemory(device, memory(i), nullptr);
         }

@@ -5,8 +5,6 @@
 #include <vector>
 #include <unordered_set>
 
-#include <rapidjson/document.h>
-
 #include <vengine/core/SceneObject.hpp>
 #include <vengine/core/Camera.hpp>
 #include <vengine/core/Material.hpp>

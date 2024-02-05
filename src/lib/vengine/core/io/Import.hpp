@@ -3,15 +3,8 @@
 
 #include <string>
 #include <vector>
-#include <optional>
-#include <unordered_map>
-
-#include <rapidjson/document.h>
-
-#include <glm/glm.hpp>
 
 #include <utils/Tree.hpp>
-#include <math/Transform.hpp>
 
 #include "ImportTypes.hpp"
 
