@@ -267,9 +267,11 @@ VkResult VulkanAccelerationStructure::initializeTopLevelAcceslerationStructure(
     accelerationDeviceAddressInfo.accelerationStructure = m_handle;
     m_buffer.address().deviceAddress = devF->vkGetAccelerationStructureDeviceAddressKHR(vci.device, &accelerationDeviceAddressInfo);
 
+    if (accelerationStructureBuildSizesInfo.buildScratchSize > 0) {
+        scratchBuffer.destroy(vci.device);
+    }
     if (instancesCount > 0) {
         instancesBuffer.destroy(vci.device);
-        scratchBuffer.destroy(vci.device);
     }
 
     m_initialzed = true;

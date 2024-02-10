@@ -104,6 +104,22 @@ vec3 evalPBRStandard(const in PBRStandard pbr, const in vec3 wi, const in vec3 w
     return (diffuse * (1.0 - pbr.metallic) + glossy) * NdotL;
 }
 
+/* Same as above, but with diffuse and specular multipliers */
+vec3 evalPBRStandard_mult(const in PBRStandard pbr, const in vec3 wi, const in vec3 wo, vec3 H, float diffuseMult, float specularMult)
+{
+    float NdotL = wi.y;
+    float NdotV = wo.y;
+    if (NdotL < 0.0 || NdotV < 0.0) return vec3(0.0);
+    
+    float NdotH = H.y;
+    float LdotH = dot(wi, H);
+    
+    vec3 diffuse = evalDisneyDiffuse(NdotL, NdotV, LdotH, pbr);
+    vec3 glossy = evalDisneyMicrofacetIsotropic(NdotL, NdotV, NdotH, LdotH, pbr);
+    
+    return (diffuseMult * diffuse * (1.0 - pbr.metallic) + specularMult * glossy) * NdotL;
+}
+
 float pdfPBRStandard(const in vec3 wi, const in vec3 wo, const in PBRStandard pbr)
 {
     float cosTheta = wi.y;

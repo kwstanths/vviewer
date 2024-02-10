@@ -12,7 +12,14 @@ if(WIN32)
 	
 else(WIN32)
 
-	set(OIDN_LIBRARIES OpenImageDenoise)
+	find_path(OIDN_INCLUDE_DIRS
+		NAMES
+			OpenImageDenoise/config.h
+		HINTS
+			/usr/local/include/
+	)
+
+    find_library(OIDN_LIBRARIES libOpenImageDenoise.so PATHS /usr/local/lib/)
 	
 endif(WIN32)
 

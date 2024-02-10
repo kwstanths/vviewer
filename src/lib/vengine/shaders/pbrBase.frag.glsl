@@ -26,7 +26,7 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
 
-layout(set = 1, binding = 0) uniform readonly ModelDataDescriptor {
+layout(set = 1, binding = 0) uniform readonly ModelDataUBO {
     ModelData data[1024];
 } modelData;
 
@@ -117,40 +117,52 @@ void main() {
                 vec3 V = worldToLocal(frame, V_world);
                 vec3 H = normalize(V + L);
 
-                /* Calculate light contrubution from point light */
                 float attenuation = squareDistanceAttenuation(L_distance);
-                /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
-                if (attenuation * max3(L_color) < 0.05)
+                /* If contribution of light is smaller than 0.025 ignore it. Since we don't have a light radius right now to limit it */
+                if (attenuation * max3(L_color) < 0.025)
                 {
                     continue;
                 }
 
-                rayQueryEXT rayQuery;
-	            rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, fragPos_world, 0.001, L_world_direction_normalized, L_distance);
-    	        while(rayQueryProceedEXT(rayQuery))
+                /* trace shadow ray */
+                float diffuseStrength = 1.0;
+                float specularStrength = 1.0;
+                if (lc.position.a == 1.0)
                 {
-                }
-	            if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT ) {
-                    direct += L_color * evalPBRStandard(pbr, L, V, H) * attenuation;
-	            }
+                    vec3 rayquery_direction = L_world_direction_normalized;
+                    float rayquery_distance = L_distance;
+                    #include "include/rayquery.glsl"
+                    if (occluded)
+                    {
+                        diffuseStrength = 0.05; /* Add 5% ambient */
+                        specularStrength = 0.0;
+                    }
+                } 
+                direct += L_color * evalPBRStandard_mult(pbr, L, V, H, diffuseStrength, specularStrength) * attenuation;
 
             } else if (ld.type.r == 1) {
-                vec3 L_world = lc.position.rgb;
+                vec3 L_world_direction_normalized = normalize(-lc.position.rgb);
 
                 /* Calculate light contrubution from directional light */
-                vec3 L = worldToLocal(frame, normalize(-L_world));
+                vec3 L = worldToLocal(frame, L_world_direction_normalized);
                 vec3 V = worldToLocal(frame, V_world);
                 vec3 H = normalize(V + L);
-
-                rayQueryEXT rayQuery;
-	            rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, fragPos_world, 0.001, normalize(-L_world), 10000.0);
-    	        while(rayQueryProceedEXT(rayQuery))
+                
+                /* trace shadow raw */
+                float diffuseStrength = 1.0;
+                float specularStrength = 1.0;
+                if (lc.position.a == 1.0)
                 {
+                    vec3 rayquery_direction = L_world_direction_normalized;
+                    float rayquery_distance = 10000.0;
+                    #include "include/rayquery.glsl"
+                    if (occluded)
+                    {
+                        diffuseStrength = 0.05; /* Add 5% ambient */
+                        specularStrength = 0.0;
+                    }
                 }
-	            if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT ) {
-                    direct += L_color * evalPBRStandard(pbr, L, V, H);
-	            }
-
+                direct += L_color * evalPBRStandard_mult(pbr, L, V, H, diffuseStrength, specularStrength);
             }
         }
     }

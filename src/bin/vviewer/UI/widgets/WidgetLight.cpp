@@ -20,9 +20,19 @@ WidgetLight::WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponen
     : QWidget(parent)
     , m_lightComponent(lightComponent)
 {
+    m_labelLight = new QLabel("Light:");
+    m_labelLight->setFixedWidth(35);
+
     m_comboBoxLights = new QComboBox();
     updateAvailableLights();
     connect(m_comboBoxLights, SIGNAL(currentIndexChanged(int)), this, SLOT(onLightChanged(int)));
+
+    m_labelCastShadows = new QLabel("Cast shadows:");
+    m_labelCastShadows->setFixedWidth(90);
+
+    m_checkBoxCastShadows = new QCheckBox();
+    m_checkBoxCastShadows->setChecked(m_lightComponent.castShadows);
+    connect(m_checkBoxCastShadows, SIGNAL(stateChanged(int)), this, SLOT(onCheckBoxCastShadows(int)));
 
     m_widgetGroupBox = new QGroupBox();
     createUI(createLightWidget(lightComponent.light));
@@ -51,19 +61,24 @@ void WidgetLight::createUI(QWidget *widgetLight)
         delete m_layoutGroupBox;
     }
 
-    QLabel *labelType = new QLabel("Light:");
-    labelType->setFixedWidth(35);
-
     QHBoxLayout *layoutComboBox = new QHBoxLayout();
-    layoutComboBox->addWidget(labelType);
+    layoutComboBox->addWidget(m_labelLight);
     layoutComboBox->addWidget(m_comboBoxLights);
     layoutComboBox->setContentsMargins(0, 0, 0, 0);
     QWidget *widgetComboBox = new QWidget();
     widgetComboBox->setLayout(layoutComboBox);
 
+    QHBoxLayout *layoutCastShadows = new QHBoxLayout();
+    layoutCastShadows->addWidget(m_labelCastShadows);
+    layoutCastShadows->addWidget(m_checkBoxCastShadows);
+    layoutCastShadows->setContentsMargins(0, 0, 0, 0);
+    QWidget *widgetCastShadows = new QWidget();
+    widgetCastShadows->setLayout(layoutCastShadows);
+
     m_layoutGroupBox = new QVBoxLayout();
     m_layoutGroupBox->addWidget(widgetComboBox);
     m_layoutGroupBox->addWidget(widgetLight);
+    m_layoutGroupBox->addWidget(widgetCastShadows);
     m_layoutGroupBox->setContentsMargins(5, 5, 5, 5);
     m_layoutGroupBox->setSpacing(15);
     m_layoutGroupBox->setAlignment(Qt::AlignTop);
@@ -97,4 +112,9 @@ void WidgetLight::onLightChanged(int)
 
     createUI(createLightWidget(light));
     m_lightComponent.light = light;
+}
+
+void WidgetLight::onCheckBoxCastShadows(int)
+{
+    m_lightComponent.castShadows = m_checkBoxCastShadows->isChecked();
 }

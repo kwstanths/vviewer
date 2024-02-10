@@ -37,15 +37,15 @@ public:
     VkDescriptorSet &descriptorSetSceneData(uint32_t imageIndex) { return m_descriptorSetsScene[imageIndex]; };
     VkDescriptorSet &descriptorSetModelData(uint32_t imageIndex) { return m_descriptorSetsModel[imageIndex]; };
     VkDescriptorSet &descriptorSetLight(uint32_t imageIndex) { return m_descriptorSetsLight[imageIndex]; };
-    VkDescriptorSet &descriptorSetTLAS(uint32_t imageIndex) { return m_descriptorSetsTLAS[0]; };
+    VkDescriptorSet &descriptorSetTLAS(uint32_t imageIndex) { return m_descriptorSetsTLAS[imageIndex]; };
 
-    virtual SceneData getSceneData() const override;
+    SceneData getSceneData() const override;
 
-    /* Flush buffer changes to gpu */
     void updateBuffers(const std::vector<SceneObject *> &meshes,
                        const std::vector<SceneObject *> &lights,
                        const std::vector<std::pair<SceneObject *, uint32_t>> &meshLights,
                        uint32_t imageIndex);
+    void updateTLAS(VulkanCommandInfo vci, const std::vector<SceneObject *> &meshes, uint32_t imageIndex);
 
     Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) override;
 
@@ -101,7 +101,7 @@ private:
     SceneObject *createObject(std::string name) override;
     void deleteObject(SceneObject *object) override;
 
-    void createTopLevelAccelerationStructure(uint32_t imageIndex);
+    void createTopLevelAccelerationStructure(VulkanCommandInfo vci, uint32_t imageIndex);
 };
 
 }  // namespace vengine

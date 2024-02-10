@@ -7,6 +7,7 @@
 #include <qslider.h>
 #include <qlabel.h>
 #include <qlayout.h>
+#include <qcheckbox.h>
 
 #include <vengine/core/Light.hpp>
 #include <vengine/utils/ECS.hpp>
@@ -16,7 +17,7 @@ class WidgetLight : public QWidget
 {
     Q_OBJECT
 public:
-    static const int HEIGHT = 165;
+    static const int HEIGHT = 175;
     WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponent);
 
     void updateAvailableLights();
@@ -26,6 +27,9 @@ private:
 
     QComboBox *m_comboBoxLights = nullptr;
     QWidget *m_widgetLight = nullptr;
+    QCheckBox *m_checkBoxCastShadows;
+    QLabel *m_labelLight;
+    QLabel *m_labelCastShadows;
 
     QWidget *m_widgetGroupBox = nullptr;
     QVBoxLayout *m_layoutGroupBox = nullptr;
@@ -36,6 +40,7 @@ private:
 
 private Q_SLOTS:
     void onLightChanged(int);
+    void onCheckBoxCastShadows(int);
 };
 
 #endif

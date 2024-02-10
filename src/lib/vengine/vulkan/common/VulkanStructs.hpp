@@ -15,7 +15,6 @@ namespace vengine
 {
 
 /* --------------- CPU only structs --------------- */
-/* Stores supported queue family indices */
 struct VulkanQueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
@@ -25,7 +24,6 @@ struct VulkanQueueFamilyIndices {
     bool isComplete() const;
 };
 
-/* Stores supported swapchain details */
 struct VulkanSwapChainDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
@@ -41,6 +39,7 @@ struct VulkanStorageImage {
     void destroy(VkDevice device);
 };
 
+/* Used to create commands from a pool and submit them to a queue */
 struct VulkanCommandInfo {
     VkPhysicalDevice physicalDevice;
     VkDevice device;
@@ -77,7 +76,7 @@ struct LightData {
 
 struct LightInstance {
     glm::uvec4 info;    /* R = LightData index, G = ModelData index, B = Object Description index if Mesh type, A = type (LightType) */
-    glm::vec4 position; /* RGB = world position/direction, A = unused or RGBA = row 0 of transform matrix if mesh type */
+    glm::vec4 position; /* RGB = world position/direction, A = casts shadow or RGBA = row 0 of transform matrix if mesh type */
     glm::vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
     glm::vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
 };                       /* sizeof(LightInstance) = 64 */

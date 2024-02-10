@@ -48,6 +48,7 @@ class ComponentLight : public Component
 public:
     ComponentLight(){};
     Light *light;
+    bool castShadows = true;
 };
 
 /* Component buffers */

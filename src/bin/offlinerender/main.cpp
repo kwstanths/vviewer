@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     VulkanEngine engine("offlinerender");
     engine.initResources();
 
-    PtSceneDragonsOnPlane ptscene(engine);
+    PtSceneBreakfastRoom ptscene(engine);
     ptscene.create();
     ptscene.render();
 

@@ -66,7 +66,7 @@ VkResult VulkanScene::releaseSwapchainResources()
     for (uint32_t i = 0; i < m_uniformBuffersScene.size(); i++) {
         m_uniformBuffersScene[i].destroy(m_vkctx.device());
     }
-    for (uint32_t i = 0; i < m_uniformBuffersScene.size(); i++) {
+    for (uint32_t i = 0; i < m_storageBufferObjectDescription.size(); i++) {
         m_storageBufferObjectDescription[i].destroy(m_vkctx.device());
     }
     for (uint32_t i = 0; i < m_tlas.size(); i++) {
@@ -153,6 +153,7 @@ void VulkanScene::updateBuffers(const std::vector<SceneObject *> &meshes,
         } else if (light->type() == LightType::DIRECTIONAL_LIGHT) {
             lightInstanceBlock->position = glm::vec4(vo->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0));
         }
+        lightInstanceBlock->position.a = static_cast<float>(vo->get<ComponentLight>().castShadows);
     }
     for (uint32_t l = 0; l < meshLights.size(); l++) {
         uint32_t nl = lights.size() + l;
@@ -187,59 +188,61 @@ void VulkanScene::updateBuffers(const std::vector<SceneObject *> &meshes,
         memcpy(data, m_lightInstancesUBO.block(0), m_lightInstancesUBO.blockSizeAligned() * m_lightInstancesUBO.nblocks());
         vkUnmapMemory(m_vkctx.device(), m_lightInstancesUBO.memory(imageIndex));
     }
+}
 
-    /* Create TLAS */
-    static bool built = false;
-    if (!built && imageIndex == 0) {
-        m_tlas[imageIndex].destroy(m_vkctx.device());
-        built = true;
+void VulkanScene::updateTLAS(VulkanCommandInfo vci, const std::vector<SceneObject *> &meshes, uint32_t imageIndex)
+{
+    /* TODO check if something has changed */
+    /* TODO update TLAS don't recreate */
 
-        m_blasInstances.clear();
-        m_sceneObjectsDescription.clear();
-        for (size_t i = 0; i < meshes.size(); i++) {
-            auto so = meshes[i];
+    /* Create new TLAS */
+    m_blasInstances.clear();
+    m_sceneObjectsDescription.clear();
+    for (size_t i = 0; i < meshes.size(); i++) {
+        auto so = meshes[i];
 
-            auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
-            auto material = so->get<ComponentMaterial>().material;
+        auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
+        auto material = so->get<ComponentMaterial>().material;
 
-            uint32_t nTypeRays = 3U; /* Types of rays */
-            uint32_t instanceOffset; /* Ioffset in SBT is based on the type of material */
-            if (material->type() == MaterialType::MATERIAL_LAMBERT)
-                instanceOffset = 0 * nTypeRays;
-            else if (material->type() == MaterialType::MATERIAL_PBR_STANDARD)
-                instanceOffset = 1 * nTypeRays;
-            else {
-                throw std::runtime_error("VulkanScene::updateBuffers(): Unexpected material");
-            }
-
-            assert(mesh->blas().initialized());
-            m_blasInstances.emplace_back(mesh->blas(), so->modelMatrix(), instanceOffset);
-            m_sceneObjectsDescription.push_back({mesh->vertexBuffer().address().deviceAddress,
-                                                 mesh->indexBuffer().address().deviceAddress,
-                                                 material->materialIndex(),
-                                                 mesh->nTriangles()});
+        uint32_t nTypeRays = 3U; /* Types of rays */
+        uint32_t instanceOffset; /* Ioffset in SBT is based on the type of material */
+        if (material->type() == MaterialType::MATERIAL_LAMBERT)
+            instanceOffset = 0 * nTypeRays;
+        else if (material->type() == MaterialType::MATERIAL_PBR_STANDARD)
+            instanceOffset = 1 * nTypeRays;
+        else {
+            throw std::runtime_error("VulkanScene::updateTLAS(): Unexpected material");
         }
-        createTopLevelAccelerationStructure(imageIndex);
 
-        /* Update accelleration structure binding */
-        VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
-        descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-        descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-        descriptorAccelerationStructureInfo.pAccelerationStructures = &m_tlas[imageIndex].handle();
-        VkWriteDescriptorSet accelerationStructureWrite{};
-        accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        /* The specialized acceleration structure descriptor has to be chained */
-        accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
-        accelerationStructureWrite.dstSet = m_descriptorSetsTLAS[imageIndex];
-        accelerationStructureWrite.dstBinding = 0;
-        accelerationStructureWrite.descriptorCount = 1;
-        accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-        vkUpdateDescriptorSets(m_vkctx.device(), 1, &accelerationStructureWrite, 0, nullptr);
+        assert(mesh->blas().initialized());
+        m_blasInstances.emplace_back(mesh->blas(), so->modelMatrix(), instanceOffset);
+        m_sceneObjectsDescription.push_back({mesh->vertexBuffer().address().deviceAddress,
+                                             mesh->indexBuffer().address().deviceAddress,
+                                             material->materialIndex(),
+                                             mesh->nTriangles()});
     }
 
-    /* Update description of scene meshes */
+    m_tlas[imageIndex].destroy(m_vkctx.device());
+    createTopLevelAccelerationStructure(vci, imageIndex);
+
+    /* Update accelleration structure descriptor */
+    VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+    descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+    descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+    descriptorAccelerationStructureInfo.pAccelerationStructures = &m_tlas[imageIndex].handle();
+    VkWriteDescriptorSet accelerationStructureWrite{};
+    accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    /* The specialized acceleration structure descriptor has to be chained */
+    accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
+    accelerationStructureWrite.dstSet = m_descriptorSetsTLAS[imageIndex];
+    accelerationStructureWrite.dstBinding = 0;
+    accelerationStructureWrite.descriptorCount = 1;
+    accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    vkUpdateDescriptorSets(m_vkctx.device(), 1, &accelerationStructureWrite, 0, nullptr);
+
+    /* Update buffer with meshes description */
     if (m_sceneObjectsDescription.size() > VULKAN_LIMITS_MAX_OBJECTS) {
-        throw std::runtime_error("VulkaScene::updateBuffers(): Number of objects exceeded");
+        throw std::runtime_error("VulkaScene::updateTLAS(): Number of objects exceeded");
     }
     {
         {
@@ -460,7 +463,7 @@ VkResult VulkanScene::createBuffers(uint32_t nImages)
                                            m_uniformBuffersScene[i]));
     }
 
-    m_storageBufferObjectDescription.reserve(nImages);
+    m_storageBufferObjectDescription.resize(nImages);
     for (int i = 0; i < nImages; i++) {
         VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
                                            m_vkctx.device(),
@@ -477,7 +480,7 @@ VkResult VulkanScene::createBuffers(uint32_t nImages)
     return VK_SUCCESS;
 }
 
-void VulkanScene::createTopLevelAccelerationStructure(uint32_t imageIndex)
+void VulkanScene::createTopLevelAccelerationStructure(VulkanCommandInfo vci, uint32_t imageIndex)
 {
     /* Create a buffer to hold top level instances */
     std::vector<VkAccelerationStructureInstanceKHR> instances(m_blasInstances.size());
@@ -500,8 +503,8 @@ void VulkanScene::createTopLevelAccelerationStructure(uint32_t imageIndex)
         instances[i].accelerationStructureReference = m_blasInstances[i].accelerationStructure.buffer().address().deviceAddress;
     }
 
-    m_tlas[imageIndex].initializeTopLevelAcceslerationStructure(
-        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, instances);
+    m_tlas[imageIndex].initializeTopLevelAcceslerationStructure({vci.physicalDevice, vci.device, vci.commandPool, vci.queue},
+                                                                instances);
 }
 
 }  // namespace vengine

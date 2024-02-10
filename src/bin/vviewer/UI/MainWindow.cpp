@@ -338,10 +338,10 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
 bool MainWindow::event(QEvent *event)
 {
     if (event->type() == QEvent::WindowActivate) {
-        // m_viewport->windowActivated(true);
+        m_viewport->windowActivated(true);
     }
     if (event->type() == QEvent::WindowDeactivate) {
-        // m_viewport->windowActivated(false);
+        m_viewport->windowActivated(false);
     }
 
     return QMainWindow::event(event);
@@ -1056,7 +1056,7 @@ void MainWindow::onStartUpInitialization()
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
     auto &instanceLightMaterials = AssetManager::getInstance().lightsMap();
 
-    /* Create a plane scene with the assetName on top */
+    /* Create a plane scene with the assetName on top and a directional light */
     try {
         auto matDef = instanceMaterials.get("defaultMaterial");
         auto matDefE = instanceMaterials.get("defaultEmissive");
@@ -1068,10 +1068,11 @@ void MainWindow::onStartUpInitialization()
         o1.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
         o1.second->add<ComponentMaterial>().material = matDef;
 
-        addSceneObjectModel(NULL, "assets/models/cube.obj");
+        addSceneObjectModel(NULL, assetName);
 
-        auto o2 = createEmptySceneObject("light", Transform({1, 1.9, 0}, {1, 1, 1}), nullptr);
-        o2.second->add<ComponentLight>().light = AssetManager::getInstance().lightsMap().get("defaultPointLight");
+        auto o2 = createEmptySceneObject(
+            "directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
+        o2.second->add<ComponentLight>().light = AssetManager::getInstance().lightsMap().get("defaultDirectionalLight");
 
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));

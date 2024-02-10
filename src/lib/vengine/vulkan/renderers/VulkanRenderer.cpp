@@ -290,7 +290,10 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         }
     }
 
-    m_scene.updateBuffers(meshes, lights, meshLights, static_cast<uint32_t>(imageIndex));
+    /* Update scene data, builds the TLAS */
+    m_scene.updateBuffers(meshes, lights, meshLights, imageIndex);
+    m_scene.updateTLAS(
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.renderCommandPool(), m_vkctx.renderQueue()}, meshes, imageIndex);
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
     m_textures.updateTextures();
 

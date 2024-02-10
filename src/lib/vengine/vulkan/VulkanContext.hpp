@@ -16,7 +16,7 @@ static const std::vector<const char *> VULKAN_INSTANCE_EXTENSIONS = {"VK_EXT_deb
                                                                      "VK_KHR_get_physical_device_properties2",
                                                                      "VK_KHR_surface",
 #ifdef __linux__
-                                                                    //  "VK_KHR_wayland_surface",
+                                                                     //  "VK_KHR_wayland_surface",
                                                                      "VK_KHR_xcb_surface",
                                                                      "VK_KHR_xlib_surface"
 #elif _WIN32
@@ -80,7 +80,7 @@ public:
     VkCommandPool &graphicsCommandPool() { return m_graphicsCommandPool; }
     VkCommandPool &renderCommandPool() { return m_renderCommandPool; }
 
-    VkSampleCountFlagBits &msaaSamples() { return m_msaaSamples; }
+    const VkSampleCountFlagBits &msaaSamples() { return m_msaaSamples; }
 
 private:
     bool m_initialized = false;

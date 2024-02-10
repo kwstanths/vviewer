@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_ray_tracing : enable
@@ -25,7 +25,7 @@ layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
 
-layout(set = 1, binding = 0) uniform readonly ModelDataDescriptor {
+layout(set = 1, binding = 0) uniform readonly ModelDataUBO {
     ModelData data[1024];
 } modelData;
 
@@ -111,24 +111,49 @@ void main() {
             if (ld.type.r == 0)
             {
                 /* Point light */
-                vec3 L_world = lc.position.rgb;
-                vec3 L = worldToLocal(frame, normalize(L_world - fragPos_world));
-        
-                float attenuation = squareDistanceAttenuation(fragPos_world, L_world);
+                vec3 L_world_position = lc.position.rgb;
+                vec3 L_world_direction = L_world_position - fragPos_world;
+                float L_distance = length(L_world_direction);
+                vec3 L_world_direction_normalized = normalize(L_world_direction); 
+                vec3 L = worldToLocal(frame, L_world_direction_normalized);
+
+                float attenuation = squareDistanceAttenuation(L_distance);
                 /* If contribution of light is smaller than 0.05 ignore it. Since we don't have a light radius right now to limit it */
                 if (attenuation * max3(L_color) < 0.05)
                 {
                     continue;
                 }
-                direct += L_color * albedo * max(L.y, 0.0) * INV_PI * attenuation;
+
+                float strength = 1.0;
+                if (lc.position.a == 1.0)
+                {
+                    vec3 rayquery_direction = L_world_direction_normalized;
+                    float rayquery_distance = L_distance;
+                    #include "include/rayquery.glsl"
+                    if (occluded)
+                    {
+                        strength = 0.05; /* Add 5% ambient */
+                    }
+                }
+                direct += strength * L_color * albedo * max(L.y, 0.0) * INV_PI * attenuation;
 
             } else if (ld.type.r == 1) {
-                vec3 L_world = lc.position.rgb;
-                vec3 L = worldToLocal(frame, normalize(-L_world));
-                   
                 /* Calculate light contrubution from directional light */
-                direct += L_color * albedo * max(L.y, 0.0) * INV_PI;
+                vec3 L_world_direction_normalized = normalize(-lc.position.rgb);
+                vec3 L = worldToLocal(frame, L_world_direction_normalized);
 
+                float strength = 1.0;
+                if (lc.position.a == 1.0)
+                {                  
+                    vec3 rayquery_direction = L_world_direction_normalized;
+                    float rayquery_distance = 10000.0;
+                    #include "include/rayquery.glsl"
+                    if (occluded)
+                    {
+                        strength = 0.05; /* Add 5% ambient */
+                    }
+                }
+                direct += strength * L_color * albedo * max(L.y, 0.0) * INV_PI;
             }
         }
     }

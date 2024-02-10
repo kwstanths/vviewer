@@ -41,13 +41,14 @@ public:
     {
         auto itr = m_uniqueData.find(t);
         if (itr == m_uniqueData.end()) {
-            /* Add new element */
+            /* If element doesn't exist, get free index and add new block */
             uint32_t index = static_cast<uint32_t>(m_freeList.getFree());
             T *p = &m_data[index];
             m_uniqueData[t] = {1, p};
             return index;
         }
 
+        /* If element exists, increase its count */
         itr->second.n++;
         return getIndex(itr->second.p);
     }

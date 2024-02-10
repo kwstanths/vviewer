@@ -69,7 +69,7 @@ private:
 
     /* Device data */
     bool m_isInitialized = false;
-    VkPhysicalDeviceProperties m_physicalDeviceProperties;
+    VkPhysicalDeviceProperties m_physicalDeviceProperties{};
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rayTracingPipelineProperties{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures{};
 

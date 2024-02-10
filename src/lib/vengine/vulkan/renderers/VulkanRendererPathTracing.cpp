@@ -177,8 +177,10 @@ void VulkanRendererPathTracing::render()
     m_pathTracingData.lights.r = static_cast<unsigned int>(lights.size() + meshLights.size());
     updateBuffers(sceneData, m_pathTracingData);
 
-    /* We will use the materials from buffer index 0 for this renderer */
+    /* We will use buffer index 0 for this renderer */
     m_scene.updateBuffers(meshes, lights, meshLights, 0);
+    m_scene.updateTLAS(
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, meshes, 0);
     m_materials.updateBuffers(0);
     m_textures.updateTextures();
 
@@ -419,8 +421,8 @@ VkResult VulkanRendererPathTracing::updateBuffersPathTracingData(const PathTraci
 VkResult VulkanRendererPathTracing::createDescriptorSets()
 {
     /* Main set is:
-     * 1 storage image for output
-     * 1 uniform buffer for scene data
+     * 3 storages image for output
+     * 1 uniform buffer for the scene data
      */
     std::vector<VkDescriptorPoolSize> poolSizes = {
         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
@@ -469,7 +471,7 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
 {
     /* Create the main descriptor set */
     {
-        /* Binding 0, the output image */
+        /* Binding 0, the output images */
         VkDescriptorSetLayoutBinding resultImageLayoutBinding =
             vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, 3);
         /* Binding 1, the scene data */
@@ -750,6 +752,7 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
 
     debug_tools::ConsoleInfo("Launching render with: " + std::to_string(batches * batchSize) + " samples");
     VkResult res = VK_SUCCESS;
+    /* TODO some calls can go outside the loop? */
     for (uint32_t batch = 0; batch < batches; batch++) {
         VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
@@ -806,7 +809,7 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
             vkDestroyFence(m_device, fence, nullptr);
         } else if (res == VK_TIMEOUT) {
             debug_tools::ConsoleCritical(
-                "VulkanRendererPathTracing::render(): Render failed with timeout. Please again with smaller batch size");
+                "VulkanRendererPathTracing::render(): Render failed with timeout. Try again with smaller batch size");
             break;
         } else if (res == VK_ERROR_DEVICE_LOST) {
             debug_tools::ConsoleCritical("VulkanRendererPathTracing::render(): Render failed with Device Lost");

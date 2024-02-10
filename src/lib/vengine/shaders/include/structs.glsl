@@ -49,7 +49,7 @@ struct LightData {
 /* LightInstance struct. A mirror of the CPU struct */
 struct LightInstance {
     uvec4 info;     /* R = LightData index, G = ModelData index, B = Object Description index if Mesh type, A = type (LightType) */
-    vec4 position;  /* RGB = world position/direction, A = unused or RGBA = row 0 of transform matrix if mesh type */
+    vec4 position;  /* RGB = world position/direction, A = casts shadow or RGBA = row 0 of transform matrix if mesh type */
     vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
     vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
 };

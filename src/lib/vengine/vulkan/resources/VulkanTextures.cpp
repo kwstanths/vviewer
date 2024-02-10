@@ -33,6 +33,12 @@ VkResult VulkanTextures::initSwapchainResources(uint32_t nImages)
     VULKAN_CHECK_CRITICAL(createDescriptorPool(nImages, VULKAN_LIMITS_MAX_TEXTURES));
     VULKAN_CHECK_CRITICAL(createDescriptorSets());
 
+    /* Update all textures descriptors */
+    m_texturesToUpdate.clear();
+    auto &textures = AssetManager::getInstance().texturesMap();
+    for (auto &t : textures) {
+        m_texturesToUpdate.push_back(static_cast<VulkanTexture *>(t.second));
+    }
     updateTextures();
 
     return VK_SUCCESS;

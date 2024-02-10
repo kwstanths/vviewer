@@ -51,6 +51,8 @@ SceneObject *Scene::addSceneObject(std::string name, SceneObject *parentNode, Tr
 
     m_objectsMap.insert({object->getID(), object});
 
+    m_sceneGraphNeedsUpdate = true;
+
     return object;
 }
 

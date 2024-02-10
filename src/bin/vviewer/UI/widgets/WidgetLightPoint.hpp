@@ -5,7 +5,7 @@
 #include <qpushbutton.h>
 #include <qslider.h>
 #include <qlabel.h>
-#include <qcombobox.h>
+#include <qcheckbox.h>
 
 #include <vengine/core/Light.hpp>
 
