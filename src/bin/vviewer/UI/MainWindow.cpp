@@ -323,8 +323,11 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
 
     /* Add light component */
     if (object.light.has_value()) {
+        ComponentLight &lightComponent = newSceneObject.second->add<ComponentLight>();
+
         auto light = instanceLights.get(object.light->name);
-        newSceneObject.second->add<ComponentLight>().light = light;
+        lightComponent.light = light;
+        lightComponent.castShadows = object.light->shadows;
     }
 
     /* Add children */

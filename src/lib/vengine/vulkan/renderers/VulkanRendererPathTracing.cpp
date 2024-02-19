@@ -933,6 +933,11 @@ VkResult VulkanRendererPathTracing::storeToDisk(std::vector<float> &radiance,
         oidn::FilterRef filter =
             device.newFilter("RT"); /* generic ray tracing filter, recommened for images generated with Monte Carlo */
 
+        /* Transform normals to [-1, 1] range */
+        for (auto &nc : normal) {
+            nc = nc * 2.0F - 1.F;
+        }
+
         filter.setImage(
             "color", radiance.data(), oidn::Format::Float3, width, height, 0, 4 * sizeof(float), width * 4 * sizeof(float));
         filter.setImage("albedo", albedo.data(), oidn::Format::Float3, width, height, 0, 4 * sizeof(float), width * 4 * sizeof(float));

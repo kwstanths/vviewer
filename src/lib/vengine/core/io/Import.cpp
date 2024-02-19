@@ -283,6 +283,10 @@ std::optional<ImportedSceneObjectLight> parseLightComponent(const rapidjson::Val
         throw std::runtime_error("parseLightComponent(): Imported light doesn't have a name");
     }
 
+    if (o["light"].HasMember("shadows")) {
+        importedLight.shadows = o["light"]["shadows"].GetBool();
+    } 
+
     return importedLight;
 }
 

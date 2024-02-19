@@ -152,6 +152,10 @@ void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneO
     name.SetString(light->name().c_str(), d.GetAllocator());
     lightObject.AddMember("name", name, d.GetAllocator());
 
+    Value castShadows;
+    castShadows.SetBool(sceneObject->get<ComponentLight>().castShadows);
+    lightObject.AddMember("shadows", castShadows, d.GetAllocator());
+
     v.AddMember("light", lightObject, d.GetAllocator());
 }
 

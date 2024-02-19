@@ -339,7 +339,9 @@ std::vector<ImportedMaterial> assimpLoadMaterialsOBJ(const aiScene *scene,
 
             int width, height, channels;
             auto *texData = assimpLoadTextureData(scene, folderPath, normalTexture, width, height, channels);
-            if (texData != nullptr) {
+            /* Somes .mtl files use map_Bump for displacement, others for normals...... Check at least that it doesn't have 1 channel
+             * only before using as a normal map */
+            if (texData != nullptr && channels != 1) {
                 ImportedTexture normalTex;
                 normalTex.location = AssetLocation::EMBEDDED;
                 normalTex.image = assimpCreateImage(

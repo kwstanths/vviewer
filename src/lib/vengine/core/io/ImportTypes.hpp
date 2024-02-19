@@ -129,6 +129,7 @@ struct ImportedSceneObjectMaterial {
 
 struct ImportedSceneObjectLight {
     std::string name = "";
+    bool shadows = true;
 };
 
 struct ImportedSceneObject {
