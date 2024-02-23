@@ -16,6 +16,8 @@ void parseSceneGraph(const SceneGraph &sceneObjectsArray,
         }
 
         if (itr->has<ComponentMesh>() && itr->has<ComponentMaterial>()) {
+            itr->computeAABB();
+
             outMeshes.push_back(itr);
 
             if (itr->get<ComponentMaterial>().material->isEmissive()) {

@@ -2,6 +2,7 @@
 #define __SceneObject_hpp__
 
 #include <vengine/math/Transform.hpp>
+#include <vengine/math/AABB.hpp>
 #include <vengine/utils/IDGeneration.hpp>
 #include <vengine/utils/ECS.hpp>
 #include "SceneNode.hpp"
@@ -31,6 +32,8 @@ public:
     virtual void setModelMatrix(const glm::mat4 &modelMatrix) override;
     virtual void transformChanged() override;
 
+    void computeAABB();
+
 protected:
     glm::vec3 m_idRGB;
 
@@ -38,6 +41,8 @@ private:
     std::string m_name = "";
     bool m_selected = false;
     bool m_active = true;
+
+    AABB3 m_aabb;
 
     Scene *m_scene;
 };

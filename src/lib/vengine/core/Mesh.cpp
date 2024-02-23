@@ -23,8 +23,11 @@ Mesh::Mesh(const AssetInfo &info,
     m_hasUVs = hasUVs;
     m_nTriangles = static_cast<uint32_t>(indices.size() / 3U);
 
-    if (!hasNormals)
+    if (!hasNormals) {
         computeNormals();
+    }
+
+    computeAABB();
 }
 
 const std::vector<Vertex> &Mesh::vertices() const
@@ -58,6 +61,11 @@ bool Mesh::hasTangents() const
     return m_hasUVs;
 }
 
+const AABB3 &Mesh::aabb() const
+{
+    return m_aabb;
+}
+
 void Mesh::computeNormals()
 {
     /* Make all normals zero */
@@ -81,6 +89,18 @@ void Mesh::computeNormals()
     /* Normalize */
     for (size_t i = 0; i < m_vertices.size(); i++) {
         m_vertices[i].normal = glm::normalize(m_vertices[i].normal);
+    };
+}
+
+void Mesh::computeAABB()
+{
+    if (m_vertices.size() == 0) {
+        return;
+    }
+
+    m_aabb = AABB3::fromPoint(m_vertices[0].position);
+    for (size_t i = 1; i < m_vertices.size(); i++) {
+        m_aabb.add(m_vertices[i].position);
     };
 }
 

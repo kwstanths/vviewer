@@ -12,14 +12,8 @@ VulkanMesh::VulkanMesh(const AssetInfo &info)
 {
 }
 
-VulkanMesh::VulkanMesh(const AssetInfo &info,
-                       const std::vector<Vertex> &vertices,
-                       const std::vector<uint32_t> &indices,
-                       bool hasNormals,
-                       bool hasUVs,
-                       VulkanCommandInfo vci,
-                       bool generateBLAS)
-    : Mesh(info, vertices, indices, hasNormals, hasUVs)
+VulkanMesh::VulkanMesh(const Mesh &mesh, VulkanCommandInfo vci, bool generateBLAS)
+    : Mesh(mesh)
 {
     VkBufferUsageFlags rayTracingUsageFlags = VulkanRendererPathTracing::getBufferUsageFlags();
 
@@ -29,11 +23,6 @@ VulkanMesh::VulkanMesh(const AssetInfo &info,
     if (generateBLAS) {
         m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F));
     }
-}
-
-VulkanMesh::VulkanMesh(const Mesh &mesh, VulkanCommandInfo vci, bool generateBLAS)
-    : VulkanMesh(mesh.info(), mesh.vertices(), mesh.indices(), mesh.hasNormals(), mesh.hasUVs(), vci, generateBLAS)
-{
 }
 
 void VulkanMesh::destroy(VkDevice device)
@@ -60,7 +49,7 @@ VulkanCube::VulkanCube(const AssetInfo &info, VulkanCommandInfo vci, bool genera
 
     m_indices = {0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 7, 6, 5, 5, 4, 7, 4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
 
-    Mesh mesh(info, m_vertices, m_indices, false, false);
+    m_nTriangles = m_indices.size() / 3U;
 
     createVertexBuffer(vci, m_vertices, {}, m_vertexBuffer);
     createIndexBuffer(vci, m_indices, {}, m_indexBuffer);
@@ -68,6 +57,8 @@ VulkanCube::VulkanCube(const AssetInfo &info, VulkanCommandInfo vci, bool genera
     if (generateBLAS) {
         m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F));
     }
+
+    computeAABB();
 }
 
 }  // namespace vengine

@@ -6,6 +6,7 @@
 
 #include <glm/glm.hpp>
 
+#include "vengine/math/AABB.hpp"
 #include "Asset.hpp"
 
 namespace vengine
@@ -59,7 +60,7 @@ public:
     bool hasUVs() const;
     bool hasTangents() const;
 
-    void computeNormals();
+    const AABB3 &aabb() const;
 
     const Model3D *m_model = nullptr;
 
@@ -70,6 +71,11 @@ protected:
 
     bool m_hasNormals = false;
     bool m_hasUVs = false;
+
+    AABB3 m_aabb;
+
+    void computeNormals();
+    void computeAABB();
 };
 
 }  // namespace vengine

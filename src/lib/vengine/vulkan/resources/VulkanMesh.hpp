@@ -71,13 +71,6 @@ class VulkanMesh : public Mesh
 {
 public:
     VulkanMesh(const AssetInfo &info);
-    VulkanMesh(const AssetInfo &info,
-               const std::vector<Vertex> &vertices,
-               const std::vector<uint32_t> &indices,
-               bool hasNormals,
-               bool hasUVs,
-               VulkanCommandInfo vci,
-               bool generateBLAS);
     VulkanMesh(const Mesh &mesh, VulkanCommandInfo vci, bool generateBLAS);
 
     void destroy(VkDevice device);

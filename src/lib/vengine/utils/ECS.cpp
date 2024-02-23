@@ -1,8 +1,14 @@
 #include "ECS.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
-Entity::Entity() 
+Entity *Component::entity() const
+{
+    return m_entity;
+}
+
+Entity::Entity()
 {
     m_id = IDGeneration::getInstance().getID();
 };
@@ -14,9 +20,9 @@ ID Entity::getID() const
 
 void ComponentManager::clear()
 {
-    for (auto& it: m_componentBuffers) {
+    for (auto &it : m_componentBuffers) {
         it.second->clear();
     }
 }
 
-}
+}  // namespace vengine

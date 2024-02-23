@@ -33,4 +33,26 @@ void SceneObject::transformChanged()
     m_scene->needsUpdate(true);
 }
 
+void SceneObject::computeAABB()
+{
+    if (has<ComponentMesh>()) {
+        ComponentMesh &mc = get<ComponentMesh>();
+
+        /* Transform mesh aabb points based on the current node model matrix */
+        std::array<glm::vec3, 8> aabbPoints;
+        for (uint32_t i = 0; i < 8; i++) {
+            aabbPoints[i] = modelMatrix() * glm::vec4(mc.mesh->aabb().corner(i), 1);
+        }
+
+        /* Create new AABB out of all transformed corners */
+        m_aabb = AABB3::fromPoint(aabbPoints[0]);
+        for (uint32_t i = 1; i < 8; i++) {
+            m_aabb.add(aabbPoints[i]);
+        }
+
+    } else {
+        m_aabb = AABB3();
+    }
+}
+
 }  // namespace vengine

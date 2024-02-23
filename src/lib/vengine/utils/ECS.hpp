@@ -21,32 +21,35 @@ namespace vengine
 
 static const uint32_t MAX_COMPONENTS = 16384;
 
-/* Component types */
+class Entity;
+
+/* Base Component class */
 class Component
 {
+    friend class Entity;
+
 public:
     virtual ~Component() = default;
-    ID m_entity = 0;
+
+    Entity *entity() const;
 
 private:
+    Entity *m_entity = nullptr;
 };
 
 class ComponentMesh : public Component
 {
 public:
-    ComponentMesh(){};
     Mesh *mesh;
 };
 class ComponentMaterial : public Component
 {
 public:
-    ComponentMaterial(){};
     Material *material;
 };
 class ComponentLight : public Component
 {
 public:
-    ComponentLight(){};
     Light *light;
     bool castShadows = true;
 };
@@ -160,7 +163,7 @@ public:
 
         auto &cm = ComponentManager::getInstance();
         T *c = cm.create<T>();
-        c->m_entity = m_id;
+        c->m_entity = this;
 
         const char *name = typeid(T).name();
         m_components[name] = c;
