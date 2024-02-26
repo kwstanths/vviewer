@@ -8,11 +8,14 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
+#include "defines_pt.glsl"
+
 #include "../include/structs.glsl"
 #include "../include/frame.glsl"
 #include "../include/sampling.glsl"
 #include "../include/utils.glsl"
 #include "../include/lighting.glsl"
+#include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
 
@@ -58,7 +61,8 @@ layout(set = 4, binding = 1) uniform readonly LightInstancesUBO {
     LightInstance data[1024];
 } lightInstances;
 
-#include "../include/rng.glsl"
+#include "../include/rng/rng.glsl"
+
 #include "lightSampling.glsl"
 #include "MIS.glsl"
 
@@ -153,7 +157,7 @@ void main()
     rayPayloadPrimary.direction = sampleDirectionWorld;
 
     /* float cosTheta = sampleDirectionLocal.y */
-    rayPayloadPrimary.beta *= albedo /* * INVPI * cosTheta / sampleDirectionPDF */;
+    rayPayloadPrimary.beta *= albedo /* * INV_PI * cosTheta / sampleDirectionPDF */;
 
     /* Next event estimation */
     rayPayloadNEE.throughput = 1.0;

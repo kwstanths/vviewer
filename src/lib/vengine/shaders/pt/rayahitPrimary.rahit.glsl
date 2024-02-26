@@ -8,8 +8,11 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
+#include "defines_pt.glsl"
+
 #include "../include/structs.glsl"
 #include "../include/constants.glsl"
+#include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
 
@@ -36,7 +39,7 @@ layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
 layout (set = 3, binding = 0) uniform sampler2D global_textures[];
 layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
 
-#include "../include/rng.glsl"
+#include "../include/rng/rng.glsl"
 
 void main()
 {

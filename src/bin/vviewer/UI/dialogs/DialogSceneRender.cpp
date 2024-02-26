@@ -63,7 +63,7 @@ DialogSceneRender::DialogSceneRender(QWidget *parent, const RendererPathTracing:
     /* Render parameters widget */
     m_samples = new QSpinBox();
     m_samples->setMinimum(0);
-    m_samples->setMaximum(65536);
+    m_samples->setMaximum(16384);
     m_samples->setValue(renderInfo.samples);
     m_samples->setFixedWidth(70);
     QHBoxLayout *layoutSamples = new QHBoxLayout();
@@ -75,7 +75,7 @@ DialogSceneRender::DialogSceneRender(QWidget *parent, const RendererPathTracing:
 
     m_depth = new QSpinBox();
     m_depth->setMinimum(0);
-    m_depth->setMaximum(65536);
+    m_depth->setMaximum(10);
     m_depth->setValue(renderInfo.depth);
     m_depth->setFixedWidth(70);
     QHBoxLayout *layoutDepth = new QHBoxLayout();
@@ -87,7 +87,7 @@ DialogSceneRender::DialogSceneRender(QWidget *parent, const RendererPathTracing:
 
     m_batchSize = new QSpinBox();
     m_batchSize->setMinimum(1);
-    m_batchSize->setMaximum(256);
+    m_batchSize->setMaximum(512);
     m_batchSize->setValue(renderInfo.batchSize);
     m_batchSize->setFixedWidth(70);
     QHBoxLayout *layoutBatchSize = new QHBoxLayout();

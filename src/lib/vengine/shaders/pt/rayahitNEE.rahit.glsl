@@ -8,9 +8,12 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
+#include "defines_pt.glsl"
+
 #include "../include/structs.glsl"
 #include "../include/constants.glsl"
 #include "../include/utils.glsl"
+#include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
 

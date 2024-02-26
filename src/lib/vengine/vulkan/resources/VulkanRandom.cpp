@@ -45,7 +45,6 @@ VkResult VulkanRandom::createBuffers()
                                        PMJ02BN_TABLE_SIZE_BYTES,
                                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                       &pmj02bnSequences[0][0][0],
                                        m_storageBufferPMJSequences));
 
     /* Create a buffer to hold the blue noise textures */
@@ -54,8 +53,21 @@ VkResult VulkanRandom::createBuffers()
                                        BLUE_NOISE_TABLE_SIZE_BYTES,
                                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                       &bluNoiseTextures[0][0][0],
                                        m_storageBufferBlueNoise));
+
+    {
+        void *data;
+        VULKAN_CHECK_CRITICAL(vkMapMemory(m_vkctx.device(), m_storageBufferPMJSequences.memory(), 0, VK_WHOLE_SIZE, 0, &data));
+        memcpy(data, &pmj02bnSequences[0][0][0], PMJ02BN_TABLE_SIZE_BYTES);
+        vkUnmapMemory(m_vkctx.device(), m_storageBufferPMJSequences.memory());
+    }
+
+    {
+        void *data;
+        VULKAN_CHECK_CRITICAL(vkMapMemory(m_vkctx.device(), m_storageBufferBlueNoise.memory(), 0, VK_WHOLE_SIZE, 0, &data));
+        memcpy(data, &bluNoiseTextures[0][0][0], BLUE_NOISE_TABLE_SIZE_BYTES);
+        vkUnmapMemory(m_vkctx.device(), m_storageBufferBlueNoise.memory());
+    }
 
     return VK_SUCCESS;
 }

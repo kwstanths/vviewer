@@ -501,7 +501,8 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
                                                           m_materials.descriptorSetLayout(),
                                                           m_textures.descriptorSetLayout(),
                                                           m_scene.layoutLights(),
-                                                          m_descriptorSetLayoutSkybox};
+                                                          m_descriptorSetLayoutSkybox,
+                                                          m_random.descriptorSetLayout()};
         VkPipelineLayoutCreateInfo pipelineLayoutInfo =
             vkinit::pipelineLayoutCreateInfo(static_cast<uint32_t>(setsLayouts.size()), setsLayouts.data(), 0, nullptr);
         VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
@@ -770,7 +771,8 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
                                                        m_materials.descriptorSet(0),
                                                        m_textures.descriptorSet(),
                                                        m_scene.descriptorSetLight(0),
-                                                       skyboxDescriptor};
+                                                       skyboxDescriptor,
+                                                       m_random.descriptorSet()};
         vkCmdBindDescriptorSets(commandBuffer,
                                 VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                                 m_pipelineLayout,

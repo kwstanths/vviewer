@@ -8,11 +8,14 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_buffer_reference2 : require
 
+#include "defines_pt.glsl"
+
 #include "../include/structs.glsl"
 #include "../include/frame.glsl"
 #include "../include/utils.glsl"
 #include "../include/lighting.glsl"
 #include "../include/brdfs/pbrStandard.glsl"
+#include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
 
@@ -53,12 +56,12 @@ layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
 layout(set = 4, binding = 0) uniform readonly LightDataUBO {
     LightData data[1024];
 } lightData;
-
 layout(set = 4, binding = 1) uniform readonly LightInstancesUBO {
     LightInstance data[1024];
 } lightInstances;
 
-#include "../include/rng.glsl"
+#include "../include/rng/rng.glsl"
+
 #include "lightSampling.glsl"
 #include "MIS.glsl"
 
@@ -81,7 +84,7 @@ void main()
     /* Compute the coordinates of the hit position */
     const vec3 localPosition      = v0.position * barycentricCoords.x + v1.position * barycentricCoords.y + v2.position * barycentricCoords.z;
     const vec3 worldPosition = vec3(gl_ObjectToWorldEXT * vec4(localPosition, 1.0));
-    /* Compute the normal, tangent and bitangent at hit position */
+    /* Compute normal, tangent and bitangent at hit position */
     const vec3 localNormal		= v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z;
     const vec3 localTangent 	= v0.tangent * barycentricCoords.x + v1.tangent * barycentricCoords.y + v2.tangent * barycentricCoords.z;
     const vec3 localBitangent	= v0.bitangent * barycentricCoords.x + v1.bitangent * barycentricCoords.y + v2.bitangent * barycentricCoords.z;
@@ -108,7 +111,6 @@ void main()
     pbr.roughness = material.metallicRoughnessAO.g * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.b)], tiledUV).r;
     pbr.roughness = max(pbr.roughness, 0.035); /* Cap low rougness because of sampling problems */
 
-    float ao = material.metallicRoughnessAO.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
     /* Store first hit info */
@@ -166,7 +168,7 @@ void main()
         return;
     } 
     rayPayloadPrimary.beta *= clamp(F / sampleDirectionPDF, 0, 1);
-    
+
     /* Next event estimation */
     rayPayloadNEE.throughput = 1.0;
     rayPayloadNEE.emissive = vec3(0);

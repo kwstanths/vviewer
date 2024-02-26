@@ -171,18 +171,7 @@ VkResult createBuffer(VkPhysicalDevice physicalDevice,
     /* copy data */
     void *mapped;
     VULKAN_CHECK_CRITICAL(vkMapMemory(device, outBuffer.memory(), 0, bufferSize, 0, &mapped));
-
     memcpy(mapped, data, bufferSize);
-
-    /* If host coherency hasn't been requested, do a manual flush to make writes visible */
-    if ((bufferProperties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0) {
-        VkMappedMemoryRange mappedMemoryRange{};
-        mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-        mappedMemoryRange.memory = outBuffer.memory();
-        mappedMemoryRange.offset = 0;
-        mappedMemoryRange.size = bufferSize;
-        VULKAN_CHECK_CRITICAL(vkFlushMappedMemoryRanges(device, 1, &mappedMemoryRange));
-    }
     vkUnmapMemory(device, outBuffer.memory());
 
     return VK_SUCCESS;

@@ -4,7 +4,10 @@
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
+#include "defines_pt.glsl"
+
 #include "../include/structs.glsl"
+#include "structs_pt.glsl"
 
 /* Main PT descriptor set */
 layout(set = 0, binding = 0, rgba32f) uniform image2D outputImage[3];
@@ -21,7 +24,8 @@ layout(set = 0, binding = 2) uniform PathTracingData
 layout(set = 1, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
 #include "../include/sampling.glsl"
-#include "../include/rng.glsl"
+
+#include "../include/rng/rng.glsl"
 
 layout(location = 0) rayPayloadEXT RayPayloadPrimary rayPayloadPrimary;
 
@@ -33,11 +37,18 @@ void main()
     uint batchIndex = pathTracingData.samplesBatchesDepthIndex.a;
     uint totalSamples = batchSize * batches;
 
-    /* Initialize a RNG */
-    uint rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, batchIndex);
-    rayPayloadPrimary.rngState = rngState;
+#ifdef SAMPLING_PMJ
+    rayPayloadPrimary.samplesPerPixel = totalSamples;
+#endif
+
+#ifdef SAMPLING_RTGEMS
+    rayPayloadPrimary.rngState = initRNG(gl_LaunchIDEXT.xy, gl_LaunchSizeEXT.xy, batchIndex);
+#endif
 
     /* Calculate pixel uvs */
+#ifdef SAMPLING_PMJ
+    rayPayloadPrimary.pixel = gl_LaunchIDEXT.xy;
+#endif
     const vec2 pixelLeftCorner = vec2(gl_LaunchIDEXT.xy);
     
     float lensRadius = sceneData.data.exposure.b;
@@ -48,6 +59,12 @@ void main()
     vec3 cumNormal = vec3(0);
     for(int s = 0; s < batchSize; s++) 
     {
+#ifdef SAMPLING_PMJ
+        /* Start sampling at random dimension to avoid clustering artifacts with low number of total samples */
+        rayPayloadPrimary.dimension = (rayPayloadPrimary.pixel.y * gl_LaunchSizeEXT.x + rayPayloadPrimary.pixel.y);
+        rayPayloadPrimary.sampleIndex = batchIndex * batchSize + s;
+#endif
+
         /* Calculate first ray target offset */
         vec2 pixelOffset = rand2D(rayPayloadPrimary);
         const vec2 inUV = (pixelLeftCorner + pixelOffset) / vec2(gl_LaunchSizeEXT.xy);

@@ -20,6 +20,7 @@ A real time renderer and an offline path tracer written in Vulkan and a 3D scene
     * Object Highlighting
     * Object Transform visualization
 * GPU path traced rendering
+    * Low discrepancy sampling with progressive sequences
     * Multiple importance sampling
         * Light sampling
         * BRDF sampling
