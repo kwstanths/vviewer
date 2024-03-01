@@ -36,6 +36,8 @@ public:
     QDoubleSpinBox *m_uTiling;
     QDoubleSpinBox *m_vTiling;
 
+    void updateAvailableTextures();
+
 private:
     vengine::MaterialLambert *m_material = nullptr;
 

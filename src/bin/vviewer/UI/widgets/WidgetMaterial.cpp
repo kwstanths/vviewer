@@ -34,7 +34,7 @@ WidgetMaterial::WidgetMaterial(QWidget *parent, vengine::ComponentMaterial &mate
     setLayout(m_layoutMain);
 }
 
-void WidgetMaterial::updateAvailableMaterials()
+void WidgetMaterial::updateAvailableMaterials(bool updateTextures)
 {
     QStringList availableMaterials = getCreatedMaterials();
     m_comboBoxAvailableMaterials->blockSignals(true);
@@ -42,6 +42,27 @@ void WidgetMaterial::updateAvailableMaterials()
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
     m_comboBoxAvailableMaterials->blockSignals(false);
     m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_materialComponent.material->name()));
+
+    if (updateTextures) {
+        updateAvailableTextures();
+    }
+}
+
+void WidgetMaterial::updateAvailableTextures()
+{
+    switch (m_materialComponent.material->type()) {
+        case vengine::MaterialType::MATERIAL_LAMBERT: {
+            static_cast<WidgetMaterialLambert *>(m_widgetMaterial)->updateAvailableTextures();
+            break;
+        }
+        case vengine::MaterialType::MATERIAL_PBR_STANDARD: {
+            static_cast<WidgetMaterialPBR *>(m_widgetMaterial)->updateAvailableTextures();
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 }
 
 void WidgetMaterial::createUI(QWidget *widgetMaterial)

@@ -31,6 +31,7 @@ public:
 
     void updateAvailableMaterials();
     void updateAvailableLights();
+    void updateAvailableTextures();
 
     void pauseUpdate(bool pause);
 

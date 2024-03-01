@@ -152,6 +152,18 @@ WidgetMaterialLambert::WidgetMaterialLambert(QWidget *parent, MaterialLambert *m
     connect(m_alpha, &QSlider::valueChanged, this, &WidgetMaterialLambert::onAlphaChanged);
 }
 
+void WidgetMaterialLambert::updateAvailableTextures()
+{
+    QStringList availableSRGBTextures = getImportedTextures(ColorSpace::sRGB);
+    QStringList availableLinearTextures = getImportedTextures(ColorSpace::LINEAR);
+
+    updateTextureComboBox(m_comboBoxAlbedo, availableSRGBTextures, QString::fromStdString(m_material->getAlbedoTexture()->name()));
+    updateTextureComboBox(m_comboBoxAO, availableLinearTextures, QString::fromStdString(m_material->getAOTexture()->name()));
+    updateTextureComboBox(m_comboBoxEmissive, availableSRGBTextures, QString::fromStdString(m_material->getEmissiveTexture()->name()));
+    updateTextureComboBox(m_comboBoxNormal, availableLinearTextures, QString::fromStdString(m_material->getNormalTexture()->name()));
+    updateTextureComboBox(m_comboBoxAlpha, availableLinearTextures, QString::fromStdString(m_material->getAlphaTexture()->name()));
+}
+
 void WidgetMaterialLambert::onAlbedoButton()
 {
     glm::vec4 currentColor = m_material->albedo();

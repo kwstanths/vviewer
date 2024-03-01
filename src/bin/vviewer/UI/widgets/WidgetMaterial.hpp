@@ -22,7 +22,8 @@ public:
 
     WidgetMaterial(QWidget *parent, vengine::ComponentMaterial &materialComponent);
 
-    void updateAvailableMaterials();
+    void updateAvailableMaterials(bool updateTextures = false);
+    void updateAvailableTextures();
 
 private:
     vengine::ComponentMaterial &m_materialComponent;

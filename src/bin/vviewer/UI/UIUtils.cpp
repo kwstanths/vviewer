@@ -84,3 +84,18 @@ void setButtonColor(QPushButton *button, QColor color)
     QString qss = QString("background-color: %1").arg(color.name());
     button->setStyleSheet(qss);
 }
+
+void updateTextureComboBox(QComboBox *box, QStringList names, QString currentText, bool blockSignals)
+{
+    if (blockSignals) {
+        box->blockSignals(true);
+    }
+
+    box->clear();
+    box->addItems(names);
+    box->setCurrentText(currentText);
+
+    if (blockSignals) {
+        box->blockSignals(false);
+    }
+}

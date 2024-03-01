@@ -72,7 +72,7 @@ WidgetEnvironment *WidgetRightPanel::getEnvironmentWidget()
 void WidgetRightPanel::updateAvailableMaterials()
 {
     if (m_selectedObjectWidgetMaterial != nullptr) {
-        m_selectedObjectWidgetMaterial->getWidget<WidgetMaterial>()->updateAvailableMaterials();
+        m_selectedObjectWidgetMaterial->getWidget<WidgetMaterial>()->updateAvailableMaterials(true);
     }
 }
 
@@ -80,6 +80,13 @@ void WidgetRightPanel::updateAvailableLights()
 {
     if (m_selectedObjectWidgetLight != nullptr) {
         m_selectedObjectWidgetLight->getWidget<WidgetLight>()->updateAvailableLights();
+    }
+}
+
+void WidgetRightPanel::updateAvailableTextures()
+{
+    if (m_selectedObjectWidgetMaterial != nullptr) {
+        m_selectedObjectWidgetMaterial->getWidget<WidgetMaterial>()->updateAvailableTextures();
     }
 }
 

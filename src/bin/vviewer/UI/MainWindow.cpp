@@ -417,6 +417,8 @@ void MainWindow::onImportTextureSRGBSlot()
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
 
+    m_widgetRightPanel->updateAvailableTextures();
+
     delete waiting;
 }
 
@@ -455,6 +457,8 @@ void MainWindow::onImportTextureLinearSlot()
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
+
+    m_widgetRightPanel->updateAvailableTextures();
 
     delete waiting;
 }
