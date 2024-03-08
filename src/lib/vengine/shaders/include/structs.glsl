@@ -15,7 +15,8 @@ struct SceneData {
     mat4 viewInverse;
     mat4 projection;
     mat4 projectionInverse;
-    vec4 exposure; /* R = exposure, G = environment map intensity, B = lens radius , A = focal distance */
+    vec4 exposure;      /* R = exposure, G = environment map intensity, B = lens radius , A = focal distance */
+    vec4 background;    /* RGB = background color, A = environment type */
 };
 
 /* ModelData struct. A mirror of the CPU struct */
