@@ -16,7 +16,10 @@ class VulkanAccelerationStructure
 public:
     VulkanAccelerationStructure();
 
-    VkResult initializeBottomLevelAcceslerationStructure(VulkanCommandInfo vci, const VulkanMesh &mesh, const glm::mat4 &transform);
+    VkResult initializeBottomLevelAcceslerationStructure(VulkanCommandInfo vci,
+                                                         const VulkanMesh &mesh,
+                                                         const glm::mat4 &transform,
+                                                         bool anyHitShader = false);
     VkResult initializeTopLevelAcceslerationStructure(VulkanCommandInfo vci,
                                                       const std::vector<VkAccelerationStructureInstanceKHR> &instances);
 

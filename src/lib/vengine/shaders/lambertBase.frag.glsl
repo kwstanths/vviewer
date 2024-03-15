@@ -129,7 +129,7 @@ void main() {
                 {
                     vec3 rayquery_direction = L_world_direction_normalized;
                     float rayquery_distance = L_distance;
-                    #include "include/rayquery.glsl"
+                    #include "include/rayquery_occluded.glsl"
                     if (occluded)
                     {
                         strength = 0.05; /* Add 5% ambient */
@@ -147,7 +147,7 @@ void main() {
                 {                  
                     vec3 rayquery_direction = L_world_direction_normalized;
                     float rayquery_distance = 10000.0;
-                    #include "include/rayquery.glsl"
+                    #include "include/rayquery_occluded.glsl"
                     if (occluded)
                     {
                         strength = 0.05; /* Add 5% ambient */

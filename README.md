@@ -25,6 +25,7 @@ A real time renderer and an offline path tracer written in Vulkan and a 3D scene
         * Light sampling
         * BRDF sampling
     * Next event estimation
+    * Russian roulette
     * Depth of field
     * Denoising
 * Scene graph

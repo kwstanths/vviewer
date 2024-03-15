@@ -21,7 +21,7 @@ VulkanMesh::VulkanMesh(const Mesh &mesh, VulkanCommandInfo vci, bool generateBLA
     createIndexBuffer(vci, m_indices, rayTracingUsageFlags, m_indexBuffer);
 
     if (generateBLAS) {
-        m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F));
+        m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F), true);
     }
 }
 
@@ -55,7 +55,7 @@ VulkanCube::VulkanCube(const AssetInfo &info, VulkanCommandInfo vci, bool genera
     createIndexBuffer(vci, m_indices, {}, m_indexBuffer);
 
     if (generateBLAS) {
-        m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F));
+        m_blas.initializeBottomLevelAcceslerationStructure(vci, *this, glm::mat4(1.0F), true);
     }
 
     computeAABB();

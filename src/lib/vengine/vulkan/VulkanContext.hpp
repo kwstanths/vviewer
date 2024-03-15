@@ -26,13 +26,13 @@ static const std::vector<const char *> VULKAN_INSTANCE_EXTENSIONS = {"VK_EXT_deb
 
 /* true means mandatory */
 static const std::vector<std::pair<const char *, bool>> VULKAN_DEVICE_EXTENSIONS = {
-    {"VK_KHR_swapchain", true},               /* Presentation extension, is mandatory */
-    {"VK_KHR_acceleration_structure", false}, /* Ray tracing extensions, not mandatory */
+    {"VK_KHR_swapchain", true},
+    {"VK_KHR_acceleration_structure", true},
     {"VK_KHR_ray_tracing_pipeline", false},
     {"VK_KHR_buffer_device_address", false},
     {"VK_KHR_deferred_host_operations", false},
     {"VK_EXT_descriptor_indexing", true},
-    {"VK_KHR_spirv_1_4", false},
+    {"VK_KHR_spirv_1_4", true},
     {"VK_KHR_shader_float_controls", false},
     {"VK_KHR_maintenance3", false},
     {"VK_KHR_ray_query", true},

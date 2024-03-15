@@ -13,7 +13,8 @@ VulkanAccelerationStructure::VulkanAccelerationStructure()
 
 VkResult VulkanAccelerationStructure::initializeBottomLevelAcceslerationStructure(VulkanCommandInfo vci,
                                                                                   const VulkanMesh &mesh,
-                                                                                  const glm::mat4 &t)
+                                                                                  const glm::mat4 &t,
+                                                                                  bool anyHitShader)
 {
     assert(!initialized());
 
@@ -54,9 +55,8 @@ VkResult VulkanAccelerationStructure::initializeBottomLevelAcceslerationStructur
     /* Specify an acceleration structure geometry for the mesh */
     VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
     accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-    // accelerationStructureGeometry.flags =
-    //     (material->transparent() ? VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR : VK_GEOMETRY_OPAQUE_BIT_KHR);
-    accelerationStructureGeometry.flags = VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR;
+    accelerationStructureGeometry.flags =
+        (anyHitShader ? VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR : VK_GEOMETRY_OPAQUE_BIT_KHR);
     accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
     accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
     accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
