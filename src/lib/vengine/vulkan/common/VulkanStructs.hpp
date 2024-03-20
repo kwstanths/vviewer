@@ -87,8 +87,15 @@ struct PushBlockForward {
     glm::uvec4 lights;  /* R = light 1, G = light 2, B = light 3, A = light 4*/
 };
 
-struct PushBlockForward3DUI {
+struct PushBlockForward3DUITransform {
     glm::mat4 modelMatrix;
+    glm::vec4 color;    /* RGB = color of the UI, A = unused */
+    glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
+};
+
+struct PushBlockForward3DUIAABB {
+    glm::vec4 min;      /* RGB = min point of AABB, A = unused */
+    glm::vec4 max;      /* RGB = max point of AABB, A = unused */
     glm::vec4 color;    /* RGB = color of the UI, A = unused */
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
 };

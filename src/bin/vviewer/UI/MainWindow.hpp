@@ -133,6 +133,9 @@ private Q_SLOTS:
     /* Show context menu for scene graph */
     void onContextMenuSceneGraph(const QPoint &pos);
 
+    /* Show selected AABB slot */
+    void onShowSelectedAABBSlot(int);
+
     /* Start up scene initialization */
     void onStartUpInitialization();
 };

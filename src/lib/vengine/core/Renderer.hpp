@@ -48,8 +48,13 @@ public:
 
     virtual RendererPathTracing &rendererPathTracing() = 0;
 
+    bool &showSelectedAABB() { return m_showSelectedAABB; }
+    const bool &showSelectedAABB() const { return m_showSelectedAABB; }
+
 protected:
     SceneObject *m_selectedObject = nullptr;
+
+    bool m_showSelectedAABB = true;
 
 private:
 };

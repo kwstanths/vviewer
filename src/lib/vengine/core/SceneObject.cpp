@@ -33,6 +33,11 @@ void SceneObject::transformChanged()
     m_scene->needsUpdate(true);
 }
 
+const AABB3 &SceneObject::AABB() const
+{
+    return m_aabb;
+}
+
 void SceneObject::computeAABB()
 {
     if (has<ComponentMesh>()) {

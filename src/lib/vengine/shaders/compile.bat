@@ -5,8 +5,11 @@ set compiler=%VULKAN_SDK%\Bin\glslangValidator.exe
 %compiler% -V --target-env spirv1.4 standard.vert.glsl -o SPIRV/standard.vert.spv
 %compiler% -V --target-env spirv1.4 pbrBase.frag.glsl -o SPIRV/pbrBase.frag.spv
 %compiler% -V --target-env spirv1.4 lambertBase.frag.glsl -o SPIRV/lambertBase.frag.spv
-%compiler% -V 3dui.vert.glsl -o SPIRV/3dui.vert.spv
-%compiler% -V 3dui.frag.glsl -o SPIRV/3dui.frag.spv
+%compiler% -V ui/3duiTransform.vert.glsl -o SPIRV/3duiTransform.vert.spv
+%compiler% -V ui/3duiTransform.frag.glsl -o SPIRV/3duiTransform.frag.spv
+%compiler% -V ui/3duiAABB.vert.glsl -o SPIRV/3duiAABB.vert.spv
+%compiler% -V ui/3duiAABB.geom.glsl -o SPIRV/3duiAABB.geom.spv
+%compiler% -V ui/3duiAABB.frag.glsl -o SPIRV/3duiAABB.frag.spv
 
 %compiler% -V skybox/skybox.vert.glsl -o SPIRV/skybox.vert.spv
 %compiler% -V skybox/skybox.frag.glsl -o SPIRV/skybox.frag.spv

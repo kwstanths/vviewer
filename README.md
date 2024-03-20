@@ -17,8 +17,9 @@ A real time renderer and an offline path tracer written in Vulkan and a 3D scene
     * Image Based Lighting
     * MSAA
     * Ray traced shadows
-    * Object Highlighting
-    * Object Transform visualization
+    * Highlighting
+    * Transform visualization
+    * AABB visualization
 * GPU path traced rendering
     * Low discrepancy sampling with progressive sequences
     * Multiple importance sampling

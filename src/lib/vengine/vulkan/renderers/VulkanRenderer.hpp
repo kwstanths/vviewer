@@ -86,7 +86,7 @@ private:
     VulkanScene &m_scene;
     VulkanRandom m_random;
 
-    /* Render pass and framebuffers */
+    /* Render passes and framebuffers */
     VkRenderPass m_renderPassForward;
     VkRenderPass m_renderPassPost;
     VkRenderPass m_renderPassUI;

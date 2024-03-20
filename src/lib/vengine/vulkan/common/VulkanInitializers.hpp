@@ -254,11 +254,12 @@ inline VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(uint32_t setLayoutCou
     return pipelineLayoutCreateInfo;
 }
 
-inline VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyCreateInfo()
+inline VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyCreateInfo(
+    VkPrimitiveTopology primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 {
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyCreateInfo{};
     pipelineInputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    pipelineInputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    pipelineInputAssemblyCreateInfo.topology = primitiveTopology;
     pipelineInputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
     return pipelineInputAssemblyCreateInfo;
 }

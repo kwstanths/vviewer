@@ -32,6 +32,8 @@ public:
     virtual void setModelMatrix(const glm::mat4 &modelMatrix) override;
     virtual void transformChanged() override;
 
+    const AABB3 &AABB() const;
+
     void computeAABB();
 
 protected:

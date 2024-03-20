@@ -51,15 +51,18 @@ VkResult VulkanRenderer3DUI::initSwapChainResources(VkExtent2D swapchainExtent,
     m_renderPass = renderPass;
     m_msaaSamples = msaaSamples;
 
-    VULKAN_CHECK_CRITICAL(createGraphicsPipeline());
+    VULKAN_CHECK_CRITICAL(createGraphicsPipelines());
 
     return VK_SUCCESS;
 }
 
 VkResult VulkanRenderer3DUI::releaseSwapChainResources()
 {
-    vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+    vkDestroyPipeline(m_device, m_graphicsPipelineTransform, nullptr);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayoutTransform, nullptr);
+
+    vkDestroyPipeline(m_device, m_graphicsPipelineAABB, nullptr);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayoutAABB, nullptr);
 
     return VK_SUCCESS;
 }
@@ -69,16 +72,6 @@ VkResult VulkanRenderer3DUI::releaseResources()
     m_arrow->destroy(m_device);
 
     return VK_SUCCESS;
-}
-
-VkPipeline VulkanRenderer3DUI::getPipeline() const
-{
-    return m_graphicsPipeline;
-}
-
-VkPipelineLayout VulkanRenderer3DUI::getPipelineLayout() const
-{
-    return m_pipelineLayout;
 }
 
 VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
@@ -99,7 +92,7 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
         scale *= fov / 60.0F;
     }
 
-    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineTransform);
 
     const auto &vkmesh = static_cast<VulkanMesh *>(m_arrow->mesh("Cone"));
 
@@ -111,9 +104,9 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
     VkDescriptorSet descriptorSets[1] = {
         descriptorScene,
     };
-    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptorSets[0], 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayoutTransform, 0, 1, &descriptorSets[0], 0, nullptr);
 
-    PushBlockForward3DUI pushConstants;
+    PushBlockForward3DUITransform pushConstants;
 
     /* Calculate the unscaled version of the input model matrix, if scale is zero this will fail */
     glm::mat4 modelMatrixUnscaled;
@@ -131,10 +124,10 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
     pushConstants.color = glm::vec4(0, 0, 1, 1);
     pushConstants.selected = glm::vec4(m_forwardID, 0);
     vkCmdPushConstants(cmdBuf,
-                       m_pipelineLayout,
+                       m_pipelineLayoutTransform,
                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                        0,
-                       sizeof(PushBlockForward3DUI),
+                       sizeof(PushBlockForward3DUITransform),
                        &pushConstants);
     vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
     /* Render X arrow */
@@ -142,10 +135,10 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
     pushConstants.color = glm::vec4(1, 0, 0, 1);
     pushConstants.selected = glm::vec4(m_rightID, 0);
     vkCmdPushConstants(cmdBuf,
-                       m_pipelineLayout,
+                       m_pipelineLayoutTransform,
                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                        0,
-                       sizeof(PushBlockForward3DUI),
+                       sizeof(PushBlockForward3DUITransform),
                        &pushConstants);
     vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
     /* Render Y arrow */
@@ -153,69 +146,161 @@ VkResult VulkanRenderer3DUI::renderTransform(VkCommandBuffer &cmdBuf,
     pushConstants.color = glm::vec4(0, 1, 0, 1);
     pushConstants.selected = glm::vec4(m_upID, 0);
     vkCmdPushConstants(cmdBuf,
-                       m_pipelineLayout,
+                       m_pipelineLayoutTransform,
                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                        0,
-                       sizeof(PushBlockForward3DUI),
+                       sizeof(PushBlockForward3DUITransform),
                        &pushConstants);
     vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
 
     return VK_SUCCESS;
 }
 
-VkResult VulkanRenderer3DUI::createGraphicsPipeline()
+VkResult VulkanRenderer3DUI::renderAABB3(VkCommandBuffer &cmdBuf,
+                                         VkDescriptorSet &descriptorScene,
+                                         uint32_t imageIndex,
+                                         const AABB3 &aabb,
+                                         const std::shared_ptr<Camera> &camera) const
 {
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_device, "shaders/SPIRV/3dui.vert.spv"), "main");
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_device, "shaders/SPIRV/3dui.frag.spv"), "main");
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    vkCmdSetLineWidth(cmdBuf, 1.0f);
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineAABB);
 
-    auto bindingDescription = VulkanVertex::getBindingDescription();
-    auto attributeDescriptions = VulkanVertex::getAttributeDescriptionsPos();
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(
-        1, &bindingDescription, static_cast<uint32_t>(attributeDescriptions.size()), attributeDescriptions.data());
+    VkDescriptorSet descriptorSets[1] = {
+        descriptorScene,
+    };
+    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayoutAABB, 0, 1, &descriptorSets[0], 0, nullptr);
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
+    PushBlockForward3DUIAABB pushConstants;
+    pushConstants.min = glm::vec4(aabb.min(), 1);
+    pushConstants.max = glm::vec4(aabb.max(), 1);
+    pushConstants.color = glm::vec4(0.8, 0.8, 0, 1);
+    pushConstants.selected = glm::vec4(0);
+    vkCmdPushConstants(cmdBuf,
+                       m_pipelineLayoutAABB,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                       0,
+                       sizeof(PushBlockForward3DUIAABB),
+                       &pushConstants);
 
-    VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0, 0);
-    VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
+    vkCmdDraw(cmdBuf, 1U, 1U, 0, 0);
 
-    VkPipelineRasterizationStateCreateInfo rasterizer =
-        vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(m_msaaSamples);
-    VkPipelineDepthStencilStateCreateInfo depthStencil =
-        vkinit::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS);
+    return VK_SUCCESS;
+}
 
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, VK_FALSE);
-    std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
-    VkPipelineColorBlendStateCreateInfo colorBlending =
-        vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
+VkResult VulkanRenderer3DUI::createGraphicsPipelines()
+{
+    /* Create pipeline for Transform render */
+    {
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_device, "shaders/SPIRV/3duiTransform.vert.spv"), "main");
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_device, "shaders/SPIRV/3duiTransform.frag.spv"), "main");
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-    std::array<VkDescriptorSetLayout, 1> descriptorSetsLayouts{m_descriptorSetLayoutCamera};
-    VkPushConstantRange pushConstantRange =
-        vkinit::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushBlockForward3DUI), 0);
+        auto bindingDescription = VulkanVertex::getBindingDescription();
+        auto attributeDescriptions = VulkanVertex::getAttributeDescriptionsPos();
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(
+            1, &bindingDescription, static_cast<uint32_t>(attributeDescriptions.size()), attributeDescriptions.data());
 
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(
-        static_cast<uint32_t>(descriptorSetsLayouts.size()), descriptorSetsLayouts.data(), 1, &pushConstantRange);
-    VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
 
-    VkGraphicsPipelineCreateInfo pipelineInfo = vkinit::graphicsPipelineCreateInfo(m_pipelineLayout, m_renderPass, 0);
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = &depthStencil;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    VULKAN_CHECK_CRITICAL(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline));
+        VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
+        VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0, 0);
+        VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
 
-    vkDestroyShaderModule(m_device, fragShaderStageInfo.module, nullptr);
-    vkDestroyShaderModule(m_device, vertShaderStageInfo.module, nullptr);
+        VkPipelineRasterizationStateCreateInfo rasterizer =
+            vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(m_msaaSamples);
+        VkPipelineDepthStencilStateCreateInfo depthStencil =
+            vkinit::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS);
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, VK_FALSE);
+        std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
+        VkPipelineColorBlendStateCreateInfo colorBlending = vkinit::pipelineColorBlendStateCreateInfo(
+            static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
+
+        std::array<VkDescriptorSetLayout, 1> descriptorSetsLayouts{m_descriptorSetLayoutCamera};
+        VkPushConstantRange pushConstantRange = vkinit::pushConstantRange(
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushBlockForward3DUITransform), 0);
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(
+            static_cast<uint32_t>(descriptorSetsLayouts.size()), descriptorSetsLayouts.data(), 1, &pushConstantRange);
+        VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayoutTransform));
+
+        VkGraphicsPipelineCreateInfo pipelineInfo = vkinit::graphicsPipelineCreateInfo(m_pipelineLayoutTransform, m_renderPass, 0);
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pDepthStencilState = &depthStencil;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        VULKAN_CHECK_CRITICAL(
+            vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineTransform));
+
+        vkDestroyShaderModule(m_device, fragShaderStageInfo.module, nullptr);
+        vkDestroyShaderModule(m_device, vertShaderStageInfo.module, nullptr);
+    }
+
+    /* Create pipeline for AABB render */
+    {
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_device, "shaders/SPIRV/3duiAABB.vert.spv"), "main");
+        VkPipelineShaderStageCreateInfo geomShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_GEOMETRY_BIT, VulkanShader::load(m_device, "shaders/SPIRV/3duiAABB.geom.spv"), "main");
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_device, "shaders/SPIRV/3duiAABB.frag.spv"), "main");
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo, geomShaderStageInfo};
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(0, nullptr, 0, nullptr);
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly =
+            vkinit::pipelineInputAssemblyCreateInfo(VK_PRIMITIVE_TOPOLOGY_POINT_LIST);
+
+        VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
+        VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0, 0);
+        VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
+
+        VkPipelineRasterizationStateCreateInfo rasterizer =
+            vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(m_msaaSamples);
+        VkPipelineDepthStencilStateCreateInfo depthStencil =
+            vkinit::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_FALSE, VK_COMPARE_OP_LESS);
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, VK_FALSE);
+        std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
+        VkPipelineColorBlendStateCreateInfo colorBlending = vkinit::pipelineColorBlendStateCreateInfo(
+            static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
+
+        std::array<VkDescriptorSetLayout, 1> descriptorSetsLayouts{m_descriptorSetLayoutCamera};
+        VkPushConstantRange pushConstantRange =
+            vkinit::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                      sizeof(PushBlockForward3DUIAABB),
+                                      0);
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(
+            static_cast<uint32_t>(descriptorSetsLayouts.size()), descriptorSetsLayouts.data(), 1, &pushConstantRange);
+        VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayoutAABB));
+
+        VkGraphicsPipelineCreateInfo pipelineInfo = vkinit::graphicsPipelineCreateInfo(m_pipelineLayoutAABB, m_renderPass, 0);
+        pipelineInfo.stageCount = 3;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pDepthStencilState = &depthStencil;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        VULKAN_CHECK_CRITICAL(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineAABB));
+
+        vkDestroyShaderModule(m_device, fragShaderStageInfo.module, nullptr);
+        vkDestroyShaderModule(m_device, geomShaderStageInfo.module, nullptr);
+        vkDestroyShaderModule(m_device, vertShaderStageInfo.module, nullptr);
+    }
 
     return VK_SUCCESS;
 }

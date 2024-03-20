@@ -415,6 +415,11 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                            m_selectedObject->modelMatrix(),
                                            m_scene.camera());
 
+            if (m_showSelectedAABB) {
+                m_renderer3DUI.renderAABB3(
+                    commandBuffer, m_scene.descriptorSetSceneData(imageIndex), imageIndex, m_selectedObject->AABB(), m_scene.camera());
+            }
+
             vkCmdEndRenderPass(commandBuffer);
         }
     }
@@ -531,6 +536,7 @@ VkResult VulkanRenderer::createRenderPasses()
         VkAttachmentReference highlightAttachmentRef{};
         highlightAttachmentRef.attachment = 2;
         highlightAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; /* During the subpass */
+        /* Resolve attacment for highlight */
         VkAttachmentDescription highlightAttachmentResolve{};
         highlightAttachmentResolve.format = m_internalRenderFormat;
         highlightAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -548,7 +554,7 @@ VkResult VulkanRenderer::createRenderPasses()
         depthAttachment.format = m_swapchain.depthFormat();
         depthAttachment.samples = m_vkctx.msaaSamples();
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -697,6 +703,19 @@ VkResult VulkanRenderer::createRenderPasses()
         highlightAttachmentResolveRef.attachment = 3;
         highlightAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; /* During the subpass */
 
+        VkAttachmentDescription depthAttachment{};
+        depthAttachment.format = m_swapchain.depthFormat();
+        depthAttachment.samples = m_vkctx.msaaSamples();
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference depthAttachmentRef{};
+        depthAttachmentRef.attachment = 4;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
         /* setup subpass 1 */
         std::array<VkAttachmentReference, 2> colorAttachments{swapchainColorAttachmentRef, highlightAttachmentRef};
         std::array<VkAttachmentReference, 2> resolveAttachments{swapchainColorAttachmentResolveRef, highlightAttachmentResolveRef};
@@ -704,6 +723,7 @@ VkResult VulkanRenderer::createRenderPasses()
         renderPassUISubpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
         renderPassUISubpass.pColorAttachments = colorAttachments.data(); /* Same as shader locations */
         renderPassUISubpass.pResolveAttachments = resolveAttachments.data();
+        renderPassUISubpass.pDepthStencilAttachment = &depthAttachmentRef;
 
         /* ---------------- SUBPASS DEPENDENCIES ----------------------- */
         std::array<VkSubpassDependency, 2> uiDependencies{};
@@ -722,8 +742,11 @@ VkResult VulkanRenderer::createRenderPasses()
         uiDependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         uiDependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 
-        std::array<VkAttachmentDescription, 4> uiAttachments = {
-            swapchainColorAttachment, swapchainColorAttachmentResolve, highlightAttachment, highlightAttachmentResolve};
+        std::array<VkAttachmentDescription, 5> uiAttachments = {swapchainColorAttachment,
+                                                                swapchainColorAttachmentResolve,
+                                                                highlightAttachment,
+                                                                highlightAttachmentResolve,
+                                                                depthAttachment};
         VkRenderPassCreateInfo renderPassInfo = vkinit::renderPassCreateInfo(static_cast<uint32_t>(uiAttachments.size()),
                                                                              uiAttachments.data(),
                                                                              1,
@@ -798,10 +821,11 @@ VkResult VulkanRenderer::createFrameBuffers()
 
         {
             /* Create UI pass framebuffers */
-            std::array<VkImageView, 4> attachments = {m_swapchain.msaaImageView(),
+            std::array<VkImageView, 5> attachments = {m_swapchain.msaaImageView(),
                                                       m_swapchain.swapchainImageView(i),
                                                       m_attachmentHighlightForwardOutput[i].getView(),
-                                                      m_attachmentHighlightForwardOutput[i].getViewResolve()};
+                                                      m_attachmentHighlightForwardOutput[i].getViewResolve(),
+                                                      m_swapchain.depthStencilImageView()};
 
             VkFramebufferCreateInfo framebufferInfo = vkinit::framebufferCreateInfo(m_renderPassUI,
                                                                                     static_cast<uint32_t>(attachments.size()),

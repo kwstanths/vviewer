@@ -80,13 +80,34 @@ QWidget *MainWindow::initLeftPanel()
 
 QWidget *MainWindow::initViewport()
 {
+    /* Create viewport window */
     m_viewport = new VulkanViewportWindow();
     m_engine = m_viewport->engine();
-
     connect(m_viewport, &ViewportWindow::sceneObjectSelected, this, &MainWindow::onSelectedSceneObjectChangedSlot3DScene);
     connect(m_viewport, &ViewportWindow::initializationFinished, this, &MainWindow::onStartUpInitialization);
 
-    return QWidget::createWindowContainer(m_viewport);
+    /* Create options bar widgets */
+    QCheckBox *m_showAABBCheckBox = new QCheckBox();
+    m_showAABBCheckBox->setChecked(m_engine->renderer().showSelectedAABB());
+    connect(m_showAABBCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onShowSelectedAABBSlot(int)));
+    /* Create options bar widget */
+    QHBoxLayout *viewportOptionsLayout = new QHBoxLayout();
+    viewportOptionsLayout->addWidget(new QLabel("AABB:"));
+    viewportOptionsLayout->addWidget(m_showAABBCheckBox);
+    viewportOptionsLayout->setAlignment(Qt::AlignLeft);
+    viewportOptionsLayout->setContentsMargins(0, 0, 0, 0);
+    QWidget *viewportOptionsWidget = new QWidget();
+    viewportOptionsWidget->setLayout(viewportOptionsLayout);
+    viewportOptionsWidget->setFixedHeight(15);
+
+    /* Create main viewport+options widget */
+    QVBoxLayout *viewportLayout = new QVBoxLayout();
+    viewportLayout->addWidget(viewportOptionsWidget);
+    viewportLayout->addWidget(QWidget::createWindowContainer(m_viewport));
+    QWidget *viewportWidget = new QWidget();
+    viewportWidget->setLayout(viewportLayout);
+
+    return viewportWidget;
 }
 
 QWidget *MainWindow::initRightPanel()
@@ -1052,6 +1073,15 @@ void MainWindow::onContextMenuSceneGraph(const QPoint &pos)
     contextMenu.exec(m_sceneGraphWidget->mapToGlobal(pos));
     if (action7 != nullptr)
         delete action7;
+}
+
+void MainWindow::onShowSelectedAABBSlot(int a)
+{
+    if (a == 0) {
+        m_engine->renderer().showSelectedAABB() = false;
+    } else {
+        m_engine->renderer().showSelectedAABB() = true;
+    }
 }
 
 void MainWindow::onStartUpInitialization()
