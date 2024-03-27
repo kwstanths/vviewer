@@ -4,7 +4,10 @@
 #include <filesystem>
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
-namespace rapidjson { typedef ::std::size_t SizeType; }
+namespace rapidjson
+{
+typedef ::std::size_t SizeType;
+}
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
@@ -304,7 +307,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
             }
 
             Value transparent;
-            transparent.SetBool(m->transparent());
+            transparent.SetBool(m->isTransparent());
             mat.AddMember("transparent", transparent, d.GetAllocator());
 
             Value scale;
@@ -460,7 +463,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
             }
 
             Value transparent;
-            transparent.SetBool(m->transparent());
+            transparent.SetBool(m->isTransparent());
             mat.AddMember("transparent", transparent, d.GetAllocator());
 
             Value scale;

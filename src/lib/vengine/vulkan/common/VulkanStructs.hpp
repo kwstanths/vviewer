@@ -55,7 +55,7 @@ struct ModelData {
 
 struct MaterialData {
     glm::vec4 albedo;              /* RGB: albedo, A: alpha */
-    glm::vec4 metallicRoughnessAO; /* R: metallic, G: roughness, B: AO, A: unused */
+    glm::vec4 metallicRoughnessAO; /* R: metallic, G: roughness, B: AO, A: is transparent */
     glm::vec4 emissive;            /* RGB: emissive color, A: emissive intensity */
     glm::uvec4 gTexturesIndices1;  /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture
                             index */

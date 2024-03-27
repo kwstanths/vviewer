@@ -28,7 +28,7 @@ struct ModelData {
 struct MaterialData
 {
     vec4 albedo;                /* RGB: albedo, A: unused */
-    vec4 metallicRoughnessAO;   /* R: metallic, G: roughness, B: AO, A = unused */
+    vec4 metallicRoughnessAO;   /* R: metallic, G: roughness, B: AO, A = is transparent */
     vec4 emissive;              /* RGB: emissive color, A = emissive intensity */
     uvec4 gTexturesIndices1;    /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture index */   
     uvec4 gTexturesIndices2;    /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: unused */

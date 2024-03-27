@@ -42,6 +42,9 @@ public:
 
     MaterialIndex materialIndex() const override;
 
+    bool isTransparent() const override;
+    void setTransparent(bool transparent) override;
+
     glm::vec4 &albedo() override;
     const glm::vec4 &albedo() const override;
     float &metallic() override;
@@ -81,6 +84,9 @@ public:
                           VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
+
+    bool isTransparent() const override;
+    void setTransparent(bool transparent) override;
 
     glm::vec4 &albedo() override;
     const glm::vec4 &albedo() const override;

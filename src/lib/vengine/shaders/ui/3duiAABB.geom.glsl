@@ -17,75 +17,75 @@ layout(push_constant) uniform PushConsts {
 
 void main(void)
 {	
-		/* Create a line strip for an AABB given the min and pax points */
-		vec3 pos = gl_in[0].gl_Position.xyz;	/* min position */
-		
+        /* Create a line strip for an AABB given the min and pax points */
+        vec3 pos = gl_in[0].gl_Position.xyz;	/* min position */
+        
         vec4 diff = pushConsts.maxp - pushConsts.minp;
 
         mat4 viewProjection = sceneData.data.projection * sceneData.data.view;
 
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(diff.x, 0, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, 0, diff.z);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(-diff.x, 0, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, 0, -diff.z);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, diff.y, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(diff.x, 0, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, -diff.y, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, diff.y, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, 0, diff.z);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, -diff.y, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, diff.y, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(-diff.x, 0, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, -diff.y, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, diff.y, 0);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
         pos += vec3(0, 0, -diff.z);
-		gl_Position = viewProjection * vec4(pos, 1.0);
-		EmitVertex();
+        gl_Position = viewProjection * vec4(pos, 1.0);
+        EmitVertex();
 
-		EndPrimitive();
+        EndPrimitive();
 }

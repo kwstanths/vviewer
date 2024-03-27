@@ -101,7 +101,7 @@ WidgetMaterialLambert::WidgetMaterialLambert(QWidget *parent, MaterialLambert *m
     m_alpha->setValue(material->albedo().a * 100);
     m_groupBoxAlpha = new QGroupBox(tr("Alpha"));
     m_groupBoxAlpha->setCheckable(true);
-    m_groupBoxAlpha->setChecked(material->transparent());
+    m_groupBoxAlpha->setChecked(material->isTransparent());
     connect(m_groupBoxAlpha, SIGNAL(clicked(bool)), this, SLOT(onAlphaStateChanged(bool)));
     QVBoxLayout *layoutAlpha = new QVBoxLayout();
     layoutAlpha->addWidget(m_alpha);
@@ -257,7 +257,7 @@ void WidgetMaterialLambert::onNormalTextureChanged(int)
 
 void WidgetMaterialLambert::onAlphaStateChanged(bool)
 {
-    m_material->transparent() = m_groupBoxAlpha->isChecked();
+    m_material->setTransparent(m_groupBoxAlpha->isChecked());
 }
 
 void WidgetMaterialLambert::onAlphaChanged()

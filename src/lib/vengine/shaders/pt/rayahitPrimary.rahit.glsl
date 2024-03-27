@@ -63,15 +63,21 @@ void main()
     vec2 tiledUV = uvs * material.uvTiling.rg;
 
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+    float transparent = material.metallicRoughnessAO.a;
 
-    float rand = rand1D(rayPayloadPrimary);
-    if (alpha < EPSILON)
+    /* Check if material marked as transparent */
+    if (transparent > 0)
     {
-        ignoreIntersectionEXT;
-    } 
-    else if(rand > alpha)
-    {
-        ignoreIntersectionEXT;
+        float rand = rand1D(rayPayloadPrimary);
+        if (alpha < EPSILON)
+        {
+            ignoreIntersectionEXT;
+        } 
+        else if(rand > alpha)
+        {
+            ignoreIntersectionEXT;
+        }
     }
+
 
 }

@@ -61,7 +61,16 @@ void main()
     vec2 tiledUV = uvs * material.uvTiling.rg;
 
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+    float transparent = material.metallicRoughnessAO.a;
 
+    /* Check if we hit a surface that is not makred as transparent */
+    if (transparent < 1)
+    {
+        rayPayloadSecondary.shadowed = true;
+        terminateRayEXT;
+    }
+
+    /* Else accumulate throughput */
     rayPayloadSecondary.throughput *= (1.0 - alpha);
 
     /* If throughput is large enough continue */

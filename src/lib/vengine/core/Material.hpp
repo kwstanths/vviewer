@@ -44,11 +44,10 @@ public:
 
     virtual bool isEmissive() const { return false; }
 
-    bool &transparent() { return m_transparent; }
-    const bool &transparent() const { return m_transparent; }
+    virtual bool isTransparent() const { return false; }
+    virtual void setTransparent(bool transparent) { return; }
 
 private:
-    bool m_transparent = false;
 };
 
 class MaterialPBRStandard : public Material
@@ -60,6 +59,8 @@ public:
     virtual ~MaterialPBRStandard() {}
 
     MaterialType type() const override { return MaterialType::MATERIAL_PBR_STANDARD; }
+
+    bool isEmissive() const override;
 
     virtual glm::vec4 &albedo() = 0;
     virtual const glm::vec4 &albedo() const = 0;
@@ -98,8 +99,6 @@ public:
     bool &zipMaterial() { return m_zipMaterial; }
     const bool &zipMaterial() const { return m_zipMaterial; }
 
-    bool isEmissive() const override;
-
 protected:
     Texture *m_albedoTexture = nullptr;
     Texture *m_metallicTexture = nullptr;
@@ -122,6 +121,8 @@ public:
     virtual ~MaterialLambert() {}
 
     MaterialType type() const override { return MaterialType::MATERIAL_LAMBERT; }
+
+    bool isEmissive() const override;
 
     virtual glm::vec4 &albedo() = 0;
     virtual const glm::vec4 &albedo() const = 0;
@@ -148,8 +149,6 @@ public:
     Texture *getEmissiveTexture() const;
     Texture *getNormalTexture() const;
     Texture *getAlphaTexture() const;
-
-    bool isEmissive() const override;
 
 protected:
     Texture *m_albedoTexture = nullptr;

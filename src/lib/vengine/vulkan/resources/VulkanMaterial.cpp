@@ -63,6 +63,16 @@ MaterialIndex VulkanMaterialPBRStandard::materialIndex() const
     return UBOBlockIndex();
 }
 
+bool VulkanMaterialPBRStandard::isTransparent() const
+{
+    return m_block->metallicRoughnessAO.a > 0;
+}
+
+void VulkanMaterialPBRStandard::setTransparent(bool transparent)
+{
+    m_block->metallicRoughnessAO.a = static_cast<bool>(transparent);
+}
+
 glm::vec4 &VulkanMaterialPBRStandard::albedo()
 {
     return m_block->albedo;
@@ -242,6 +252,16 @@ VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info,
 MaterialIndex VulkanMaterialLambert::materialIndex() const
 {
     return UBOBlockIndex();
+}
+
+bool VulkanMaterialLambert::isTransparent() const
+{
+    return m_block->metallicRoughnessAO.a > 0;
+}
+
+void VulkanMaterialLambert::setTransparent(bool transparent)
+{
+    m_block->metallicRoughnessAO.a = static_cast<bool>(transparent);
 }
 
 glm::vec4 &VulkanMaterialLambert::albedo()

@@ -274,7 +274,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
     std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects;
     for (auto &itr : meshes) {
         Material *mat = itr->get<ComponentMaterial>().material;
-        if (mat->transparent()) {
+        if (mat->isTransparent()) {
             transparentObjects.push_back(itr);
         } else {
             switch (mat->type()) {

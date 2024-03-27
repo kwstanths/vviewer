@@ -68,12 +68,23 @@ void main()
     vec2 tiledUV = uvs * material.uvTiling.rg;
 
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+    float transparent = material.metallicRoughnessAO.a;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
     /* If it's not an emissive surface, compute throughput and continue */
     if (isBlack(emissive, 0.05))
     {
+        /* If not transparent, stop NEE traversal */
+        if (transparent < 1)
+        {
+            rayPayloadNEE.throughput = 0;
+            rayPayloadNEE.emissive = vec3(0);
+            terminateRayEXT;
+            return;
+        }
+
         rayPayloadNEE.throughput *= (1.0 - alpha);
+
         if (rayPayloadNEE.throughput > EPSILON)
         {
             /* If throughput is large enough continue */
