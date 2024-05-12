@@ -15,6 +15,11 @@ const Transform &Camera::transform() const
     return m_transform;
 }
 
+Material *&Camera::volume()
+{
+    return m_volume;
+}
+
 Transform &Camera::transform()
 {
     return m_transform;

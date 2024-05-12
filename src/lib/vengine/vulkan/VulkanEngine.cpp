@@ -293,7 +293,7 @@ void VulkanEngine::mainLoop()
 
 void VulkanEngine::initDefaultData()
 {
-    /* A default material */
+    /* default materials */
     {
         auto defaultMaterial = static_cast<VulkanMaterialPBRStandard *>(
             m_materials.createMaterial(AssetInfo("defaultMaterial", AssetSource::INTERNAL), MaterialType::MATERIAL_PBR_STANDARD));
@@ -307,6 +307,12 @@ void VulkanEngine::initDefaultData()
             m_materials.createMaterial(AssetInfo("defaultEmissive", AssetSource::INTERNAL), MaterialType::MATERIAL_PBR_STANDARD));
         defaultEmissive->albedo() = glm::vec4(1, 1, 1, 1);
         defaultEmissive->emissive() = glm::vec4(1, 1, 1, 1.0);
+
+        auto defaultVolume = static_cast<VulkanMaterialVolume *>(
+            m_materials.createMaterial(AssetInfo("defaultVolume", AssetSource::INTERNAL), MaterialType::MATERIAL_VOLUME));
+        defaultVolume->sigmaS() = glm::vec4(0.2, 0.2, 0.2, 1);
+        defaultVolume->sigmaA() = glm::vec4(0);
+        defaultVolume->g() = 0.0F;
     }
 
     /* Create some default lights */
@@ -335,10 +341,8 @@ void VulkanEngine::initDefaultData()
         auto envMap = importEnvironmentMap(AssetInfo("assets/HDR/harbor.hdr", AssetSource::INTERNAL));
 
         auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
-        auto skybox = materialsSkybox.add(new VulkanMaterialSkybox(AssetInfo("skybox", AssetSource::INTERNAL),
-                                                                   envMap,
-                                                                   m_context.device(),
-                                                                   m_renderer.getRendererSkybox().descriptorSetLayout()));
+        auto skybox = materialsSkybox.add(new VulkanMaterialSkybox(
+            AssetInfo("skybox", AssetSource::INTERNAL), envMap, m_renderer.getRendererSkybox().descriptorSetLayout()));
 
         m_scene.skyboxMaterial() = skybox;
     }

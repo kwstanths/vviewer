@@ -3,7 +3,8 @@
 #include "qgroupbox.h"
 #include "qlayout.h"
 
-WidgetSliderValue::WidgetSliderValue(QWidget * parent, float min, float max, float value, float step, int scale) : QWidget(parent)
+WidgetSliderValue::WidgetSliderValue(QWidget *parent, float min, float max, float value, float step, int scale)
+    : QWidget(parent)
 {
     m_scale = scale;
 
@@ -20,7 +21,7 @@ WidgetSliderValue::WidgetSliderValue(QWidget * parent, float min, float max, flo
     m_spinBox->setSingleStep(step);
     connect(m_spinBox, &QDoubleSpinBox::valueChanged, this, &WidgetSliderValue::onSpinBoxChanged);
 
-    QHBoxLayout * layoutMain = new QHBoxLayout();
+    QHBoxLayout *layoutMain = new QHBoxLayout();
     layoutMain->addWidget(m_slider);
     layoutMain->addWidget(m_spinBox);
     layoutMain->setContentsMargins(0, 0, 0, 0);
@@ -41,7 +42,7 @@ float WidgetSliderValue::getValue()
 
 void WidgetSliderValue::onSliderChanged(int)
 {
-    double value = (double) m_slider->value() / m_scale;
+    double value = (double)m_slider->value() / m_scale;
     m_spinBox->setValue(value);
     Q_EMIT valueChanged(value);
 }

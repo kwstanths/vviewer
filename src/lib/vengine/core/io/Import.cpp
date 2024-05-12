@@ -3,7 +3,10 @@
 #include <fstream>
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
-namespace rapidjson { typedef ::std::size_t SizeType; }
+namespace rapidjson
+{
+typedef ::std::size_t SizeType;
+}
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/writer.h>
@@ -24,7 +27,8 @@ static std::unordered_map<std::string, ImportedMaterialType> importedMaterialTyp
     {"LAMBERT", ImportedMaterialType::LAMBERT},
     {"PBR_STANDARD", ImportedMaterialType::PBR_STANDARD},
     {"STACK", ImportedMaterialType::STACK},
-    {"EMBEDDED", ImportedMaterialType::EMBEDDED}};
+    {"EMBEDDED", ImportedMaterialType::EMBEDDED},
+    {"VOLUME", ImportedMaterialType::VOLUME}};
 static std::unordered_map<std::string, LightType> importedLightTypeNames = {
     {"POINT", LightType::POINT_LIGHT},
     {"DIRECTIONAL", LightType::DIRECTIONAL_LIGHT},
@@ -229,6 +233,12 @@ ImportedCamera parseCamera(const rapidjson::Value &o)
     c.lensRadius = parseFloat(o, "lensRadius", c.lensRadius);
     c.focalDistance = parseFloat(o, "focalDistance", c.focalDistance);
 
+    if (o.HasMember("volume")) {
+        c.volumeMaterial = o["volume"].GetString();
+    } else {
+        c.volumeMaterial = "";
+    }
+
     return c;
 }
 
@@ -285,7 +295,7 @@ std::optional<ImportedSceneObjectLight> parseLightComponent(const rapidjson::Val
 
     if (o["light"].HasMember("shadows")) {
         importedLight.shadows = o["light"]["shadows"].GetBool();
-    } 
+    }
 
     return importedLight;
 }
@@ -424,6 +434,18 @@ void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, I
 
     if (o.HasMember("scale")) {
         material.scale = parseVec2(o, "scale", material.scale);
+    }
+
+    if (o.HasMember("scattering")) {
+        material.sigmaS = parseVec3(o["scattering"], "value", material.sigmaS);
+    }
+
+    if (o.HasMember("absorption")) {
+        material.sigmaA = parseVec3(o["absorption"], "value", material.sigmaA);
+    }
+
+    if (o.HasMember("g")) {
+        material.g = o["g"].GetFloat();
     }
 
     return;

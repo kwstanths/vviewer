@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "math/Transform.hpp"
+#include "Material.hpp"
 
 namespace vengine
 {
@@ -23,6 +24,8 @@ public:
 
     Transform &transform();
     const Transform &transform() const;
+
+    Material *&volume();
 
     const int &width() const;
     const int &height() const;
@@ -56,6 +59,7 @@ protected:
 
 private:
     Transform m_transform;
+    Material *m_volume = nullptr;
 
     float m_znear = 0.01F;
     float m_zfar = 200.F;

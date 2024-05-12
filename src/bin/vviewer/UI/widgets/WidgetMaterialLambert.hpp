@@ -41,8 +41,6 @@ public:
 private:
     vengine::MaterialLambert *m_material = nullptr;
 
-    void setColorButton(QPushButton *button, const glm::vec4 &color);
-
 private Q_SLOTS:
     void onAlbedoButton();
     void onAlbedoTextureChanged(int);

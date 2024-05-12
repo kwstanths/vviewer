@@ -204,13 +204,15 @@ void VulkanScene::updateTLAS(VulkanCommandInfo vci, const std::vector<SceneObjec
         auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
         auto material = so->get<ComponentMaterial>().material;
 
-        uint32_t nTypeRays = 3U; /* Types of rays */
+        uint32_t nTypeRays = 3U; /* Types of rays, Primary, Secondary(shadow), NEE */
         uint32_t instanceOffset; /* Ioffset in SBT is based on the type of material */
         if (material->type() == MaterialType::MATERIAL_LAMBERT)
             instanceOffset = 0 * nTypeRays;
         else if (material->type() == MaterialType::MATERIAL_PBR_STANDARD)
             instanceOffset = 1 * nTypeRays;
-        else {
+        else if (material->type() == MaterialType::MATERIAL_VOLUME) {
+            instanceOffset = 2 * nTypeRays;
+        } else {
             throw std::runtime_error("VulkanScene::updateTLAS(): Unexpected material");
         }
 
@@ -336,11 +338,12 @@ VkResult VulkanScene::createDescriptorSetsLayouts()
     /* Create descriptor set layout for the TLAS */
     {
         /* binding 0, the accelleration strucure */
-        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding = vkinit::descriptorSetLayoutBinding(
-            VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-            VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-            0,
-            1);
+        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding =
+            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+                                               VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+                                                   VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
+                                               0,
+                                               1);
 
         /* Binding 1, the object descriptions buffer */
         VkDescriptorSetLayoutBinding objectDescrptionBufferBinding = vkinit::descriptorSetLayoutBinding(

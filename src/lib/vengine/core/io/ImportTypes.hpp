@@ -24,6 +24,7 @@ enum class ImportedMaterialType {
     PBR_STANDARD = 1,
     STACK = 2,
     EMBEDDED = 3,
+    VOLUME = 4,
 };
 
 struct ImportedModelNode {
@@ -67,6 +68,10 @@ struct ImportedMaterial {
 
     glm::vec2 scale = {1, 1};
 
+    glm::vec3 sigmaS = glm::vec3(0.2, 0.2, 0.2);
+    glm::vec3 sigmaA = glm::vec3(0);
+    float g = 0.F;
+
     ~ImportedMaterial()
     {
         if (albedoTexture.has_value()) {
@@ -97,6 +102,7 @@ struct ImportedCamera {
     float znear = 0.01F, zfar = 200.F;
     float lensRadius = 0.F, focalDistance = 10.F;
     float fov = 60.F;
+    std::string volumeMaterial = "";
 };
 
 struct ImportedModel {

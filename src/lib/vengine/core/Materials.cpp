@@ -15,4 +15,10 @@ MaterialLambert *Materials::createMaterial<MaterialLambert>(const AssetInfo &inf
     return static_cast<MaterialLambert *>(createMaterial(info, MaterialType::MATERIAL_LAMBERT));
 }
 
+template <>
+MaterialVolume *Materials::createMaterial<MaterialVolume>(const AssetInfo &info)
+{
+    return static_cast<MaterialVolume *>(createMaterial(info, MaterialType::MATERIAL_VOLUME));
+}
+
 }  // namespace vengine

@@ -31,8 +31,10 @@ public:
     WidgetEnvironment(QWidget *parent, vengine::Scene *scene);
 
     void updateMaps();
+    void updateMaterials();
 
     void setCamera(std::shared_ptr<vengine::Camera> c);
+    void setCameraVolume(const std::string &name);
 
     void setEnvironmentType(const vengine::EnvironmentType &type, bool updateUI = false);
     void setBackgroundColor(glm::vec3 backgroundColor);
@@ -59,6 +61,8 @@ private:
     QDoubleSpinBox *m_cameraLensRadius = nullptr;
     QDoubleSpinBox *m_cameraFocalDistance = nullptr;
 
+    QComboBox *m_comboVolumes;
+
     /* Update timer */
     QTimer *m_updateTimer;
 
@@ -75,6 +79,7 @@ private Q_SLOTS:
     void onCameraZNearChanged(double);
     void onCameraLensRadiusChanged(double);
     void onCameraFocalDistanceChanged(double);
+    void onCameraVolumeChanged(int);
 
     void updateCamera();
 };

@@ -11,6 +11,7 @@
 #include "defines_pt.glsl"
 
 #include "../include/structs.glsl"
+#include "../include/utils.glsl"
 #include "../include/constants.glsl"
 #include "structs_pt.glsl"
 
@@ -70,11 +71,11 @@ void main()
         terminateRayEXT;
     }
 
-    /* Else accumulate throughput */
-    rayPayloadSecondary.throughput *= (1.0 - alpha);
+    /* Else accumulate throughput of surface */
+    rayPayloadSecondary.throughput *= vec3(1.0 - alpha);
 
     /* If throughput is large enough continue */
-    if (rayPayloadSecondary.throughput > EPSILON)
+    if (max3(rayPayloadSecondary.throughput) > EPSILON)
     {
         ignoreIntersectionEXT;
     } 

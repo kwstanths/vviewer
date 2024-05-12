@@ -30,6 +30,7 @@ struct SceneData {
     glm::mat4 m_projectionInverse;
     glm::vec4 m_exposure;   /* R = exposure, G = environment map intensity, B = lens radius, A = focal distance */
     glm::vec4 m_background; /* RGB = background color, A = environment type */
+    glm::ivec4 m_volumes;   /* R = material id of camera volume, GBA = unused */
 };
 
 class Scene
@@ -86,7 +87,7 @@ protected:
     MaterialSkybox *m_skybox;
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
     float m_environmentIntensity = 1.0f;
-    glm::vec3 m_backgroundColor = {0, 0.5, 0.5};
+    glm::vec3 m_backgroundColor = {0.0, 0.0, 0.0};
 
     std::unordered_map<vengine::ID, SceneObject *> m_objectsMap;
 

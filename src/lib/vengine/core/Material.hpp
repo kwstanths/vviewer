@@ -20,15 +20,15 @@ enum class MaterialType {
     MATERIAL_PBR_STANDARD = 0,
     MATERIAL_SKYBOX = 1,
     MATERIAL_LAMBERT = 2,
+    MATERIAL_VOLUME = 3,
 };
 
 typedef uint32_t MaterialIndex;
 
-static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
-    {MaterialType::MATERIAL_PBR_STANDARD, "PBR standard"},
-    {MaterialType::MATERIAL_SKYBOX, "Skybox"},
-    {MaterialType::MATERIAL_LAMBERT, "Lambert"},
-};
+static const std::unordered_map<MaterialType, std::string> materialTypeNames = {{MaterialType::MATERIAL_PBR_STANDARD, "PBR standard"},
+                                                                                {MaterialType::MATERIAL_SKYBOX, "Skybox"},
+                                                                                {MaterialType::MATERIAL_LAMBERT, "Lambert"},
+                                                                                {MaterialType::MATERIAL_VOLUME, "Homogenous Volume"}};
 
 class Material : public Asset
 {
@@ -173,6 +173,29 @@ public:
 
 protected:
     EnvironmentMap *m_envMap = nullptr;
+};
+
+class MaterialVolume : public Material
+{
+public:
+    MaterialVolume(const AssetInfo &info)
+        : Material(info){};
+
+    virtual ~MaterialVolume() {}
+
+    MaterialType type() const override { return MaterialType::MATERIAL_VOLUME; }
+
+    virtual glm::vec4 &sigmaA() = 0;
+    virtual const glm::vec4 &sigmaA() const = 0;
+
+    virtual glm::vec4 &sigmaS() = 0;
+    virtual const glm::vec4 &sigmaS() const = 0;
+
+    /* Between (-1, 1) */
+    virtual float &g() = 0;
+    virtual float &g() const = 0;
+
+protected:
 };
 
 }  // namespace vengine

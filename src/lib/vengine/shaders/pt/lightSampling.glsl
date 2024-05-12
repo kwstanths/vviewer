@@ -109,16 +109,19 @@ LightSamplingRecord sampleLight(vec3 originPosition)
     {
         /* Trace shadow ray */
         rayPayloadSecondary.shadowed = true;
-        rayPayloadSecondary.throughput = 1.0;
+        rayPayloadSecondary.throughput = vec3(1.0);
+        rayPayloadSecondary.vtmin = tmin;
+        rayPayloadSecondary.insideVolume = rayPayloadPrimary.insideVolume;
+        rayPayloadSecondary.volumeMaterialIndex = rayPayloadPrimary.volumeMaterialIndex;
 
         /* Slightly reduce tmax to make sure we don't hit the sampled surface at all */
         uint secondaryRayFlags = gl_RayFlagsSkipClosestHitShaderEXT;
         traceRayEXT(topLevelAS, secondaryRayFlags, 0xFF, 1, 3, 1, originPosition, tmin, lsr.direction, tmax - tmin, 1);		
         
-        /* If the anyhit shader was never executed then make sure throughput is zero */
+        /* If shadowed is still true make sure throughput is zero */
         if (rayPayloadSecondary.shadowed) 
         {
-            rayPayloadSecondary.throughput = 0.0;
+            rayPayloadSecondary.throughput = vec3(0.0);
         }
 
         lsr.radiance *= rayPayloadSecondary.throughput;

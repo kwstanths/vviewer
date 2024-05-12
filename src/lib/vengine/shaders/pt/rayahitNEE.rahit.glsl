@@ -74,18 +74,18 @@ void main()
     /* If it's not an emissive surface, compute throughput and continue */
     if (isBlack(emissive, 0.05))
     {
-        /* If not transparent, stop NEE traversal */
+        /* If not a transparent surface, stop NEE traversal */
         if (transparent < 1)
         {
-            rayPayloadNEE.throughput = 0;
+            rayPayloadNEE.throughput = vec3(0);
             rayPayloadNEE.emissive = vec3(0);
             terminateRayEXT;
             return;
         }
 
-        rayPayloadNEE.throughput *= (1.0 - alpha);
+        rayPayloadNEE.throughput *= vec3(1.0 - alpha);
 
-        if (rayPayloadNEE.throughput > EPSILON)
+        if (max3(rayPayloadNEE.throughput) > EPSILON)
         {
             /* If throughput is large enough continue */
             ignoreIntersectionEXT;
@@ -93,11 +93,30 @@ void main()
         else
         {
             /* Else stop NEE traversal */
-            rayPayloadNEE.throughput = 0;
+            rayPayloadNEE.throughput = vec3(0);
             rayPayloadNEE.emissive = vec3(0);
             terminateRayEXT;
         }
         return;
+    }
+
+    /* Account for volume transmittance, if inside a volume */
+    if (rayPayloadNEE.insideVolume)
+    {
+        uint volumeMaterialIndex = rayPayloadNEE.volumeMaterialIndex;
+        float vtend = gl_HitTEXT;
+        float vtstart = rayPayloadNEE.vtmin;
+        #include "process_volume_transmittance.glsl"
+
+        rayPayloadNEE.throughput *= volumeTransmittance;
+
+        /* If throughput is not large enough, then stop computation */
+        if (max3(rayPayloadNEE.throughput) < EPSILON)
+        {
+            rayPayloadNEE.throughput = vec3(0);
+            rayPayloadNEE.emissive = vec3(0);
+            terminateRayEXT;
+        } 
     }
 
     /* Else it's an emissive surface, emissive surfaces shoudn't be transparent */
@@ -110,7 +129,7 @@ void main()
     /* Check if it's a back hit */
     if (flipped) {
         rayPayloadNEE.emissive = vec3(0);
-        rayPayloadNEE.throughput = 0;
+        rayPayloadNEE.throughput = vec3(0);
         terminateRayEXT;
         return;
     }

@@ -100,12 +100,17 @@ Material *VulkanMaterials::createMaterial(const AssetInfo &info, MaterialType ty
     Material *temp;
     switch (type) {
         case MaterialType::MATERIAL_PBR_STANDARD: {
-            temp = new VulkanMaterialPBRStandard(info, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
+            temp = new VulkanMaterialPBRStandard(info, m_materialsStorage);
             materials.add(temp);
             break;
         }
         case MaterialType::MATERIAL_LAMBERT: {
-            temp = new VulkanMaterialLambert(info, m_vkctx.device(), m_descriptorSetLayout, m_materialsStorage);
+            temp = new VulkanMaterialLambert(info, m_materialsStorage);
+            materials.add(temp);
+            break;
+        }
+        case MaterialType::MATERIAL_VOLUME: {
+            temp = new VulkanMaterialVolume(info, m_materialsStorage);
             materials.add(temp);
             break;
         }
@@ -370,6 +375,13 @@ std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vect
                 material->setAlphaTexture(getTexture(mat.alphaTexture.value()));
             }
             material->setTransparent(mat.transparent);
+        } else if (mat.type == ImportedMaterialType::VOLUME) {
+            auto material = Materials::createMaterial<MaterialVolume>(mat.info);
+            materials.push_back(material);
+
+            material->sigmaS() = glm::vec4(mat.sigmaS, 1.0F);
+            material->sigmaA() = glm::vec4(mat.sigmaA, 1.0F);
+            material->g() = mat.g;
         }
     }
 
@@ -379,11 +391,12 @@ std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vect
 VkResult VulkanMaterials::createDescriptorSetsLayout()
 {
     /* Create binding for material data */
-    VkDescriptorSetLayoutBinding materiaDatalLayoutBinding = vkinit::descriptorSetLayoutBinding(
-        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
-        0,
-        1);
+    VkDescriptorSetLayoutBinding materiaDatalLayoutBinding =
+        vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                           VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+                                               VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+                                           0,
+                                           1);
 
     std::array<VkDescriptorSetLayoutBinding, 1> setBindings = {materiaDatalLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo =

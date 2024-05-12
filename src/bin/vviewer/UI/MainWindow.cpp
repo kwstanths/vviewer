@@ -694,6 +694,8 @@ void MainWindow::onImportScene()
     m_widgetRightPanel->getEnvironmentWidget()->setBackgroundColor(env.backgroundColor);
     m_widgetRightPanel->getEnvironmentWidget()->updateMaps();
     m_widgetRightPanel->getEnvironmentWidget()->setEnvironmentType(env.environmentType);
+    m_widgetRightPanel->getEnvironmentWidget()->updateMaterials();
+    m_widgetRightPanel->getEnvironmentWidget()->setCameraVolume(camera.volumeMaterial);
 
     m_engine->start();
 
@@ -778,6 +780,7 @@ void MainWindow::onCreateMaterialSlot()
         debug_tools::ConsoleWarning("Failed to create material");
     } else {
         m_widgetRightPanel->updateAvailableMaterials();
+        m_widgetRightPanel->getEnvironmentWidget()->updateMaterials();
     }
 }
 
@@ -1097,19 +1100,35 @@ void MainWindow::onStartUpInitialization()
     try {
         auto matDef = instanceMaterials.get("defaultMaterial");
         auto matDefE = instanceMaterials.get("defaultEmissive");
+        auto matVol = instanceMaterials.get("defaultVolume");
         auto plane = instanceModels.get("assets/models/plane.obj");
         auto cube = instanceModels.get("assets/models/cube.obj");
         auto sphere = instanceModels.get("assets/models/uvsphere.obj");
 
-        auto o1 = createEmptySceneObject("plane1", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
-        o1.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
-        o1.second->add<ComponentMaterial>().material = matDef;
+        {
+            auto o = createEmptySceneObject("plane", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
+            o.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
+            o.second->add<ComponentMaterial>().material = matDef;
+        }
 
-        addSceneObjectModel(NULL, assetName);
+        {
+            addSceneObjectModel(NULL, assetName);
+        }
 
-        auto o2 = createEmptySceneObject(
-            "directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
-        o2.second->add<ComponentLight>().light = AssetManager::getInstance().lightsMap().get("defaultDirectionalLight");
+        {
+            auto o = createEmptySceneObject(
+                "directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
+            o.second->add<ComponentLight>().light = AssetManager::getInstance().lightsMap().get("defaultDirectionalLight");
+        }
+
+        {
+            auto o = createEmptySceneObject("volume", Transform({0, 0, 0}, {3, 3, 3}), nullptr);
+            o.second->add<ComponentMesh>().mesh = cube->mesh("Cube");
+            o.second->add<ComponentMaterial>().material = matVol;
+        }
+
+        m_widgetRightPanel->getEnvironmentWidget()->updateMaps();
+        m_widgetRightPanel->getEnvironmentWidget()->updateMaterials();
 
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));

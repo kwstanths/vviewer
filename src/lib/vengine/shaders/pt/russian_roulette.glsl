@@ -1,5 +1,5 @@
 float rrsample = rand1D(rayPayloadPrimary);
-if (rayPayloadPrimary.depth > RUSSIAN_ROULETTE_DEPTH)
+if (rayPayloadPrimary.recursionDepth > RUSSIAN_ROULETTE_DEPTH)
 {
     float maxBeta = max(rayPayloadPrimary.beta.x, max(rayPayloadPrimary.beta.y, rayPayloadPrimary.beta.z));
     if (rrsample >= maxBeta) {

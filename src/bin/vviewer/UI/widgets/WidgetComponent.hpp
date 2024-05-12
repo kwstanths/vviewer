@@ -104,6 +104,8 @@ public:
             return WidgetMaterial::HEIGHT_PBR;
         } else if (m_object->get<vengine::ComponentMaterial>().material->type() == vengine::MaterialType::MATERIAL_LAMBERT) {
             return WidgetMaterial::HEIGHT_LAMBERT;
+        } else if (m_object->get<vengine::ComponentMaterial>().material->type() == vengine::MaterialType::MATERIAL_VOLUME) {
+            return WidgetMaterial::HEIGHT_VOLUME;
         } else {
             throw std::runtime_error("UIComponentMaterial::Unexpected material");
         }

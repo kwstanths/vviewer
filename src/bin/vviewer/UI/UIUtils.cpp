@@ -33,6 +33,19 @@ QStringList getCreatedMaterials()
     return createdMaterials;
 }
 
+QStringList getCreatedMaterials(vengine::MaterialType type)
+{
+    QStringList createdMaterials;
+    auto &instance = AssetManager::getInstance().materialsMap();
+    for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
+        auto mat = static_cast<Material *>(itr->second);
+        if (mat->type() == type) {
+            createdMaterials.push_back(QString::fromStdString(itr->first));
+        }
+    }
+    return createdMaterials;
+}
+
 QStringList getCreatedLights()
 {
     QStringList createdLights;
@@ -83,6 +96,16 @@ void setButtonColor(QPushButton *button, QColor color)
 {
     QString qss = QString("background-color: %1").arg(color.name());
     button->setStyleSheet(qss);
+}
+
+void setButtonColor(QPushButton *button, const glm::vec4 &color)
+{
+    setButtonColor(button, QColor(color.r * 255, color.g * 255, color.b * 255));
+}
+
+void setButtonColor(QPushButton *button, const glm::vec3 &color)
+{
+    setButtonColor(button, QColor(color.r * 255, color.g * 255, color.b * 255));
 }
 
 void updateTextureComboBox(QComboBox *box, QStringList names, QString currentText, bool blockSignals)

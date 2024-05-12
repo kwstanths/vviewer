@@ -9,9 +9,15 @@
 
 layout(location = 2) rayPayloadInEXT RayPayloadNEE rayPayloadNEE;
 
+/* Descriptor with materials */
+layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
+{
+    MaterialData data[512];
+} materialData;
+
 void main()
 {
-    // TODO environment map sampling pdf
+    // Account for sampling the environment map + volume transmittance
     // rayPayloadNEE.emissive = vec3(0, 0, 0);
     // rayPayloadNEE.pdf = 0;
 }

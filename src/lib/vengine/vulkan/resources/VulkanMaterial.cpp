@@ -26,10 +26,7 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
     return m_descirptorsNeedUpdate[index];
 }
 
-VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info,
-                                                     VkDevice device,
-                                                     VkDescriptorSetLayout descriptorLayout,
-                                                     VulkanUBODefault<MaterialData> &materialsUBO)
+VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO)
     : VulkanUBODefault<MaterialData>::Block(materialsUBO)
     , MaterialPBRStandard(info)
 {
@@ -223,10 +220,7 @@ void VulkanMaterialPBRStandard::setAlphaTexture(Texture *texture)
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info,
-                                             VkDevice device,
-                                             VkDescriptorSetLayout descriptorLayout,
-                                             VulkanUBODefault<MaterialData> &materialsUBO)
+VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO)
     : VulkanUBODefault<MaterialData>::Block(materialsUBO)
     , MaterialLambert(info)
 {
@@ -376,10 +370,7 @@ void VulkanMaterialLambert::setAlphaTexture(Texture *texture)
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialSkybox::VulkanMaterialSkybox(const AssetInfo &info,
-                                           EnvironmentMap *envMap,
-                                           VkDevice device,
-                                           VkDescriptorSetLayout descriptorLayout)
+VulkanMaterialSkybox::VulkanMaterialSkybox(const AssetInfo &info, EnvironmentMap *envMap, VkDescriptorSetLayout descriptorLayout)
     : VulkanMaterialDescriptor(descriptorLayout)
     , MaterialSkybox(info)
 {
@@ -437,6 +428,50 @@ void VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index) co
 
     std::array<VkWriteDescriptorSet, 3> writeSets = {descriptorWriteSkybox, descriptorWriteIrradiance, descriptorWritePrefiltered};
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
+}
+
+VulkanMaterialVolume::VulkanMaterialVolume(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO)
+    : MaterialVolume(info)
+    , VulkanUBODefault<MaterialData>::Block(materialsUBO)
+{
+    sigmaS() = glm::vec4(0.2);
+    sigmaA() = glm::vec4(0.01);
+    g() = 0.0F;
+};
+
+MaterialIndex VulkanMaterialVolume::materialIndex() const
+{
+    return UBOBlockIndex();
+}
+
+glm::vec4 &VulkanMaterialVolume::sigmaA()
+{
+    return m_block->albedo;
+}
+
+const glm::vec4 &VulkanMaterialVolume::sigmaA() const
+{
+    return m_block->albedo;
+}
+
+glm::vec4 &VulkanMaterialVolume::sigmaS()
+{
+    return m_block->metallicRoughnessAO;
+}
+
+const glm::vec4 &VulkanMaterialVolume::sigmaS() const
+{
+    return m_block->metallicRoughnessAO;
+}
+
+float &VulkanMaterialVolume::g()
+{
+    return m_block->emissive.r;
+}
+
+float &VulkanMaterialVolume::g() const
+{
+    return m_block->emissive.r;
 }
 
 }  // namespace vengine

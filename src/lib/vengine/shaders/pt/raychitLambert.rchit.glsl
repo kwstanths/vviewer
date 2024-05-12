@@ -15,6 +15,7 @@
 #include "../include/sampling.glsl"
 #include "../include/utils.glsl"
 #include "../include/lighting.glsl"
+#include "../include/phaseFunctions.glsl"
 #include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
@@ -70,69 +71,85 @@ void main()
 {
     #include "process_hit.glsl"
 
-    /* Tile uvs */
-    vec2 tiledUV = uvs * material.uvTiling.rg;
-
-    /* Apply normal map */
-    vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
-    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
-
-    /* Material information */
-    vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
-    vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
-
-    /* Store first hit info */
-    if (rayPayloadPrimary.depth == 0)
+    /* Process volumetric hit */
+    bool sampledMedium = false;
+    if (rayPayloadPrimary.insideVolume)
     {
-        rayPayloadPrimary.albedo = albedo;
-        rayPayloadPrimary.normal = frame.normal * 0.5 + vec3(0.5);
+        uint volumeMaterialIndex = rayPayloadPrimary.volumeMaterialIndex;
+        float vtstart = rayPayloadPrimary.vtmin;
+        float vtend = gl_HitTEXT;
+        #include "process_volume_hit.glsl"
     }
 
-    /* Add emissive of first hit */
-    if (rayPayloadPrimary.depth == 0 && !isBlack(emissive, 0.05) && !flipped) {
-        rayPayloadPrimary.radiance += emissive * rayPayloadPrimary.beta;
-        rayPayloadPrimary.stop = true;
-        return;
-    }
-
-    /* Light sampling */
-    LightSamplingRecord lsr = sampleLight(worldPosition);
-    if (!isBlack(lsr.radiance))
+    /* If the volume wasn't sampled, process surface hit */
+    if (!sampledMedium)
     {
-        vec3 wi = worldToLocal(frame, lsr.direction);
-        float cosTheta = clamp(wi.y, 0, 1);
+        /* Tile uvs */
+        vec2 tiledUV = uvs * material.uvTiling.rg;
 
-        vec3 F = albedo * INV_PI * cosTheta;
+        /* Apply normal map */
+        vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
+        applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
-        if (!isBlack(F))
+        /* Material information */
+        vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
+        vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
+
+        /* Store first hit info */
+        if (rayPayloadPrimary.surfaceDepth == 0)
         {
-            if (lsr.isDeltaLight)
+            rayPayloadPrimary.albedo = albedo;
+            rayPayloadPrimary.normal = frame.normal * 0.5 + vec3(0.5);
+        }
+
+        /* Add emissive of first hit */
+        if (rayPayloadPrimary.surfaceDepth == 0 && !isBlack(emissive, 0.05) && !flipped) {
+            rayPayloadPrimary.radiance += emissive * rayPayloadPrimary.beta;
+            rayPayloadPrimary.stop = true;
+            return;
+        }
+
+        rayPayloadPrimary.surfaceDepth += 1;
+
+        /* Light sampling */
+        LightSamplingRecord lsr = sampleLight(worldPosition);
+        if (!isBlack(lsr.radiance))
+        {
+            vec3 wi = worldToLocal(frame, lsr.direction);
+            float cosTheta = clamp(wi.y, 0, 1);
+
+            vec3 F = albedo * INV_PI * cosTheta;
+
+            if (!isBlack(F))
             {
-                rayPayloadPrimary.radiance += lsr.radiance * F * rayPayloadPrimary.beta / lsr.pdf;
-            }
-            else 
-            {
-                float bsdfPdf = cosineSampleHemispherePdf(cosTheta);
-                float weightMIS = PowerHeuristic(1, lsr.pdf, 1, bsdfPdf);
-                
-                rayPayloadPrimary.radiance += weightMIS * lsr.radiance * F * rayPayloadPrimary.beta / lsr.pdf;
+                if (lsr.isDeltaLight)
+                {
+                    rayPayloadPrimary.radiance += lsr.radiance * F * rayPayloadPrimary.beta / lsr.pdf;
+                }
+                else 
+                {
+                    float bsdfPdf = cosineSampleHemispherePdf(cosTheta);
+                    float weightMIS = PowerHeuristic(1, lsr.pdf, 1, bsdfPdf);
+
+                    rayPayloadPrimary.radiance += weightMIS * lsr.radiance * F * rayPayloadPrimary.beta / lsr.pdf;
+                }
             }
         }
+
+        /* BSDF sampling */
+        float sampleDirectionPDF;
+        vec3 sampleDirectionLocal = cosineSampleHemisphere(rand2D(rayPayloadPrimary), sampleDirectionPDF);
+        vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
+
+        rayPayloadPrimary.origin = worldPosition;
+        rayPayloadPrimary.direction = sampleDirectionWorld;
+
+        /* Add throughput */
+        /* float cosTheta = sampleDirectionLocal.y */
+        rayPayloadPrimary.beta *= albedo /* * INV_PI * cosTheta / sampleDirectionPDF */;
+
+        #include "next_event_estimation.glsl"
     }
-
-    /* BSDF sampling */
-    float sampleDirectionPDF;
-    vec3 sampleDirectionLocal = cosineSampleHemisphere(rand2D(rayPayloadPrimary), sampleDirectionPDF);
-    vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
     
-    rayPayloadPrimary.origin = worldPosition;
-    rayPayloadPrimary.direction = sampleDirectionWorld;
-
-    /* Add throughput */
-    /* float cosTheta = sampleDirectionLocal.y */
-    rayPayloadPrimary.beta *= albedo /* * INV_PI * cosTheta / sampleDirectionPDF */;
-
-    #include "next_event_estimation.glsl"
-
     #include "russian_roulette.glsl"
 }

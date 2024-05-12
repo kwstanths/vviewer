@@ -30,7 +30,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     connect(m_comboBoxAlbedo, SIGNAL(currentIndexChanged(int)), this, SLOT(onAlbedoTextureChanged(int)));
     m_colorAlbedo = new QPushButton();
     m_colorAlbedo->setFixedWidth(25);
-    setColorButton(m_colorAlbedo, material->albedo());
+    setButtonColor(m_colorAlbedo, material->albedo());
     QGroupBox *groupBoxAlbedo = new QGroupBox(tr("Albedo"));
     QHBoxLayout *layoutAlbedo = new QHBoxLayout();
     layoutAlbedo->addWidget(m_colorAlbedo);
@@ -92,7 +92,7 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     connect(m_comboBoxEmissive, SIGNAL(currentIndexChanged(int)), this, SLOT(onEmissiveTextureChanged(int)));
     m_colorEmissive = new QPushButton();
     m_colorEmissive->setFixedWidth(25);
-    setColorButton(m_colorEmissive, material->emissive());
+    setButtonColor(m_colorEmissive, material->emissive());
     QHBoxLayout *layoutEmissiveColor = new QHBoxLayout();
     layoutEmissiveColor->addWidget(m_colorEmissive);
     layoutEmissiveColor->addWidget(m_comboBoxEmissive);
@@ -217,22 +217,9 @@ void WidgetMaterialPBR::onAlbedoButton()
     float oldAlpha = m_material->albedo().a;
     m_material->albedo() = glm::vec4(glm::vec3(color.red(), color.green(), color.blue()) / glm::vec3(255.0f), oldAlpha);
 
-    setColorButton(m_colorAlbedo, m_material->albedo());
+    setButtonColor(m_colorAlbedo, m_material->albedo());
 
     delete dialog;
-}
-
-void WidgetMaterialPBR::setColorButton(QPushButton *button, const glm::vec4 &color)
-{
-    QColor col = QColor(color.r * 255, color.g * 255, color.b * 255);
-    QString qss = QString("background-color: %1").arg(col.name());
-    button->setStyleSheet(qss);
-
-    /*QPalette pal = m_colorButton->palette();
-    pal.setColor(QPalette::Button, QColor(currentColor.r * 255, currentColor.g * 255, currentColor.b * 255));
-    m_colorButton->setAutoFillBackground(true);
-    m_colorButton->setPalette(pal);
-    m_colorButton->update();*/
 }
 
 void WidgetMaterialPBR::onAlbedoTextureChanged(int)
@@ -300,7 +287,7 @@ void WidgetMaterialPBR::onEmissiveButton()
     QColor color = dialog->currentColor();
     m_material->emissive() = glm::vec4(color.red(), color.green(), color.blue(), 255.0F) / glm::vec4(255.0f);
 
-    setColorButton(m_colorEmissive, m_material->emissive());
+    setButtonColor(m_colorEmissive, m_material->emissive());
 
     delete dialog;
 }

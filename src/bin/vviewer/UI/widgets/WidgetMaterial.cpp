@@ -94,6 +94,9 @@ QWidget *WidgetMaterial::createMaterialWidget(Material *material)
         case MaterialType::MATERIAL_LAMBERT:
             m_widgetMaterial = new WidgetMaterialLambert(this, dynamic_cast<MaterialLambert *>(material));
             break;
+        case MaterialType::MATERIAL_VOLUME:
+            m_widgetMaterial = new WidgetMaterialVolume(this, dynamic_cast<MaterialVolume *>(material));
+            break;
         default:
             break;
     }

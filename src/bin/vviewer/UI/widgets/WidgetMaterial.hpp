@@ -11,6 +11,7 @@
 
 #include "WidgetMaterialPBR.hpp"
 #include "WidgetMaterialLambert.hpp"
+#include "WidgetMaterialVolume.hpp"
 
 /* A UI widget to represent a material */
 class WidgetMaterial : public QWidget
@@ -19,6 +20,7 @@ class WidgetMaterial : public QWidget
 public:
     static const int HEIGHT_PBR = WidgetMaterialPBR::HEIGHT + 70;
     static const int HEIGHT_LAMBERT = WidgetMaterialLambert::HEIGHT + 70;
+    static const int HEIGHT_VOLUME = WidgetMaterialVolume::HEIGHT + 70;
 
     WidgetMaterial(QWidget *parent, vengine::ComponentMaterial &materialComponent);
 

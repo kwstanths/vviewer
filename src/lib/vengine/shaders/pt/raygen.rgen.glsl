@@ -54,6 +54,9 @@ void main()
     float lensRadius = sceneData.data.exposure.b;
     float focalDistance = sceneData.data.exposure.a;
 
+    /* Check if starting camera is inside a volume */
+    bool insideVolume = (sceneData.data.volumes.r != -1);
+
     vec3 cumRadiance = vec3(0);
     vec3 cumAlbedo = vec3(0);
     vec3 cumNormal = vec3(0);
@@ -92,6 +95,12 @@ void main()
         vec4 origin = sceneData.data.viewInverse * originCameraSpace;
         vec4 direction = sceneData.data.viewInverse * directionCameraSpace;
 
+        rayPayloadPrimary.origin = origin.xyz;
+        rayPayloadPrimary.direction = direction.xyz;
+        rayPayloadPrimary.surfaceDepth = 0;
+        rayPayloadPrimary.insideVolume = insideVolume;
+        rayPayloadPrimary.volumeMaterialIndex = sceneData.data.volumes.r;
+
         vec3 beta = vec3(1);
         vec3 radiance = vec3(0);
         vec3 albedo = vec3(0);
@@ -102,7 +111,8 @@ void main()
             rayPayloadPrimary.stop = false;
             rayPayloadPrimary.radiance = radiance;
             rayPayloadPrimary.beta = beta;
-            rayPayloadPrimary.depth = d;
+            rayPayloadPrimary.recursionDepth = d;
+            rayPayloadPrimary.vtmin = 0.001;    /* When ray tracing starts over, volume entry parametric t is zero */
 
             uint primaryRayFlags = gl_RayFlagsNoneEXT;
             traceRayEXT(topLevelAS, primaryRayFlags, 0xff, 0, 3, 0, origin.xyz, 0.001, direction.xyz, 10000.0, 0);

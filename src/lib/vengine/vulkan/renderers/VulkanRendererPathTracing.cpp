@@ -138,6 +138,8 @@ void VulkanRendererPathTracing::render()
 
     m_renderInProgress = true;
 
+    auto camera = m_scene.camera();
+
     /* Prepare sceneData with custom render resolution requested */
     SceneData sceneData = m_scene.getSceneData();
     {
@@ -145,7 +147,6 @@ void VulkanRendererPathTracing::render()
         uint32_t height = renderInfo().height;
 
         /* Change to requested render resolution */
-        auto camera = m_scene.camera();
         switch (camera->type()) {
             case CameraType::PERSPECTIVE: {
                 auto perspectiveCamera = std::static_pointer_cast<PerspectiveCamera>(camera);
@@ -169,9 +170,31 @@ void VulkanRendererPathTracing::render()
         }
     }
 
+    /* Parse scene graph */
     std::vector<SceneObject *> meshes, lights;
     std::vector<std::pair<SceneObject *, uint32_t>> meshLights;
     parseSceneGraph(sceneObjects, meshes, lights, meshLights);
+
+    /* Set camera volume */
+    sceneData.m_volumes.r = -1;
+    if (camera->volume() == nullptr) {
+        /* Check if camera is inside a volume AABB, but a camera volume is not set */
+        glm::vec3 cameraPosition = camera->transform().position();
+        for (auto itr : meshes) {
+            if (itr->get<ComponentMaterial>().material->type() == MaterialType::MATERIAL_VOLUME) {
+                if (itr->AABB().isInside(cameraPosition)) {
+                    debug_tools::ConsoleWarning("The render camera has no volume set, but is inside a volume AABB");
+                }
+            }
+        }
+    } else {
+        Material *cameraVolume = camera->volume();
+        if (cameraVolume->type() != MaterialType::MATERIAL_VOLUME) {
+            debug_tools::ConsoleWarning("The material set for the render camera's volume is not a volume material");
+        } else {
+            sceneData.m_volumes.r = cameraVolume->materialIndex();
+        }
+    }
 
     /* Prepare scene lights */
     m_pathTracingData.lights.r = static_cast<unsigned int>(lights.size() + meshLights.size());
@@ -508,8 +531,10 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
         VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
     }
 
+    /* --- PATH TRACING SHADERS --- */
+
     /*
-        Setup path tracing shader groups
+        Setup shader groups
     */
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
@@ -552,6 +577,7 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
         m_shaderGroups.push_back(shaderGroup);
     }
 
+    /* Any hit shaders */
     /* Primary ray any hit shader */
     VkPipelineShaderStageCreateInfo rayPrimaryAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
         VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitPrimary.rahit.spv"), "main");
@@ -564,11 +590,23 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
     shaderStages.push_back(raySecondaryAnyHitShaderStageInfo);
     uint32_t shaderStageAnyHitSecondary = static_cast<uint32_t>(shaderStages.size()) - 1;
 
+    /* Secondary ray volume any hit shader */
+    VkPipelineShaderStageCreateInfo raySecondaryVolumeAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+        VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitSecondaryVolume.rahit.spv"), "main");
+    shaderStages.push_back(raySecondaryVolumeAnyHitShaderStageInfo);
+    uint32_t shaderStageAnyHitSecondaryVolume = static_cast<uint32_t>(shaderStages.size()) - 1;
+
     /* NEE any hit shader */
     VkPipelineShaderStageCreateInfo rayNEEAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
         VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitNEE.rahit.spv"), "main");
     shaderStages.push_back(rayNEEAnyHitShaderStageInfo);
     uint32_t shaderStageAnyHitNEE = static_cast<uint32_t>(shaderStages.size()) - 1;
+
+    /* NEE volume any hit shader */
+    VkPipelineShaderStageCreateInfo rayNEEVolumeAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+        VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitNEEVolume.rahit.spv"), "main");
+    shaderStages.push_back(rayNEEVolumeAnyHitShaderStageInfo);
+    uint32_t shaderStageAnyHitNEEVolume = static_cast<uint32_t>(shaderStages.size()) - 1;
 
     /* Hit group, lambert material, Primary ray */
     {
@@ -600,6 +638,7 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
                                                        /* anyHitShader = */ shaderStageAnyHitNEE);
         m_shaderGroups.push_back(shaderGroup);
     }
+
     /* Hit group, PBRStandard material, Primary ray */
     {
         VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo =
@@ -630,6 +669,37 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
                                                        /* generalShader = */ VK_SHADER_UNUSED_KHR,
                                                        /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
                                                        /* anyHitShader = */ shaderStageAnyHitNEE);
+        m_shaderGroups.push_back(shaderGroup);
+    }
+
+    /* Hit group, volume material, Primary ray */
+    {
+        VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raychitVolume.rchit.spv"), "main");
+        shaderStages.push_back(rayClosestHitShaderStageInfo);
+        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                       /* closestHitShader = */ static_cast<uint32_t>(shaderStages.size()) - 1,
+                                                       /* anyHitShader = */ VK_SHADER_UNUSED_KHR);
+        m_shaderGroups.push_back(shaderGroup);
+    }
+    /* Hit group, volume material, Secondary ray */
+    {
+        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
+                                                       /* anyHitShader = */ shaderStageAnyHitSecondaryVolume);
+        m_shaderGroups.push_back(shaderGroup);
+    }
+    /* Hit group, volume material, NEE ray */
+    {
+        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
+                                                       /* anyHitShader = */ shaderStageAnyHitNEEVolume);
         m_shaderGroups.push_back(shaderGroup);
     }
 
@@ -685,33 +755,35 @@ VkResult VulkanRendererPathTracing::createShaderBindingTable()
         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    /* 1 gen group, 3 miss groups, 6 hit groups */
-    VULKAN_CHECK_CRITICAL(
-        createBuffer(m_vkctx.physicalDevice(), m_device, handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raygenBuffer));
-    VULKAN_CHECK_CRITICAL(
-        createBuffer(m_vkctx.physicalDevice(), m_device, 3 * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raymissBuffer));
-    VULKAN_CHECK_CRITICAL(
-        createBuffer(m_vkctx.physicalDevice(), m_device, 6 * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raychitBuffer));
+    uint32_t nGenGroups = 1U;
+    uint32_t nMissGroups = 3U;
+    uint32_t nHitGroups = 9U;
+    VULKAN_CHECK_CRITICAL(createBuffer(
+        m_vkctx.physicalDevice(), m_device, nGenGroups * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raygenBuffer));
+    VULKAN_CHECK_CRITICAL(createBuffer(
+        m_vkctx.physicalDevice(), m_device, nMissGroups * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raymissBuffer));
+    VULKAN_CHECK_CRITICAL(createBuffer(
+        m_vkctx.physicalDevice(), m_device, nHitGroups * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raychitBuffer));
 
     /* gen group */
     {
         void *data;
-        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_sbt.raygenBuffer.memory(), 0, handleSize, 0, &data));
-        memcpy(data, shaderHandleStorage.data(), handleSize);
+        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_sbt.raygenBuffer.memory(), 0, nGenGroups * handleSize, 0, &data));
+        memcpy(data, shaderHandleStorage.data(), nGenGroups * handleSize);
         vkUnmapMemory(m_device, m_sbt.raygenBuffer.memory());
     }
     /* miss groups */
     {
         void *data;
-        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_sbt.raymissBuffer.memory(), 0, 3 * handleSize, 0, &data));
-        memcpy(data, shaderHandleStorage.data() + handleSizeAligned, 3 * handleSize);
+        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_sbt.raymissBuffer.memory(), 0, nMissGroups * handleSize, 0, &data));
+        memcpy(data, shaderHandleStorage.data() + nGenGroups * handleSizeAligned, nMissGroups * handleSize);
         vkUnmapMemory(m_device, m_sbt.raymissBuffer.memory());
     }
     /* hit groups */
     {
         void *data;
-        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_sbt.raychitBuffer.memory(), 0, 6 * handleSize, 0, &data));
-        memcpy(data, shaderHandleStorage.data() + handleSizeAligned * 4, 6 * handleSize);
+        VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_sbt.raychitBuffer.memory(), 0, nHitGroups * handleSize, 0, &data));
+        memcpy(data, shaderHandleStorage.data() + (nGenGroups + nMissGroups) * handleSizeAligned, nHitGroups * handleSize);
         vkUnmapMemory(m_device, m_sbt.raychitBuffer.memory());
     }
 
@@ -721,10 +793,10 @@ VkResult VulkanRendererPathTracing::createShaderBindingTable()
     m_sbt.raygenSbtEntry.size = handleSizeAligned;
     m_sbt.raymissSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raymissBuffer.buffer()).deviceAddress;
     m_sbt.raymissSbtEntry.stride = handleSizeAligned;
-    m_sbt.raymissSbtEntry.size = 3 * handleSizeAligned;
+    m_sbt.raymissSbtEntry.size = nMissGroups * handleSizeAligned;
     m_sbt.raychitSbtEntry.deviceAddress = getBufferDeviceAddress(m_device, m_sbt.raychitBuffer.buffer()).deviceAddress;
     m_sbt.raychitSbtEntry.stride = handleSizeAligned;
-    m_sbt.raychitSbtEntry.size = 6 * handleSizeAligned;
+    m_sbt.raychitSbtEntry.size = nHitGroups * handleSizeAligned;
     m_sbt.callableSbtEntry = {};
 
     return VK_SUCCESS;

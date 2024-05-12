@@ -35,10 +35,7 @@ protected:
 class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanUBODefault<MaterialData>::Block
 {
 public:
-    VulkanMaterialPBRStandard(const AssetInfo &info,
-                              VkDevice device,
-                              VkDescriptorSetLayout descriptorLayout,
-                              VulkanUBODefault<MaterialData> &materialsUBO);
+    VulkanMaterialPBRStandard(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
 
@@ -78,10 +75,7 @@ private:
 class VulkanMaterialLambert : public MaterialLambert, public VulkanUBODefault<MaterialData>::Block
 {
 public:
-    VulkanMaterialLambert(const AssetInfo &info,
-                          VkDevice device,
-                          VkDescriptorSetLayout descriptorLayout,
-                          VulkanUBODefault<MaterialData> &materialsUBO);
+    VulkanMaterialLambert(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
 
@@ -115,7 +109,7 @@ private:
 class VulkanMaterialSkybox : public MaterialSkybox, public VulkanMaterialDescriptor
 {
 public:
-    VulkanMaterialSkybox(const AssetInfo &info, EnvironmentMap *envMap, VkDevice device, VkDescriptorSetLayout descriptorLayout);
+    VulkanMaterialSkybox(const AssetInfo &info, EnvironmentMap *envMap, VkDescriptorSetLayout descriptorLayout);
 
     virtual void setMap(EnvironmentMap *envMap) override;
 
@@ -124,6 +118,26 @@ public:
     void updateDescriptorSet(VkDevice device, size_t index) const override;
 
 private:
+};
+
+/* Volume material */
+class VulkanMaterialVolume : public MaterialVolume, public VulkanUBODefault<MaterialData>::Block
+{
+public:
+    VulkanMaterialVolume(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO);
+
+    MaterialIndex materialIndex() const override;
+
+    glm::vec4 &sigmaA() override;
+    const glm::vec4 &sigmaA() const override;
+
+    glm::vec4 &sigmaS() override;
+    const glm::vec4 &sigmaS() const override;
+
+    float &g() override;
+    float &g() const override;
+
+protected:
 };
 
 }  // namespace vengine

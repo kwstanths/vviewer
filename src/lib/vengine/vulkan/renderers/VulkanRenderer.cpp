@@ -271,7 +271,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
     parseSceneGraph(sceneGraphArray, meshes, lights, meshLights);
 
     /* split meshes into materials */
-    std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects;
+    std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects, volumes;
     for (auto &itr : meshes) {
         Material *mat = itr->get<ComponentMaterial>().material;
         if (mat->isTransparent()) {
@@ -283,6 +283,9 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                     break;
                 case MaterialType::MATERIAL_LAMBERT:
                     opaqueLambertObjects.push_back(itr);
+                    break;
+                case MaterialType::MATERIAL_VOLUME:
+                    volumes.push_back(itr);
                     break;
                 default:
                     debug_tools::ConsoleWarning("VulkanRenderer::buildFrame(): Unexpected material");

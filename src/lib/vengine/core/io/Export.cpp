@@ -133,10 +133,10 @@ void addMaterialComponent(rapidjson::Document &d, rapidjson::Value &v, const Sce
     Value materialObject;
     materialObject.SetObject();
 
-    /* Get the mesh component */
+    /* Get the material component */
     const Material *material = sceneObject->get<ComponentMaterial>().material;
 
-    /* Set the path to the copied file */
+    /* Set the path to the material name */
     Value path;
     path.SetString(material->name().c_str(), d.GetAllocator());
     materialObject.AddMember("name", path, d.GetAllocator());
@@ -474,6 +474,29 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
 
             break;
         }
+        case MaterialType::MATERIAL_VOLUME: {
+            auto m = dynamic_cast<const MaterialVolume *>(material);
+
+            Value type;
+            type.SetString("VOLUME");
+            mat.AddMember("type", type, d.GetAllocator());
+
+            Value sigmaSObject;
+            sigmaSObject.SetObject();
+            addVec3(d, sigmaSObject, "value", m->sigmaS());
+            mat.AddMember("scattering", sigmaSObject, d.GetAllocator());
+
+            Value sigmaAObject;
+            sigmaAObject.SetObject();
+            addVec3(d, sigmaAObject, "value", m->sigmaA());
+            mat.AddMember("absorption", sigmaAObject, d.GetAllocator());
+
+            Value g;
+            g.SetFloat(m->g());
+            mat.AddMember("g", g, d.GetAllocator());
+
+            break;
+        }
         default:
             break;
     }
@@ -661,6 +684,10 @@ void exportJson(const ExportRenderParams &renderParams,
             Value fov;
             fov.SetFloat(cameraFoV);
             camera.AddMember("fov", fov, d.GetAllocator());
+
+            Value volumeMaterial;
+            volumeMaterial.SetString(sceneCamera->volume() ? sceneCamera->volume()->name().c_str() : "", d.GetAllocator());
+            camera.AddMember("volume", volumeMaterial, d.GetAllocator());
         }
     }
 

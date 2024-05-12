@@ -13,8 +13,8 @@ class RendererPathTracing
 public:
     struct RenderInfo {
         uint32_t samples = 256u;
-        uint32_t depth = 5u;
-        uint32_t batchSize = 16u;
+        uint32_t depth = 9u;
+        uint32_t batchSize = 4u;
 
         std::string filename = "test";
         FileType fileType = FileType::HDR;

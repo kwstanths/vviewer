@@ -6,15 +6,21 @@
 #include <qpushbutton.h>
 #include <qcombobox.h>
 
+#include "glm/glm.hpp"
+
 #include <vengine/core/Texture.hpp>
+#include <vengine/core/Material.hpp>
 
 QStringList getImportedModels();
 QStringList getCreatedMaterials();
+QStringList getCreatedMaterials(vengine::MaterialType type);
 QStringList getCreatedLights();
 QStringList getImportedTextures(vengine::ColorSpace colorSpace);
 QStringList getImportedCubemaps();
 QStringList getImportedEnvironmentMaps();
 
+void setButtonColor(QPushButton *button, const glm::vec4 &color);
+void setButtonColor(QPushButton *button, const glm::vec3 &color);
 void setButtonColor(QPushButton *button, QColor color);
 
 /**

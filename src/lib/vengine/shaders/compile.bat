@@ -26,9 +26,12 @@ set compiler=%VULKAN_SDK%\Bin\glslangValidator.exe
 %compiler% -V --target-env spirv1.4 pt/raygen.rgen.glsl -o SPIRV/pt/raygen.rgen.spv
 %compiler% -V --target-env spirv1.4 pt/raychitLambert.rchit.glsl -o SPIRV/pt/raychitLambert.rchit.spv
 %compiler% -V --target-env spirv1.4 pt/raychitPBRStandard.rchit.glsl -o SPIRV/pt/raychitPBRStandard.rchit.spv
+%compiler% -V --target-env spirv1.4 pt/raychitVolume.rchit.glsl -o SPIRV/pt/raychitVolume.rchit.spv
 %compiler% -V --target-env spirv1.4 pt/rayahitPrimary.rahit.glsl -o SPIRV/pt/rayahitPrimary.rahit.spv
 %compiler% -V --target-env spirv1.4 pt/rayahitSecondary.rahit.glsl -o SPIRV/pt/rayahitSecondary.rahit.spv
+%compiler% -V --target-env spirv1.4 pt/rayahitSecondaryVolume.rahit.glsl -o SPIRV/pt/rayahitSecondaryVolume.rahit.spv
 %compiler% -V --target-env spirv1.4 pt/rayahitNEE.rahit.glsl -o SPIRV/pt/rayahitNEE.rahit.spv
+$compiler% -V --target-env spirv1.4 pt/rayahitNEEVolume.rahit.glsl -o SPIRV/pt/rayahitNEEVolume.rahit.spv
 %compiler% -V --target-env spirv1.4 pt/raymissPrimary.rmiss.glsl -o SPIRV/pt/raymissPrimary.rmiss.spv
 %compiler% -V --target-env spirv1.4 pt/raymissSecondary.rmiss.glsl -o SPIRV/pt/raymissSecondary.rmiss.spv
 %compiler% -V --target-env spirv1.4 pt/raymissNEE.rmiss.glsl -o SPIRV/pt/raymissNEE.rmiss.spv

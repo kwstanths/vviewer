@@ -26,7 +26,7 @@ void main()
         /* solid color background */
         vec3 backgroundColor = sceneData.data.background.xyz;
     
-        if (rayPayloadPrimary.depth == 0)
+        if (rayPayloadPrimary.surfaceDepth == 0)
         {
             rayPayloadPrimary.albedo = backgroundColor;
             rayPayloadPrimary.normal = vec3(0, 0, 0);
@@ -39,7 +39,7 @@ void main()
         /* environment map background */
         vec3 backgroundColor = sceneData.data.exposure.g * textureLod(skybox, rayDir, 0).xyz;
 
-        if (rayPayloadPrimary.depth == 0)
+        if (rayPayloadPrimary.surfaceDepth == 0)
         {
             rayPayloadPrimary.albedo = backgroundColor;
             rayPayloadPrimary.normal = vec3(0, 0, 0);
@@ -53,7 +53,7 @@ void main()
         vec3 envMapColor = textureLod(skybox, rayDir, 0).xyz;
         vec3 solidColor = sceneData.data.background.xyz;
 
-        if (rayPayloadPrimary.depth == 0)
+        if (rayPayloadPrimary.surfaceDepth == 0)
         {
             rayPayloadPrimary.albedo = solidColor;
             rayPayloadPrimary.normal = vec3(0, 0, 0);

@@ -32,6 +32,7 @@ SceneData Scene::getSceneData() const
     sceneData.m_projectionInverse = m_camera->projectionMatrixInverse();
     sceneData.m_exposure = glm::vec4(exposure(), environmentIntensity(), m_camera->lensRadius(), m_camera->focalDistance());
     sceneData.m_background = glm::vec4(m_backgroundColor, static_cast<float>(m_environmentType));
+    sceneData.m_volumes = glm::ivec4(-1, 0, 0, 0);
     return sceneData;
 }
 

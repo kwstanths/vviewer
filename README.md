@@ -1,5 +1,5 @@
 # vviewer 
-A real time renderer and an offline path tracer written in Vulkan and a 3D scene editor written in Qt. Uses [VK_KHR_ray_query.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_query.html) and [VK_KHR_ray_tracing_pipeline.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_tracing_pipeline.html) for GPU accelerated ray tracing implementing ray generation, ray closest hit, ray any hit and ray miss shaders. The rendering engine can be built separately as a standalone library, independent of the UI.
+A real time renderer and an offline volumetric path tracer written in Vulkan and a 3D scene editor written in Qt. Uses [VK_KHR_ray_query.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_query.html) and [VK_KHR_ray_tracing_pipeline.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_tracing_pipeline.html) for GPU accelerated ray tracing implementing ray generation, ray closest hit, ray any hit and ray miss shaders. The rendering engine can be built separately as a standalone library, independent of the UI.
 
 ![Alt text](images/1.png?raw=true)
 
@@ -21,6 +21,7 @@ A real time renderer and an offline path tracer written in Vulkan and a 3D scene
     * Transform visualization
     * AABB visualization
 * GPU path traced rendering
+    * Homogeneous media (Non overlapping)
     * Low discrepancy sampling with progressive sequences
     * Multiple importance sampling
         * Light sampling
