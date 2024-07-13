@@ -68,7 +68,7 @@ VkResult VulkanRenderer::initResources()
                                                       m_vkctx.graphicsCommandPool(),
                                                       m_vkctx.physicalDeviceProperties(),
                                                       m_scene.layoutSceneData(),
-                                                      m_scene.layoutModelData(),
+                                                      m_scene.layoutInstanceData(),
                                                       m_scene.layoutLights(),
                                                       m_rendererSkybox.descriptorSetLayout(),
                                                       m_materials.descriptorSetLayout(),
@@ -80,7 +80,7 @@ VkResult VulkanRenderer::initResources()
                                                           m_vkctx.graphicsCommandPool(),
                                                           m_vkctx.physicalDeviceProperties(),
                                                           m_scene.layoutSceneData(),
-                                                          m_scene.layoutModelData(),
+                                                          m_scene.layoutInstanceData(),
                                                           m_scene.layoutLights(),
                                                           m_rendererSkybox.descriptorSetLayout(),
                                                           m_materials.descriptorSetLayout(),
@@ -266,37 +266,7 @@ VkResult VulkanRenderer::renderFrame(SceneGraph &sceneGraphArray)
 
 VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer)
 {
-    std::vector<SceneObject *> meshes, lights;
-    std::vector<std::pair<SceneObject *, uint32_t>> meshLights;
-    parseSceneGraph(sceneGraphArray, meshes, lights, meshLights);
-
-    /* split meshes into materials */
-    std::vector<SceneObject *> transparentObjects, opaquePBRStandardObjects, opaqueLambertObjects, volumes;
-    for (auto &itr : meshes) {
-        Material *mat = itr->get<ComponentMaterial>().material;
-        if (mat->isTransparent()) {
-            transparentObjects.push_back(itr);
-        } else {
-            switch (mat->type()) {
-                case MaterialType::MATERIAL_PBR_STANDARD:
-                    opaquePBRStandardObjects.push_back(itr);
-                    break;
-                case MaterialType::MATERIAL_LAMBERT:
-                    opaqueLambertObjects.push_back(itr);
-                    break;
-                case MaterialType::MATERIAL_VOLUME:
-                    volumes.push_back(itr);
-                    break;
-                default:
-                    debug_tools::ConsoleWarning("VulkanRenderer::buildFrame(): Unexpected material");
-            }
-        }
-    }
-
-    /* Update scene data, builds the TLAS */
-    m_scene.updateBuffers(meshes, lights, meshLights, imageIndex);
-    m_scene.updateTLAS(
-        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.renderCommandPool(), m_vkctx.renderQueue()}, meshes, imageIndex);
+    m_scene.updateFrame({m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.renderCommandPool(), m_vkctx.renderQueue()}, imageIndex);
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
     m_textures.updateTextures();
 
@@ -331,25 +301,25 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         /* Draw opaque */
         {
             m_rendererLambert.renderObjectsForwardOpaque(commandBuffer,
+                                                         m_scene.m_instances,
                                                          m_scene.descriptorSetSceneData(imageIndex),
-                                                         m_scene.descriptorSetModelData(imageIndex),
+                                                         m_scene.descriptorSetInstanceData(imageIndex),
                                                          m_scene.descriptorSetLight(imageIndex),
                                                          skybox->getDescriptor(imageIndex),
                                                          m_materials.descriptorSet(imageIndex),
                                                          m_textures.descriptorSet(),
                                                          m_scene.descriptorSetTLAS(imageIndex),
-                                                         opaqueLambertObjects,
-                                                         lights);
+                                                         m_scene.instancesManager().lights());
             m_rendererPBR.renderObjectsForwardOpaque(commandBuffer,
+                                                     m_scene.m_instances,
                                                      m_scene.descriptorSetSceneData(imageIndex),
-                                                     m_scene.descriptorSetModelData(imageIndex),
+                                                     m_scene.descriptorSetInstanceData(imageIndex),
                                                      m_scene.descriptorSetLight(imageIndex),
                                                      skybox->getDescriptor(imageIndex),
                                                      m_materials.descriptorSet(imageIndex),
                                                      m_textures.descriptorSet(),
                                                      m_scene.descriptorSetTLAS(imageIndex),
-                                                     opaquePBRStandardObjects,
-                                                     lights);
+                                                     m_scene.instancesManager().lights());
         }
 
         /* Draw skybox if needed */
@@ -361,27 +331,24 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         {
             /* Sort with distance to camera */
             glm::vec3 cameraPos = m_scene.camera()->transform().position();
-            std::sort(transparentObjects.begin(), transparentObjects.end(), [&](SceneObject *a, SceneObject *b) {
-                float d1 = glm::distance(cameraPos, a->worldPosition());
-                float d2 = glm::distance(cameraPos, b->worldPosition());
-                return d1 > d2;
-            });
+            m_scene.m_instances.sortTransparent(cameraPos);
 
             std::unordered_map<MaterialType, VulkanRendererBase *> renderers = {{MaterialType::MATERIAL_LAMBERT, &m_rendererLambert},
                                                                                 {MaterialType::MATERIAL_PBR_STANDARD, &m_rendererPBR}};
-            for (auto itr : transparentObjects) {
+            for (auto itr : m_scene.m_instances.transparentMeshes()) {
                 auto renderer = renderers[itr->get<ComponentMaterial>().material->type()];
 
                 renderer->renderObjectsForwardTransparent(commandBuffer,
+                                                          m_scene.m_instances,
                                                           m_scene.descriptorSetSceneData(imageIndex),
-                                                          m_scene.descriptorSetModelData(imageIndex),
+                                                          m_scene.descriptorSetInstanceData(imageIndex),
                                                           m_scene.descriptorSetLight(imageIndex),
                                                           skybox->getDescriptor(imageIndex),
                                                           m_materials.descriptorSet(imageIndex),
                                                           m_textures.descriptorSet(),
                                                           m_scene.descriptorSetTLAS(imageIndex),
                                                           itr,
-                                                          lights);
+                                                          m_scene.instancesManager().lights());
             }
         }
 

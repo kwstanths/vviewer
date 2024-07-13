@@ -25,31 +25,15 @@ layout(location = 2) rayPayloadInEXT RayPayloadNEE rayPayloadNEE;
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
-layout(set = 0, binding = 2) uniform PathTracingData 
-{
-    uvec4 samplesBatchesDepthIndex;
-    uvec4 lights;
-} pathTracingData;
-
-/* Descriptor with the buffer for the object description structs */
-layout(set = 1, binding = 1, scalar) buffer ObjDesc_ 
-{ 
-    ObjDesc i[16384]; 
-} objDesc;
-
-/* Descriptor with materials */
-layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
-{
-    MaterialData data[512];
-} materialData;
-
-/* Descriptor for global textures arrays */
-layout (set = 3, binding = 0) uniform sampler2D global_textures[];
-layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
+#include "layoutDescriptors/PathTracingData.glsl"
+#include "layoutDescriptors/InstanceData.glsl"
+#include "layoutDescriptors/MaterialData.glsl"
+#include "layoutDescriptors/Textures.glsl"
 
 void main()
 {
     #include "process_hit.glsl"
+    #include "construct_frame.glsl"
 
     if (flipped && rayPayloadNEE.insideVolume)
     {
@@ -62,7 +46,7 @@ void main()
         
         rayPayloadNEE.insideVolume = false;
 
-        uint volumeMaterialIndex = objResource.materialIndex;
+        uint volumeMaterialIndex = instanceData.materialIndex;
         float vtend = gl_HitTEXT;
         float vtstart = rayPayloadNEE.vtmin;
         #include "process_volume_transmittance.glsl"
@@ -88,7 +72,7 @@ void main()
 
         rayPayloadNEE.insideVolume = true;
         rayPayloadNEE.vtmin = gl_HitTEXT;
-        rayPayloadNEE.volumeMaterialIndex = objResource.materialIndex;
+        rayPayloadNEE.volumeMaterialIndex = instanceData.materialIndex;
         ignoreIntersectionEXT;
     }
 }

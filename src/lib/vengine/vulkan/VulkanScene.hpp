@@ -9,6 +9,7 @@
 
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanContext.hpp"
+#include "vulkan/VulkanInstances.hpp"
 #include "vulkan/common/VulkanStructs.hpp"
 #include "vulkan/resources/VulkanUBOAccessors.hpp"
 
@@ -30,27 +31,28 @@ public:
     VkResult releaseSwapchainResources();
 
     VkDescriptorSetLayout &layoutSceneData() { return m_descriptorSetLayoutScene; }
-    VkDescriptorSetLayout &layoutModelData() { return m_descriptorSetLayoutModel; }
+    VkDescriptorSetLayout &layoutInstanceData() { return m_instances.layoutInstanceData(); }
     VkDescriptorSetLayout &layoutLights() { return m_descriptorSetLayoutLight; }
     VkDescriptorSetLayout &layoutTLAS() { return m_descriptorSetLayoutTLAS; }
 
     VkDescriptorSet &descriptorSetSceneData(uint32_t imageIndex) { return m_descriptorSetsScene[imageIndex]; };
-    VkDescriptorSet &descriptorSetModelData(uint32_t imageIndex) { return m_descriptorSetsModel[imageIndex]; };
+    VkDescriptorSet &descriptorSetInstanceData(uint32_t imageIndex) { return m_instances.descriptorSetInstanceData(imageIndex); };
     VkDescriptorSet &descriptorSetLight(uint32_t imageIndex) { return m_descriptorSetsLight[imageIndex]; };
     VkDescriptorSet &descriptorSetTLAS(uint32_t imageIndex) { return m_descriptorSetsTLAS[imageIndex]; };
 
     SceneData getSceneData() const override;
 
-    void updateBuffers(const std::vector<SceneObject *> &meshes,
-                       const std::vector<SceneObject *> &lights,
-                       const std::vector<std::pair<SceneObject *, uint32_t>> &meshLights,
-                       uint32_t imageIndex);
-    void updateTLAS(VulkanCommandInfo vci, const std::vector<SceneObject *> &meshes, uint32_t imageIndex);
+    void update() override;
+    void updateFrame(VulkanCommandInfo vci, uint32_t frameIndex);
 
     Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) override;
 
+    const VulkanInstancesManager &instancesManager() const { return m_instances; }
+
 private:
     VulkanContext &m_vkctx;
+
+    VulkanInstancesManager m_instances;
 
     VkDescriptorPool m_descriptorPool;
 
@@ -60,36 +62,29 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayoutScene;
     std::vector<VkDescriptorSet> m_descriptorSetsScene;
 
-    /* Buffers to hold model matrices */
-    VulkanUBOCached<ModelData> m_modelDataUBO;
-    /* ModelData descriptor */
-    VkDescriptorSetLayout m_descriptorSetLayoutModel;
-    std::vector<VkDescriptorSet> m_descriptorSetsModel;
-
     /* Buffers to hold light data */
     VulkanUBODefault<LightData> m_lightDataUBO;
-    /* Buffers to hold light instances */
-    VulkanUBODefault<LightInstance> m_lightInstancesUBO;
     /* Lights descriptor sets */
     VkDescriptorSetLayout m_descriptorSetLayoutLight;
     std::vector<VkDescriptorSet> m_descriptorSetsLight;
 
-    /* Data for TLAS and scene object description */
+    /* Data for TLAS */
     struct BLASInstance {
         const VulkanAccelerationStructure &accelerationStructure;
         const glm::mat4 &modelMatrix;
-        uint32_t instanceOffset; /* SBT Ioffset */
+        uint32_t SBTOffset; /* SBT Ioffset */
+        uint32_t instanceDataOffset;
+
         BLASInstance(const VulkanAccelerationStructure &_accelerationStructure,
                      const glm::mat4 &_modelMatrix,
-                     uint32_t _instanceOffset)
+                     uint32_t _SBTOffset,
+                     uint32_t _instanceDataOffset)
             : accelerationStructure(_accelerationStructure)
             , modelMatrix(_modelMatrix)
-            , instanceOffset(_instanceOffset){};
+            , SBTOffset(_SBTOffset)
+            , instanceDataOffset(_instanceDataOffset){};
     };
-    std::vector<BLASInstance> m_blasInstances;
-    std::vector<ObjectDescriptionPT> m_sceneObjectsDescription;
     std::vector<VulkanAccelerationStructure> m_tlas;
-    std::vector<VulkanBuffer> m_storageBufferObjectDescription;
     VkDescriptorSetLayout m_descriptorSetLayoutTLAS;
     std::vector<VkDescriptorSet> m_descriptorSetsTLAS;
 
@@ -101,7 +96,10 @@ private:
     SceneObject *createObject(std::string name) override;
     void deleteObject(SceneObject *object) override;
 
-    void createTopLevelAccelerationStructure(VulkanCommandInfo vci, uint32_t imageIndex);
+    void buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex);
+    void createTopLevelAccelerationStructure(const std::vector<BLASInstance> &blasInstances,
+                                             VulkanCommandInfo vci,
+                                             uint32_t imageIndex);
 };
 
 }  // namespace vengine

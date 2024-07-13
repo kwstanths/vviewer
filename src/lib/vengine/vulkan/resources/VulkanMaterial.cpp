@@ -37,6 +37,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info, Vulk
     emissive() = glm::vec4(0, 0, 0, 1);
     uTiling() = 1;
     vTiling() = 1;
+    setTransparent(false);
 
     auto &textures = AssetManager::getInstance().texturesMap();
     auto white = textures.get("white");
@@ -229,6 +230,7 @@ VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info, VulkanUBODef
     emissive() = glm::vec4(0, 0, 0, 1);
     uTiling() = 1.F;
     vTiling() = 1.F;
+    setTransparent(false);
 
     auto &textures = AssetManager::getInstance().texturesMap();
 

@@ -1,3 +1,5 @@
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
 /* Struct for vertex data stored per vertex in geometry buffers */
 struct Vertex
 {
@@ -20,9 +22,14 @@ struct SceneData {
     ivec4 volumes;      /* R = material id of camera volume, GBA = unused */
 };
 
-/* ModelData struct. A mirror of the CPU struct */
-struct ModelData {
+/* InstanceData struct. A mirror of the CPU struct */
+struct InstanceData {
     mat4 model;
+    vec4 id;
+    uint materialIndex;
+    uint64_t vertexAddress;
+    uint64_t indexAddress;
+    uint numTriangles;
 };
 
 /* Material struct. A mirror of the CPU struct */
@@ -50,7 +57,7 @@ struct LightData {
 
 /* LightInstance struct. A mirror of the CPU struct */
 struct LightInstance {
-    uvec4 info;     /* R = LightData index, G = ModelData index, B = Object Description index if Mesh type, A = type (LightType) */
+    uvec4 info;     /* R = LightData index, G = InstanceData index, B = Object Description index if Mesh type, A = type (LightType) */
     vec4 position;  /* RGB = world position/direction, A = casts shadow or RGBA = row 0 of transform matrix if mesh type */
     vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
     vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */

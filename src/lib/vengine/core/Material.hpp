@@ -21,6 +21,7 @@ enum class MaterialType {
     MATERIAL_SKYBOX = 1,
     MATERIAL_LAMBERT = 2,
     MATERIAL_VOLUME = 3,
+    MATERIAL_TOTAL_TYPES = 4,
 };
 
 typedef uint32_t MaterialIndex;
@@ -48,6 +49,7 @@ public:
     virtual void setTransparent(bool transparent) { return; }
 
 private:
+    bool m_isTransparent = false;
 };
 
 class MaterialPBRStandard : public Material

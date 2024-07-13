@@ -6,6 +6,10 @@
 namespace vengine
 {
 
+/**
+ * @brief Represents a VkBuffer and its memory
+ *
+ */
 class VulkanBuffer
 {
 public:

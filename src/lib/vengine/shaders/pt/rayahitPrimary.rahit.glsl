@@ -23,43 +23,16 @@ layout(location = 0) rayPayloadInEXT RayPayloadPrimary rayPayloadPrimary;
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
-/* Descriptor with the buffer for the object description structs */
-layout(set = 1, binding = 1, scalar) buffer ObjDesc_ 
-{ 
-    ObjDesc i[16384]; 
-} objDesc;
-
-/* Descriptor with materials */
-layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
-{
-    MaterialData data[512];
-} materialData;
-
-/* Descriptor for global textures arrays */
-layout (set = 3, binding = 0) uniform sampler2D global_textures[];
-layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
+#include "layoutDescriptors/InstanceData.glsl"
+#include "layoutDescriptors/MaterialData.glsl"
+#include "layoutDescriptors/Textures.glsl"
 
 #include "../include/rng/rng.glsl"
 
 void main()
 {
-    /* Get the hit object geometry, and its material */
-    ObjDesc objResource = objDesc.i[gl_InstanceCustomIndexEXT];
-    Indices indices = Indices(objResource.indexAddress);
-    Vertices vertices = Vertices(objResource.vertexAddress);
-    MaterialData material = materialData.data[objResource.materialIndex];
+    #include "process_hit.glsl"
 
-    /* Get hit triangle info */
-    ivec3  ind = indices.i[gl_PrimitiveID];
-    Vertex v0 = vertices.v[ind.x];
-    Vertex v1 = vertices.v[ind.y];
-    Vertex v2 = vertices.v[ind.z];
-
-    /* Calculate bayrcentric coordiantes */
-    const vec3 barycentricCoords = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
-
-    /* Interpolate uvs */
-    const vec2 uvs = v0.uv * barycentricCoords.x + v1.uv * barycentricCoords.y + v2.uv * barycentricCoords.z;
     vec2 tiledUV = uvs * material.uvTiling.rg;
 
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;

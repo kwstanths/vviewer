@@ -187,7 +187,44 @@ VkResult VulkanRendererBase::createPipelineForwardTransparent(VkShaderModule ver
     return VK_SUCCESS;
 }
 
+VkResult VulkanRendererBase::renderMaterialGroup(VkCommandBuffer &commandBuffer,
+                                                 const VulkanInstancesManager::MaterialGroup &materialGroup,
+                                                 const VkPipelineLayout &pipelineLayout,
+                                                 const SceneGraph &lights) const
+{
+    for (auto &meshGroup : materialGroup.meshGroups) {
+        const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(meshGroup.first);
+        assert(vkmesh != nullptr);
+
+        VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, vkmesh->indexBuffer().buffer(), 0, vkmesh->indexType());
+
+        PushBlockForward pushConstants;
+        pushConstants.info.b = std::min<unsigned int>(lights.size(), 4U);
+        pushConstants.lights = glm::vec4(0, 1, 2, 3);
+
+        vkCmdPushConstants(commandBuffer,
+                           pipelineLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                           0,
+                           sizeof(PushBlockForward),
+                           &pushConstants);
+
+        vkCmdDrawIndexed(commandBuffer,
+                         static_cast<uint32_t>(vkmesh->indices().size()),
+                         meshGroup.second.sceneObjects.size(),
+                         0,
+                         0,
+                         meshGroup.second.startIndex);
+    }
+
+    return VK_SUCCESS;
+}
+
 VkResult VulkanRendererBase::renderObjects(VkCommandBuffer &commandBuffer,
+                                           VulkanInstancesManager &instances,
                                            const VkPipelineLayout &pipelineLayout,
                                            const SceneGraph &objects,
                                            const SceneGraph &lights) const
@@ -210,7 +247,7 @@ VkResult VulkanRendererBase::renderObjects(VkCommandBuffer &commandBuffer,
         PushBlockForward pushConstants;
         pushConstants.selected = glm::vec4(vkobject->getIDRGB(), vkobject->selected());
         pushConstants.info.r = material->materialIndex();
-        pushConstants.info.g = vkobject->getModelDataUBOIndex();
+        pushConstants.info.g = instances.getInstanceDataIndex(vkobject);
 
         /* Find the 4 strongest lights to current object */
         glm::vec3 pos = vkobject->worldPosition();
@@ -229,7 +266,7 @@ VkResult VulkanRendererBase::renderObjects(VkCommandBuffer &commandBuffer,
                            sizeof(PushBlockForward),
                            &pushConstants);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, pushConstants.info.g);
     }
 
     return VK_SUCCESS;

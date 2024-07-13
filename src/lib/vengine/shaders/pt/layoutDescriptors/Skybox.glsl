@@ -1,0 +1,1 @@
+layout(set = 6, binding = 0) uniform samplerCube skybox;

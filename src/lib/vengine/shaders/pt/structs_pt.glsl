@@ -1,13 +1,4 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-/* Struct for the object description of a mesh in the scene for PT */
-struct ObjDesc
-{
-    /* Pointers to GPU buffers */
-    uint64_t vertexAddress;
-    uint64_t indexAddress;
-    uint materialIndex;
-    uint numTriangles;
-};
 
 /* Struct with ray payload for the primary ray in PT */
 struct RayPayloadPrimary {

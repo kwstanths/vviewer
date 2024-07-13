@@ -1,8 +1,10 @@
 compiler=${VULKAN_SDK}/bin/glslangValidator
 
 $compiler -V --target-env spirv1.4 standard.vert.glsl -o SPIRV/standard.vert.spv
-$compiler -V --target-env spirv1.4 pbrBase.frag.glsl -o SPIRV/pbrBase.frag.spv
-$compiler -V --target-env spirv1.4 lambertBase.frag.glsl -o SPIRV/lambertBase.frag.spv
+$compiler -V --target-env spirv1.4 pbrForwardOpaque.frag.glsl -o SPIRV/pbrForwardOpaque.frag.spv
+$compiler -V --target-env spirv1.4 pbrForwardTransparent.frag.glsl -o SPIRV/pbrForwardTransparent.frag.spv
+$compiler -V --target-env spirv1.4 lambertForwardOpaque.frag.glsl -o SPIRV/lambertForwardOpaque.frag.spv
+$compiler -V --target-env spirv1.4 lambertForwardTransparent.frag.glsl -o SPIRV/lambertForwardTransparent.frag.spv
 $compiler -V ui/3duiTransform.vert.glsl -o SPIRV/3duiTransform.vert.spv
 $compiler -V ui/3duiTransform.frag.glsl -o SPIRV/3duiTransform.frag.spv
 $compiler -V ui/3duiAABB.vert.glsl -o SPIRV/3duiAABB.vert.spv

@@ -15,27 +15,24 @@ layout(location = 1) out vec3 fragNormal_world;
 layout(location = 2) out vec3 fragTangent_world;
 layout(location = 3) out vec3 fragBiTangent_world;
 layout(location = 4) out vec2 fragUV;
+layout(location = 5) out uint instanceDataIndex;
 
 layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
     SceneData data;
 } sceneData;
 
-layout(set = 1, binding = 0) uniform readonly ModelDataDescriptor {
-    ModelData data[1000];
-} modelData;
-
-layout(push_constant) uniform PushConsts {
-    layout (offset = 0) vec4 selected;
-    layout (offset = 16) uvec4 info;
-    layout (offset = 32) uvec4 lights;
-} pushConsts;
+layout(set = 1, binding = 0) buffer readonly InstanceDataDescriptor {
+    InstanceData data[16384];
+} instanceData;
 
 void main() {
-    ModelData m = modelData.data[nonuniformEXT(pushConsts.info.g)];
-    vec4 worldPos = m.model * vec4(inPosition, 1.0);
+    instanceDataIndex = gl_InstanceIndex;
+    InstanceData instance = instanceData.data[nonuniformEXT(instanceDataIndex)];
+
+    vec4 worldPos = instance.model * vec4(inPosition, 1.0);
     gl_Position = sceneData.data.projection * sceneData.data.view * worldPos;
     
-    mat4 invTransModel = transpose(inverse(m.model));
+    mat4 invTransModel = transpose(inverse(instance.model));
 
     fragPos_world = worldPos.xyz;
     fragNormal_world = normalize(vec3(invTransModel * vec4(inNormal, 0.0)));

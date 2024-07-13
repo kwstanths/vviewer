@@ -50,6 +50,8 @@ public:
                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }
 
+    static uint32_t SBTMaterialOffset(MaterialType type);
+
 private:
     struct PathTracingData {
         glm::uvec4 samplesBatchesDepthIndex =

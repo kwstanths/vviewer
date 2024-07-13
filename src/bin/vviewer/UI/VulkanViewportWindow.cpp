@@ -140,7 +140,7 @@ void VulkanViewportWindow::mousePressEvent(QMouseEvent *ev)
 
 void VulkanViewportWindow::mouseReleaseEvent(QMouseEvent *ev)
 {
-    SceneObject *object = m_engine->scene().getSceneObject(m_selectedPressed);
+    SceneObject *object = m_engine->scene().findSceneObjectByID(m_selectedPressed);
     m_selectedPressed = 0;
 
     if (object == nullptr)

@@ -68,13 +68,13 @@ public:
 
     void removeSceneObject(SceneObject *object);
 
-    void updateSceneGraph();
+    virtual void update();
 
     SceneGraph &sceneGraph();
     /* Get all scene objects in a flat array */
-    SceneGraph getSceneObjectsArray() const;
+    SceneGraph getSceneObjectsFlat() const;
 
-    SceneObject *getSceneObject(vengine::ID id) const;
+    SceneObject *findSceneObjectByID(vengine::ID id) const;
 
     void exportScene(const ExportRenderParams &renderParams) const;
 
@@ -91,11 +91,11 @@ protected:
 
     std::unordered_map<vengine::ID, SceneObject *> m_objectsMap;
 
-    virtual SceneObject *createObject(std::string name) = 0;
-    virtual void deleteObject(SceneObject *) = 0;
-
     SceneGraph m_sceneGraph;
     bool m_sceneGraphNeedsUpdate = true;
+
+    virtual SceneObject *createObject(std::string name) = 0;
+    virtual void deleteObject(SceneObject *) = 0;
 
 private:
     void needsUpdate(bool changed);

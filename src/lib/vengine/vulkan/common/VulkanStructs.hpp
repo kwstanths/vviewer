@@ -48,6 +48,8 @@ struct VulkanCommandInfo {
 };
 
 /* --------------- GPU + CPU structs --------------- */
+
+/* unused */
 struct ModelData {
     glm::mat4 m_modelMatrix;
     bool operator==(const ModelData &o) const { return m_modelMatrix == o.m_modelMatrix; };
@@ -75,8 +77,8 @@ struct LightData {
 }; /* sizeof(LightData) = 64 */
 
 struct LightInstance {
-    glm::uvec4 info;    /* R = LightData index, G = ModelData index, B = Object Description index if Mesh type, A = type (LightType) */
-    glm::vec4 position; /* RGB = world position/direction, A = casts shadow or RGBA = row 0 of transform matrix if mesh type */
+    glm::uvec4 info; /* R = LightData index, G = InstanceData index, B = Object Description index if Mesh type, A = type (LightType) */
+    glm::vec4 position;  /* RGB = world position/direction, A = casts shadow or RGBA = row 0 of transform matrix if mesh type */
     glm::vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
     glm::vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
 };                       /* sizeof(LightInstance) = 64 */

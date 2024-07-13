@@ -3,6 +3,7 @@
 
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
+#include "vulkan/VulkanInstances.hpp"
 
 namespace vengine
 {
@@ -12,6 +13,7 @@ public:
     VulkanRendererBase();
 
     virtual VkResult renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
+                                                const VulkanInstancesManager &matGroup,
                                                 VkDescriptorSet &descriptorScene,
                                                 VkDescriptorSet &descriptorModel,
                                                 VkDescriptorSet &descriptorLight,
@@ -19,10 +21,10 @@ public:
                                                 VkDescriptorSet &descriptorMaterial,
                                                 VkDescriptorSet &descriptorTextures,
                                                 VkDescriptorSet &descriptorTLAS,
-                                                const SceneGraph &objects,
                                                 const SceneGraph &lights) const = 0;
 
     virtual VkResult renderObjectsForwardTransparent(VkCommandBuffer &cmdBuf,
+                                                     VulkanInstancesManager &instances,
                                                      VkDescriptorSet &descriptorScene,
                                                      VkDescriptorSet &descriptorModel,
                                                      VkDescriptorSet &descriptorLight,
@@ -73,7 +75,12 @@ protected:
                                               VkPipelineLayout &pipelineLayout,
                                               VkPipeline &pipeline);
 
+    VkResult renderMaterialGroup(VkCommandBuffer &commandBuffer,
+                                 const VulkanInstancesManager::MaterialGroup &materialGroup,
+                                 const VkPipelineLayout &pipelineLayout,
+                                 const SceneGraph &lights) const;
     VkResult renderObjects(VkCommandBuffer &commandBuffer,
+                           VulkanInstancesManager &instances,
                            const VkPipelineLayout &pipelineLayout,
                            const SceneGraph &objects,
                            const SceneGraph &lights) const;

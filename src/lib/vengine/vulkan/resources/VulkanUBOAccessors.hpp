@@ -65,9 +65,9 @@ public:
         : VulkanUBO<B>(nBlocks)
         , InternCache<B>(){};
 
-    VkResult init(uint32_t minUniformBufferOffsetAlignment)
+    VkResult init(const VkPhysicalDeviceProperties &physicalDeviceProperties)
     {
-        VkResult res = VulkanUBO<B>::init(minUniformBufferOffsetAlignment);
+        VkResult res = VulkanUBO<B>::init(physicalDeviceProperties);
 
         if (res == VK_SUCCESS) {
             InternCache<B>::setData(std::span<B>(VulkanUBO<B>::m_dataTransferSpace, VulkanUBO<B>::nblocks()));

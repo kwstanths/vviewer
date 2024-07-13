@@ -130,7 +130,7 @@ void VulkanRendererPathTracing::render()
     timer.Start();
 
     /* Get the scene objects */
-    SceneGraph sceneObjects = m_scene.getSceneObjectsArray();
+    SceneGraph sceneObjects = m_scene.getSceneObjectsFlat();
     if (sceneObjects.size() == 0) {
         debug_tools::ConsoleWarning("Trying to render an empty scene");
         return;
@@ -200,10 +200,8 @@ void VulkanRendererPathTracing::render()
     m_pathTracingData.lights.r = static_cast<unsigned int>(lights.size() + meshLights.size());
     updateBuffers(sceneData, m_pathTracingData);
 
-    /* We will use buffer index 0 for this renderer */
-    m_scene.updateBuffers(meshes, lights, meshLights, 0);
-    m_scene.updateTLAS(
-        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, meshes, 0);
+    /* We will use frame index 0 for this renderer */
+    m_scene.updateFrame({m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, 0);
     m_materials.updateBuffers(0);
     m_textures.updateTextures();
 
@@ -231,6 +229,21 @@ void VulkanRendererPathTracing::render()
 float VulkanRendererPathTracing::renderProgress()
 {
     return m_renderProgress;
+}
+
+uint32_t VulkanRendererPathTracing::SBTMaterialOffset(MaterialType type)
+{
+    static const uint32_t nTypeRays = 3U;
+
+    if (type == MaterialType::MATERIAL_LAMBERT)
+        return 0 * nTypeRays;
+    else if (type == MaterialType::MATERIAL_PBR_STANDARD)
+        return 1 * nTypeRays;
+    else if (type == MaterialType::MATERIAL_VOLUME) {
+        return 2 * nTypeRays;
+    } else {
+        throw std::runtime_error("VulkanRendererPathTracing::SBTMaterialOffset(): Unexpected material");
+    }
 }
 
 void VulkanRendererPathTracing::setResolution()
@@ -520,6 +533,7 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
     /* Create pipeline layout */
     {
         std::vector<VkDescriptorSetLayout> setsLayouts = {m_descriptorSetLayoutMain,
+                                                          m_scene.layoutInstanceData(),
                                                           m_scene.layoutTLAS(),
                                                           m_materials.descriptorSetLayout(),
                                                           m_textures.descriptorSetLayout(),
@@ -838,13 +852,14 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
 
-        std::vector<VkDescriptorSet> descriptorSets = {m_descriptorSet,
-                                                       m_scene.descriptorSetTLAS(0),
-                                                       m_materials.descriptorSet(0),
-                                                       m_textures.descriptorSet(),
-                                                       m_scene.descriptorSetLight(0),
-                                                       skyboxDescriptor,
-                                                       m_random.descriptorSet()};
+        std::vector<VkDescriptorSet> descriptorSets = {m_descriptorSet,                      /* 0 */
+                                                       m_scene.descriptorSetInstanceData(0), /* 1 */
+                                                       m_scene.descriptorSetTLAS(0),         /* 2 */
+                                                       m_materials.descriptorSet(0),         /* 3 */
+                                                       m_textures.descriptorSet(),           /* 4 */
+                                                       m_scene.descriptorSetLight(0),        /* 5 */
+                                                       skyboxDescriptor,                     /* 6 */
+                                                       m_random.descriptorSet()};            /* 7 */
         vkCmdBindDescriptorSets(commandBuffer,
                                 VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                                 m_pipelineLayout,

@@ -91,7 +91,7 @@ void Scene::removeSceneObject(SceneObject *node)
     removeChildren(nodeChildren);
 }
 
-void Scene::updateSceneGraph()
+void Scene::update()
 {
     if (m_sceneGraphNeedsUpdate) {
         m_sceneGraphNeedsUpdate = false;
@@ -101,13 +101,13 @@ void Scene::updateSceneGraph()
     }
 }
 
-std::vector<SceneObject *> Scene::getSceneObjectsArray() const
+std::vector<SceneObject *> Scene::getSceneObjectsFlat() const
 {
     std::vector<SceneObject *> temp;
 
     for (auto &&rootNode : m_sceneGraph) {
         temp.push_back(rootNode);
-        auto rootNodeObjects = rootNode->getSceneNodesArray();
+        auto rootNodeObjects = rootNode->getSceneNodesFlat();
 
         temp.insert(temp.end(), rootNodeObjects.begin(), rootNodeObjects.end());
     }
@@ -120,7 +120,7 @@ SceneGraph &Scene::sceneGraph()
     return m_sceneGraph;
 }
 
-SceneObject *Scene::getSceneObject(vengine::ID id) const
+SceneObject *Scene::findSceneObjectByID(vengine::ID id) const
 {
     auto itr = m_objectsMap.find(id);
     if (itr == m_objectsMap.end())

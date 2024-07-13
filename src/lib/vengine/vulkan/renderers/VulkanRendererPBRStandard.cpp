@@ -57,16 +57,27 @@ VkResult VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent,
 {
     VULKAN_CHECK_CRITICAL(VulkanRendererBase::initSwapChainResources(swapchainExtent, renderPass, swapchainImages, msaaSamples));
 
-    VkShaderModule vertexShader = VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv");
-    VkShaderModule fragmentShader = VulkanShader::load(m_device, "shaders/SPIRV/pbrBase.frag.spv");
+    {
+        VkShaderModule vertexShader = VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv");
+        VkShaderModule fragmentShader = VulkanShader::load(m_device, "shaders/SPIRV/pbrForwardOpaque.frag.spv");
 
-    VULKAN_CHECK_CRITICAL(
-        createPipelineForwardOpaque(vertexShader, fragmentShader, m_pipelineLayoutForwardOpaque, m_graphicsPipelineForwardOpaque));
-    VULKAN_CHECK_CRITICAL(createPipelineForwardTransparent(
-        vertexShader, fragmentShader, m_pipelineLayoutForwardTransparent, m_graphicsPipelineForwardTransparent));
+        VULKAN_CHECK_CRITICAL(
+            createPipelineForwardOpaque(vertexShader, fragmentShader, m_pipelineLayoutForwardOpaque, m_graphicsPipelineForwardOpaque));
 
-    vkDestroyShaderModule(m_device, vertexShader, nullptr);
-    vkDestroyShaderModule(m_device, fragmentShader, nullptr);
+        vkDestroyShaderModule(m_device, vertexShader, nullptr);
+        vkDestroyShaderModule(m_device, fragmentShader, nullptr);
+    }
+
+    {
+        VkShaderModule vertexShader = VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv");
+        VkShaderModule fragmentShader = VulkanShader::load(m_device, "shaders/SPIRV/pbrForwardTransparent.frag.spv");
+
+        VULKAN_CHECK_CRITICAL(createPipelineForwardTransparent(
+            vertexShader, fragmentShader, m_pipelineLayoutForwardTransparent, m_graphicsPipelineForwardTransparent));
+
+        vkDestroyShaderModule(m_device, vertexShader, nullptr);
+        vkDestroyShaderModule(m_device, fragmentShader, nullptr);
+    }
 
     return VK_SUCCESS;
 }
@@ -297,6 +308,7 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
 }
 
 VkResult VulkanRendererPBR::renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
+                                                       const VulkanInstancesManager &instances,
                                                        VkDescriptorSet &descriptorScene,
                                                        VkDescriptorSet &descriptorModel,
                                                        VkDescriptorSet &descriptorLight,
@@ -304,7 +316,6 @@ VkResult VulkanRendererPBR::renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
                                                        VkDescriptorSet &descriptorMaterials,
                                                        VkDescriptorSet &descriptorTextures,
                                                        VkDescriptorSet &descriptorTLAS,
-                                                       const SceneGraph &objects,
                                                        const SceneGraph &lights) const
 {
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardOpaque);
@@ -320,12 +331,14 @@ VkResult VulkanRendererPBR::renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
                             0,
                             nullptr);
 
-    VulkanRendererBase::renderObjects(cmdBuf, m_pipelineLayoutForwardOpaque, objects, lights);
+    VulkanRendererBase::renderMaterialGroup(
+        cmdBuf, instances.materialGroup(MaterialType::MATERIAL_PBR_STANDARD), m_pipelineLayoutForwardOpaque, lights);
 
     return VK_SUCCESS;
 }
 
 VkResult VulkanRendererPBR::renderObjectsForwardTransparent(VkCommandBuffer &cmdBuf,
+                                                            VulkanInstancesManager &instances,
                                                             VkDescriptorSet &descriptorScene,
                                                             VkDescriptorSet &descriptorModel,
                                                             VkDescriptorSet &descriptorLight,
@@ -349,7 +362,7 @@ VkResult VulkanRendererPBR::renderObjectsForwardTransparent(VkCommandBuffer &cmd
                             0,
                             nullptr);
 
-    VulkanRendererBase::renderObjects(cmdBuf, m_pipelineLayoutForwardTransparent, {object}, lights);
+    VulkanRendererBase::renderObjects(cmdBuf, instances, m_pipelineLayoutForwardTransparent, {object}, lights);
 
     return VK_SUCCESS;
 }

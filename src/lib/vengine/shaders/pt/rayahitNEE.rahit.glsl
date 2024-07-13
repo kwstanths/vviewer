@@ -24,47 +24,15 @@ layout(location = 2) rayPayloadInEXT RayPayloadNEE rayPayloadNEE;
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
-layout(set = 0, binding = 2) uniform PathTracingData 
-{
-    uvec4 samplesBatchesDepthIndex;
-    uvec4 lights;
-} pathTracingData;
-
-/* Descriptor with the buffer for the object description structs */
-layout(set = 1, binding = 1, scalar) buffer ObjDesc_ 
-{ 
-    ObjDesc i[16384]; 
-} objDesc;
-
-/* Descriptor with materials */
-layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
-{
-    MaterialData data[512];
-} materialData;
-
-/* Descriptor for global textures arrays */
-layout (set = 3, binding = 0) uniform sampler2D global_textures[];
-layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
+#include "layoutDescriptors/PathTracingData.glsl"
+#include "layoutDescriptors/InstanceData.glsl"
+#include "layoutDescriptors/MaterialData.glsl"
+#include "layoutDescriptors/Textures.glsl"
 
 void main()
 {
-    /* Get the hit object geometry, and its material */
-    ObjDesc objResource = objDesc.i[gl_InstanceCustomIndexEXT];
-    Indices indices = Indices(objResource.indexAddress);
-    Vertices vertices = Vertices(objResource.vertexAddress);
-    MaterialData material = materialData.data[objResource.materialIndex];
-
-    /* Get hit triangle info */
-    ivec3  ind = indices.i[gl_PrimitiveID];
-    Vertex v0 = vertices.v[ind.x];
-    Vertex v1 = vertices.v[ind.y];
-    Vertex v2 = vertices.v[ind.z];
-
-    /* Calculate bayrcentric coordiantes */
-    const vec3 barycentricCoords = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
-
-    /* Interpolate uvs */
-    const vec2 uvs = v0.uv * barycentricCoords.x + v1.uv * barycentricCoords.y + v2.uv * barycentricCoords.z;
+    #include "process_hit.glsl"
+    
     vec2 tiledUV = uvs * material.uvTiling.rg;
 
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
@@ -144,7 +112,7 @@ void main()
     vec3 v1WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v1.position, 1.0));
     vec3 v2WorldPos = vec3(gl_ObjectToWorldEXT * vec4(v2.position, 1.0));
     float triangleArea = 0.5 * length(cross(v1WorldPos - v0WorldPos, v2WorldPos - v0WorldPos));
-    float sampledPointPdf = (1.0 / objResource.numTriangles) * ( 1 / triangleArea );
+    float sampledPointPdf = (1.0 / instanceData.numTriangles) * ( 1 / triangleArea );
     const float dotProduct = dot(-gl_WorldRayDirectionEXT, worldNormal);
     if (dotProduct > 0)
     {

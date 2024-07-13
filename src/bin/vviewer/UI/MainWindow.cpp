@@ -246,6 +246,9 @@ void MainWindow::selectObject(QTreeWidgetItem *selectedItem)
 
 void MainWindow::removeObjectFromScene(QTreeWidgetItem *treeItem)
 {
+    m_engine->stop();
+    m_engine->waitIdle();
+
     /* Get corresponding scene object */
     SceneObject *selectedObject = WidgetSceneGraph::getSceneObject(treeItem);
 
@@ -257,6 +260,8 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem *treeItem)
 
     /* Remove from scene graph UI */
     m_sceneGraphWidget->removeItem(treeItem);
+
+    m_engine->start();
 }
 
 void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem,

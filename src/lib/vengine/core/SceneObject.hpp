@@ -11,6 +11,7 @@ namespace vengine
 {
 
 class Scene;
+struct InstanceData;
 
 class SceneObject : public SceneNode<SceneObject>, public Entity
 {
@@ -29,12 +30,11 @@ public:
 
     glm::vec3 getIDRGB() const;
 
-    virtual void setModelMatrix(const glm::mat4 &modelMatrix) override;
-    virtual void transformChanged() override;
-
     const AABB3 &AABB() const;
 
     void computeAABB();
+
+    void setModelMatrix(const glm::mat4 &modelMatrix) override;
 
 protected:
     glm::vec3 m_idRGB;
@@ -46,7 +46,9 @@ private:
 
     AABB3 m_aabb;
 
-    Scene *m_scene;
+    Scene *m_scene = nullptr;
+
+    void transformChanged() override;
 };
 
 typedef std::vector<SceneObject *> SceneGraph;

@@ -6,10 +6,10 @@
 #include "../include/rng/rng_pmj_defines.glsl"
 #include "../include/rng/bluenoise_defines.glsl"
 
-layout(set = 6, binding = 0) buffer PMJData {
+layout(set = 7, binding = 0) buffer PMJData {
     float data[PMJ_N_SEQUENCES][PMJ_N_SAMPLES][PMJ_SAMPLE_SIZE];
 } pmjData;
-layout(set = 6, binding = 1) buffer BlueNoiseData {
+layout(set = 7, binding = 1) buffer BlueNoiseData {
     float data[BLUE_NOISE_TEXTURES][BLUE_NOISE_RESOLUTION][BLUE_NOISE_RESOLUTION];
 } blueNoiseData;
 

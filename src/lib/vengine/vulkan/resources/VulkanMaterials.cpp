@@ -19,7 +19,7 @@ VulkanMaterials::VulkanMaterials(VulkanContext &ctx)
 
 VkResult VulkanMaterials::initResources()
 {
-    VULKAN_CHECK_CRITICAL(m_materialsStorage.init(m_vkctx.physicalDeviceProperties().limits.minUniformBufferOffsetAlignment));
+    VULKAN_CHECK_CRITICAL(m_materialsStorage.init(m_vkctx.physicalDeviceProperties()));
 
     if (m_materialsStorage.blockSizeAligned() != sizeof(MaterialData)) {
         std::string error =

@@ -24,15 +24,6 @@ glm::vec3 SceneObject::getIDRGB() const
     return m_idRGB;
 }
 
-void SceneObject::setModelMatrix(const glm::mat4 &modelMatrix)
-{
-}
-
-void SceneObject::transformChanged()
-{
-    m_scene->needsUpdate(true);
-}
-
 const AABB3 &SceneObject::AABB() const
 {
     return m_aabb;
@@ -58,6 +49,16 @@ void SceneObject::computeAABB()
     } else {
         m_aabb = AABB3();
     }
+}
+
+void SceneObject::setModelMatrix(const glm::mat4 &modelMatrix)
+{
+    // TODO
+}
+
+void SceneObject::transformChanged()
+{
+    m_scene->needsUpdate(true);
 }
 
 }  // namespace vengine

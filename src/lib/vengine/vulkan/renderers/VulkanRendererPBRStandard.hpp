@@ -38,6 +38,7 @@ public:
     VkResult releaseResources();
 
     VkResult renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
+                                        const VulkanInstancesManager &instances,
                                         VkDescriptorSet &descriptorScene,
                                         VkDescriptorSet &descriptorModel,
                                         VkDescriptorSet &descriptorLight,
@@ -45,10 +46,10 @@ public:
                                         VkDescriptorSet &descriptorMaterials,
                                         VkDescriptorSet &descriptorTextures,
                                         VkDescriptorSet &descriptorTLAS,
-                                        const SceneGraph &objects,
                                         const SceneGraph &lights) const override;
 
     VkResult renderObjectsForwardTransparent(VkCommandBuffer &cmdBuf,
+                                             VulkanInstancesManager &instances,
                                              VkDescriptorSet &descriptorScene,
                                              VkDescriptorSet &descriptorModel,
                                              VkDescriptorSet &descriptorLight,

@@ -25,25 +25,14 @@ layout(location = 1) rayPayloadInEXT RayPayloadSecondary rayPayloadSecondary;
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
-/* Descriptor with the buffer for the object description structs */
-layout(set = 1, binding = 1, scalar) buffer ObjDesc_ 
-{ 
-    ObjDesc i[16384]; 
-} objDesc;
-
-/* Descriptor with materials */
-layout(set = 2, binding = 0) uniform readonly MaterialDataUBO
-{
-    MaterialData data[512];
-} materialData;
-
-/* Descriptor for global textures arrays */
-layout (set = 3, binding = 0) uniform sampler2D global_textures[];
-layout (set = 3, binding = 0) uniform sampler3D global_textures_3d[];
+#include "layoutDescriptors/InstanceData.glsl"
+#include "layoutDescriptors/MaterialData.glsl"
+#include "layoutDescriptors/Textures.glsl"
 
 void main()
 {
     #include "process_hit.glsl"
+    #include "construct_frame.glsl"
 
     if (flipped && rayPayloadSecondary.insideVolume)
     {
@@ -56,7 +45,7 @@ void main()
 
         rayPayloadSecondary.insideVolume = false;
 
-        uint volumeMaterialIndex = objResource.materialIndex;
+        uint volumeMaterialIndex = instanceData.materialIndex;
         float vtend = gl_HitTEXT;
         float vtstart = rayPayloadSecondary.vtmin;
         #include "process_volume_transmittance.glsl"
@@ -81,7 +70,7 @@ void main()
 
         rayPayloadSecondary.insideVolume = true;
         rayPayloadSecondary.vtmin = gl_HitTEXT;
-        rayPayloadSecondary.volumeMaterialIndex = objResource.materialIndex;
+        rayPayloadSecondary.volumeMaterialIndex = instanceData.materialIndex;
         ignoreIntersectionEXT;
 
     }

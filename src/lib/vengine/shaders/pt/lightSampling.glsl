@@ -43,18 +43,18 @@ LightSamplingRecord sampleLight(vec3 originPosition)
     else if (light.info.a == 2)
     {
         /* Mesh light */
-        uint meshIndex = uint(light.info.b);
+        uint meshIndex = uint(light.info.g);
 
-        ObjDesc objResource = objDesc.i[meshIndex];
-        Indices indices = Indices(objResource.indexAddress);
-        Vertices vertices = Vertices(objResource.vertexAddress);
-        MaterialData material = materialData.data[objResource.materialIndex];
+        InstanceData instanceData = instances.data[meshIndex];
+        Indices indices = Indices(instanceData.indexAddress);
+        Vertices vertices = Vertices(instanceData.vertexAddress);
+        MaterialData material = materialData.data[instanceData.materialIndex];
         mat4 transform = mat4(light.position, light.position1, light.position2, vec4(0, 0, 0, 1));
         transform = transpose(transform);
         
-        uint randomTriangle = uint(rand1D(rayPayloadPrimary) * objResource.numTriangles);
+        uint randomTriangle = uint(rand1D(rayPayloadPrimary) * instanceData.numTriangles);
         ivec3 ind = indices.i[randomTriangle];
-        float trianglePdf = 1.0 / objResource.numTriangles;
+        float trianglePdf = 1.0 / instanceData.numTriangles;
         
         /* Sample triangle */
         vec2 barycentricCoords = uniformSampleTriangle(rand2D(rayPayloadPrimary));

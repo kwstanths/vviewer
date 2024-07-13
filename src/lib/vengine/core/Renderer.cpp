@@ -1,9 +1,10 @@
 #include "Renderer.hpp"
 
-namespace vengine {
+namespace vengine
+{
 
 Renderer::Renderer()
-{    
+{
 }
 
-}
+}  // namespace vengine

@@ -9,18 +9,12 @@
 namespace vengine
 {
 
-class VulkanSceneObject : public SceneObject, protected VulkanUBOCached<ModelData>::Block
+class VulkanSceneObject : public SceneObject
 {
 public:
-    VulkanSceneObject(Scene *scene, const std::string &name, VulkanUBOCached<ModelData> &transformUBO);
+    VulkanSceneObject(Scene *scene, const std::string &name);
 
     ~VulkanSceneObject();
-
-    void setModelMatrix(const glm::mat4 &modelMatrix) override;
-
-    void updateModelMatrixData(const glm::mat4 &modelMatrix);
-
-    uint32_t getModelDataUBOIndex() const;
 
 private:
 };

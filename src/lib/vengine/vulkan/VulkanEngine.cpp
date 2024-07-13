@@ -274,10 +274,10 @@ void VulkanEngine::mainLoop()
         m_status = STATUS::RUNNING;
 
         /* update scene */
-        m_scene.updateSceneGraph();
+        m_scene.update();
 
         /* parse scene */
-        SceneGraph sceneGraphArray = m_scene.getSceneObjectsArray();
+        SceneGraph sceneGraphArray = m_scene.getSceneObjectsFlat();
 
         /* Calculate delta time */
         auto currentTime = std::chrono::steady_clock::now();
