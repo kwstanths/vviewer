@@ -272,13 +272,11 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
     /* Forward pass */
     {
         glm::vec3 clearColor = m_scene.backgroundColor();
-        std::array<VkClearValue, 5> clearValues{};
+        std::array<VkClearValue, 3> clearValues{};
         VkClearColorValue cl = {{clearColor.r, clearColor.g, clearColor.b, 1.0F}};
         clearValues[0].color = cl;
-        clearValues[1].color = cl;
-        clearValues[2].color = {0, 0, 0, 0};
-        clearValues[3].color = {0, 0, 0, 0};
-        clearValues[4].depthStencil = {1.0f, 0};
+        clearValues[1].color = {0, 0, 0, 0};
+        clearValues[2].depthStencil = {1.0f, 0};
 
         VkRenderPassBeginInfo rpBeginInfo = vkinit::renderPassBeginInfo(m_renderPassForward.renderPass(),
                                                                         m_frameBufferForward.framebuffer(imageIndex),
