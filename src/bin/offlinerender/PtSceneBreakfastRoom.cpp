@@ -42,7 +42,7 @@ bool PtSceneBreakfastRoom::create()
 
     scene().environmentIntensity() = 0.0F;
 
-    scene().updateSceneGraph();
+    scene().update();
     return true;
 }
 

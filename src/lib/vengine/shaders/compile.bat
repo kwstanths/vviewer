@@ -3,8 +3,10 @@ echo off
 set compiler=%VULKAN_SDK%\Bin\glslangValidator.exe
 
 %compiler% -V --target-env spirv1.4 standard.vert.glsl -o SPIRV/standard.vert.spv
-%compiler% -V --target-env spirv1.4 pbrBase.frag.glsl -o SPIRV/pbrBase.frag.spv
-%compiler% -V --target-env spirv1.4 lambertBase.frag.glsl -o SPIRV/lambertBase.frag.spv
+%compiler% -V --target-env spirv1.4 pbrForwardOpaque.frag.glsl -o SPIRV/pbrForwardOpaque.frag.spv
+%compiler% -V --target-env spirv1.4 pbrForwardTransparent.frag.glsl -o SPIRV/pbrForwardTransparent.frag.spv
+%compiler% -V --target-env spirv1.4 lambertForwardOpaque.frag.glsl -o SPIRV/lambertForwardOpaque.frag.spv
+%compiler% -V --target-env spirv1.4 lambertForwardTransparent.frag.glsl -o SPIRV/lambertForwardTransparent.frag.spv
 %compiler% -V ui/3duiTransform.vert.glsl -o SPIRV/3duiTransform.vert.spv
 %compiler% -V ui/3duiTransform.frag.glsl -o SPIRV/3duiTransform.frag.spv
 %compiler% -V ui/3duiAABB.vert.glsl -o SPIRV/3duiAABB.vert.spv
@@ -31,7 +33,7 @@ set compiler=%VULKAN_SDK%\Bin\glslangValidator.exe
 %compiler% -V --target-env spirv1.4 pt/rayahitSecondary.rahit.glsl -o SPIRV/pt/rayahitSecondary.rahit.spv
 %compiler% -V --target-env spirv1.4 pt/rayahitSecondaryVolume.rahit.glsl -o SPIRV/pt/rayahitSecondaryVolume.rahit.spv
 %compiler% -V --target-env spirv1.4 pt/rayahitNEE.rahit.glsl -o SPIRV/pt/rayahitNEE.rahit.spv
-$compiler% -V --target-env spirv1.4 pt/rayahitNEEVolume.rahit.glsl -o SPIRV/pt/rayahitNEEVolume.rahit.spv
+%compiler% -V --target-env spirv1.4 pt/rayahitNEEVolume.rahit.glsl -o SPIRV/pt/rayahitNEEVolume.rahit.spv
 %compiler% -V --target-env spirv1.4 pt/raymissPrimary.rmiss.glsl -o SPIRV/pt/raymissPrimary.rmiss.spv
 %compiler% -V --target-env spirv1.4 pt/raymissSecondary.rmiss.glsl -o SPIRV/pt/raymissSecondary.rmiss.spv
 %compiler% -V --target-env spirv1.4 pt/raymissNEE.rmiss.glsl -o SPIRV/pt/raymissNEE.rmiss.spv

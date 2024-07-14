@@ -11,7 +11,6 @@ namespace vengine
 {
 
 class Scene;
-struct InstanceData;
 
 class SceneObject : public SceneNode<SceneObject>, public Entity
 {
