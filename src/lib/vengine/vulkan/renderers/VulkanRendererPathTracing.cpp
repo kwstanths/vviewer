@@ -312,12 +312,12 @@ VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t 
                                           m_device,
                                           imageInfo,
                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                          m_renderResultRadiance.image,
-                                          m_renderResultRadiance.memory));
+                                          m_renderResultRadiance.image(),
+                                          m_renderResultRadiance.memory()));
 
         VkImageViewCreateInfo imageInfoView =
-            vkinit::imageViewCreateInfo(m_renderResultRadiance.image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageInfoView, nullptr, &m_renderResultRadiance.view));
+            vkinit::imageViewCreateInfo(m_renderResultRadiance.image(), m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageInfoView, nullptr, &m_renderResultRadiance.view()));
     }
 
     /* Albedo target */
@@ -333,12 +333,12 @@ VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t 
                                           m_device,
                                           imageInfo,
                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                          m_renderResultAlbedo.image,
-                                          m_renderResultAlbedo.memory));
+                                          m_renderResultAlbedo.image(),
+                                          m_renderResultAlbedo.memory()));
 
         VkImageViewCreateInfo imageInfoView =
-            vkinit::imageViewCreateInfo(m_renderResultAlbedo.image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageInfoView, nullptr, &m_renderResultAlbedo.view));
+            vkinit::imageViewCreateInfo(m_renderResultAlbedo.image(), m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageInfoView, nullptr, &m_renderResultAlbedo.view()));
     }
 
     /* Normal target */
@@ -354,12 +354,12 @@ VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t 
                                           m_device,
                                           imageInfo,
                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                          m_renderResultNormal.image,
-                                          m_renderResultNormal.memory));
+                                          m_renderResultNormal.image(),
+                                          m_renderResultNormal.memory()));
 
         VkImageViewCreateInfo imageInfoView =
-            vkinit::imageViewCreateInfo(m_renderResultNormal.image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageInfoView, nullptr, &m_renderResultNormal.view));
+            vkinit::imageViewCreateInfo(m_renderResultNormal.image(), m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageInfoView, nullptr, &m_renderResultNormal.view()));
     }
 
     /* Create temp image used to copy render result from gpu memory to cpu memory */
@@ -370,8 +370,8 @@ VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t 
                                           m_device,
                                           imageInfo,
                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                          m_tempImage.image,
-                                          m_tempImage.memory));
+                                          m_tempImage.image(),
+                                          m_tempImage.memory()));
     }
 
     /* Transition images to the approriate layout ready for render */
@@ -379,22 +379,22 @@ VkResult VulkanRendererPathTracing::createStorageImage(uint32_t width, uint32_t 
     VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(m_device, m_commandPool, cmdBuf));
 
     transitionImageLayout(cmdBuf,
-                          m_renderResultRadiance.image,
+                          m_renderResultRadiance.image(),
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_GENERAL,
                           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
     transitionImageLayout(cmdBuf,
-                          m_renderResultAlbedo.image,
+                          m_renderResultAlbedo.image(),
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_GENERAL,
                           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
     transitionImageLayout(cmdBuf,
-                          m_renderResultNormal.image,
+                          m_renderResultNormal.image(),
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_GENERAL,
                           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
     transitionImageLayout(cmdBuf,
-                          m_tempImage.image,
+                          m_tempImage.image(),
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
@@ -482,9 +482,9 @@ void VulkanRendererPathTracing::updateDescriptorSets()
 
     /* Update render target storage images binding */
     VkDescriptorImageInfo storageImageDescriptor[3];
-    storageImageDescriptor[0] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultRadiance.view, VK_IMAGE_LAYOUT_GENERAL);
-    storageImageDescriptor[1] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultAlbedo.view, VK_IMAGE_LAYOUT_GENERAL);
-    storageImageDescriptor[2] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultNormal.view, VK_IMAGE_LAYOUT_GENERAL);
+    storageImageDescriptor[0] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultRadiance.view(), VK_IMAGE_LAYOUT_GENERAL);
+    storageImageDescriptor[1] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultAlbedo.view(), VK_IMAGE_LAYOUT_GENERAL);
+    storageImageDescriptor[2] = vkinit::descriptorImageInfo(VK_NULL_HANDLE, m_renderResultNormal.view(), VK_IMAGE_LAYOUT_GENERAL);
     VkWriteDescriptorSet resultImageWrite =
         vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 3, storageImageDescriptor);
 
@@ -927,7 +927,7 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
     return res;
 }
 
-VkResult VulkanRendererPathTracing::getRenderTargetData(const VulkanStorageImage &target, std::vector<float> &data)
+VkResult VulkanRendererPathTracing::getRenderTargetData(const VulkanImage &target, std::vector<float> &data)
 {
     VkCommandBuffer cmdBuf;
     VULKAN_CHECK_CRITICAL(beginSingleTimeCommands(m_device, m_commandPool, cmdBuf));
@@ -935,7 +935,7 @@ VkResult VulkanRendererPathTracing::getRenderTargetData(const VulkanStorageImage
     VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
     /* Transition render target to transfer source optimal */
-    transitionImageLayout(cmdBuf, target.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subresourceRange);
+    transitionImageLayout(cmdBuf, target.image(), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subresourceRange);
 
     /* Copy render results to temp image */
     VkImageCopy copyRegion{};
@@ -945,25 +945,25 @@ VkResult VulkanRendererPathTracing::getRenderTargetData(const VulkanStorageImage
     copyRegion.dstOffset = {0, 0, 0};
     copyRegion.extent = {renderInfo().width, renderInfo().height, 1};
     vkCmdCopyImage(cmdBuf,
-                   target.image,
+                   target.image(),
                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   m_tempImage.image,
+                   m_tempImage.image(),
                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                    1,
                    &copyRegion);
 
     /* Transition render target back to layout general */
-    transitionImageLayout(cmdBuf, target.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
+    transitionImageLayout(cmdBuf, target.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
 
     VULKAN_CHECK_CRITICAL(endSingleTimeCommands(m_device, m_commandPool, m_queue, cmdBuf, true, VULKAN_TIMEOUT_100S));
 
     /* Copy the data from tempImage to data */
     float *input;
-    VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_tempImage.memory, 0, VK_WHOLE_SIZE, 0, reinterpret_cast<void **>(&input)));
+    VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_tempImage.memory(), 0, VK_WHOLE_SIZE, 0, reinterpret_cast<void **>(&input)));
 
     VkImageSubresource subResource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
     VkSubresourceLayout subResourceLayout;
-    vkGetImageSubresourceLayout(m_device, m_tempImage.image, &subResource, &subResourceLayout);
+    vkGetImageSubresourceLayout(m_device, m_tempImage.image(), &subResource, &subResourceLayout);
     uint32_t rowPitchFloats = subResourceLayout.rowPitch / sizeof(float);
 
     uint32_t width = renderInfo().width;
@@ -977,7 +977,7 @@ VkResult VulkanRendererPathTracing::getRenderTargetData(const VulkanStorageImage
         indexGPUIMage += rowPitchFloats;
         indexOutputImage += 4 * width;
     }
-    vkUnmapMemory(m_device, m_tempImage.memory);
+    vkUnmapMemory(m_device, m_tempImage.memory());
 
     return VK_SUCCESS;
 }

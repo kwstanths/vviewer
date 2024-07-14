@@ -21,8 +21,8 @@ public:
                                     VkRenderPass renderPass,
                                     uint32_t swapchainImages,
                                     VkSampleCountFlagBits msaaSamples,
-                                    const std::vector<VulkanFrameBufferAttachment> &colorattachments,
-                                    const std::vector<VulkanFrameBufferAttachment> &highlightAttachments);
+                                    const VulkanFrameBufferAttachment &colorattachment,
+                                    const VulkanFrameBufferAttachment &highlightAttachment);
 
     VkResult releaseSwapChainResources();
     VkResult releaseResources();
@@ -55,8 +55,8 @@ private:
     VkResult createDescriptorPool(uint32_t imageCount);
     VkResult createSampler(VkSampler &sampler);
     VkResult createDescriptors(uint32_t imageCount,
-                               const std::vector<VulkanFrameBufferAttachment> &colorAttachments,
-                               const std::vector<VulkanFrameBufferAttachment> &highlightAttachments);
+                               const VulkanFrameBufferAttachment &colorAttachment,
+                               const VulkanFrameBufferAttachment &highlightAttachment);
 };
 
 }  // namespace vengine

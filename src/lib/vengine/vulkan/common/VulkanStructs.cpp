@@ -20,14 +20,4 @@ bool VulkanQueueFamilyIndices::isComplete() const
     return hasGraphics() && hasPresent();
 }
 
-void VulkanStorageImage::destroy(VkDevice device)
-{
-    if (image != VK_NULL_HANDLE)
-        vkDestroyImage(device, image, nullptr);
-    if (view != VK_NULL_HANDLE)
-        vkDestroyImageView(device, view, nullptr);
-    if (memory != VK_NULL_HANDLE)
-        vkFreeMemory(device, memory, nullptr);
-}
-
 }  // namespace vengine

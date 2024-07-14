@@ -31,15 +31,15 @@ VkResult VulkanRendererPost::initSwapChainResources(VkExtent2D swapchainExtent,
                                                     VkRenderPass renderPass,
                                                     uint32_t swapchainImages,
                                                     VkSampleCountFlagBits msaaSamples,
-                                                    const std::vector<VulkanFrameBufferAttachment> &colorAttachments,
-                                                    const std::vector<VulkanFrameBufferAttachment> &highlightAttachments)
+                                                    const VulkanFrameBufferAttachment &colorAttachment,
+                                                    const VulkanFrameBufferAttachment &highlightAttachment)
 {
     m_swapchainExtent = swapchainExtent;
     m_renderPass = renderPass;
     m_msaaSamples = msaaSamples;
 
     VULKAN_CHECK_CRITICAL(createDescriptorPool(swapchainImages));
-    VULKAN_CHECK_CRITICAL(createDescriptors(swapchainImages, colorAttachments, highlightAttachments));
+    VULKAN_CHECK_CRITICAL(createDescriptors(swapchainImages, colorAttachment, highlightAttachment));
     VULKAN_CHECK_CRITICAL(createGraphicsPipeline());
 
     return VK_SUCCESS;
@@ -164,8 +164,8 @@ VkResult VulkanRendererPost::createDescriptorPool(uint32_t imageCount)
 }
 
 VkResult VulkanRendererPost::createDescriptors(uint32_t imageCount,
-                                               const std::vector<VulkanFrameBufferAttachment> &colorAttachments,
-                                               const std::vector<VulkanFrameBufferAttachment> &highlightAttachments)
+                                               const VulkanFrameBufferAttachment &colorAttachment,
+                                               const VulkanFrameBufferAttachment &highlightAttachment)
 {
     m_descriptorSets.resize(imageCount);
 
@@ -175,13 +175,13 @@ VkResult VulkanRendererPost::createDescriptors(uint32_t imageCount,
     VULKAN_CHECK_CRITICAL(vkAllocateDescriptorSets(m_device, &setAllocInfo, m_descriptorSets.data()));
 
     for (size_t i = 0; i < imageCount; i++) {
-        VkDescriptorImageInfo colorAttachmentDescriptor = vkinit::descriptorImageInfo(
-            m_inputSampler, colorAttachments[i].getViewResolve(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        VkDescriptorImageInfo colorAttachmentDescriptor =
+            vkinit::descriptorImageInfo(m_inputSampler, colorAttachment.image(i).view(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         VkWriteDescriptorSet colorWrite = vkinit::writeDescriptorSet(
             m_descriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &colorAttachmentDescriptor);
 
-        VkDescriptorImageInfo highlightAttachmentDescriptor = vkinit::descriptorImageInfo(
-            m_inputSampler, highlightAttachments[i].getViewResolve(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        VkDescriptorImageInfo highlightAttachmentDescriptor =
+            vkinit::descriptorImageInfo(m_inputSampler, highlightAttachment.image(i).view(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         VkWriteDescriptorSet highlightWrite = vkinit::writeDescriptorSet(
             m_descriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, &highlightAttachmentDescriptor);
 

@@ -21,6 +21,7 @@
 #include "vulkan/resources/VulkanTextures.hpp"
 #include "vulkan/resources/VulkanRandom.hpp"
 #include "vulkan/resources/VulkanAccelerationStructure.hpp"
+#include "vulkan/resources/VulkanImage.hpp"
 
 namespace vengine
 {
@@ -77,7 +78,7 @@ private:
 
     /* Image result data */
     VkFormat m_format;
-    VulkanStorageImage m_renderResultRadiance, m_renderResultAlbedo, m_renderResultNormal, m_tempImage;
+    VulkanImage m_renderResultRadiance, m_renderResultAlbedo, m_renderResultNormal, m_tempImage;
     PathTracingData m_pathTracingData;
 
     bool m_renderInProgress = false;
@@ -127,7 +128,7 @@ private:
 
     VkResult render(VkDescriptorSet skyboxDescriptor);
 
-    VkResult getRenderTargetData(const VulkanStorageImage &target, std::vector<float> &data);
+    VkResult getRenderTargetData(const VulkanImage &target, std::vector<float> &data);
 
     VkResult storeToDisk(std::vector<float> &radiance, std::vector<float> &albedo, std::vector<float> &normal) const;
 };

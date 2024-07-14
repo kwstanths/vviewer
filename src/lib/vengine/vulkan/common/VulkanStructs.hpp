@@ -30,15 +30,6 @@ struct VulkanSwapChainDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct VulkanStorageImage {
-    VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkImage image = VK_NULL_HANDLE;
-    VkImageView view = VK_NULL_HANDLE;
-    VkFormat format;
-
-    void destroy(VkDevice device);
-};
-
 /* Used to create commands from a pool and submit them to a queue */
 struct VulkanCommandInfo {
     VkPhysicalDevice physicalDevice;

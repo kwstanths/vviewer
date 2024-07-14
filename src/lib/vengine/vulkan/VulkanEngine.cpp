@@ -47,7 +47,11 @@ void VulkanEngine::initResources(VkSurfaceKHR &surface)
 {
     debug_tools::ConsoleInfo("Initializing resources...");
 
-    m_context.init(surface);
+    VkResult res = m_context.init(surface);
+    if (res != VK_SUCCESS) {
+        debug_tools::ConsoleFatal("Unable to initialize Vulkan. Exiting...");
+        exit();
+    }
 
     m_scene.initResources();
     m_materials.initResources();

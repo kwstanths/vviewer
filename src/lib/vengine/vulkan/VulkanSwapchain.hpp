@@ -3,6 +3,7 @@
 
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/VulkanContext.hpp"
+#include "vulkan/resources/VulkanImage.hpp"
 
 namespace vengine
 {
@@ -26,8 +27,7 @@ public:
     VkFormat &depthFormat() { return m_depthFormat; }
 
     VkImageView &swapchainImageView(uint32_t i) { return m_swapchainImageViews[i]; }
-    VkImageView &msaaImageView() { return m_msaaImageView; }
-    VkImageView &depthStencilImageView() { return m_depthImageView; }
+    VkImageView &depthStencilImageView(uint32_t i) { return m_depthImages[i].view(); }
 
 private:
     VulkanContext &m_vkctx;
@@ -42,15 +42,8 @@ private:
     std::vector<VkImage> m_swapchainImages;
     std::vector<VkImageView> m_swapchainImageViews;
 
-    /* MSAA target images */
-    VkImage m_msaaImage;
-    VkDeviceMemory m_msaaImageMemory;
-    VkImageView m_msaaImageView;
-
     /* Depth stencil buffer */
-    VkImage m_depthImage;
-    VkDeviceMemory m_depthImageMemory;
-    VkImageView m_depthImageView;
+    std::vector<VulkanImage> m_depthImages;
     VkFormat m_depthFormat;
 
     bool createImageViews();

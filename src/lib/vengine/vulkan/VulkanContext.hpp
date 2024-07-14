@@ -80,7 +80,7 @@ public:
     VkCommandPool &graphicsCommandPool() { return m_graphicsCommandPool; }
     VkCommandPool &renderCommandPool() { return m_renderCommandPool; }
 
-    const VkSampleCountFlagBits &msaaSamples() { return m_msaaSamples; }
+    // const VkSampleCountFlagBits &msaaSamples() { return m_msaaSamples; }
 
 private:
     bool m_initialized = false;

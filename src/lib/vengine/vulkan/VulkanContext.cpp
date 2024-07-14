@@ -52,9 +52,6 @@ VkResult VulkanContext::init(VkSurfaceKHR surface)
 
     VULKAN_CHECK_CRITICAL(createDebugCallback());
     VULKAN_CHECK_CRITICAL(pickPhysicalDevice());
-
-    debug_tools::ConsoleInfo("MSAA samples: " + std::to_string(msaaSamples()));
-
     VULKAN_CHECK_CRITICAL(createLogicalDevice());
     VULKAN_CHECK_CRITICAL(createCommandPool());
 
