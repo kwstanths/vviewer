@@ -21,6 +21,7 @@
 #include "vulkan/VulkanScene.hpp"
 #include "vulkan/VulkanSceneObject.hpp"
 #include "vulkan/VulkanFramebuffer.hpp"
+#include "vulkan/VulkanRenderPass.hpp"
 #include "vulkan/common/VulkanUtils.hpp"
 #include "vulkan/common/VulkanStructs.hpp"
 #include "vulkan/common/IncludeVulkan.hpp"
@@ -87,16 +88,20 @@ private:
     VulkanRandom m_random;
 
     /* Render passes and framebuffers */
-    VkRenderPass m_renderPassForward;
+    VulkanRenderPassForward m_renderPassForward;
     VkRenderPass m_renderPassPost;
     VkRenderPass m_renderPassUI;
-    std::vector<VkFramebuffer> m_framebuffersForward;
+
+    VulkanFrameBufferAttachment m_attachmentColorForwardOutput;
+    VulkanFrameBufferAttachment m_attachmentHighlightForwardOutput;
+
+    VulkanFrameBuffer m_frameBufferForward;
     std::vector<VkFramebuffer> m_framebuffersPost;
     std::vector<VkFramebuffer> m_framebuffersUI;
+
     VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-    std::vector<VulkanFrameBufferAttachment> m_attachmentColorForwardOutput;
-    std::vector<VulkanFrameBufferAttachment> m_attachmentHighlightForwardOutput;
-    VulkanStorageImage m_imageTempColorSelection;
+
+    VulkanImage m_imageTempColorSelection;
 
     /* Renderers */
     VulkanRendererPBR m_rendererPBR;

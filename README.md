@@ -4,25 +4,21 @@ A real time renderer and an offline volumetric path tracer written in Vulkan and
 ![Alt text](images/1.png?raw=true)
 
 ## Features
-* Importing 3D models with assimp and corresponding materials (only .gltf and .obj materials)
-* Physically based (Metallic/Roughness) and Lambert materials
-    * with transparency, normal mapping, emissiveness, ambient occlusion
-* Spatially varying materials
-* Bindless resource management (transforms, textures, materials, lights)
+* Spatially varying Physically based (Metallic/Roughness) and Lambert materials
+    * alpha, normal, emissiveness and ambient occlusion
+* Bindless resource management
 * Perspective and Orthographic cameras
 * Point, Directional and Mesh lights
 * HDR equirectangular and cubemap environment maps
 * Tone mapping
 * Real time rendering
     * Image Based Lighting
-    * MSAA
     * Ray traced shadows
-    * Highlighting
-    * Transform visualization
-    * AABB visualization
+    * Intancing
+    * Highlighting, Transforms, AABB
 * GPU path traced rendering
-    * Homogeneous media (Non overlapping)
-    * Low discrepancy sampling with progressive sequences
+    * Homogeneous media
+    * Low discrepancy sampling
     * Multiple importance sampling
         * Light sampling
         * BRDF sampling
@@ -33,8 +29,7 @@ A real time renderer and an offline volumetric path tracer written in Vulkan and
 * Scene graph
 * Entity component system
 * Export and Import scenes
-* Separate render thread
-* Cross platform build
+* Cross platform
 
 ## Dependencies
 ### vengine library

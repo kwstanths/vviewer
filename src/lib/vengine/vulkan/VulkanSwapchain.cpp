@@ -78,13 +78,9 @@ VkResult VulkanSwapchain::initResources(uint32_t width, uint32_t height)
 
 void VulkanSwapchain::releaseResources()
 {
-    vkDestroyImageView(m_vkctx.device(), m_msaaImageView, nullptr);
-    vkDestroyImage(m_vkctx.device(), m_msaaImage, nullptr);
-    vkFreeMemory(m_vkctx.device(), m_msaaImageMemory, nullptr);
-
-    vkDestroyImageView(m_vkctx.device(), m_depthImageView, nullptr);
-    vkDestroyImage(m_vkctx.device(), m_depthImage, nullptr);
-    vkFreeMemory(m_vkctx.device(), m_depthImageMemory, nullptr);
+    for (auto imageView : m_depthImages) {
+        imageView.destroy(m_vkctx.device());
+    }
 
     for (auto imageView : m_swapchainImageViews) {
         vkDestroyImageView(m_vkctx.device(), imageView, nullptr);
@@ -105,20 +101,6 @@ bool VulkanSwapchain::createImageViews()
         vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_swapchainImageViews[i]);
     }
 
-    /* Create images and image views for the MSAA targets */
-    VkImageCreateInfo imageInfo =
-        vkinit::imageCreateInfo({m_extent.width, m_extent.height, 1},
-                                m_format,
-                                1,
-                                m_vkctx.msaaSamples(),
-                                VK_IMAGE_TILING_OPTIMAL,
-                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-    createImage(
-        m_vkctx.physicalDevice(), m_vkctx.device(), imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_msaaImage, m_msaaImageMemory);
-
-    VkImageViewCreateInfo msaaImageViewInfo = vkinit::imageViewCreateInfo(m_msaaImage, m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-    vkCreateImageView(m_vkctx.device(), &msaaImageViewInfo, nullptr, &m_msaaImageView);
-
     return true;
 }
 
@@ -126,17 +108,25 @@ bool VulkanSwapchain::createDepthBuffer()
 {
     m_depthFormat = findDepthFormat();
 
-    VkImageCreateInfo imageInfo = vkinit::imageCreateInfo({m_extent.width, m_extent.height, 1},
-                                                          m_depthFormat,
-                                                          1,
-                                                          m_vkctx.msaaSamples(),
-                                                          VK_IMAGE_TILING_OPTIMAL,
-                                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-    createImage(
-        m_vkctx.physicalDevice(), m_vkctx.device(), imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
+    m_depthImages.resize(m_swapchainImageViews.size());
+    for (uint32_t i = 0; i < m_swapchainImageViews.size(); i++) {
+        VkImageCreateInfo imageInfo = vkinit::imageCreateInfo({m_extent.width, m_extent.height, 1},
+                                                              m_depthFormat,
+                                                              1,
+                                                              VK_SAMPLE_COUNT_1_BIT,
+                                                              VK_IMAGE_TILING_OPTIMAL,
+                                                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        createImage(m_vkctx.physicalDevice(),
+                    m_vkctx.device(),
+                    imageInfo,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    m_depthImages[i].image(),
+                    m_depthImages[i].memory());
 
-    VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(m_depthImage, m_depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-    vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_depthImageView);
+        VkImageViewCreateInfo imageViewInfo =
+            vkinit::imageViewCreateInfo(m_depthImages[i].image(), m_depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+        vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_depthImages[i].view());
+    }
 
     return true;
 }

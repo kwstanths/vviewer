@@ -101,10 +101,40 @@ inline VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = 0)
     return fenceCreateInfo;
 }
 
+/**
+ * @brief Create a VkAttachmentDescription
+ *
+ * @param attachmentFormat That format that will be used for this image attachment
+ * @param samples Number of samples on the image
+ * @param loadOp What should happen to this attachment image at the beginning of the subpass where it's first used
+ * @param storeOp What should happen to this attachment image at the end of the subpass where it's last used
+ * @param initialLayout The layout at which the attachment image will be at the beggining of the render pass
+ * @param finalLayout The layout at which the attachment image will be at the end of the render pass
+ * @return VkAttachmentDescription
+ */
+inline VkAttachmentDescription attachmentDescriptionInfo(VkFormat attachmentFormat,
+                                                         VkSampleCountFlagBits samples,
+                                                         VkAttachmentLoadOp loadOp,
+                                                         VkAttachmentStoreOp storeOp,
+                                                         VkImageLayout initialLayout,
+                                                         VkImageLayout finalLayout)
+{
+    VkAttachmentDescription attachment{};
+    attachment.format = attachmentFormat;
+    attachment.samples = samples;
+    attachment.loadOp = loadOp;
+    attachment.storeOp = storeOp;
+    attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachment.initialLayout = initialLayout;
+    attachment.finalLayout = finalLayout;
+    return attachment;
+}
+
 inline VkRenderPassCreateInfo renderPassCreateInfo(uint32_t attachmentCount,
                                                    const VkAttachmentDescription *attachments,
                                                    uint32_t subpassCount,
-                                                   const VkSubpassDescription *subopasses,
+                                                   const VkSubpassDescription *subpasses,
                                                    uint32_t dependencyCount,
                                                    const VkSubpassDependency *subpassDependencies)
 {
@@ -113,7 +143,7 @@ inline VkRenderPassCreateInfo renderPassCreateInfo(uint32_t attachmentCount,
     renderPassCreateInfo.attachmentCount = attachmentCount;
     renderPassCreateInfo.pAttachments = attachments;
     renderPassCreateInfo.subpassCount = subpassCount;
-    renderPassCreateInfo.pSubpasses = subopasses;
+    renderPassCreateInfo.pSubpasses = subpasses;
     renderPassCreateInfo.dependencyCount = dependencyCount;
     renderPassCreateInfo.pDependencies = subpassDependencies;
     return renderPassCreateInfo;
