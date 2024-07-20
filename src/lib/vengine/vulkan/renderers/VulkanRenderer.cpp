@@ -167,7 +167,10 @@ VkResult VulkanRenderer::releaseResources()
 
     for (uint32_t f = 0; f < MAX_FRAMES_IN_FLIGHT; f++) {
         vkDestroySemaphore(m_vkctx.device(), m_semaphoreImageAvailable[f], nullptr);
-        vkDestroySemaphore(m_vkctx.device(), m_semaphoreRenderFinished[f], nullptr);
+        vkDestroySemaphore(m_vkctx.device(), m_semaphoreForwardFinished[f], nullptr);
+        vkDestroySemaphore(m_vkctx.device(), m_semaphorePostFinished[f], nullptr);
+        vkDestroySemaphore(m_vkctx.device(), m_semaphoreUIFinished[f], nullptr);
+        vkDestroySemaphore(m_vkctx.device(), m_semaphoreOutputFinished[f], nullptr);
         vkDestroyFence(m_vkctx.device(), m_fenceInFlight[f], nullptr);
     }
 
@@ -225,27 +228,15 @@ VkResult VulkanRenderer::renderFrame(SceneGraph &sceneGraphArray)
 
     VULKAN_CHECK(vkResetFences(m_vkctx.device(), 1, &m_fenceInFlight[m_currentFrame]));
 
-    /* Record command buffer */
-    VULKAN_CHECK(vkResetCommandBuffer(m_commandBuffer[m_currentFrame], 0));
-    VULKAN_CHECK(buildFrame(sceneGraphArray, imageIndex, m_commandBuffer[m_currentFrame]));
-
-    /* Submit command buffer */
-    VkSemaphore waitSemaphores[] = {m_semaphoreImageAvailable[m_currentFrame]};
-    VkSemaphore signalSemaphores[] = {m_semaphoreRenderFinished[m_currentFrame]};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    VkSubmitInfo submitInfo = vkinit::submitInfo(1, &m_commandBuffer[m_currentFrame]);
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-    VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, m_fenceInFlight[m_currentFrame]));
+    /* Render frame */
+    VULKAN_CHECK(buildFrame(sceneGraphArray, imageIndex));
 
     /* Present to swapchain */
+    VkSemaphore waitSemaphores[] = {m_semaphoreOutputFinished[m_currentFrame]};
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
+    presentInfo.pWaitSemaphores = waitSemaphores;
     VkSwapchainKHR swapChains[] = {m_swapchain.swapchain()};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
@@ -255,31 +246,33 @@ VkResult VulkanRenderer::renderFrame(SceneGraph &sceneGraphArray)
     return VK_SUCCESS;
 }
 
-VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer)
+VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex)
 {
+    /* Update scene and frame buffers */
     m_scene.updateFrame({m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.renderCommandPool(), m_vkctx.renderQueue()}, imageIndex);
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
     m_textures.updateTextures();
 
-    /* Begin command buffer */
-    VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
-    VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
     /* Forward pass */
     {
+        /* Get forward command buffer */
+        VkCommandBuffer &commandBufferForward = m_commandBufferForward[m_currentFrame];
+        VULKAN_CHECK(vkResetCommandBuffer(commandBufferForward, 0));
+        VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
+        VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBufferForward, &beginInfo));
+
         glm::vec3 clearColor = m_scene.backgroundColor();
         std::array<VkClearValue, 3> clearValues{};
         VkClearColorValue cl = {{clearColor.r, clearColor.g, clearColor.b, 1.0F}};
         clearValues[0].color = cl;
         clearValues[1].color = {0, 0, 0, 0};
         clearValues[2].depthStencil = {1.0f, 0};
-
         VkRenderPassBeginInfo rpBeginInfo = vkinit::renderPassBeginInfo(m_renderPassForward.renderPass(),
                                                                         m_frameBufferForward.framebuffer(imageIndex),
                                                                         static_cast<uint32_t>(clearValues.size()),
                                                                         clearValues.data());
         rpBeginInfo.renderArea.extent = m_swapchain.extent();
-        vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(commandBufferForward, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         /* Get skybox material and check if its parameters have changed */
         auto skybox = dynamic_cast<VulkanMaterialSkybox *>(m_scene.skyboxMaterial());
@@ -291,7 +284,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
 
         /* Draw opaque */
         {
-            m_rendererLambert.renderObjectsForwardOpaque(commandBuffer,
+            m_rendererLambert.renderObjectsForwardOpaque(commandBufferForward,
                                                          m_scene.m_instances,
                                                          m_scene.descriptorSetSceneData(imageIndex),
                                                          m_scene.descriptorSetInstanceData(imageIndex),
@@ -301,7 +294,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
                                                          m_textures.descriptorSet(),
                                                          m_scene.descriptorSetTLAS(imageIndex),
                                                          m_scene.instancesManager().lights());
-            m_rendererPBR.renderObjectsForwardOpaque(commandBuffer,
+            m_rendererPBR.renderObjectsForwardOpaque(commandBufferForward,
                                                      m_scene.m_instances,
                                                      m_scene.descriptorSetSceneData(imageIndex),
                                                      m_scene.descriptorSetInstanceData(imageIndex),
@@ -315,7 +308,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
 
         /* Draw skybox if needed */
         if (m_scene.environmentType() == EnvironmentType::HDRI) {
-            m_rendererSkybox.renderSkybox(commandBuffer, m_scene.descriptorSetSceneData(imageIndex), imageIndex, skybox);
+            m_rendererSkybox.renderSkybox(commandBufferForward, m_scene.descriptorSetSceneData(imageIndex), imageIndex, skybox);
         }
 
         /* Draw transparent */
@@ -329,7 +322,7 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
             for (auto itr : m_scene.m_instances.transparentMeshes()) {
                 auto renderer = renderers[itr->get<ComponentMaterial>().material->type()];
 
-                renderer->renderObjectsForwardTransparent(commandBuffer,
+                renderer->renderObjectsForwardTransparent(commandBufferForward,
                                                           m_scene.m_instances,
                                                           m_scene.descriptorSetSceneData(imageIndex),
                                                           m_scene.descriptorSetInstanceData(imageIndex),
@@ -343,57 +336,119 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
             }
         }
 
-        vkCmdEndRenderPass(commandBuffer);
+        vkCmdEndRenderPass(commandBufferForward);
+        vkEndCommandBuffer(commandBufferForward);
+
+        /* Submit forward command buffer */
+        VkSemaphore waitSemaphores[] = {m_semaphoreImageAvailable[m_currentFrame]};
+        VkSemaphore signalSemaphores[] = {m_semaphoreForwardFinished[m_currentFrame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        VkSubmitInfo submitInfo = vkinit::submitInfo(1, &commandBufferForward);
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+        VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
     }
 
-    /* Post process pass, highlight */
+    /* Post process pass, draw highlight */
     {
+        /* Get post command buffer */
+        VkCommandBuffer &commandBufferPost = m_commandBufferPost[m_currentFrame];
+        VULKAN_CHECK(vkResetCommandBuffer(commandBufferPost, 0));
+        VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
+        VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBufferPost, &beginInfo));
+
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = {0, 0, 0, 0};
         clearValues[1].color = {0, 0, 0, 0};
-
         VkRenderPassBeginInfo rpBeginInfo = vkinit::renderPassBeginInfo(m_renderPassPost.renderPass(),
                                                                         m_framebufferPost.framebuffer(imageIndex),
                                                                         static_cast<uint32_t>(clearValues.size()),
                                                                         clearValues.data());
         rpBeginInfo.renderArea.extent = m_swapchain.extent();
 
-        vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        m_rendererPost.render(commandBuffer, imageIndex);
-        vkCmdEndRenderPass(commandBuffer);
+        vkCmdBeginRenderPass(commandBufferPost, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        m_rendererPost.render(commandBufferPost, imageIndex);
+        vkCmdEndRenderPass(commandBufferPost);
+        vkEndCommandBuffer(commandBufferPost);
+
+        /* Submit post command buffer */
+        VkSemaphore waitSemaphores[] = {m_semaphoreForwardFinished[m_currentFrame]};
+        VkSemaphore signalSemaphores[] = {m_semaphorePostFinished[m_currentFrame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT};
+        VkSubmitInfo submitInfo = vkinit::submitInfo(1, &commandBufferPost);
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+        VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
     }
 
+    bool has_selected = m_selectedObject != nullptr;
     /* UI pass */
     {
+        VkCommandBuffer &commandBufferUI = m_commandBufferUI[m_currentFrame];
+        /* Get command buffer */
+        VULKAN_CHECK(vkResetCommandBuffer(commandBufferUI, 0));
+        /* Begin command buffer */
+        VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
+        VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBufferUI, &beginInfo));
+
         /* Render a transform if an object is selected */
-        if (m_selectedObject != nullptr) {
-            VkRenderPassBeginInfo rpBeginInfo =
-                vkinit::renderPassBeginInfo(m_renderPassUI.renderPass(), m_framebufferUI.framebuffer(imageIndex), 0, nullptr);
-            rpBeginInfo.renderArea.extent = m_swapchain.extent();
-            vkCmdBeginRenderPass(commandBuffer, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        VkRenderPassBeginInfo rpBeginInfo =
+            vkinit::renderPassBeginInfo(m_renderPassUI.renderPass(), m_framebufferUI.framebuffer(imageIndex), 0, nullptr);
+        rpBeginInfo.renderArea.extent = m_swapchain.extent();
+        vkCmdBeginRenderPass(commandBufferUI, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        if (has_selected) {
+            if (m_showSelectedAABB) {
+                m_renderer3DUI.renderAABB3(commandBufferUI,
+                                           m_scene.descriptorSetSceneData(imageIndex),
+                                           imageIndex,
+                                           m_selectedObject->AABB(),
+                                           m_scene.camera());
+            }
 
             glm::vec3 transformPosition = m_selectedObject->worldPosition();
-            m_renderer3DUI.renderTransform(commandBuffer,
+            m_renderer3DUI.renderTransform(commandBufferUI,
                                            m_scene.descriptorSetSceneData(imageIndex),
                                            imageIndex,
                                            m_selectedObject->modelMatrix(),
                                            m_scene.camera());
-
-            if (m_showSelectedAABB) {
-                m_renderer3DUI.renderAABB3(
-                    commandBuffer, m_scene.descriptorSetSceneData(imageIndex), imageIndex, m_selectedObject->AABB(), m_scene.camera());
-            }
-
-            vkCmdEndRenderPass(commandBuffer);
         }
+
+        vkCmdEndRenderPass(commandBufferUI);
+        vkEndCommandBuffer(commandBufferUI);
+
+        /* Submit post command buffer */
+        VkSemaphore waitSemaphores[] = {m_semaphorePostFinished[m_currentFrame]};
+        VkSemaphore signalSemaphores[] = {m_semaphoreUIFinished[m_currentFrame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        VkSubmitInfo submitInfo = vkinit::submitInfo(1, &commandBufferUI);
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+        VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
     }
 
     /* Copy highlight output to temp color selection iamge */
     {
+        VkCommandBuffer &commandBufferOutput = m_commandBufferOutput[m_currentFrame];
+        /* Get command buffer */
+        VULKAN_CHECK(vkResetCommandBuffer(commandBufferOutput, 0));
+        /* Begin command buffer */
+        VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
+        VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBufferOutput, &beginInfo));
+
         VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
         /* Transition highlight render output to transfer source optimal */
-        transitionImageLayout(commandBuffer,
+        transitionImageLayout(commandBufferOutput,
                               m_attachmentHighlightForwardOutput.image(imageIndex).image(),
                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -406,16 +461,28 @@ VkResult VulkanRenderer::buildFrame(SceneGraph &sceneGraphArray, uint32_t imageI
         copyRegion.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
         copyRegion.dstOffset = {0, 0, 0};
         copyRegion.extent = {m_swapchain.extent().width, m_swapchain.extent().height, 1};
-        vkCmdCopyImage(commandBuffer,
+        vkCmdCopyImage(commandBufferOutput,
                        m_attachmentHighlightForwardOutput.image(imageIndex).image(),
                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                        m_imageTempColorSelection.image(),
                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                        1,
                        &copyRegion);
-    }
 
-    VULKAN_CHECK_CRITICAL(vkEndCommandBuffer(commandBuffer));
+        VULKAN_CHECK_CRITICAL(vkEndCommandBuffer(commandBufferOutput));
+
+        /* Submit post command buffer */
+        VkSemaphore waitSemaphores[] = {m_semaphoreUIFinished[m_currentFrame]};
+        VkSemaphore signalSemaphores[] = {m_semaphoreOutputFinished[m_currentFrame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_2_TRANSFER_BIT};
+        VkSubmitInfo submitInfo = vkinit::submitInfo(1, &commandBufferOutput);
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+        VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, m_fenceInFlight[m_currentFrame]));
+    }
 
     return VK_SUCCESS;
 }
@@ -543,11 +610,31 @@ VkResult VulkanRenderer::createFrameBuffers()
 
 VkResult VulkanRenderer::createCommandBuffers()
 {
-    m_commandBuffer.resize(MAX_FRAMES_IN_FLIGHT);
+    m_commandBufferForward.resize(MAX_FRAMES_IN_FLIGHT);
+    m_commandBufferPost.resize(MAX_FRAMES_IN_FLIGHT);
+    m_commandBufferUI.resize(MAX_FRAMES_IN_FLIGHT);
+    m_commandBufferOutput.resize(MAX_FRAMES_IN_FLIGHT);
 
-    VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(
-        VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBuffer.size()));
-    VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_vkctx.device(), &allocInfo, m_commandBuffer.data()));
+    {
+        VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(
+            VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBufferForward.size()));
+        VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_vkctx.device(), &allocInfo, m_commandBufferForward.data()));
+    }
+    {
+        VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(
+            VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBufferPost.size()));
+        VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_vkctx.device(), &allocInfo, m_commandBufferPost.data()));
+    }
+    {
+        VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(
+            VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBufferUI.size()));
+        VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_vkctx.device(), &allocInfo, m_commandBufferUI.data()));
+    }
+    {
+        VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(
+            VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBufferOutput.size()));
+        VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_vkctx.device(), &allocInfo, m_commandBufferOutput.data()));
+    }
 
     return VK_SUCCESS;
 }
@@ -556,7 +643,10 @@ VkResult VulkanRenderer::createSyncObjects()
 {
     m_fenceInFlight.resize(MAX_FRAMES_IN_FLIGHT);
     m_semaphoreImageAvailable.resize(MAX_FRAMES_IN_FLIGHT);
-    m_semaphoreRenderFinished.resize(MAX_FRAMES_IN_FLIGHT);
+    m_semaphoreForwardFinished.resize(MAX_FRAMES_IN_FLIGHT);
+    m_semaphorePostFinished.resize(MAX_FRAMES_IN_FLIGHT);
+    m_semaphoreUIFinished.resize(MAX_FRAMES_IN_FLIGHT);
+    m_semaphoreOutputFinished.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -565,7 +655,10 @@ VkResult VulkanRenderer::createSyncObjects()
 
     for (uint32_t f = 0; f < MAX_FRAMES_IN_FLIGHT; f++) {
         VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreImageAvailable[f]));
-        VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreRenderFinished[f]));
+        VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreForwardFinished[f]));
+        VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphorePostFinished[f]));
+        VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreUIFinished[f]));
+        VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreOutputFinished[f]));
         VULKAN_CHECK_CRITICAL(vkCreateFence(m_vkctx.device(), &fenceInfo, nullptr, &m_fenceInFlight[f]));
     }
 

@@ -28,6 +28,10 @@ VkResult VulkanRenderPass::destroy(VkDevice device)
 
 VkResult VulkanRenderPassForward::init(VulkanContext &context, VkFormat colorFormat, VkFormat highlightFormat, VkFormat depthFormat)
 {
+    m_attachments.clear();
+    m_subpasses.clear();
+    m_subpassDependencies.clear();
+
     /* Attachments */
     /* Color attachment */
     VkAttachmentDescription colorAttachment = vkinit::attachmentDescriptionInfo(colorFormat,
@@ -88,6 +92,10 @@ VkResult VulkanRenderPassForward::init(VulkanContext &context, VkFormat colorFor
 
 VkResult VulkanRenderPassPost::init(VulkanContext &context, VkFormat colorFormat)
 {
+    m_attachments.clear();
+    m_subpasses.clear();
+    m_subpassDependencies.clear();
+
     /* Attachments */
     /* Color attachment */
     VkAttachmentDescription postColorAttachment = vkinit::attachmentDescriptionInfo(colorFormat,
@@ -124,6 +132,10 @@ VkResult VulkanRenderPassPost::init(VulkanContext &context, VkFormat colorFormat
 
 VkResult VulkanRenderPassUI::init(VulkanContext &context, VkFormat colorFormat, VkFormat highlightFormat, VkFormat depthFormat)
 {
+    m_attachments.clear();
+    m_subpasses.clear();
+    m_subpassDependencies.clear();
+
     /* Attachments */
     /* Color attachment */
     VkAttachmentDescription swapchainColorAttachment = vkinit::attachmentDescriptionInfo(colorFormat,

@@ -77,7 +77,7 @@ private:
     VkResult createColorSelectionTempImage();
 
     /* Render */
-    VkResult buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex, VkCommandBuffer commandBuffer);
+    VkResult buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex);
 
 private:
     VulkanContext &m_vkctx;
@@ -109,13 +109,20 @@ private:
     VulkanRenderer3DUI m_renderer3DUI;
     VulkanRendererPathTracing m_rendererPathTracing;
 
-    /* Render commands and synchronization data */
-    std::vector<VkCommandBuffer> m_commandBuffer;
+    /* Command buffers and synchronization data */
     std::vector<VkSemaphore> m_semaphoreImageAvailable;
-    std::vector<VkSemaphore> m_semaphoreRenderFinished;
     std::vector<VkFence> m_fenceInFlight;
     const uint32_t MAX_FRAMES_IN_FLIGHT = 3;
     uint32_t m_currentFrame = 0;
+
+    std::vector<VkCommandBuffer> m_commandBufferForward;
+    std::vector<VkSemaphore> m_semaphoreForwardFinished;
+    std::vector<VkCommandBuffer> m_commandBufferPost;
+    std::vector<VkSemaphore> m_semaphorePostFinished;
+    std::vector<VkCommandBuffer> m_commandBufferUI;
+    std::vector<VkSemaphore> m_semaphoreUIFinished;
+    std::vector<VkCommandBuffer> m_commandBufferOutput;
+    std::vector<VkSemaphore> m_semaphoreOutputFinished;
 };
 
 }  // namespace vengine
