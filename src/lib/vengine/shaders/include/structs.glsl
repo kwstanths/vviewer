@@ -30,6 +30,11 @@ struct InstanceData {
     uint64_t vertexAddress;
     uint64_t indexAddress;
     uint numTriangles;
+    
+    uint padding1;
+    uint padding2;
+    uint padding3;
+    uint padding4;
 };
 
 /* Material struct. A mirror of the CPU struct */

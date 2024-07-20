@@ -24,7 +24,7 @@ bool PtSceneBallOnPlane::create()
 
     scene().environmentIntensity() = 1.0F;
 
-    scene().updateSceneGraph();
+    scene().update();
     return true;
 }
 
@@ -42,7 +42,7 @@ bool PtSceneBallOnPlane::render()
     float height = 1.0F;
     float radius = 10.0F;
     float angleStep = glm::radians(45.0F);
-    for (float a = 0; a < 2 * M_PI; a += angleStep) {
+    for (float a = 0; a < 2 * 3.14159; a += angleStep) {
         engine().renderer().rendererPathTracing().renderInfo().filename = std::to_string(i++);
 
         scene().camera()->transform().position() = glm::vec3(radius * sin(a), height, radius * cos(a));

@@ -1,6 +1,8 @@
 #include "VulkanRenderPass.hpp"
 #include "vulkan/common/VulkanInitializers.hpp"
 
+#include <array>
+
 namespace vengine
 {
 

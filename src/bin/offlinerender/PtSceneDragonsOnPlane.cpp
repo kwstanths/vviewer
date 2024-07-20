@@ -65,7 +65,7 @@ bool PtSceneDragonsOnPlane::create()
 
     scene().environmentIntensity() = 2.0F;
 
-    scene().updateSceneGraph();
+    scene().update();
     return true;
 }
 

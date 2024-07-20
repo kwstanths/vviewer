@@ -26,6 +26,11 @@ struct InstanceData {
     uint64_t indexAddress;
     /* The number of triangles in the index buffer */
     uint32_t numTriangles;
+
+    uint32_t padding1;
+    uint32_t padding2;
+    uint32_t padding3;
+    uint32_t padding4;
 };
 
 class InstancesManager
