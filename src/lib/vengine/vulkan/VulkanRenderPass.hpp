@@ -14,6 +14,8 @@ public:
     VkRenderPass &renderPass() { return m_renderPass; }
     const VkRenderPass &renderPass() const { return m_renderPass; }
 
+    VkResult destroy(VkDevice device);
+
 protected:
     std::vector<VkAttachmentDescription> m_attachments;
     std::vector<VkSubpassDescription> m_subpasses;
@@ -26,12 +28,19 @@ protected:
 class VulkanRenderPassForward : public VulkanRenderPass
 {
 public:
-    VkResult initSwapChainResources(VulkanContext &context, VulkanSwapchain &swapchain, VkFormat renderFormat);
+    VkResult init(VulkanContext &context, VkFormat colorFormat, VkFormat highlightFormat, VkFormat depthFormat);
+};
 
-    VkResult releaseSwapChainResources(VulkanContext &context);
+class VulkanRenderPassPost : public VulkanRenderPass
+{
+public:
+    VkResult init(VulkanContext &context, VkFormat colorFormat);
+};
 
-protected:
-private:
+class VulkanRenderPassUI : public VulkanRenderPass
+{
+public:
+    VkResult init(VulkanContext &context, VkFormat colorFormat, VkFormat highlightFormat, VkFormat depthFormat);
 };
 
 }  // namespace vengine

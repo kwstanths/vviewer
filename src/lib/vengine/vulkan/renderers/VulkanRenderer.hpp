@@ -88,18 +88,16 @@ private:
     VulkanRandom m_random;
 
     /* Render passes and framebuffers */
+    VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
     VulkanRenderPassForward m_renderPassForward;
-    VkRenderPass m_renderPassPost;
-    VkRenderPass m_renderPassUI;
+    VulkanRenderPassPost m_renderPassPost;
+    VulkanRenderPassUI m_renderPassUI;
 
     VulkanFrameBufferAttachment m_attachmentColorForwardOutput;
     VulkanFrameBufferAttachment m_attachmentHighlightForwardOutput;
-
     VulkanFrameBuffer m_frameBufferForward;
-    std::vector<VkFramebuffer> m_framebuffersPost;
-    std::vector<VkFramebuffer> m_framebuffersUI;
-
-    VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+    VulkanFrameBuffer m_framebufferPost;
+    VulkanFrameBuffer m_framebufferUI;
 
     VulkanImage m_imageTempColorSelection;
 

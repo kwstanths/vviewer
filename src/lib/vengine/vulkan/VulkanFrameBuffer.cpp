@@ -15,6 +15,8 @@ VkResult VulkanFrameBufferAttachment::init(const VulkanFrameBufferAttachmentInfo
         m_images.push_back(VulkanImage(view, info.format));
     }
 
+    m_destroyData = false;
+
     return VK_SUCCESS;
 }
 
