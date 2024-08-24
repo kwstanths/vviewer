@@ -90,8 +90,12 @@ VkResult VulkanRendererGBuffer::renderMeshGroup(VkCommandBuffer &commandBuffer,
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer().buffer(), 0, mesh->indexType());
 
-    vkCmdDrawIndexed(
-        commandBuffer, static_cast<uint32_t>(mesh->indices().size()), meshGroup.sceneObjects.size(), 0, 0, meshGroup.startIndex);
+    vkCmdDrawIndexed(commandBuffer,
+                     static_cast<uint32_t>(mesh->indices().size()),
+                     static_cast<uint32_t>(meshGroup.sceneObjects.size()),
+                     0,
+                     0,
+                     meshGroup.startIndex);
 
     return VK_SUCCESS;
 }
@@ -114,8 +118,8 @@ VkResult VulkanRendererGBuffer::createPipeline(const VulkanRenderPassDeferred &r
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
 
-    VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0.0, 0.0);
+    VkViewport viewport = vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
+    VkRect2D scissor = vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
     VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
 
     VkPipelineRasterizationStateCreateInfo rasterizer =

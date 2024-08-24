@@ -59,7 +59,7 @@ uint32_t InstancesManager::instanceDataIndex(SceneObject *so) const
     InstanceData *instanceDataPtr = instanceData(so);
     assert(instanceDataPtr);
 
-    return instanceDataPtr - &m_instancesBuffer[0];
+    return static_cast<uint32_t>(instanceDataPtr - &m_instancesBuffer[0]);
 }
 
 void InstancesManager::sortTransparent(const glm::vec3 &pos)
@@ -133,7 +133,7 @@ void InstancesManager::buildInstanceData()
     for (auto &meshGroup : m_instancesOpaque) {
         meshGroup.second.startIndex = currentIndex;
 
-        uint32_t nObjects = meshGroup.second.sceneObjects.size();
+        uint32_t nObjects = static_cast<uint32_t>(meshGroup.second.sceneObjects.size());
         assert(currentIndex + nObjects < m_instancesBufferSize);
         for (uint32_t index = 0; index < nObjects; ++index) {
             SceneObject *sceneObject = meshGroup.second.sceneObjects[index];

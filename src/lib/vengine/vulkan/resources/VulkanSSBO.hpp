@@ -20,7 +20,7 @@ public:
 
     VkResult init(const VkPhysicalDeviceProperties &physicalDeviceProperties)
     {
-        return VulkanBufferObject<Block>::init(physicalDeviceProperties.limits.minStorageBufferOffsetAlignment);
+        return VulkanBufferObject<Block>::init(static_cast<uint32_t>(physicalDeviceProperties.limits.minStorageBufferOffsetAlignment));
     }
 
     VkResult createBuffers(VkPhysicalDevice physicalDevice, VkDevice device, uint32_t nBuffers)

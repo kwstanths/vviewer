@@ -440,8 +440,8 @@ VulkanMaterialVolume::VulkanMaterialVolume(const AssetInfo &info, VulkanUBODefau
     : MaterialVolume(info)
     , VulkanUBODefault<MaterialData>::Block(materialsUBO)
 {
-    sigmaS() = glm::vec4(0.2);
-    sigmaA() = glm::vec4(0.01);
+    sigmaS() = glm::vec4(0.2F);
+    sigmaA() = glm::vec4(0.01F);
     g() = 0.0F;
 };
 

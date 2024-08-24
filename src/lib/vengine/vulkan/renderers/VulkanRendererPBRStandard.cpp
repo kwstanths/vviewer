@@ -211,8 +211,8 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
         VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
         /* Set viewport and scissor values */
-        VkViewport viewport = vkinit::viewport(imageWidth, imageHeight, 0.0F, 1.0F);
-        VkRect2D scissor = vkinit::rect2D(imageWidth, imageHeight, 0, 0);
+        VkViewport viewport = vkinit::viewport(static_cast<float>(imageWidth), static_cast<float>(imageHeight), 0.0F, 1.0F);
+        VkRect2D scissor = vkinit::rect2D(static_cast<int32_t>(imageWidth), static_cast<int32_t>(imageHeight), 0, 0);
 
         /* Perform render */
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

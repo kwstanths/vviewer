@@ -8,14 +8,14 @@
 namespace vengine
 {
 
-FreeList::FreeList(size_t N)
+FreeList::FreeList(uint32_t N)
     : m_freeElements(N)
 {
     m_end = 0;
     m_nElements = N;
 }
 
-size_t FreeList::getFree()
+uint32_t FreeList::getFree()
 {
     if (!m_freeElements.empty()) {
         return m_freeElements.pop();
@@ -27,7 +27,7 @@ size_t FreeList::getFree()
     return m_nElements;
 }
 
-void FreeList::setFree(size_t index)
+void FreeList::setFree(uint32_t index)
 {
     assert(index < m_end);
     m_freeElements.push(index);
@@ -44,12 +44,12 @@ void FreeList::reset()
     m_freeElements.clear();
 }
 
-size_t FreeList::size() const
+uint32_t FreeList::size() const
 {
     return m_nElements;
 }
 
-void FreeList::resize(size_t N)
+void FreeList::resize(uint32_t N)
 {
     m_nElements = N;
     m_freeElements.resize(N);

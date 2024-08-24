@@ -279,7 +279,7 @@ VkResult VulkanScene::createBuffers(uint32_t nImages)
     VkDeviceSize bufferSize = sizeof(SceneData);
 
     m_uniformBuffersScene.resize(nImages);
-    for (int i = 0; i < nImages; i++) {
+    for (uint32_t i = 0; i < nImages; i++) {
         VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
                                            m_vkctx.device(),
                                            bufferSize,
@@ -301,7 +301,7 @@ void VulkanScene::buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex)
     std::vector<BLASInstance> blasInstances;
     const VulkanInstancesManager &instances = instancesManager();
     for (auto &meshGroup : instances.opaqueMeshes()) {
-        uint32_t nObjects = meshGroup.second.sceneObjects.size();
+        uint32_t nObjects = static_cast<uint32_t>(meshGroup.second.sceneObjects.size());
         for (uint32_t index = 0; index < nObjects; ++index) {
             SceneObject *sceneObject = meshGroup.second.sceneObjects[index];
 

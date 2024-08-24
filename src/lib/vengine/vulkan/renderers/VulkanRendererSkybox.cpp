@@ -347,8 +347,8 @@ VkResult VulkanRendererSkybox::createCubemap(VulkanTexture *inputImage, VulkanCu
         VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
         VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-        VkViewport viewport = vkinit::viewport(cubemapWidth, cubemapHeight, 0.0F, 1.0F);
-        VkRect2D scissor = vkinit::rect2D(cubemapWidth, cubemapHeight, 0, 0);
+        VkViewport viewport = vkinit::viewport(static_cast<float>(cubemapWidth), static_cast<float>(cubemapHeight), 0.0F, 1.0F);
+        VkRect2D scissor = vkinit::rect2D(static_cast<int32_t>(cubemapWidth), static_cast<int32_t>(cubemapHeight), 0, 0);
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
@@ -763,8 +763,8 @@ VkResult VulkanRendererSkybox::createIrradianceMap(VulkanCubemap *inputMap, Vulk
         VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
         VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-        VkViewport viewport = vkinit::viewport(cubemapWidth, cubemapHeight, 0.0F, 1.0F);
-        VkRect2D scissor = vkinit::rect2D(cubemapWidth, cubemapHeight, 0, 0);
+        VkViewport viewport = vkinit::viewport(static_cast<float>(cubemapWidth), static_cast<float>(cubemapHeight), 0.0F, 1.0F);
+        VkRect2D scissor = vkinit::rect2D(static_cast<int32_t>(cubemapWidth), static_cast<int32_t>(cubemapHeight), 0, 0);
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
@@ -1267,8 +1267,10 @@ VkResult VulkanRendererSkybox::createGraphicsPipeline(const VulkanRenderPassDefe
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
 
-    VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0, 0);
+    VkViewport viewport =
+        vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
+    VkRect2D scissor =
+        vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
     VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
     VkPipelineRasterizationStateCreateInfo rasterizer =
         vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);

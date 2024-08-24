@@ -6,8 +6,8 @@
 namespace vengine
 {
 
-enum class AssetSource { IMPORTED = 0, INTERNAL = 1 };
-enum class AssetLocation { STANDALONE = 0, EMBEDDED = 1 };
+enum class AssetSource { UNDEFINED = -1, IMPORTED = 0, INTERNAL = 1 };
+enum class AssetLocation { UNDEFINED = -1, STANDALONE = 0, EMBEDDED = 1 };
 
 struct AssetInfo {
     std::string name;

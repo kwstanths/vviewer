@@ -159,7 +159,7 @@ Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &te
     /* Get .xtex file name */
     std::string xtexName;
     std::string texturesFolder = "";
-    int i, n = zip_entries_total(zip);
+    ssize_t i, n = zip_entries_total(zip);
     for (i = 0; i < n; ++i) {
         zip_entry_openbyindex(zip, i);
         {
@@ -206,7 +206,7 @@ Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &te
 
         int32_t x, y;
         stbi_uc *rawImgBuffer =
-            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, STBI_rgb_alpha);
+            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, nullptr, STBI_rgb_alpha);
 
         std::string id = filename + ":" + albedoZipPath;
         Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::EMBEDDED),
@@ -232,7 +232,7 @@ Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &te
 
         int32_t x, y, channels;
         stbi_uc *rawImgBuffer =
-            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, &channels, STBI_default);
+            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, &channels, STBI_default);
 
         std::string id = filename + ":" + roughnessZipPath;
         Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::EMBEDDED),
@@ -258,7 +258,7 @@ Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &te
 
         int32_t x, y;
         stbi_uc *rawImgBuffer =
-            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), bufsize, &x, &y, nullptr, STBI_rgb_alpha);
+            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, nullptr, STBI_rgb_alpha);
 
         std::string id = filename + ":" + normalZipPath;
         Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::EMBEDDED),

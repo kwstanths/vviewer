@@ -49,7 +49,7 @@ VulkanCube::VulkanCube(const AssetInfo &info, VulkanCommandInfo vci, bool genera
 
     m_indices = {0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 7, 6, 5, 5, 4, 7, 4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
 
-    m_nTriangles = m_indices.size() / 3U;
+    m_nTriangles = static_cast<uint32_t>(m_indices.size()) / 3U;
 
     createVertexBuffer(vci, m_vertices, {}, m_vertexBuffer);
     createIndexBuffer(vci, m_indices, {}, m_indexBuffer);

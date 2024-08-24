@@ -32,7 +32,7 @@ AABB3 AABB3::fromMinAndMax(const glm::vec3 &min, const glm::vec3 &max)
 AABB3 AABB3::fromCenterAndLength(const glm::vec3 &center, const glm::vec3 &length)
 {
     AABB3 t;
-    for (size_t i = 0; i < 3; i++) {
+    for (uint32_t i = 0; i < 3; i++) {
         t.min()[i] = center[i] - length[i] / 2.F;
         t.max()[i] = center[i] + length[i] / 2.F;
     }
@@ -110,7 +110,7 @@ void AABB3::add(const glm::vec3 p)
 
 void AABB3::translate(const glm::vec3 &translation)
 {
-    for (size_t i = 0; i < 3; i++) {
+    for (uint32_t i = 0; i < 3; i++) {
         m_min[i] += translation[i];
         m_max[i] += translation[i];
     }
@@ -119,7 +119,7 @@ void AABB3::translate(const glm::vec3 &translation)
 bool AABB3::isInside(const glm::vec3 &p) const
 {
     bool inside = true;
-    for (size_t i = 0; i < 3; i++)
+    for (uint32_t i = 0; i < 3; i++)
         inside = inside && (min()[i] <= p[i]) && (p[i] <= max()[i]);
     return inside;
 }

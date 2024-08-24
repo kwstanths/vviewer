@@ -36,7 +36,7 @@ struct ImportedModelNode {
 };
 
 struct ImportedTexture {
-    AssetLocation location;
+    AssetLocation location = AssetLocation::UNDEFINED;
     std::string name = "";
     Image<uint8_t> *image = nullptr;
 };

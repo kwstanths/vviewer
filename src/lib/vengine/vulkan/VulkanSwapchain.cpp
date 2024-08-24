@@ -140,7 +140,7 @@ VkResult VulkanSwapchain::createFrameBufferAttachments()
 {
     {
         std::vector<VkImageView> swapchainViews;
-        for (size_t i = 0; i < imageCount(); i++) {
+        for (uint32_t i = 0; i < imageCount(); i++) {
             swapchainViews.push_back(swapchainImageView(i));
         }
 
@@ -150,7 +150,7 @@ VkResult VulkanSwapchain::createFrameBufferAttachments()
 
     {
         std::vector<VkImageView> depthViews;
-        for (size_t i = 0; i < imageCount(); i++) {
+        for (uint32_t i = 0; i < imageCount(); i++) {
             depthViews.push_back(depthStencilImageView(i));
         }
         VulkanFrameBufferAttachmentInfo depthInfo("depth", extent().width, extent().height, depthFormat(), VK_SAMPLE_COUNT_1_BIT);

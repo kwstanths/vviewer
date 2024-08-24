@@ -18,7 +18,7 @@ public:
     inline T &data() { return m_data; }
     inline const T &data() const { return m_data; }
 
-    inline uint32_t size() const { return m_children.size(); }
+    inline uint32_t size() const { return static_cast<uint32_t>(m_children.size()); }
 
     inline Tree<T> &add()
     {

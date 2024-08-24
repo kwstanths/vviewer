@@ -87,7 +87,7 @@ void VulkanInstancesManager::build(SceneObjectVector &sceneGraph)
         lightInstanceBlock->position.a = static_cast<float>(so->get<ComponentLight>().castShadows);
     }
     for (uint32_t l = 0; l < m_meshLights.size(); l++) {
-        uint32_t nl = m_lights.size() + l;
+        uint32_t nl = static_cast<uint32_t>(m_lights.size()) + l;
         assert(nl < m_lightInstancesUBO.nblocks());
 
         SceneObject *so = m_meshLights[l];

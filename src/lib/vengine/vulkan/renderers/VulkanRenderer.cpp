@@ -533,8 +533,8 @@ RendererPathTracing &VulkanRenderer::rendererPathTracing()
 ID VulkanRenderer::findID(float x, float y)
 {
     /* Get the texel color at this row and column of the highlight render target */
-    uint32_t row = y * m_swapchain.extent().height;
-    uint32_t column = x * m_swapchain.extent().width;
+    uint32_t row = static_cast<uint32_t>(y * m_swapchain.extent().height);
+    uint32_t column = static_cast<uint32_t>(x * m_swapchain.extent().width);
 
     /* Since the image is stored in linear tiling, get the subresource layout to calculate the padding */
     VkImageSubresource subResource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
@@ -542,7 +542,7 @@ ID VulkanRenderer::findID(float x, float y)
     vkGetImageSubresourceLayout(m_vkctx.device(), m_imageSelection.image(), &subResource, &subResourceLayout);
 
     /* Byte index of x,y texel */
-    uint32_t index = (row * subResourceLayout.rowPitch + column * 4 * sizeof(float));
+    uint32_t index = (row * static_cast<uint32_t>(subResourceLayout.rowPitch) + column * 4 * sizeof(float));
 
     /* Store highlight render result for that texel to the disk */
     float *gbuffer1Tex;
@@ -556,7 +556,7 @@ ID VulkanRenderer::findID(float x, float y)
     memcpy(&id, gbuffer1Tex + 3, sizeof(float));
     vkUnmapMemory(m_vkctx.device(), m_imageSelection.memory());
 
-    return id;
+    return static_cast<ID>(id);
 }
 
 VkResult VulkanRenderer::createRenderPasses()

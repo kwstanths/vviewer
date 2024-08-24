@@ -13,31 +13,31 @@ namespace vengine
 class FreeList
 {
 public:
-    FreeList(size_t N);
+    FreeList(uint32_t N);
 
-    size_t getFree();
+    uint32_t getFree();
 
-    void setFree(size_t index);
+    void setFree(uint32_t index);
 
     bool empty() const;
 
     void reset();
 
-    size_t size() const;
+    uint32_t size() const;
 
-    void resize(size_t N);
+    void resize(uint32_t N);
 
 private:
-    size_t m_end;
-    size_t m_nElements;
-    Stack<size_t> m_freeElements;
+    uint32_t m_end;
+    uint32_t m_nElements;
+    Stack<uint32_t> m_freeElements;
 };
 
 template <typename T>
 class FreeBlockList : private FreeList
 {
 public:
-    FreeBlockList(size_t N)
+    FreeBlockList(uint32_t N)
         : FreeList(N)
         , m_valid(N, false)
     {
@@ -46,7 +46,7 @@ public:
 
     T *get()
     {
-        size_t index = getFree();
+        uint32_t index = getFree();
         if (index == size()) {
             return nullptr;
         }
@@ -57,7 +57,7 @@ public:
 
     void remove(T *t)
     {
-        size_t index = getIndex(t);
+        uint32_t index = getIndex(t);
         m_valid[index] = false;
         setFree(index);
     }
@@ -72,7 +72,7 @@ public:
         using value_type = T;
         using pointer = T *;
         using reference = T &;
-        using index = size_t;
+        using index = uint32_t;
 
         Iterator(std::vector<T> &blocks, const std::vector<bool> &valid, index i)
             : m_blocks(blocks)
@@ -131,7 +131,7 @@ private:
     std::vector<T> m_blocks;
     std::vector<bool> m_valid;
 
-    size_t getIndex(T *t) { return (t - &m_blocks[0]); }
+    uint32_t getIndex(T *t) { return static_cast<uint32_t>(t - &m_blocks[0]); }
 };
 
 }  // namespace vengine

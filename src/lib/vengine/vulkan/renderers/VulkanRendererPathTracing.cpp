@@ -189,7 +189,7 @@ void VulkanRendererPathTracing::render()
         if (cameraVolume->type() != MaterialType::MATERIAL_VOLUME) {
             debug_tools::ConsoleWarning("The material set for the render camera's volume is not a volume material");
         } else {
-            sceneData.m_volumes.r = cameraVolume->materialIndex();
+            sceneData.m_volumes.r = static_cast<float>(cameraVolume->materialIndex());
         }
     }
 
@@ -406,7 +406,7 @@ VkResult VulkanRendererPathTracing::createBuffers()
 {
     /* The scene buffer holds [SceneData | PathTracingData ] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), alignment) + alignedSize(sizeof(PathTracingData), alignment);
+    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), static_cast<uint32_t>(alignment)) + alignedSize(sizeof(PathTracingData), static_cast<uint32_t>(alignment));
 
     /* Create a buffer to hold the scene buffer */
     VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
@@ -428,7 +428,7 @@ VkResult VulkanRendererPathTracing::updateBuffers(const SceneData &sceneData, co
         void *data;
         VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_uniformBufferScene.memory(), 0, VK_WHOLE_SIZE, 0, &data));
         memcpy(data, &sceneData, sizeof(sceneData)); /* Copy scene data struct */
-        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment),
+        memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), static_cast<uint32_t>(alignment)),
                &rtData,
                sizeof(PathTracingData)); /* Copy path tracing data struct */
         vkUnmapMemory(m_device, m_uniformBufferScene.memory());
@@ -443,7 +443,7 @@ VkResult VulkanRendererPathTracing::updateBuffersPathTracingData(const PathTraci
 
     void *data;
     VULKAN_CHECK_CRITICAL(vkMapMemory(m_device, m_uniformBufferScene.memory(), 0, VK_WHOLE_SIZE, 0, &data));
-    memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), alignment),
+    memcpy(static_cast<char *>(data) + alignedSize(sizeof(SceneData), static_cast<uint32_t>(alignment)),
            &ptData,
            sizeof(PathTracingData)); /* Copy path tracing data struct */
 
@@ -493,7 +493,7 @@ void VulkanRendererPathTracing::updateDescriptorSets()
 
     /* Update path tracing data binding, uses the same buffer with the scene data */
     VkDescriptorBufferInfo pathTracingDataDescriptor = vkinit::descriptorBufferInfo(
-        m_uniformBufferScene.buffer(), alignedSize(sizeof(SceneData), uniformBufferAlignment), sizeof(PathTracingData));
+        m_uniformBufferScene.buffer(), alignedSize(sizeof(SceneData), static_cast<uint32_t>(uniformBufferAlignment)), static_cast<uint32_t>(sizeof(PathTracingData)));
     VkWriteDescriptorSet pathTracingDataWrite =
         vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, 1, &pathTracingDataDescriptor);
 
@@ -962,13 +962,13 @@ VkResult VulkanRendererPathTracing::getRenderTargetData(const VulkanImage &targe
     VkImageSubresource subResource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
     VkSubresourceLayout subResourceLayout;
     vkGetImageSubresourceLayout(m_device, m_tempImage.image(), &subResource, &subResourceLayout);
-    uint32_t rowPitchFloats = subResourceLayout.rowPitch / sizeof(float);
+    uint32_t rowPitchFloats = static_cast<uint32_t>(subResourceLayout.rowPitch) / sizeof(float);
 
     uint32_t width = renderInfo().width;
     uint32_t height = renderInfo().height;
     data = std::vector<float>(width * height * 4);
 
-    uint32_t indexGPUIMage = subResourceLayout.offset;
+    uint32_t indexGPUIMage = static_cast<uint32_t>(subResourceLayout.offset);
     uint32_t indexOutputImage = 0;
     for (uint32_t i = 0; i < height; i++) {
         memcpy(&data[0] + indexOutputImage, &input[0] + indexGPUIMage, 4 * width * sizeof(float));

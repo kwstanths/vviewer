@@ -110,7 +110,7 @@ VkResult VulkanRendererForward::renderObject(VkCommandBuffer &cmdBuf,
             auto lnp = n->get<ComponentLight>().light->power(n->worldPosition(), pos);
             return lmp > lnp;
         });
-    pushConstants.info.b = std::min<unsigned int>(instances.lights().size(), 4U);
+    pushConstants.info.b = std::min<unsigned int>(static_cast<uint32_t>(instances.lights().size()), 4U);
     pushConstants.lights = glm::vec4(closestLights[0], closestLights[1], closestLights[2], closestLights[3]);
 
     vkCmdPushConstants(cmdBuf,
@@ -143,8 +143,8 @@ VkResult VulkanRendererForward::createPipeline(const VulkanRenderPassDeferred &r
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
 
-    VkViewport viewport = vkinit::viewport(m_swapchainExtent.width, m_swapchainExtent.height, 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(m_swapchainExtent.width, m_swapchainExtent.height, 0.0, 0.0);
+    VkViewport viewport = vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
+    VkRect2D scissor = vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
     VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
 
     VkPipelineRasterizationStateCreateInfo rasterizer =

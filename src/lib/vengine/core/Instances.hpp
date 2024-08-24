@@ -39,7 +39,7 @@ public:
     struct MeshGroup {
         SceneObjectVector sceneObjects;
         /* starting index for m_instancesBuffer */
-        uint32_t startIndex;
+        uint32_t startIndex = 0;
     };
 
     typedef std::unordered_map<SceneObject *, InstanceData *> SceneObjectMap;

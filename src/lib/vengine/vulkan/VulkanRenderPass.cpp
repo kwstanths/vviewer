@@ -234,7 +234,7 @@ VkResult VulkanRenderPassDeferred::updateDescriptors(const VulkanFrameBufferAtta
                                                      const VulkanFrameBufferAttachment &gbufferAttachment2,
                                                      const VulkanFrameBufferAttachment &depthAttachment)
 {
-    for (size_t i = 0; i < m_descriptorSets.size(); i++) {
+    for (uint32_t i = 0; i < m_descriptorSets.size(); i++) {
         VkDescriptorImageInfo gbuffer1AttachmentDescriptor =
             vkinit::descriptorImageInfo(VK_NULL_HANDLE, gbufferAttachment1.image(i).view(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         VkWriteDescriptorSet descWrite1 =
