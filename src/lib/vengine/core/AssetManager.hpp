@@ -29,7 +29,7 @@ public:
     AssetMap(AssetMap const &) = delete;
     void operator=(AssetMap const &) = delete;
 
-    bool isPresent(const std::string &id)
+    bool has(const std::string &id)
     {
         if (m_assets.find(id) == m_assets.end()) {
             return false;

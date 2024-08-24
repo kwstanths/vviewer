@@ -91,7 +91,7 @@ void main()
         rayPayloadPrimary.direction = direction.xyz;
         rayPayloadPrimary.surfaceDepth = 0;
         rayPayloadPrimary.insideVolume = insideVolume;
-        rayPayloadPrimary.volumeMaterialIndex = sceneData.data.volumes.r;
+        rayPayloadPrimary.volumeMaterialIndex = uint(sceneData.data.volumes.r);
 
         vec3 beta = vec3(1);
         vec3 radiance = vec3(0);

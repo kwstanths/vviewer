@@ -6,7 +6,7 @@
 #include "../include/structs.glsl"
 
 layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outHighlight;
+layout(location = 1) out vec4 outID;
 
 layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
     SceneData data;
@@ -21,8 +21,6 @@ void main() {
 
     vec3 color = pushConsts.color.rgb;
     
-    color = tonemapDefault2(color, sceneData.data.exposure.r);
-    
     outColor = vec4(color, 1);
-    outHighlight = pushConsts.selected;
+    outID = vec4(0, 0, 0, pushConsts.color.a);
 }

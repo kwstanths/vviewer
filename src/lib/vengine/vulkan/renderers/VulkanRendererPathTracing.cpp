@@ -25,7 +25,6 @@
 #include "vulkan/common/VulkanLimits.hpp"
 #include "vulkan/common/VulkanDeviceFunctions.hpp"
 #include "vulkan/resources/VulkanLight.hpp"
-#include "vulkan/renderers/VulkanRenderUtils.hpp"
 
 namespace vengine
 {
@@ -130,7 +129,7 @@ void VulkanRendererPathTracing::render()
     timer.Start();
 
     /* Get the scene objects */
-    SceneGraph sceneObjects = m_scene.getSceneObjectsFlat();
+    SceneObjectVector sceneObjects = m_scene.getSceneObjectsFlat();
     if (sceneObjects.size() == 0) {
         debug_tools::ConsoleWarning("Trying to render an empty scene");
         return;
@@ -140,7 +139,7 @@ void VulkanRendererPathTracing::render()
 
     auto camera = m_scene.camera();
 
-    /* Prepare sceneData with custom render resolution requested */
+    /* Prepare sceneData with the custom render resolution requested */
     SceneData sceneData = m_scene.getSceneData();
     {
         uint32_t width = renderInfo().width;
@@ -170,20 +169,18 @@ void VulkanRendererPathTracing::render()
         }
     }
 
-    /* Parse scene graph */
-    std::vector<SceneObject *> meshes, lights;
-    std::vector<std::pair<SceneObject *, uint32_t>> meshLights;
-    parseSceneGraph(sceneObjects, meshes, lights, meshLights);
-
     /* Set camera volume */
     sceneData.m_volumes.r = -1;
     if (camera->volume() == nullptr) {
-        /* Check if camera is inside a volume AABB, but a camera volume is not set */
+        /* Check if camera is inside a volume AABB, but a camera volume is not set and give a warning */
         glm::vec3 cameraPosition = camera->transform().position();
-        for (auto itr : meshes) {
-            if (itr->get<ComponentMaterial>().material->type() == MaterialType::MATERIAL_VOLUME) {
-                if (itr->AABB().isInside(cameraPosition)) {
-                    debug_tools::ConsoleWarning("The render camera has no volume set, but is inside a volume AABB");
+        const SceneObjectVector &volumes = m_scene.instancesManager().volumes();
+        for (SceneObject *so : volumes) {
+            if (so->get<ComponentMaterial>().material->type() == MaterialType::MATERIAL_VOLUME) {
+                if (so->AABB().isInside(cameraPosition)) {
+                    debug_tools::ConsoleWarning(
+                        "The render camera has no volume set, but it is inside a volume AABB. Forgot to set camera volume "
+                        "material?");
                 }
             }
         }
@@ -197,10 +194,11 @@ void VulkanRendererPathTracing::render()
     }
 
     /* Prepare scene lights */
-    m_pathTracingData.lights.r = static_cast<unsigned int>(lights.size() + meshLights.size());
+    m_pathTracingData.lights.r =
+        static_cast<unsigned int>(m_scene.instancesManager().lights().size() + m_scene.instancesManager().meshLights().size());
     updateBuffers(sceneData, m_pathTracingData);
 
-    /* We will use frame index 0 for this renderer */
+    /* We will always use frame index 0 buffers for this renderer */
     m_scene.updateFrame({m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, 0);
     m_materials.updateBuffers(0);
     m_textures.updateTextures();
@@ -533,11 +531,11 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
     /* Create pipeline layout */
     {
         std::vector<VkDescriptorSetLayout> setsLayouts = {m_descriptorSetLayoutMain,
-                                                          m_scene.layoutInstanceData(),
-                                                          m_scene.layoutTLAS(),
+                                                          m_scene.descriptorSetlayoutInstanceData(),
+                                                          m_scene.descriptorSetlayoutTLAS(),
                                                           m_materials.descriptorSetLayout(),
                                                           m_textures.descriptorSetLayout(),
-                                                          m_scene.layoutLights(),
+                                                          m_scene.descriptorSetlayoutLights(),
                                                           m_descriptorSetLayoutSkybox,
                                                           m_random.descriptorSetLayout()};
         VkPipelineLayoutCreateInfo pipelineLayoutInfo =

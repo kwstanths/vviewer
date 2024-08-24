@@ -91,7 +91,7 @@ void VulkanScene::update()
 {
     Scene::update();
 
-    SceneGraph sceneGraphArray = getSceneObjectsFlat();
+    SceneObjectVector sceneGraphArray = getSceneObjectsFlat();
 
     m_instances.reset();
     m_instances.build(sceneGraphArray);
@@ -300,23 +300,20 @@ void VulkanScene::buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex)
     /* Create new TLAS */
     std::vector<BLASInstance> blasInstances;
     const VulkanInstancesManager &instances = instancesManager();
-    for (const InstancesManager::MaterialGroup &matGroup : instances.opaqueMeshes()) {
-        if (matGroup.meshGroups.empty())
-            continue;
+    for (auto &meshGroup : instances.opaqueMeshes()) {
+        uint32_t nObjects = meshGroup.second.sceneObjects.size();
+        for (uint32_t index = 0; index < nObjects; ++index) {
+            SceneObject *sceneObject = meshGroup.second.sceneObjects[index];
 
-        uint32_t instanceSBTOffset = VulkanRendererPathTracing::SBTMaterialOffset(matGroup.materialType);
+            auto mesh = static_cast<VulkanMesh *>(sceneObject->get<ComponentMesh>().mesh);
+            assert(mesh->blas().initialized());
 
-        for (auto &meshGroup : matGroup.meshGroups) {
-            uint32_t nObjects = meshGroup.second.sceneObjects.size();
-            for (uint32_t index = 0; index < nObjects; ++index) {
-                SceneObject *sceneObject = meshGroup.second.sceneObjects[index];
+            auto material = sceneObject->get<ComponentMaterial>().material;
+            MaterialType matType = material->type();
+            uint32_t instanceSBTOffset = VulkanRendererPathTracing::SBTMaterialOffset(matType);
 
-                auto mesh = static_cast<VulkanMesh *>(sceneObject->get<ComponentMesh>().mesh);
-                auto material = sceneObject->get<ComponentMaterial>().material;
-                assert(mesh->blas().initialized());
-                blasInstances.emplace_back(
-                    mesh->blas(), sceneObject->modelMatrix(), instanceSBTOffset, m_instances.getInstanceDataIndex(sceneObject));
-            }
+            blasInstances.emplace_back(
+                mesh->blas(), sceneObject->modelMatrix(), instanceSBTOffset, m_instances.instanceDataIndex(sceneObject));
         }
     }
     for (SceneObject *so : instances.transparentMeshes()) {
@@ -327,7 +324,17 @@ void VulkanScene::buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex)
 
         auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
         assert(mesh->blas().initialized());
-        blasInstances.emplace_back(mesh->blas(), so->modelMatrix(), instanceSBTOffset, m_instances.getInstanceDataIndex(so));
+        blasInstances.emplace_back(mesh->blas(), so->modelMatrix(), instanceSBTOffset, m_instances.instanceDataIndex(so));
+    }
+    for (SceneObject *so : instances.volumes()) {
+        Material *mat = so->get<ComponentMaterial>().material;
+        assert(mat != nullptr);
+
+        uint32_t instanceSBTOffset = VulkanRendererPathTracing::SBTMaterialOffset(mat->type());
+
+        auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
+        assert(mesh->blas().initialized());
+        blasInstances.emplace_back(mesh->blas(), so->modelMatrix(), instanceSBTOffset, m_instances.instanceDataIndex(so));
     }
 
     m_tlas[imageIndex].destroy(m_vkctx.device());

@@ -270,7 +270,7 @@ void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem,
                                      std::optional<std::string> overrideMaterial)
 {
     auto &instanceModels = AssetManager::getInstance().modelsMap();
-    if (!instanceModels.isPresent(modelName)) {
+    if (!instanceModels.has(modelName)) {
         debug_tools::ConsoleWarning("MainWindow::addSceneObjectModel(): Model " + modelName + " is not imported");
         return;
     }

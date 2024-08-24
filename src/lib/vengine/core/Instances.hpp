@@ -16,7 +16,7 @@ namespace vengine
 struct InstanceData {
     /* Transformation matrix */
     glm::mat4 modelMatrix;
-    /* RGB: ID, A: selected */
+    /* R: ID, GBA: unused */
     glm::vec4 id;
     /* Material index */
     uint32_t materialIndex;
@@ -37,14 +37,9 @@ class InstancesManager
 {
 public:
     struct MeshGroup {
-        std::vector<SceneObject *> sceneObjects;
+        SceneObjectVector sceneObjects;
         /* starting index for m_instancesBuffer */
         uint32_t startIndex;
-    };
-
-    struct MaterialGroup {
-        MaterialType materialType;
-        std::unordered_map<Mesh *, MeshGroup> meshGroups;
     };
 
     typedef std::unordered_map<SceneObject *, InstanceData *> SceneObjectMap;
@@ -59,33 +54,35 @@ public:
      */
     void initResources(InstanceData *instancesBuffer, uint32_t instancesBufferSize);
 
-    virtual void build(SceneGraph &sceneGraph);
+    virtual void build(SceneObjectVector &sceneGraph);
     bool isBuilt() const { return m_isBuilt; }
 
     void reset();
 
     const SceneObjectMap &sceneObjectMap() const { return m_sceneObjectMap; }
 
-    const std::vector<MaterialGroup> &opaqueMeshes() const { return m_instancesOpaque; }
-    const std::vector<SceneObject *> &transparentMeshes() const { return m_transparent; }
-    const std::vector<SceneObject *> &lights() const { return m_lights; }
-    const std::vector<SceneObject *> &meshLights() const { return m_meshLights; }
-    const MaterialGroup &materialGroup(MaterialType type) const;
+    const std::unordered_map<Mesh *, MeshGroup> &opaqueMeshes() const { return m_instancesOpaque; }
+    const SceneObjectVector &transparentMeshes() const { return m_transparent; }
+    const SceneObjectVector &lights() const { return m_lights; }
+    const SceneObjectVector &meshLights() const { return m_meshLights; }
+    const SceneObjectVector &volumes() const { return m_volumes; }
 
-    InstanceData *getInstanceData(SceneObject *so);
-    uint32_t getInstanceDataIndex(SceneObject *so);
+    InstanceData *instanceData(SceneObject *so) const;
+    uint32_t instanceDataIndex(SceneObject *so) const;
 
     void sortTransparent(const glm::vec3 &pos);
 
 protected:
     /* Holds all opaque mesh instances in the scene */
-    std::vector<MaterialGroup> m_instancesOpaque;
+    std::unordered_map<Mesh *, MeshGroup> m_instancesOpaque;
     /* Holds all transparent mesh objects in the scene */
-    std::vector<SceneObject *> m_transparent;
+    SceneObjectVector m_transparent;
     /* Holds all scene objects that have light components */
-    std::vector<SceneObject *> m_lights;
+    SceneObjectVector m_lights;
     /* Holds all scene objects that are mesh lights */
-    std::vector<SceneObject *> m_meshLights;
+    SceneObjectVector m_meshLights;
+    /* Holds all scene objects that are volumes */
+    SceneObjectVector m_volumes;
 
     SceneObjectMap m_sceneObjectMap;
 
@@ -97,14 +94,14 @@ protected:
      * @param instanceData
      * @param so
      */
-    virtual void setInstanceData(InstanceData *instanceData, SceneObject *so);
+    virtual void initInstanceData(InstanceData *instanceData, SceneObject *so);
 
 private:
     /* CPU memory for the InstanceData buffer */
     InstanceData *m_instancesBuffer = nullptr;
     uint32_t m_instancesBufferSize = 0;
 
-    void fillSceneObjectVectors(SceneGraph &sceneGraph);
+    void fillSceneObjectVectors(SceneObjectVector &sceneGraph);
     void buildInstanceData();
 };
 

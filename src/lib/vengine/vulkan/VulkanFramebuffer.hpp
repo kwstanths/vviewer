@@ -1,9 +1,8 @@
 #ifndef __VulkanFramebuffer_hpp__
 #define __VulkanFramebuffer_hpp__
 
-#include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/VulkanContext.hpp"
-#include "vulkan/VulkanSwapchain.hpp"
+#include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/resources/VulkanImage.hpp"
 
 namespace vengine

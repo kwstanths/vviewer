@@ -1,15 +1,18 @@
 compiler=${VULKAN_SDK}/bin/glslangValidator
 
 $compiler -V --target-env spirv1.4 standard.vert.glsl -o SPIRV/standard.vert.spv
-$compiler -V --target-env spirv1.4 pbrForwardOpaque.frag.glsl -o SPIRV/pbrForwardOpaque.frag.spv
-$compiler -V --target-env spirv1.4 pbrForwardTransparent.frag.glsl -o SPIRV/pbrForwardTransparent.frag.spv
-$compiler -V --target-env spirv1.4 lambertForwardOpaque.frag.glsl -o SPIRV/lambertForwardOpaque.frag.spv
-$compiler -V --target-env spirv1.4 lambertForwardTransparent.frag.glsl -o SPIRV/lambertForwardTransparent.frag.spv
-$compiler -V ui/3duiTransform.vert.glsl -o SPIRV/3duiTransform.vert.spv
-$compiler -V ui/3duiTransform.frag.glsl -o SPIRV/3duiTransform.frag.spv
-$compiler -V ui/3duiAABB.vert.glsl -o SPIRV/3duiAABB.vert.spv
-$compiler -V ui/3duiAABB.geom.glsl -o SPIRV/3duiAABB.geom.spv
-$compiler -V ui/3duiAABB.frag.glsl -o SPIRV/3duiAABB.frag.spv
+$compiler -V --target-env spirv1.4 gbuffer.frag.glsl -o SPIRV/gbuffer.frag.spv
+$compiler -V --target-env spirv1.4 lightCompositionIBL.frag.glsl -o SPIRV/lightCompositionIBL.frag.spv
+$compiler -V --target-env spirv1.4 lightCompositionPoint.frag.glsl -o SPIRV/lightCompositionPoint.frag.spv
+$compiler -V --target-env spirv1.4 lightCompositionDirectional.frag.glsl -o SPIRV/lightCompositionDirectional.frag.spv
+$compiler -V --target-env spirv1.4 pbrForward.frag.glsl -o SPIRV/pbrForward.frag.spv
+$compiler -V --target-env spirv1.4 lambertForward.frag.glsl -o SPIRV/lambertForward.frag.spv
+
+$compiler -V overlay/transform3D.vert.glsl -o SPIRV/overlay/transform3D.vert.spv
+$compiler -V overlay/transform3D.frag.glsl -o SPIRV/overlay/transform3D.frag.spv
+$compiler -V overlay/AABB3.vert.glsl -o SPIRV/overlay/AABB3.vert.spv
+$compiler -V overlay/AABB3.geom.glsl -o SPIRV/overlay/AABB3.geom.spv
+$compiler -V overlay/AABB3.frag.glsl -o SPIRV/overlay/AABB3.frag.spv
 
 $compiler -V skybox/skybox.vert.glsl -o SPIRV/skybox.vert.spv
 $compiler -V skybox/skybox.frag.glsl -o SPIRV/skybox.frag.spv
@@ -22,6 +25,8 @@ $compiler -V quad.vert.glsl -o SPIRV/quad.vert.spv
 $compiler -V genBRDFLUT.frag.glsl -o SPIRV/genBRDFLUT.frag.spv
 
 $compiler -V post/highlight.frag.glsl -o SPIRV/highlight.frag.spv
+$compiler -V post/pass.frag.glsl -o SPIRV/pass.frag.spv
+$compiler -V post/output.frag.glsl -o SPIRV/output.frag.spv
 
 $compiler -V --target-env spirv1.4 pt/raygen.rgen.glsl -o SPIRV/pt/raygen.rgen.spv
 $compiler -V --target-env spirv1.4 pt/raychitLambert.rchit.glsl -o SPIRV/pt/raychitLambert.rchit.spv

@@ -15,85 +15,52 @@
 namespace vengine
 {
 
-VulkanRendererPBR::VulkanRendererPBR()
+VulkanRendererPBR::VulkanRendererPBR(VulkanContext &context)
+    : VulkanRendererForward(context)
+    , m_ctx(context)
 {
 }
 
-VkResult VulkanRendererPBR::initResources(VkPhysicalDevice physicalDevice,
-                                          VkDevice device,
-                                          VkQueue queue,
-                                          VkCommandPool commandPool,
-                                          VkPhysicalDeviceProperties physicalDeviceProperties,
-                                          VkDescriptorSetLayout cameraDescriptorLayout,
-                                          VkDescriptorSetLayout modelDescriptorLayout,
-                                          VkDescriptorSetLayout lightDescriptorLayout,
+VkResult VulkanRendererPBR::initResources(VkDescriptorSetLayout cameraDescriptorLayout,
+                                          VkDescriptorSetLayout instanceDataDescriptorLayout,
+                                          VkDescriptorSetLayout lightDataDescriptorLayout,
                                           VkDescriptorSetLayout skyboxDescriptorLayout,
                                           VkDescriptorSetLayout materialDescriptorLayout,
                                           VulkanTextures &textures,
                                           VkDescriptorSetLayout tlasDescriptorLayout)
 {
-    VULKAN_CHECK_CRITICAL(VulkanRendererBase::initResources(physicalDevice,
-                                                            device,
-                                                            queue,
-                                                            commandPool,
-                                                            physicalDeviceProperties,
-                                                            cameraDescriptorLayout,
-                                                            modelDescriptorLayout,
-                                                            lightDescriptorLayout,
-                                                            skyboxDescriptorLayout,
-                                                            materialDescriptorLayout,
-                                                            textures.descriptorSetLayout(),
-                                                            tlasDescriptorLayout));
+    VULKAN_CHECK_CRITICAL(VulkanRendererForward::initResources(cameraDescriptorLayout,
+                                                               instanceDataDescriptorLayout,
+                                                               lightDataDescriptorLayout,
+                                                               skyboxDescriptorLayout,
+                                                               materialDescriptorLayout,
+                                                               textures.descriptorSetLayout(),
+                                                               tlasDescriptorLayout));
 
     VULKAN_CHECK_CRITICAL(createBRDFLUT(textures));
 
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent,
-                                                   VkRenderPass renderPass,
-                                                   uint32_t swapchainImages,
-                                                   VkSampleCountFlagBits msaaSamples)
+VkResult VulkanRendererPBR::initSwapChainResources(VkExtent2D swapchainExtent, VulkanRenderPassDeferred renderPass)
 {
-    VULKAN_CHECK_CRITICAL(VulkanRendererBase::initSwapChainResources(swapchainExtent, renderPass, swapchainImages, msaaSamples));
-
-    {
-        VkShaderModule vertexShader = VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv");
-        VkShaderModule fragmentShader = VulkanShader::load(m_device, "shaders/SPIRV/pbrForwardOpaque.frag.spv");
-
-        VULKAN_CHECK_CRITICAL(
-            createPipelineForwardOpaque(vertexShader, fragmentShader, m_pipelineLayoutForwardOpaque, m_graphicsPipelineForwardOpaque));
-
-        vkDestroyShaderModule(m_device, vertexShader, nullptr);
-        vkDestroyShaderModule(m_device, fragmentShader, nullptr);
-    }
-
-    {
-        VkShaderModule vertexShader = VulkanShader::load(m_device, "shaders/SPIRV/standard.vert.spv");
-        VkShaderModule fragmentShader = VulkanShader::load(m_device, "shaders/SPIRV/pbrForwardTransparent.frag.spv");
-
-        VULKAN_CHECK_CRITICAL(createPipelineForwardTransparent(
-            vertexShader, fragmentShader, m_pipelineLayoutForwardTransparent, m_graphicsPipelineForwardTransparent));
-
-        vkDestroyShaderModule(m_device, vertexShader, nullptr);
-        vkDestroyShaderModule(m_device, fragmentShader, nullptr);
-    }
+    VULKAN_CHECK_CRITICAL(
+        VulkanRendererForward::initSwapChainResources(swapchainExtent, renderPass, "shaders/SPIRV/pbrForward.frag.spv"));
 
     return VK_SUCCESS;
 }
 
 VkResult VulkanRendererPBR::releaseSwapChainResources()
 {
-    vkDestroyPipeline(m_device, m_graphicsPipelineForwardOpaque, nullptr);
-    vkDestroyPipeline(m_device, m_graphicsPipelineForwardTransparent, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayoutForwardOpaque, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayoutForwardTransparent, nullptr);
+    VULKAN_CHECK_CRITICAL(VulkanRendererForward::releaseSwapChainResources());
 
     return VK_SUCCESS;
 }
 
 VkResult VulkanRendererPBR::releaseResources()
 {
+    VULKAN_CHECK_CRITICAL(VulkanRendererForward::releaseResources());
+
     return VK_SUCCESS;
 }
 
@@ -112,16 +79,16 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
                                                           VK_SAMPLE_COUNT_1_BIT,
                                                           VK_IMAGE_TILING_OPTIMAL,
                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-    createImage(m_physicalDevice, m_device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, imageMemory);
+    createImage(m_ctx.physicalDevice(), m_ctx.device(), imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, imageMemory);
 
     VkImageView imageView;
     VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(image, format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-    VULKAN_CHECK_CRITICAL(vkCreateImageView(m_device, &imageViewInfo, nullptr, &imageView));
+    VULKAN_CHECK_CRITICAL(vkCreateImageView(m_ctx.device(), &imageViewInfo, nullptr, &imageView));
 
     VkSampler imageSampler;
     VkSamplerCreateInfo samplerCreateInfo =
         vkinit::samplerCreateInfo(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR);
-    VULKAN_CHECK_CRITICAL(vkCreateSampler(m_device, &samplerCreateInfo, nullptr, &imageSampler));
+    VULKAN_CHECK_CRITICAL(vkCreateSampler(m_ctx.device(), &samplerCreateInfo, nullptr, &imageSampler));
 
     /* Create render pass to render the BRDF LUT texture */
     VkRenderPass renderPass;
@@ -161,21 +128,21 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
         dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         VkRenderPassCreateInfo renderPassInfo = vkinit::renderPassCreateInfo(1, &colorAttachment, 1, &subpass, 2, dependencies.data());
-        VULKAN_CHECK_CRITICAL(vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &renderPass));
+        VULKAN_CHECK_CRITICAL(vkCreateRenderPass(m_ctx.device(), &renderPassInfo, nullptr, &renderPass));
     }
 
     /* Create the framebuffer */
     VkFramebuffer framebuffer;
     {
         VkFramebufferCreateInfo framebufferInfo = vkinit::framebufferCreateInfo(renderPass, 1, &imageView, imageWidth, imageHeight);
-        VULKAN_CHECK_CRITICAL(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &framebuffer));
+        VULKAN_CHECK_CRITICAL(vkCreateFramebuffer(m_ctx.device(), &framebufferInfo, nullptr, &framebuffer));
     }
 
     /* Descriptor set layout for the render, no input */
     VkDescriptorSetLayout descriptorSetlayout;
     {
         VkDescriptorSetLayoutCreateInfo descriptorsetlayoutInfo = vkinit::descriptorSetLayoutCreateInfo(0, nullptr);
-        VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_device, &descriptorsetlayoutInfo, nullptr, &descriptorSetlayout));
+        VULKAN_CHECK_CRITICAL(vkCreateDescriptorSetLayout(m_ctx.device(), &descriptorsetlayoutInfo, nullptr, &descriptorSetlayout));
     }
 
     /* Prepare graphics pipeline */
@@ -183,7 +150,7 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
     VkPipelineLayout pipelinelayout;
     {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(1, &descriptorSetlayout, 0, nullptr);
-        VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &pipelinelayout));
+        VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_ctx.device(), &pipelineLayoutInfo, nullptr, &pipelinelayout));
 
         /* Pipeline stages */
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
@@ -200,9 +167,9 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
         VkPipelineDynamicStateCreateInfo dynamicStatesInfo =
             vkinit::pipelineDynamicStateCreateInfo(static_cast<uint32_t>(dynamicStates.size()), dynamicStates.data());
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-            VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_device, "shaders/SPIRV/quad.vert.spv"), "main");
+            VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_ctx.device(), "shaders/SPIRV/quad.vert.spv"), "main");
         VkPipelineShaderStageCreateInfo fragShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-            VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_device, "shaders/SPIRV/genBRDFLUT.frag.spv"), "main");
+            VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_ctx.device(), "shaders/SPIRV/genBRDFLUT.frag.spv"), "main");
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
         /* full screen quad render, no input */
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(0, nullptr, 0, nullptr);
@@ -218,10 +185,10 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicStatesInfo;
-        VULKAN_CHECK_CRITICAL(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
+        VULKAN_CHECK_CRITICAL(vkCreateGraphicsPipelines(m_ctx.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
 
-        vkDestroyShaderModule(m_device, vertShaderStageInfo.module, nullptr);
-        vkDestroyShaderModule(m_device, fragShaderStageInfo.module, nullptr);
+        vkDestroyShaderModule(m_ctx.device(), vertShaderStageInfo.module, nullptr);
+        vkDestroyShaderModule(m_ctx.device(), fragShaderStageInfo.module, nullptr);
     }
 
     /* Render the BRDF LUT texture */
@@ -234,9 +201,10 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
         renderPassInfo.renderArea.extent.height = imageHeight;
 
         /* Create a command buffer */
-        VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_commandPool, 1);
+        VkCommandBufferAllocateInfo allocInfo =
+            vkinit::commandBufferAllocateInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_ctx.graphicsCommandPool(), 1);
         VkCommandBuffer commandBuffer;
-        VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer));
+        VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_ctx.device(), &allocInfo, &commandBuffer));
 
         /* Start recording commands */
         VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
@@ -267,21 +235,21 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
         /* Create fence to ensure that the command buffer has finished executing */
         VkFenceCreateInfo fenceInfo = vkinit::fenceCreateInfo(0);
         VkFence fence;
-        VULKAN_CHECK_CRITICAL(vkCreateFence(m_device, &fenceInfo, nullptr, &fence));
-        VULKAN_CHECK_CRITICAL(vkQueueSubmit(m_queue, 1, &submitInfo, fence));
-        VULKAN_CHECK_CRITICAL(vkWaitForFences(m_device, 1, &fence, VK_TRUE, VULKAN_TIMEOUT_100S));
+        VULKAN_CHECK_CRITICAL(vkCreateFence(m_ctx.device(), &fenceInfo, nullptr, &fence));
+        VULKAN_CHECK_CRITICAL(vkQueueSubmit(m_ctx.graphicsQueue(), 1, &submitInfo, fence));
+        VULKAN_CHECK_CRITICAL(vkWaitForFences(m_ctx.device(), 1, &fence, VK_TRUE, VULKAN_TIMEOUT_100S));
 
-        VULKAN_CHECK_CRITICAL(vkQueueWaitIdle(m_queue));
+        VULKAN_CHECK_CRITICAL(vkQueueWaitIdle(m_ctx.graphicsQueue()));
 
-        vkDestroyFence(m_device, fence, nullptr);
-        vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+        vkDestroyFence(m_ctx.device(), fence, nullptr);
+        vkFreeCommandBuffers(m_ctx.device(), m_ctx.graphicsCommandPool(), 1, &commandBuffer);
     }
 
-    vkDestroyPipeline(m_device, pipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, pipelinelayout, nullptr);
-    vkDestroyRenderPass(m_device, renderPass, nullptr);
-    vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-    vkDestroyDescriptorSetLayout(m_device, descriptorSetlayout, nullptr);
+    vkDestroyPipeline(m_ctx.device(), pipeline, nullptr);
+    vkDestroyPipelineLayout(m_ctx.device(), pipelinelayout, nullptr);
+    vkDestroyRenderPass(m_ctx.device(), renderPass, nullptr);
+    vkDestroyFramebuffer(m_ctx.device(), framebuffer, nullptr);
+    vkDestroyDescriptorSetLayout(m_ctx.device(), descriptorSetlayout, nullptr);
 
     /* Create texture resource */
     auto vktex = new VulkanTexture(AssetInfo("PBR_BRDF_LUT", AssetSource::INTERNAL),
@@ -303,66 +271,6 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
 
     /* Add texture to textures descriptor managemenet */
     textures.addTexture(vktex);
-
-    return VK_SUCCESS;
-}
-
-VkResult VulkanRendererPBR::renderObjectsForwardOpaque(VkCommandBuffer &cmdBuf,
-                                                       const VulkanInstancesManager &instances,
-                                                       VkDescriptorSet &descriptorScene,
-                                                       VkDescriptorSet &descriptorModel,
-                                                       VkDescriptorSet &descriptorLight,
-                                                       VkDescriptorSet descriptorSkybox,
-                                                       VkDescriptorSet &descriptorMaterials,
-                                                       VkDescriptorSet &descriptorTextures,
-                                                       VkDescriptorSet &descriptorTLAS,
-                                                       const SceneGraph &lights) const
-{
-    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardOpaque);
-
-    std::array<VkDescriptorSet, 7> descriptorSets = {
-        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox, descriptorTLAS};
-    vkCmdBindDescriptorSets(cmdBuf,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayoutForwardOpaque,
-                            0,
-                            static_cast<uint32_t>(descriptorSets.size()),
-                            &descriptorSets[0],
-                            0,
-                            nullptr);
-
-    VulkanRendererBase::renderMaterialGroup(
-        cmdBuf, instances.materialGroup(MaterialType::MATERIAL_PBR_STANDARD), m_pipelineLayoutForwardOpaque, lights);
-
-    return VK_SUCCESS;
-}
-
-VkResult VulkanRendererPBR::renderObjectsForwardTransparent(VkCommandBuffer &cmdBuf,
-                                                            VulkanInstancesManager &instances,
-                                                            VkDescriptorSet &descriptorScene,
-                                                            VkDescriptorSet &descriptorModel,
-                                                            VkDescriptorSet &descriptorLight,
-                                                            VkDescriptorSet descriptorSkybox,
-                                                            VkDescriptorSet &descriptorMaterials,
-                                                            VkDescriptorSet &descriptorTextures,
-                                                            VkDescriptorSet &descriptorTLAS,
-                                                            SceneObject *object,
-                                                            const SceneGraph &lights) const
-{
-    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineForwardTransparent);
-
-    std::array<VkDescriptorSet, 7> descriptorSets = {
-        descriptorScene, descriptorModel, descriptorLight, descriptorMaterials, descriptorTextures, descriptorSkybox, descriptorTLAS};
-    vkCmdBindDescriptorSets(cmdBuf,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipelineLayoutForwardTransparent,
-                            0,
-                            static_cast<uint32_t>(descriptorSets.size()),
-                            &descriptorSets[0],
-                            0,
-                            nullptr);
-
-    VulkanRendererBase::renderObjects(cmdBuf, instances, m_pipelineLayoutForwardTransparent, {object}, lights);
 
     return VK_SUCCESS;
 }

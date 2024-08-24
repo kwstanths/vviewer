@@ -53,7 +53,7 @@ struct MaterialData {
     glm::uvec4 gTexturesIndices1;  /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture
                             index */
     glm::uvec4 gTexturesIndices2; /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: alpha texture */
-    glm::vec4 uvTiling;           /* R: u tiling, G: v tiling, B: unused, A: unused */
+    glm::vec4 uvTiling;           /* R: u tiling, G: v tiling, B: material type, A: unused */
 
     glm::uvec4 padding1;
     glm::uvec4 padding2;
@@ -74,35 +74,30 @@ struct LightInstance {
     glm::vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
 };                       /* sizeof(LightInstance) = 64 */
 
+struct PushBlockLightComposition {
+    glm::uvec4 lights; /* R = light index, G = unused */
+};
+
 struct PushBlockForward {
-    glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
-    glm::uvec4 info;    /* R = Material index, G = model index, B = total lights, A = unused */
+    glm::vec4 selected; /* R = ID of object */
+    glm::uvec4 info;    /* R = Material index, G = InstanceData index, B = Total lights, A = unused */
     glm::uvec4 lights;  /* R = light 1, G = light 2, B = light 3, A = light 4*/
 };
 
-struct PushBlockForward3DUITransform {
+struct PushBlockOverlayTransform3D {
     glm::mat4 modelMatrix;
-    glm::vec4 color;    /* RGB = color of the UI, A = unused */
-    glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
+    glm::vec4 color; /* RGB = color, A = selected */
 };
 
-struct PushBlockForward3DUIAABB {
+struct PushBlockOverlayAABB3 {
     glm::vec4 min;      /* RGB = min point of AABB, A = unused */
     glm::vec4 max;      /* RGB = max point of AABB, A = unused */
     glm::vec4 color;    /* RGB = color of the UI, A = unused */
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
 };
 
-/* Objects description data for meshes in the scene */
-struct ObjectDescriptionPT {
-    /* A pointer to a buffer holding mesh vertex data */
-    uint64_t vertexAddress;
-    /* A pointer to a buffer holding mesh index data*/
-    uint64_t indexAddress;
-    /* An index to point to the materials buffer */
-    uint32_t materialIndex;
-    /* The number of triangles in the buffer */
-    uint32_t numTriangles;
+struct PushBlockOutput {
+    glm::vec4 info;
 };
 
 }  // namespace vengine

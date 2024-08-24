@@ -20,8 +20,8 @@ layout(location = 3) in vec3 fragBiTangent_world;
 layout(location = 4) in vec2 fragUV;
 layout(location = 5) flat in uint instanceDataIndex;
 
-layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outHighlight;
+layout(location = 0) out vec4 outGBuffer1;
+layout(location = 1) out vec4 outColor;
 
 layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
     SceneData data;
@@ -172,6 +172,6 @@ void main() {
     
     color = tonemapDefault2(color, sceneData.data.exposure.r);
     
+    outGBuffer1 = vec4(frame.normal, pushConsts.selected.r);
     outColor = vec4(color, alpha);
-    outHighlight = pushConsts.selected;
 }

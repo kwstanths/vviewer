@@ -132,7 +132,7 @@ void VulkanViewportWindow::mousePressEvent(QMouseEvent *ev)
         QSize size = this->size();
 
         VulkanRenderer &renderer = static_cast<VulkanRenderer &>(m_engine->renderer());
-        ID objectID = IDGeneration::fromRGB(renderer.selectObject(pos.x() / size.width(), pos.y() / size.height()));
+        ID objectID = renderer.findID(pos.x() / size.width(), pos.y() / size.height());
 
         m_selectedPressed = objectID;
     }
@@ -205,7 +205,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
         glm::vec3 objectZ = selectedObject->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0);
 
         switch (m_selectedPressed) {
-            case static_cast<ID>(ReservedObjectID::RIGHT_TRANSFORM_ARROW): {
+            case static_cast<ID>(ReservedObjectID::TRANSFORM_ARROW_X): {
                 /* Find if right vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
                 float cameraRightDot = glm::dot(objectX, cameraTransform.right());
                 float cameraUpDot = glm::dot(objectX, cameraTransform.up());
@@ -218,7 +218,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                 position += selectedObjectTransform.X() * speed * movement;
                 break;
             }
-            case static_cast<ID>(ReservedObjectID::FORWARD_TRANSFORM_ARROW): {
+            case static_cast<ID>(ReservedObjectID::TRANSFORM_ARROW_Z): {
                 /* Find if forward vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
                 float cameraRightDot = glm::dot(objectZ, cameraTransform.right());
                 float cameraUpDot = glm::dot(objectZ, cameraTransform.up());
@@ -231,7 +231,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
                 position += selectedObjectTransform.Z() * speed * movement;
                 break;
             }
-            case static_cast<ID>(ReservedObjectID::UP_TRANSFORM_ARROW): {
+            case static_cast<ID>(ReservedObjectID::TRANSFORM_ARROW_Y): {
                 /* Find if up vector is more aligned with the up or right of camera, to use the appropriate mouse diff */
                 float cameraRightDot = glm::dot(objectY, cameraTransform.right());
                 float cameraUpDot = glm::dot(objectY, cameraTransform.up());
@@ -256,7 +256,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
 void VulkanViewportWindow::wheelEvent(QWheelEvent *ev)
 {
     float delta = m_engine->delta();
-    float zoomSensitivity = 0.2F;
+    float zoomSensitivity = 0.03F;
     float speed = zoomSensitivity * delta;
     Transform &cameraTransform = m_engine->scene().camera()->transform();
 

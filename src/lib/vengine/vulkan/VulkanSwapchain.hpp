@@ -4,6 +4,7 @@
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "vulkan/resources/VulkanImage.hpp"
+#include "vulkan/VulkanFramebuffer.hpp"
 
 namespace vengine
 {
@@ -29,6 +30,9 @@ public:
     VkImageView &swapchainImageView(uint32_t i) { return m_swapchainImageViews[i]; }
     VkImageView &depthStencilImageView(uint32_t i) { return m_depthImages[i].view(); }
 
+    const VulkanFrameBufferAttachment &swapchainAttachment() { return m_framebufferAttachmentSwapchain; }
+    const VulkanFrameBufferAttachment &depthAttachment() { return m_framebufferAttachmentDepth; }
+
 private:
     VulkanContext &m_vkctx;
 
@@ -41,13 +45,17 @@ private:
     /* Swapchain images */
     std::vector<VkImage> m_swapchainImages;
     std::vector<VkImageView> m_swapchainImageViews;
+    /* Frame buffer attachments for said images */
+    VulkanFrameBufferAttachment m_framebufferAttachmentSwapchain;
+    VulkanFrameBufferAttachment m_framebufferAttachmentDepth;
 
     /* Depth stencil buffer */
     std::vector<VulkanImage> m_depthImages;
     VkFormat m_depthFormat;
 
-    bool createImageViews();
-    bool createDepthBuffer();
+    VkResult createImageViews();
+    VkResult createDepthBuffer();
+    VkResult createFrameBufferAttachments();
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);

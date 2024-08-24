@@ -142,7 +142,7 @@ Model3D *VulkanEngine::importModel(const AssetInfo &info, bool importMaterials)
     try {
         auto &modelsMap = AssetManager::getInstance().modelsMap();
 
-        if (modelsMap.isPresent(info.name))
+        if (modelsMap.has(info.name))
             return modelsMap.get(info.name);
 
         Tree<ImportedModelNode> importedNode;
@@ -177,7 +177,7 @@ EnvironmentMap *VulkanEngine::importEnvironmentMap(const AssetInfo &info, bool k
     try {
         /* Check if an environment map for that imagePath already exists */
         auto &envMaps = AssetManager::getInstance().environmentsMapMap();
-        if (envMaps.isPresent(info.name)) {
+        if (envMaps.has(info.name)) {
             return envMaps.get(info.name);
         }
 
@@ -187,13 +187,13 @@ EnvironmentMap *VulkanEngine::importEnvironmentMap(const AssetInfo &info, bool k
         VkResult res;
         /* Transform input texture into a cubemap */
         VulkanCubemap *cubemap, *irradiance, *prefiltered;
-        res = m_renderer.getRendererSkybox().createCubemap(hdrImage, cubemap);
+        res = m_renderer.rendererSkybox().createCubemap(hdrImage, cubemap);
         assert(res == VK_SUCCESS);
         /* Compute irradiance map */
-        res = m_renderer.getRendererSkybox().createIrradianceMap(cubemap, irradiance);
+        res = m_renderer.rendererSkybox().createIrradianceMap(cubemap, irradiance);
         assert(res == VK_SUCCESS);
         /* Compute prefiltered map */
-        res = m_renderer.getRendererSkybox().createPrefilteredCubemap(cubemap, prefiltered);
+        res = m_renderer.rendererSkybox().createPrefilteredCubemap(cubemap, prefiltered);
         assert(res == VK_SUCCESS);
 
         if (!keepTexture) {
@@ -280,16 +280,13 @@ void VulkanEngine::mainLoop()
         /* update scene */
         m_scene.update();
 
-        /* parse scene */
-        SceneGraph sceneGraphArray = m_scene.getSceneObjectsFlat();
-
         /* Calculate delta time */
         auto currentTime = std::chrono::steady_clock::now();
         m_deltaTime = (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_frameTimePrev).count()) / 1000.0f;
         m_frameTimePrev = currentTime;
 
         /* Render frame */
-        VULKAN_WARNING(m_renderer.renderFrame(sceneGraphArray));
+        VULKAN_WARNING(m_renderer.renderFrame());
     }
 
     m_status = STATUS::EXITED;
@@ -346,7 +343,7 @@ void VulkanEngine::initDefaultData()
 
         auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
         auto skybox = materialsSkybox.add(new VulkanMaterialSkybox(
-            AssetInfo("skybox", AssetSource::INTERNAL), envMap, m_renderer.getRendererSkybox().descriptorSetLayout()));
+            AssetInfo("skybox", AssetSource::INTERNAL), envMap, m_renderer.rendererSkybox().descriptorSetLayout()));
 
         m_scene.skyboxMaterial() = skybox;
     }

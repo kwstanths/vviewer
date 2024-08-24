@@ -27,16 +27,11 @@ public:
     bool &active() { return m_active; }
     const bool &active() const { return m_active; }
 
-    glm::vec3 getIDRGB() const;
-
     const AABB3 &AABB() const;
 
     void computeAABB();
 
     void setModelMatrix(const glm::mat4 &modelMatrix) override;
-
-protected:
-    glm::vec3 m_idRGB;
 
 private:
     std::string m_name = "";
@@ -50,7 +45,7 @@ private:
     void transformChanged() override;
 };
 
-typedef std::vector<SceneObject *> SceneGraph;
+typedef std::vector<SceneObject *> SceneObjectVector;
 
 }  // namespace vengine
 

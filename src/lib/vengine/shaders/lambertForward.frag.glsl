@@ -19,8 +19,8 @@ layout(location = 3) in vec3 fragBiTangent_world;
 layout(location = 4) in vec2 fragUV;
 layout(location = 5) flat in uint instanceDataIndex;
 
-layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outHighlight;
+layout(location = 0) out vec4 outGBuffer1;
+layout(location = 1) out vec4 outColor;
 
 layout(set = 0, binding = 0) uniform readonly SceneDataUBO {
     SceneData data;
@@ -52,17 +52,16 @@ layout(set = 5, binding = 1) uniform samplerCube skyboxIrradiance;
 layout (set = 6, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
 layout(push_constant) uniform PushConsts {
+    layout (offset = 0) vec4 selected;
     layout (offset = 16) uvec4 info;
     layout (offset = 32) uvec4 lights;
 } pushConsts;
 
 void main() {
-    InstanceData instance = instanceData.data[nonuniformEXT(instanceDataIndex)];
-
     vec3 cameraPosition_world = getTranslation(sceneData.data.viewInverse);
     vec3 V_world = normalize(cameraPosition_world - fragPos_world);
 
-    MaterialData material = materialData.data[nonuniformEXT(instance.materialIndex)];
+    MaterialData material = materialData.data[nonuniformEXT(pushConsts.info.r)];
     vec2 tiledUV = material.uvTiling.rg * fragUV;
 
     /* Construct fragment frame */
@@ -163,6 +162,6 @@ void main() {
     
     color = tonemapDefault2(color, sceneData.data.exposure.r);
     
+    outGBuffer1 = vec4(frame.normal, pushConsts.selected.r);
     outColor = vec4(color, alpha);
-    outHighlight = instance.id;
 }

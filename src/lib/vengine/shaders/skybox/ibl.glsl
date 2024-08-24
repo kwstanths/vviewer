@@ -29,3 +29,12 @@ vec3 calculateIBLContribution(PBRStandard pbr, vec3 N, vec3 V, samplerCube skybo
     kD *= 1.0 - pbr.metallic;
     return (kD * diffuse + specular);
 }
+
+vec3 calculateIBLContribution(vec3 albedo, vec3 N, vec3 V, samplerCube skyboxIrradiance){
+    /* Calculate ambient IBL */
+    vec3 irradiance = texture(skyboxIrradiance, N).rgb;
+    vec3 diffuse    = irradiance * albedo;
+    vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), vec3(0.04));
+    vec3 kD = 1.0 - kS;
+    return kD * diffuse;
+}

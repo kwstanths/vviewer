@@ -437,6 +437,7 @@ inline VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo(VkPipelineLayout 
     graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     graphicsPipelineCreateInfo.layout = layout;
     graphicsPipelineCreateInfo.renderPass = renderPass;
+    graphicsPipelineCreateInfo.subpass = subpass;
     graphicsPipelineCreateInfo.flags = flags;
     graphicsPipelineCreateInfo.basePipelineIndex = -1;
     graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;

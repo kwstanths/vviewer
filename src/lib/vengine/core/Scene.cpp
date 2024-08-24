@@ -32,7 +32,7 @@ SceneData Scene::getSceneData() const
     sceneData.m_projectionInverse = m_camera->projectionMatrixInverse();
     sceneData.m_exposure = glm::vec4(exposure(), environmentIntensity(), m_camera->lensRadius(), m_camera->focalDistance());
     sceneData.m_background = glm::vec4(m_backgroundColor, static_cast<float>(m_environmentType));
-    sceneData.m_volumes = glm::ivec4(-1, 0, 0, 0);
+    sceneData.m_volumes = glm::vec4(-1, m_camera->znear(), m_camera->zfar(), 0);
     return sceneData;
 }
 
@@ -69,17 +69,17 @@ void Scene::removeSceneObject(SceneObject *node)
         node->parent()->removeChild(node);
     }
 
-    std::vector<SceneObject *> nodeChildren = node->children();
+    SceneObjectVector nodeChildren = node->children();
     ID nodeId = node->getID();
 
     m_objectsMap.erase(nodeId);
     deleteObject(node);
 
     /* Remove children recusrively */
-    std::function<void(const std::vector<SceneObject *> &)> removeChildren;
-    removeChildren = [&](const std::vector<SceneObject *> &children) {
+    std::function<void(const SceneObjectVector &)> removeChildren;
+    removeChildren = [&](const SceneObjectVector &children) {
         for (auto c : children) {
-            std::vector<SceneObject *> cChildren = c->children();
+            SceneObjectVector cChildren = c->children();
             ID cId = c->getID();
             deleteObject(c);
 
@@ -101,9 +101,9 @@ void Scene::update()
     }
 }
 
-std::vector<SceneObject *> Scene::getSceneObjectsFlat() const
+SceneObjectVector Scene::getSceneObjectsFlat() const
 {
-    std::vector<SceneObject *> temp;
+    SceneObjectVector temp;
 
     for (auto &&rootNode : m_sceneGraph) {
         temp.push_back(rootNode);
@@ -115,7 +115,7 @@ std::vector<SceneObject *> Scene::getSceneObjectsFlat() const
     return temp;
 }
 
-SceneGraph &Scene::sceneGraph()
+SceneObjectVector &Scene::sceneGraph()
 {
     return m_sceneGraph;
 }

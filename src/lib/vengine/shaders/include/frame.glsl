@@ -72,3 +72,18 @@ void createCoordinateSystem(const in vec3 v1, out vec3 v2, out vec3 v3)
     }
     v3 = cross(v1, v2);
 }
+
+/*
+    Create a Frame from a normal
+*/
+Frame frameFromNormal(in vec3 normal)
+{
+    vec3 v2, v3;
+    createCoordinateSystem(normal, v2, v3);
+    
+    Frame frame;
+    frame.normal = normal;
+    frame.tangent = v2;
+    frame.bitangent = v3;
+    return frame;
+}

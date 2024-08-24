@@ -25,11 +25,13 @@
 #include "vulkan/common/VulkanUtils.hpp"
 #include "vulkan/common/VulkanStructs.hpp"
 #include "vulkan/common/IncludeVulkan.hpp"
+#include "vulkan/renderers/VulkanRendererLightComposition.hpp"
 #include "vulkan/renderers/VulkanRendererPBRStandard.hpp"
 #include "vulkan/renderers/VulkanRendererLambert.hpp"
 #include "vulkan/renderers/VulkanRendererSkybox.hpp"
+#include "vulkan/renderers/VulkanRendererOverlay.hpp"
 #include "vulkan/renderers/VulkanRendererPost.hpp"
-#include "vulkan/renderers/VulkanRenderer3DUI.hpp"
+#include "vulkan/renderers/VulkanRendererOutput.hpp"
 #include "vulkan/renderers/VulkanRendererPathTracing.hpp"
 #include "vulkan/resources/VulkanMesh.hpp"
 #include "vulkan/resources/VulkanMaterials.hpp"
@@ -56,12 +58,12 @@ public:
     VkResult releaseResources();
 
     RendererPathTracing &rendererPathTracing() override;
+    VulkanRendererSkybox &rendererSkybox() { return m_rendererSkybox; }
 
-    glm::vec3 selectObject(float x, float y);
+    /* Find the id of the object that is renderd in x, y pixel coordinates */
+    ID findID(float x, float y);
 
-    VulkanRendererSkybox &getRendererSkybox() { return m_rendererSkybox; }
-
-    VkResult renderFrame(SceneGraph &sceneGraphArray);
+    VkResult renderFrame();
 
     /* Blocks and waits for the renderer to idle, stop the renderer before waiting here */
     void waitIdle();
@@ -73,11 +75,10 @@ private:
     VkResult createCommandBuffers();
     VkResult createSyncObjects();
 
-    /* Descriptor resources */
-    VkResult createColorSelectionTempImage();
+    VkResult createSelectionImage();
 
     /* Render */
-    VkResult buildFrame(SceneGraph &sceneGraphArray, uint32_t imageIndex);
+    VkResult buildFrame(uint32_t imageIndex);
 
 private:
     VulkanContext &m_vkctx;
@@ -88,25 +89,31 @@ private:
     VulkanRandom m_random;
 
     /* Render passes and framebuffers */
-    VkFormat m_internalRenderFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-    VulkanRenderPassForward m_renderPassForward;
-    VulkanRenderPassPost m_renderPassPost;
-    VulkanRenderPassUI m_renderPassUI;
+    VkFormat m_formatInternalColor = VK_FORMAT_R32G32B32A32_SFLOAT;
+    VkFormat m_formatGBuffer1 = VK_FORMAT_R32G32B32A32_SFLOAT;
+    VkFormat m_formatGBuffer2 = VK_FORMAT_R16G16B16A16_UINT;
+    VulkanRenderPassDeferred m_renderPassDeferred;
+    VulkanRenderPassOverlay m_renderPassOverlay;
+    VulkanRenderPassOutput m_renderPassOutput;
 
-    VulkanFrameBufferAttachment m_attachmentColorForwardOutput;
-    VulkanFrameBufferAttachment m_attachmentHighlightForwardOutput;
-    VulkanFrameBuffer m_frameBufferForward;
-    VulkanFrameBuffer m_framebufferPost;
-    VulkanFrameBuffer m_framebufferUI;
+    VulkanFrameBufferAttachment m_attachmentInternalColor;
+    VulkanFrameBufferAttachment m_attachmentGBuffer1;
+    VulkanFrameBufferAttachment m_attachmentGBuffer2;
+    VulkanFrameBuffer m_frameBufferDeferred;
+    VulkanFrameBuffer m_framebufferOverlay;
+    VulkanFrameBuffer m_framebufferOutput;
 
-    VulkanImage m_imageTempColorSelection;
+    /* Object selection image */
+    VulkanImage m_imageSelection;
 
     /* Renderers */
+    VulkanRendererLightComposition m_rendererLightComposition;
+    VulkanRendererGBuffer m_rendererGBuffer;
     VulkanRendererPBR m_rendererPBR;
     VulkanRendererLambert m_rendererLambert;
     VulkanRendererSkybox m_rendererSkybox;
-    VulkanRendererPost m_rendererPost;
-    VulkanRenderer3DUI m_renderer3DUI;
+    VulkanRendererOverlay m_rendererOverlay;
+    VulkanRendererOutput m_rendererOutput;
     VulkanRendererPathTracing m_rendererPathTracing;
 
     /* Command buffers and synchronization data */
@@ -115,12 +122,12 @@ private:
     const uint32_t MAX_FRAMES_IN_FLIGHT = 3;
     uint32_t m_currentFrame = 0;
 
-    std::vector<VkCommandBuffer> m_commandBufferForward;
-    std::vector<VkSemaphore> m_semaphoreForwardFinished;
-    std::vector<VkCommandBuffer> m_commandBufferPost;
-    std::vector<VkSemaphore> m_semaphorePostFinished;
-    std::vector<VkCommandBuffer> m_commandBufferUI;
-    std::vector<VkSemaphore> m_semaphoreUIFinished;
+    std::vector<VkCommandBuffer> m_commandBufferDeferred;
+    std::vector<VkSemaphore> m_semaphoreDeferredFinished;
+    // std::vector<VkCommandBuffer> m_commandBufferPost;
+    // std::vector<VkSemaphore> m_semaphorePostFinished;
+    std::vector<VkCommandBuffer> m_commandBufferOverlay;
+    std::vector<VkSemaphore> m_semaphoreOverlayFinished;
     std::vector<VkCommandBuffer> m_commandBufferOutput;
     std::vector<VkSemaphore> m_semaphoreOutputFinished;
 };

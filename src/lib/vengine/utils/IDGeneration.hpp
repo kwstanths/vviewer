@@ -6,31 +6,35 @@
 
 #include <glm/glm.hpp>
 
-namespace vengine {
+namespace vengine
+{
 
 typedef uint32_t ID;
 
 enum class ReservedObjectID {
     UNDEFINED = 0,
-    RIGHT_TRANSFORM_ARROW = 1,
-    FORWARD_TRANSFORM_ARROW = 2,
-    UP_TRANSFORM_ARROW = 3,
+    TRANSFORM_ARROW_X = 1,
+    TRANSFORM_ARROW_Y = 2,
+    TRANSFORM_ARROW_Z = 3,
+
+    TOTAL_RESERVED_IDS = 4,
 };
 
 /**
     A singleton that generates unique ids
 */
-class IDGeneration {
+class IDGeneration
+{
 public:
-    static IDGeneration& getInstance()
+    static IDGeneration &getInstance()
     {
         static IDGeneration instance;
         return instance;
     }
-    IDGeneration(IDGeneration const&) = delete;
-    void operator=(IDGeneration const&) = delete;
+    IDGeneration(IDGeneration const &) = delete;
+    void operator=(IDGeneration const &) = delete;
 
-    ID getID();
+    ID generate();
 
     static glm::vec3 toRGB(ID id);
     static ID fromRGB(glm::vec3 rgb);
@@ -38,9 +42,9 @@ public:
 private:
     IDGeneration() {}
 
-    std::atomic<ID> m_index = 4;
+    std::atomic<uint32_t> m_index = static_cast<uint32_t>(ReservedObjectID::TOTAL_RESERVED_IDS);
 };
 
-}
+}  // namespace vengine
 
 #endif

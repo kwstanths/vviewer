@@ -614,7 +614,7 @@ void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
 
 void exportJson(const ExportRenderParams &renderParams,
                 std::shared_ptr<Camera> sceneCamera,
-                const SceneGraph &sceneGraph,
+                const SceneObjectVector &sceneGraph,
                 EnvironmentMap *envMap)
 {
     /* Create folder with scene */

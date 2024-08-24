@@ -1,35 +1,34 @@
 # vviewer 
-A real time renderer and an offline volumetric path tracer written in Vulkan and a 3D scene editor written in Qt. Uses [VK_KHR_ray_query.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_query.html) and [VK_KHR_ray_tracing_pipeline.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_tracing_pipeline.html) for GPU accelerated ray tracing implementing ray generation, ray closest hit, ray any hit and ray miss shaders. The rendering engine can be built separately as a standalone library, independent of the UI.
+A real time rendering and offline volumetric path tracing engine library written in Vulkan, and a 3D UI scene editor application written in Qt. Uses [VK_KHR_ray_query.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_query.html) and [VK_KHR_ray_tracing_pipeline.html](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_ray_tracing_pipeline.html) for GPU accelerated ray tracing implementing ray generation, ray closest hit, ray any hit and ray miss shaders.
 
 ![Alt text](images/1.png?raw=true)
 
 ## Features
 * Spatially varying Physically based (Metallic/Roughness) and Lambert materials
     * alpha, normal, emissiveness and ambient occlusion
-* Bindless resource management
-* Perspective and Orthographic cameras
+* Bindless descriptors
 * Point, Directional and Mesh lights
 * HDR equirectangular and cubemap environment maps
+* Perspective and Orthographic cameras
 * Tone mapping
 * Real time rendering
-    * Image Based Lighting
+    * Deferred rendering
     * Ray traced shadows
     * Intancing
-    * Highlighting, Transforms, AABB
+    * Image Based Lighting
 * GPU path traced rendering
-    * Homogeneous media
-    * Low discrepancy sampling
     * Multiple importance sampling
         * Light sampling
         * BRDF sampling
+    * Low discrepancy samplers
     * Next event estimation
+    * Homogeneous media
     * Russian roulette
     * Depth of field
     * Denoising
-* Scene graph
 * Entity component system
 * Export and Import scenes
-* Cross platform
+* Cross platform build
 
 ## Dependencies
 ### vengine library

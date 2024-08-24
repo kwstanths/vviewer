@@ -12,7 +12,7 @@ namespace vengine
 {
 
 /**
-    A class to create aligned CPU memory used as transfer space and map into a group of GPU buffers
+    A class to manage a vector of vulkan buffers and aligned cput memory for transfers
 */
 template <typename Block>
 class VulkanBufferObject

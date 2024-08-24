@@ -62,11 +62,11 @@ VkResult VulkanInstancesManager::releaseSwapchainResources()
     return VK_SUCCESS;
 }
 
-void VulkanInstancesManager::build(SceneGraph &sceneGraph)
+void VulkanInstancesManager::build(SceneObjectVector &sceneGraph)
 {
     InstancesManager::build(sceneGraph);
 
-    /* Update light instances */
+    /* Update LightInstance data */
     for (uint32_t l = 0; l < m_lights.size(); l++) {
         assert(l < m_lightInstancesUBO.nblocks());
 
@@ -76,7 +76,7 @@ void VulkanInstancesManager::build(SceneGraph &sceneGraph)
 
         LightInstance *lightInstanceBlock = m_lightInstancesUBO.block(l);
         lightInstanceBlock->info.r = light->lightIndex();
-        lightInstanceBlock->info.g = getInstanceDataIndex(so); /* This is not used */
+        lightInstanceBlock->info.g = instanceDataIndex(so); /* This is not used */
         lightInstanceBlock->info.a = static_cast<int32_t>(light->type());
 
         if (light->type() == LightType::POINT_LIGHT) {
@@ -95,7 +95,7 @@ void VulkanInstancesManager::build(SceneGraph &sceneGraph)
         assert(material != nullptr);
 
         LightInstance *lightInstanceBlock = m_lightInstancesUBO.block(nl);
-        lightInstanceBlock->info.g = getInstanceDataIndex(so); /* This is not used */
+        lightInstanceBlock->info.g = instanceDataIndex(so); /* This is not used */
         lightInstanceBlock->info.a = static_cast<int32_t>(LightType::MESH_LIGHT);
 
         const auto &m = so->modelMatrix();
@@ -111,10 +111,11 @@ void VulkanInstancesManager::updateBuffers(uint32_t imageIndex)
     m_instancesSSBO.updateBuffer(m_vkctx.device(), imageIndex);
 }
 
-void VulkanInstancesManager::setInstanceData(InstanceData *instanceData, SceneObject *so)
+void VulkanInstancesManager::initInstanceData(InstanceData *instanceData, SceneObject *so)
 {
-    InstancesManager::setInstanceData(instanceData, so);
+    InstancesManager::initInstanceData(instanceData, so);
 
+    /* Set mesh data*/
     if (so->has<ComponentMesh>()) {
         auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
         assert(mesh->blas().initialized());

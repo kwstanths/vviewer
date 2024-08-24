@@ -26,7 +26,7 @@ public:
     VkDescriptorSetLayout &layoutInstanceData() { return m_descriptorSetLayoutInstanceData; }
     VkDescriptorSet &descriptorSetInstanceData(uint32_t imageIndex) { return m_descriptorSetsInstanceData[imageIndex]; };
 
-    void build(SceneGraph &sceneGraph) override;
+    void build(SceneObjectVector &sceneGraph) override;
 
     void updateBuffers(uint32_t imageIndex);
 
@@ -43,7 +43,7 @@ private:
     /* Buffers for LightInstance */
     VulkanUBODefault<LightInstance> m_lightInstancesUBO;
 
-    void setInstanceData(InstanceData *instanceData, SceneObject *so) override;
+    void initInstanceData(InstanceData *instanceData, SceneObject *so) override;
 
     VkResult createDescriptorSetsLayouts();
     VkResult createDescriptorPool(uint32_t nImages);

@@ -93,7 +93,7 @@ VkBuffer VulkanMaterials::getBuffer(uint32_t index)
 Material *VulkanMaterials::createMaterial(const AssetInfo &info, MaterialType type)
 {
     auto &materials = AssetManager::getInstance().materialsMap();
-    if (materials.isPresent(info.name)) {
+    if (materials.has(info.name)) {
         return materials.get(info.name);
     }
 

@@ -12,16 +12,10 @@ SceneObject::SceneObject(Scene *scene, const std::string &name, const Transform 
     , m_name(name)
     , m_scene(scene)
 {
-    m_idRGB = vengine::IDGeneration::toRGB(getID());
 }
 
 SceneObject::~SceneObject()
 {
-}
-
-glm::vec3 SceneObject::getIDRGB() const
-{
-    return m_idRGB;
 }
 
 const AABB3 &SceneObject::AABB() const

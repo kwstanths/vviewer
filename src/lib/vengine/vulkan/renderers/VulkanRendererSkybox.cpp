@@ -39,15 +39,11 @@ VkResult VulkanRendererSkybox::initResources(VkPhysicalDevice physicalDevice,
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererSkybox::initSwapChainResources(VkExtent2D swapchainExtent,
-                                                      VkRenderPass renderPass,
-                                                      VkSampleCountFlagBits msaaSamples)
+VkResult VulkanRendererSkybox::initSwapChainResources(VkExtent2D swapchainExtent, const VulkanRenderPassDeferred &renderPass)
 {
     m_swapchainExtent = swapchainExtent;
-    m_renderPass = renderPass;
-    m_msaaSamples = msaaSamples;
 
-    VULKAN_CHECK_CRITICAL(createGraphicsPipeline());
+    VULKAN_CHECK_CRITICAL(createGraphicsPipeline(renderPass));
 
     return VK_SUCCESS;
 }
@@ -1256,7 +1252,7 @@ VkResult VulkanRendererSkybox::createDescriptorSetsLayout()
     return VK_SUCCESS;
 }
 
-VkResult VulkanRendererSkybox::createGraphicsPipeline()
+VkResult VulkanRendererSkybox::createGraphicsPipeline(const VulkanRenderPassDeferred &renderPass)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
         VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_device, "shaders/SPIRV/skybox.vert.spv"), "main");
@@ -1277,14 +1273,15 @@ VkResult VulkanRendererSkybox::createGraphicsPipeline()
     VkPipelineRasterizationStateCreateInfo rasterizer =
         vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
-    VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(m_msaaSamples);
+    VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 
     VkPipelineDepthStencilStateCreateInfo depthStencil =
         vkinit::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, VK_FALSE);
-    std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments{
+        colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
     VkPipelineColorBlendStateCreateInfo colorBlending =
         vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
 
@@ -1295,7 +1292,8 @@ VkResult VulkanRendererSkybox::createGraphicsPipeline()
     VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     /* Create the graphics pipeline */
-    VkGraphicsPipelineCreateInfo pipelineInfo = vkinit::graphicsPipelineCreateInfo(m_pipelineLayout, m_renderPass, 0);
+    VkGraphicsPipelineCreateInfo pipelineInfo =
+        vkinit::graphicsPipelineCreateInfo(m_pipelineLayout, renderPass.renderPass(), renderPass.subpassIndexGBuffer());
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = shaderStages;
     pipelineInfo.pVertexInputState = &vertexInputInfo;

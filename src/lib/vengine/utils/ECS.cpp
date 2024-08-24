@@ -10,7 +10,7 @@ Entity *Component::entity() const
 
 Entity::Entity()
 {
-    m_id = IDGeneration::getInstance().getID();
+    m_id = IDGeneration::getInstance().generate();
 };
 
 ID Entity::getID() const

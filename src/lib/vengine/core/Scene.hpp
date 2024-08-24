@@ -30,7 +30,7 @@ struct SceneData {
     glm::mat4 m_projectionInverse;
     glm::vec4 m_exposure;   /* R = exposure, G = environment map intensity, B = lens radius, A = focal distance */
     glm::vec4 m_background; /* RGB = background color, A = environment type */
-    glm::ivec4 m_volumes;   /* R = material id of camera volume, GBA = unused */
+    glm::vec4 m_volumes;    /* R = material id of camera volume, G = near plane, B = far plane, A = unused */
 };
 
 class Scene
@@ -70,9 +70,9 @@ public:
 
     virtual void update();
 
-    SceneGraph &sceneGraph();
+    SceneObjectVector &sceneGraph();
     /* Get all scene objects in a flat array */
-    SceneGraph getSceneObjectsFlat() const;
+    SceneObjectVector getSceneObjectsFlat() const;
 
     SceneObject *findSceneObjectByID(vengine::ID id) const;
 
@@ -91,7 +91,7 @@ protected:
 
     std::unordered_map<vengine::ID, SceneObject *> m_objectsMap;
 
-    SceneGraph m_sceneGraph;
+    SceneObjectVector m_sceneGraph;
     bool m_sceneGraphNeedsUpdate = true;
 
     virtual SceneObject *createObject(std::string name) = 0;

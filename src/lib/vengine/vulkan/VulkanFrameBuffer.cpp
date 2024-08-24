@@ -56,6 +56,7 @@ void VulkanFrameBufferAttachment::destroy(VkDevice device)
             image.destroy(device);
         }
     }
+    m_images.clear();
 }
 
 VkResult VulkanFrameBuffer::create(VulkanContext &context,
@@ -65,8 +66,6 @@ VkResult VulkanFrameBuffer::create(VulkanContext &context,
                                    uint32_t height,
                                    const std::vector<VulkanFrameBufferAttachment> &attachments)
 {
-    m_attachments = attachments;
-
     m_framebuffers.resize(count);
     for (uint32_t i = 0; i < count; i++) {
         /* Get the view for each attachment */

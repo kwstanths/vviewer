@@ -55,7 +55,7 @@ void DialogCreateLight::onButtonOk()
     std::string chosenName = m_name->toPlainText().toStdString();
 
     auto &materials = AssetManager::getInstance().materialsMap();
-    if (materials.isPresent(chosenName)) {
+    if (materials.has(chosenName)) {
         QMessageBox::warning(
             this, tr("Material already present"), tr("This material name already exists"), QMessageBox::Ok, QMessageBox::Ok);
         return;

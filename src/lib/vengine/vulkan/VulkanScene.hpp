@@ -30,10 +30,10 @@ public:
     VkResult releaseResources();
     VkResult releaseSwapchainResources();
 
-    VkDescriptorSetLayout &layoutSceneData() { return m_descriptorSetLayoutScene; }
-    VkDescriptorSetLayout &layoutInstanceData() { return m_instances.layoutInstanceData(); }
-    VkDescriptorSetLayout &layoutLights() { return m_descriptorSetLayoutLight; }
-    VkDescriptorSetLayout &layoutTLAS() { return m_descriptorSetLayoutTLAS; }
+    VkDescriptorSetLayout &descriptorSetlayoutSceneData() { return m_descriptorSetLayoutScene; }
+    VkDescriptorSetLayout &descriptorSetlayoutInstanceData() { return m_instances.layoutInstanceData(); }
+    VkDescriptorSetLayout &descriptorSetlayoutLights() { return m_descriptorSetLayoutLight; }
+    VkDescriptorSetLayout &descriptorSetlayoutTLAS() { return m_descriptorSetLayoutTLAS; }
 
     VkDescriptorSet &descriptorSetSceneData(uint32_t imageIndex) { return m_descriptorSetsScene[imageIndex]; };
     VkDescriptorSet &descriptorSetInstanceData(uint32_t imageIndex) { return m_instances.descriptorSetInstanceData(imageIndex); };

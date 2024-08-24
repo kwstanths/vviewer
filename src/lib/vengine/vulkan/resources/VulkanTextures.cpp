@@ -108,7 +108,7 @@ Texture *VulkanTextures::createTexture(const AssetInfo &info, ColorSpace colorSp
 Texture *VulkanTextures::createTexture(const Image<stbi_uc> &image)
 {
     auto &texturesMap = AssetManager::getInstance().texturesMap();
-    if (texturesMap.isPresent(image.name())) {
+    if (texturesMap.has(image.name())) {
         return texturesMap.get(image.name());
     }
 
@@ -123,7 +123,7 @@ Texture *VulkanTextures::createTexture(const Image<stbi_uc> &image)
 Texture *VulkanTextures::createTextureHDR(const AssetInfo &info)
 {
     auto &texturesMap = AssetManager::getInstance().texturesMap();
-    if (texturesMap.isPresent(info.name)) {
+    if (texturesMap.has(info.name)) {
         return texturesMap.get(info.name);
     }
 

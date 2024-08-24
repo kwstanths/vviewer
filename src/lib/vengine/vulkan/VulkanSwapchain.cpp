@@ -61,15 +61,16 @@ VkResult VulkanSwapchain::initResources(uint32_t width, uint32_t height)
     VULKAN_CHECK_CRITICAL(vkCreateSwapchainKHR(m_vkctx.device(), &createInfo, nullptr, &m_swapchain));
 
     /* Get images */
-    vkGetSwapchainImagesKHR(m_vkctx.device(), m_swapchain, &imageCount, nullptr);
+    VULKAN_CHECK_CRITICAL(vkGetSwapchainImagesKHR(m_vkctx.device(), m_swapchain, &imageCount, nullptr));
     m_swapchainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(m_vkctx.device(), m_swapchain, &imageCount, m_swapchainImages.data());
+    VULKAN_CHECK_CRITICAL(vkGetSwapchainImagesKHR(m_vkctx.device(), m_swapchain, &imageCount, m_swapchainImages.data()));
 
     m_format = surfaceFormat.format;
     m_extent = extent;
 
-    createImageViews();
-    createDepthBuffer();
+    VULKAN_CHECK_CRITICAL(createImageViews());
+    VULKAN_CHECK_CRITICAL(createDepthBuffer());
+    VULKAN_CHECK_CRITICAL(createFrameBufferAttachments());
 
     m_initialized = true;
 
@@ -86,49 +87,77 @@ void VulkanSwapchain::releaseResources()
         vkDestroyImageView(m_vkctx.device(), imageView, nullptr);
     }
 
+    m_framebufferAttachmentSwapchain.destroy(m_vkctx.device());
+    m_framebufferAttachmentDepth.destroy(m_vkctx.device());
+
     vkDestroySwapchainKHR(m_vkctx.device(), m_swapchain, nullptr);
 
     m_initialized = false;
 }
 
-bool VulkanSwapchain::createImageViews()
+VkResult VulkanSwapchain::createImageViews()
 {
     /* Create image views for the swapchain images */
     m_swapchainImageViews.resize(m_swapchainImages.size());
     for (uint32_t i = 0; i < m_swapchainImageViews.size(); i++) {
         VkImageViewCreateInfo imageViewInfo =
             vkinit::imageViewCreateInfo(m_swapchainImages[i], m_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-        vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_swapchainImageViews[i]);
+        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_swapchainImageViews[i]));
     }
 
-    return true;
+    return VK_SUCCESS;
 }
 
-bool VulkanSwapchain::createDepthBuffer()
+VkResult VulkanSwapchain::createDepthBuffer()
 {
     m_depthFormat = findDepthFormat();
 
     m_depthImages.resize(m_swapchainImageViews.size());
     for (uint32_t i = 0; i < m_swapchainImageViews.size(); i++) {
-        VkImageCreateInfo imageInfo = vkinit::imageCreateInfo({m_extent.width, m_extent.height, 1},
-                                                              m_depthFormat,
-                                                              1,
-                                                              VK_SAMPLE_COUNT_1_BIT,
-                                                              VK_IMAGE_TILING_OPTIMAL,
-                                                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-        createImage(m_vkctx.physicalDevice(),
-                    m_vkctx.device(),
-                    imageInfo,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    m_depthImages[i].image(),
-                    m_depthImages[i].memory());
+        VkImageCreateInfo imageInfo = vkinit::imageCreateInfo(
+            {m_extent.width, m_extent.height, 1},
+            m_depthFormat,
+            1,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        VULKAN_CHECK_CRITICAL(createImage(m_vkctx.physicalDevice(),
+                                          m_vkctx.device(),
+                                          imageInfo,
+                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                          m_depthImages[i].image(),
+                                          m_depthImages[i].memory()));
 
         VkImageViewCreateInfo imageViewInfo =
             vkinit::imageViewCreateInfo(m_depthImages[i].image(), m_depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-        vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_depthImages[i].view());
+        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_depthImages[i].view()));
     }
 
-    return true;
+    return VK_SUCCESS;
+}
+
+VkResult VulkanSwapchain::createFrameBufferAttachments()
+{
+    {
+        std::vector<VkImageView> swapchainViews;
+        for (size_t i = 0; i < imageCount(); i++) {
+            swapchainViews.push_back(swapchainImageView(i));
+        }
+
+        VulkanFrameBufferAttachmentInfo swapchainInfo("swapchain", extent().width, extent().height, format(), VK_SAMPLE_COUNT_1_BIT);
+        VULKAN_CHECK_CRITICAL(m_framebufferAttachmentSwapchain.init(swapchainInfo, swapchainViews));
+    }
+
+    {
+        std::vector<VkImageView> depthViews;
+        for (size_t i = 0; i < imageCount(); i++) {
+            depthViews.push_back(depthStencilImageView(i));
+        }
+        VulkanFrameBufferAttachmentInfo depthInfo("depth", extent().width, extent().height, depthFormat(), VK_SAMPLE_COUNT_1_BIT);
+        VULKAN_CHECK_CRITICAL(m_framebufferAttachmentDepth.init(depthInfo, depthViews));
+    }
+
+    return VK_SUCCESS;
 }
 
 VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats)

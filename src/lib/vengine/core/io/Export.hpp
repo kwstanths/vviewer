@@ -22,7 +22,7 @@ struct ExportRenderParams {
 
 void exportJson(const ExportRenderParams &renderParams,
                 std::shared_ptr<Camera> sceneCamera,
-                const SceneGraph &sceneObjects,
+                const SceneObjectVector &sceneObjects,
                 EnvironmentMap *envMap);
 
 }  // namespace vengine

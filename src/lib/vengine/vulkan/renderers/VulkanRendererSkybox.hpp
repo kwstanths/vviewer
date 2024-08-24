@@ -10,6 +10,7 @@
 #include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/resources/VulkanCubemap.hpp"
 #include "vulkan/resources/VulkanMesh.hpp"
+#include "vulkan/VulkanRenderPass.hpp"
 
 namespace vengine
 {
@@ -24,7 +25,7 @@ public:
                            VkQueue queue,
                            VkCommandPool commandPool,
                            VkDescriptorSetLayout cameraDescriptorLayout);
-    VkResult initSwapChainResources(VkExtent2D swapchainExtent, VkRenderPass renderPass, VkSampleCountFlagBits msaaSamples);
+    VkResult initSwapChainResources(VkExtent2D swapchainExtent, const VulkanRenderPassDeferred &renderPass);
 
     VkResult releaseSwapChainResources();
     VkResult releaseResources();
@@ -66,10 +67,8 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayoutSkybox;
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipeline;
-    VkRenderPass m_renderPass;
-    VkSampleCountFlagBits m_msaaSamples;
 
-    VkResult createGraphicsPipeline();
+    VkResult createGraphicsPipeline(const VulkanRenderPassDeferred &renderPass);
     VkResult createDescriptorSetsLayout();
 
     VulkanCube *m_cube;
