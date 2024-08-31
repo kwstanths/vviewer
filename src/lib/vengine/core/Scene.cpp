@@ -54,6 +54,7 @@ SceneObject *Scene::addSceneObject(std::string name, SceneObject *parentNode, Tr
     m_objectsMap.insert({object->getID(), object});
 
     m_sceneGraphNeedsUpdate = true;
+    m_instancesNeedUpdate = true;
 
     return object;
 }
@@ -89,6 +90,9 @@ void Scene::removeSceneObject(SceneObject *node)
     };
 
     removeChildren(nodeChildren);
+
+    m_sceneGraphNeedsUpdate = true;
+    m_instancesNeedUpdate = true;
 }
 
 void Scene::update()
@@ -99,6 +103,13 @@ void Scene::update()
             node->update();
         }
     }
+
+    if (m_instancesNeedUpdate) {
+        m_instancesNeedUpdate = false;
+        instancesManager().invalidate();
+    }
+
+    instancesManager().build();
 }
 
 SceneObjectVector Scene::getSceneObjectsFlat() const
@@ -138,9 +149,14 @@ void Scene::exportScene(const ExportRenderParams &renderParams) const
     exportJson(renderParams, m_camera, m_sceneGraph, envMap);
 }
 
-void Scene::needsUpdate(bool changed)
+void Scene::invalidateSceneGraph(bool changed)
 {
     m_sceneGraphNeedsUpdate = changed;
+}
+
+void Scene::invalidateInstances(bool changed)
+{
+    m_instancesNeedUpdate = changed;
 }
 
 }  // namespace vengine

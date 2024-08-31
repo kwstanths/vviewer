@@ -344,7 +344,7 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
             std::unordered_map<MaterialType, VulkanRendererForward *> renderers = {
                 {MaterialType::MATERIAL_LAMBERT, &m_rendererLambert}, {MaterialType::MATERIAL_PBR_STANDARD, &m_rendererPBR}};
             for (auto itr : m_scene.m_instances.transparentMeshes()) {
-                auto renderer = renderers[itr->get<ComponentMaterial>().material->type()];
+                auto renderer = renderers[itr->get<ComponentMaterial>().material()->type()];
 
                 renderer->renderObject(commandBufferDeferred,
                                        m_scene.m_instances,

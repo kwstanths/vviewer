@@ -16,7 +16,7 @@ WidgetModel3D::WidgetModel3D(QWidget *parent, ComponentMesh &meshComponent)
     : QWidget(parent)
     , m_meshComponent(meshComponent)
 {
-    m_model = meshComponent.mesh->m_model;
+    m_model = meshComponent.mesh()->m_model;
 
     QGroupBox *boxPickModel = new QGroupBox();
 
@@ -34,7 +34,7 @@ WidgetModel3D::WidgetModel3D(QWidget *parent, ComponentMesh &meshComponent)
 
     m_meshes = new QComboBox();
     m_meshes->addItems(getModelMeshes(m_model));
-    m_meshes->setCurrentText(QString::fromStdString(meshComponent.mesh->name()));
+    m_meshes->setCurrentText(QString::fromStdString(meshComponent.mesh()->name()));
     connect(m_meshes, SIGNAL(currentIndexChanged(int)), this, SLOT(onMeshChangedSlot(int)));
     QHBoxLayout *layoutPickMesh = new QHBoxLayout();
     layoutPickMesh->addWidget(new QLabel("Mesh: "));
@@ -97,7 +97,7 @@ void WidgetModel3D::onMeshChangedSlot(int)
     std::string selectedMesh = getSelectedMesh();
     for (auto itr : m_model->meshes()) {
         if (itr->name() == selectedMesh) {
-            m_meshComponent.mesh = itr;
+            m_meshComponent.setMesh(itr);
         }
     }
 }

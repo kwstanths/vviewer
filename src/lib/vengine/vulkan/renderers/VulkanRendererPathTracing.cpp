@@ -176,7 +176,7 @@ void VulkanRendererPathTracing::render()
         glm::vec3 cameraPosition = camera->transform().position();
         const SceneObjectVector &volumes = m_scene.instancesManager().volumes();
         for (SceneObject *so : volumes) {
-            if (so->get<ComponentMaterial>().material->type() == MaterialType::MATERIAL_VOLUME) {
+            if (so->get<ComponentMaterial>().material()->type() == MaterialType::MATERIAL_VOLUME) {
                 if (so->AABB().isInside(cameraPosition)) {
                     debug_tools::ConsoleWarning(
                         "The render camera has no volume set, but it is inside a volume AABB. Forgot to set camera volume "
@@ -406,7 +406,8 @@ VkResult VulkanRendererPathTracing::createBuffers()
 {
     /* The scene buffer holds [SceneData | PathTracingData ] */
     VkDeviceSize alignment = m_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), static_cast<uint32_t>(alignment)) + alignedSize(sizeof(PathTracingData), static_cast<uint32_t>(alignment));
+    uint32_t totalSceneBufferSize = alignedSize(sizeof(SceneData), static_cast<uint32_t>(alignment)) +
+                                    alignedSize(sizeof(PathTracingData), static_cast<uint32_t>(alignment));
 
     /* Create a buffer to hold the scene buffer */
     VULKAN_CHECK_CRITICAL(createBuffer(m_vkctx.physicalDevice(),
@@ -492,8 +493,10 @@ void VulkanRendererPathTracing::updateDescriptorSets()
         vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, &sceneDataDescriptor);
 
     /* Update path tracing data binding, uses the same buffer with the scene data */
-    VkDescriptorBufferInfo pathTracingDataDescriptor = vkinit::descriptorBufferInfo(
-        m_uniformBufferScene.buffer(), alignedSize(sizeof(SceneData), static_cast<uint32_t>(uniformBufferAlignment)), static_cast<uint32_t>(sizeof(PathTracingData)));
+    VkDescriptorBufferInfo pathTracingDataDescriptor =
+        vkinit::descriptorBufferInfo(m_uniformBufferScene.buffer(),
+                                     alignedSize(sizeof(SceneData), static_cast<uint32_t>(uniformBufferAlignment)),
+                                     static_cast<uint32_t>(sizeof(PathTracingData)));
     VkWriteDescriptorSet pathTracingDataWrite =
         vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, 1, &pathTracingDataDescriptor);
 

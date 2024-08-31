@@ -5,14 +5,16 @@
 #include "core/AssetManager.hpp"
 #include "core/StringUtils.hpp"
 
+#include "vulkan/VulkanEngine.hpp"
 #include "vulkan/common/VulkanInitializers.hpp"
 #include "vulkan/common/VulkanLimits.hpp"
 
 namespace vengine
 {
 
-VulkanMaterials::VulkanMaterials(VulkanContext &ctx)
-    : m_vkctx(ctx)
+VulkanMaterials::VulkanMaterials(VulkanEngine &engine, VulkanContext &ctx)
+    : Materials(engine)
+    , m_vkctx(ctx)
     , m_materialsStorage(VULKAN_LIMITS_MAX_MATERIALS)
 {
 }
@@ -100,17 +102,17 @@ Material *VulkanMaterials::createMaterial(const AssetInfo &info, MaterialType ty
     Material *temp;
     switch (type) {
         case MaterialType::MATERIAL_PBR_STANDARD: {
-            temp = new VulkanMaterialPBRStandard(info, m_materialsStorage);
+            temp = new VulkanMaterialPBRStandard(info, *this, m_materialsStorage);
             materials.add(temp);
             break;
         }
         case MaterialType::MATERIAL_LAMBERT: {
-            temp = new VulkanMaterialLambert(info, m_materialsStorage);
+            temp = new VulkanMaterialLambert(info, *this, m_materialsStorage);
             materials.add(temp);
             break;
         }
         case MaterialType::MATERIAL_VOLUME: {
-            temp = new VulkanMaterialVolume(info, m_materialsStorage);
+            temp = new VulkanMaterialVolume(info, *this, m_materialsStorage);
             materials.add(temp);
             break;
         }

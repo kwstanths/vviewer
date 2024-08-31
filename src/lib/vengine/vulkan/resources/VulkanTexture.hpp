@@ -40,8 +40,8 @@ public:
     const VkFormat &format() const;
     const VkSampler &sampler() const;
 
-    void setBindlessResourceIndex(int32_t index);
-    int32_t getBindlessResourceIndex() const;
+    const uint32_t &bindlessResourceIndex() const { return m_bindlessResourceIndex; }
+    uint32_t &bindlessResourceIndex() { return m_bindlessResourceIndex; }
 
 private:
     VkImage m_image;
@@ -52,7 +52,7 @@ private:
     VkFormat m_format;
     uint32_t m_numMips = 1;
 
-    int32_t m_bindlessResourceIndex = -1;
+    uint32_t m_bindlessResourceIndex = 0;
 
     VkResult createSampler(VkDevice device, VkSampler &sampler) const;
     void generateMipMaps(VulkanCommandInfo vci);

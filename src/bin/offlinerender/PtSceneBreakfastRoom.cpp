@@ -37,7 +37,7 @@ bool PtSceneBreakfastRoom::create()
 
     vengine::SceneObject *lightObject =
         scene().addSceneObject("light", vengine::Transform({0, 0, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(-90.F), 0}));
-    lightObject->add<vengine::ComponentLight>().light = dirLight;
+    lightObject->add<vengine::ComponentLight>().setLight(dirLight);
     dirLight->color().a = 20.F;
 
     scene().environmentIntensity() = 0.0F;

@@ -15,10 +15,12 @@
 namespace vengine
 {
 
+class VulkanEngine;
+
 class VulkanMaterials : public Materials
 {
 public:
-    VulkanMaterials(VulkanContext &ctx);
+    VulkanMaterials(VulkanEngine &engine, VulkanContext &ctx);
 
     VkResult initResources();
     VkResult initSwapchainResources(uint32_t nImages);

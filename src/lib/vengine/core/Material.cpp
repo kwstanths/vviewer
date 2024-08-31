@@ -1,9 +1,16 @@
 #include "Material.hpp"
 
 #include "vengine/math/MathUtils.hpp"
+#include "Materials.hpp"
 
 namespace vengine
 {
+
+void Material::setTransparent(bool transparent)
+{
+    m_materials.materialTransparencyChanged(this);
+    return;
+}
 
 void MaterialPBRStandard::setAlbedoTexture(Texture *texture)
 {

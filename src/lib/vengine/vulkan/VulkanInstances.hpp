@@ -9,12 +9,14 @@
 namespace vengine
 {
 
+class VulkanScene;
+
 class VulkanInstancesManager : public InstancesManager
 {
     friend class VulkanScene;
 
 public:
-    VulkanInstancesManager(VulkanContext &vkctx);
+    VulkanInstancesManager(VulkanContext &vkctx, VulkanScene *scene);
     ~VulkanInstancesManager();
 
     VkResult initResources();
@@ -26,7 +28,7 @@ public:
     VkDescriptorSetLayout &layoutInstanceData() { return m_descriptorSetLayoutInstanceData; }
     VkDescriptorSet &descriptorSetInstanceData(uint32_t imageIndex) { return m_descriptorSetsInstanceData[imageIndex]; };
 
-    void build(SceneObjectVector &sceneGraph) override;
+    void build() override;
 
     void updateBuffers(uint32_t imageIndex);
 

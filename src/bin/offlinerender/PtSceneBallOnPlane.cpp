@@ -20,7 +20,7 @@ bool PtSceneBallOnPlane::create()
 
     auto &instanceLights = vengine::AssetManager::getInstance().lightsMap();
     vengine::SceneObject *lightObject = scene().addSceneObject("light", vengine::Transform({4, 1.5, 0}));
-    lightObject->add<vengine::ComponentLight>().light = instanceLights.get("defaultPointLight");
+    lightObject->add<vengine::ComponentLight>().setLight(instanceLights.get("defaultPointLight"));
 
     scene().environmentIntensity() = 1.0F;
 

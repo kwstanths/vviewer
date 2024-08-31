@@ -10,7 +10,7 @@ VulkanEngine::VulkanEngine(const std::string &applicationName)
     : Engine()
     , m_context(applicationName)
     , m_textures(m_context)
-    , m_materials(m_context)
+    , m_materials(*this, m_context)
     , m_swapchain(m_context)
     , m_scene(m_context)
     , m_renderer(m_context, m_swapchain, m_textures, m_materials, m_scene)
@@ -343,7 +343,7 @@ void VulkanEngine::initDefaultData()
 
         auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
         auto skybox = materialsSkybox.add(new VulkanMaterialSkybox(
-            AssetInfo("skybox", AssetSource::INTERNAL), envMap, m_renderer.rendererSkybox().descriptorSetLayout()));
+            AssetInfo("skybox", AssetSource::INTERNAL), m_materials, envMap, m_renderer.rendererSkybox().descriptorSetLayout()));
 
         m_scene.skyboxMaterial() = skybox;
     }

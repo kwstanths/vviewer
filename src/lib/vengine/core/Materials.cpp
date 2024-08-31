@@ -1,4 +1,5 @@
 #include "Materials.hpp"
+#include "Engine.hpp"
 
 namespace vengine
 {
@@ -19,6 +20,11 @@ template <>
 MaterialVolume *Materials::createMaterial<MaterialVolume>(const AssetInfo &info)
 {
     return static_cast<MaterialVolume *>(createMaterial(info, MaterialType::MATERIAL_VOLUME));
+}
+
+void Materials::materialTransparencyChanged(Material *material)
+{
+    m_engine.scene().invalidateInstances(true);
 }
 
 }  // namespace vengine

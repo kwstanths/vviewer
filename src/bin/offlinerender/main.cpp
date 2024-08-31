@@ -5,6 +5,7 @@
 #include "PtSceneBallOnPlane.hpp"
 #include "PtSceneDragonsOnPlane.hpp"
 #include "PtSceneBreakfastRoom.hpp"
+#include "PtSceneFurnace.hpp"
 
 using namespace vengine;
 
@@ -13,7 +14,7 @@ int main(int argc, char **argv)
     VulkanEngine engine("offlinerender");
     engine.initResources();
 
-    PtSceneBreakfastRoom ptscene(engine);
+    PtSceneFurnace ptscene(engine);
     ptscene.create();
     ptscene.render();
 

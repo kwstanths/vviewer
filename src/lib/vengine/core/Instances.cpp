@@ -1,11 +1,13 @@
 #include "Instances.hpp"
 
+#include "Scene.hpp"
 #include "SceneObject.hpp"
 
 namespace vengine
 {
 
-InstancesManager::InstancesManager()
+InstancesManager::InstancesManager(Scene *scene)
+    : m_scene(scene)
 {
     m_isBuilt = false;
 }
@@ -18,20 +20,20 @@ void InstancesManager::initResources(InstanceData *instancesBuffer, uint32_t ins
     m_isBuilt = false;
 }
 
-void InstancesManager::build(SceneObjectVector &sceneGraph)
+void InstancesManager::build()
 {
-    if (m_isBuilt) {
+    if (isBuilt()) {
         return;
     }
 
-    fillSceneObjectVectors(sceneGraph);
-
-    buildInstanceData();
+    SceneObjectVector sceneObjects = m_scene->getSceneObjectsFlat();
+    fillSceneObjectVectors(sceneObjects);
+    buildInstanceDataFromScratch();
 
     m_isBuilt = true;
 }
 
-void InstancesManager::reset()
+void InstancesManager::invalidate()
 {
     m_instancesOpaque.clear();
     m_transparent.clear();
@@ -44,7 +46,7 @@ void InstancesManager::reset()
     m_isBuilt = false;
 }
 
-InstanceData *InstancesManager::instanceData(SceneObject *so) const
+InstanceData *InstancesManager::findInstanceData(SceneObject *so) const
 {
     auto itr = m_sceneObjectMap.find(so);
     if (itr == m_sceneObjectMap.end()) {
@@ -54,9 +56,9 @@ InstanceData *InstancesManager::instanceData(SceneObject *so) const
     return itr->second;
 }
 
-uint32_t InstancesManager::instanceDataIndex(SceneObject *so) const
+uint32_t InstancesManager::findInstanceDataIndex(SceneObject *so) const
 {
-    InstanceData *instanceDataPtr = instanceData(so);
+    InstanceData *instanceDataPtr = findInstanceData(so);
     assert(instanceDataPtr);
 
     return static_cast<uint32_t>(instanceDataPtr - &m_instancesBuffer[0]);
@@ -75,7 +77,7 @@ void InstancesManager::initInstanceData(InstanceData *instanceData, SceneObject 
 {
     /* Set material index  */
     if (so->has<ComponentMaterial>()) {
-        instanceData->materialIndex = so->get<ComponentMaterial>().material->materialIndex();
+        instanceData->materialIndex = so->get<ComponentMaterial>().material()->materialIndex();
     }
     /* Set object id */
     instanceData->id = glm::vec4(so->getID(), 0, 0, 0);
@@ -86,14 +88,12 @@ void InstancesManager::initInstanceData(InstanceData *instanceData, SceneObject 
 void InstancesManager::fillSceneObjectVectors(SceneObjectVector &sceneGraph)
 {
     for (SceneObject *sceneObject : sceneGraph) {
-        if (!sceneObject->active())
+        if (!sceneObject->isActive())
             continue;
 
         if (sceneObject->has<ComponentMesh>() && sceneObject->has<ComponentMaterial>()) {
-            sceneObject->computeAABB();
-
-            Mesh *mesh = sceneObject->get<ComponentMesh>().mesh;
-            Material *material = sceneObject->get<ComponentMaterial>().material;
+            Mesh *mesh = sceneObject->get<ComponentMesh>().mesh();
+            Material *material = sceneObject->get<ComponentMaterial>().material();
 
             if (material->isEmissive()) {
                 m_meshLights.push_back(sceneObject);
@@ -126,7 +126,7 @@ void InstancesManager::fillSceneObjectVectors(SceneObjectVector &sceneGraph)
     }
 }
 
-void InstancesManager::buildInstanceData()
+void InstancesManager::buildInstanceDataFromScratch()
 {
     uint32_t currentIndex = 0;
 

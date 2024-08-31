@@ -11,9 +11,16 @@
 namespace vengine
 {
 
+class Engine;
+
 class Materials
 {
+    friend Material;
+
 public:
+    Materials(Engine &engine)
+        : m_engine(engine){};
+
     virtual Material *createMaterial(const AssetInfo &info, MaterialType type) = 0;
     virtual Material *createMaterialFromDisk(const AssetInfo &info, std::string stackDirectory, Textures &textures) = 0;
     virtual Material *createZipMaterial(const AssetInfo &info, Textures &textures) = 0;
@@ -22,6 +29,13 @@ public:
 
     template <typename MatType>
     MatType *createMaterial(const AssetInfo &info);
+
+protected:
+    Engine &m_engine;
+
+private:
+    /* Called when a material is set as transparent */
+    virtual void materialTransparencyChanged(Material *material);
 };
 
 }  // namespace vengine

@@ -9,6 +9,7 @@
 #include "Camera.hpp"
 #include "Light.hpp"
 #include "SceneObject.hpp"
+#include "Instances.hpp"
 #include "io/Export.hpp"
 #include "utils/ECS.hpp"
 
@@ -36,6 +37,8 @@ struct SceneData {
 class Scene
 {
     friend class SceneObject;
+    friend class InstancesManager;
+    friend class Materials;
 
 public:
     Scene();
@@ -80,6 +83,8 @@ public:
 
     virtual Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) = 0;
 
+    virtual InstancesManager &instancesManager() = 0;
+
 protected:
     std::shared_ptr<Camera> m_camera = nullptr;
     float m_exposure = 0.0f;
@@ -93,12 +98,14 @@ protected:
 
     SceneObjectVector m_sceneGraph;
     bool m_sceneGraphNeedsUpdate = true;
+    bool m_instancesNeedUpdate = true;
 
     virtual SceneObject *createObject(std::string name) = 0;
     virtual void deleteObject(SceneObject *) = 0;
 
 private:
-    void needsUpdate(bool changed);
+    void invalidateSceneGraph(bool changed);
+    void invalidateInstances(bool changed);
 };
 
 }  // namespace vengine

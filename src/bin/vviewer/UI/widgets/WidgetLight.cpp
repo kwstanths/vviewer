@@ -31,11 +31,11 @@ WidgetLight::WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponen
     m_labelCastShadows->setFixedWidth(90);
 
     m_checkBoxCastShadows = new QCheckBox();
-    m_checkBoxCastShadows->setChecked(m_lightComponent.castShadows);
+    m_checkBoxCastShadows->setChecked(m_lightComponent.castShadows());
     connect(m_checkBoxCastShadows, SIGNAL(stateChanged(int)), this, SLOT(onCheckBoxCastShadows(int)));
 
     m_widgetGroupBox = new QGroupBox();
-    createUI(createLightWidget(lightComponent.light));
+    createUI(createLightWidget(lightComponent.light()));
 
     m_layoutMain = new QVBoxLayout();
     m_layoutMain->addWidget(m_widgetGroupBox);
@@ -52,7 +52,7 @@ void WidgetLight::updateAvailableLights()
     m_comboBoxLights->clear();
     m_comboBoxLights->addItems(availableLights);
     m_comboBoxLights->blockSignals(false);
-    m_comboBoxLights->setCurrentText(QString::fromStdString(m_lightComponent.light->name()));
+    m_comboBoxLights->setCurrentText(QString::fromStdString(m_lightComponent.light()->name()));
 }
 
 void WidgetLight::createUI(QWidget *widgetLight)
@@ -111,10 +111,10 @@ void WidgetLight::onLightChanged(int)
     auto light = lights.get(lightName.toStdString());
 
     createUI(createLightWidget(light));
-    m_lightComponent.light = light;
+    m_lightComponent.setLight(light);
 }
 
 void WidgetLight::onCheckBoxCastShadows(int)
 {
-    m_lightComponent.castShadows = m_checkBoxCastShadows->isChecked();
+    m_lightComponent.setCastShadows(m_checkBoxCastShadows->isChecked());
 }

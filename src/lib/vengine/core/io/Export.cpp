@@ -114,7 +114,7 @@ void addMeshComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
     meshObject.SetObject();
 
     /* Get the mesh component */
-    const Mesh *mesh = sceneObject->get<ComponentMesh>().mesh;
+    const Mesh *mesh = sceneObject->get<ComponentMesh>().mesh();
     const Model3D *model = mesh->m_model;
 
     Value name;
@@ -134,7 +134,7 @@ void addMaterialComponent(rapidjson::Document &d, rapidjson::Value &v, const Sce
     materialObject.SetObject();
 
     /* Get the material component */
-    const Material *material = sceneObject->get<ComponentMaterial>().material;
+    const Material *material = sceneObject->get<ComponentMaterial>().material();
 
     /* Set the path to the material name */
     Value path;
@@ -149,14 +149,14 @@ void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneO
     Value lightObject;
     lightObject.SetObject();
 
-    Light *light = sceneObject->get<ComponentLight>().light;
+    Light *light = sceneObject->get<ComponentLight>().light();
 
     Value name;
     name.SetString(light->name().c_str(), d.GetAllocator());
     lightObject.AddMember("name", name, d.GetAllocator());
 
     Value castShadows;
-    castShadows.SetBool(sceneObject->get<ComponentLight>().castShadows);
+    castShadows.SetBool(sceneObject->get<ComponentLight>().castShadows());
     lightObject.AddMember("shadows", castShadows, d.GetAllocator());
 
     v.AddMember("light", lightObject, d.GetAllocator());
@@ -573,9 +573,9 @@ void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
     sceneObjectEntry.AddMember("name", name, d.GetAllocator());
 
     /* Active */
-    if (!sceneObject->active()) {
+    if (!sceneObject->isActive()) {
         Value active;
-        active.SetBool(sceneObject->active());
+        active.SetBool(sceneObject->isActive());
         sceneObjectEntry.AddMember("active", active, d.GetAllocator());
     }
 

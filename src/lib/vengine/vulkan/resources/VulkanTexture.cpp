@@ -216,16 +216,6 @@ const VkSampler &VulkanTexture::sampler() const
     return m_sampler;
 }
 
-void VulkanTexture::setBindlessResourceIndex(int32_t index)
-{
-    m_bindlessResourceIndex = index;
-}
-
-int32_t VulkanTexture::getBindlessResourceIndex() const
-{
-    return m_bindlessResourceIndex;
-}
-
 VkResult VulkanTexture::createSampler(VkDevice device, VkSampler &sampler) const
 {
     VkSamplerCreateInfo samplerInfo = vkinit::samplerCreateInfo(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR);

@@ -294,13 +294,13 @@ void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem,
                 }
                 auto child = createEmptySceneObject(mesh->name(), nodeTransform, parent);
 
-                child.second->add<ComponentMesh>().mesh = mesh;
+                child.second->add<ComponentMesh>().setMesh(mesh);
                 if (overrideMat != nullptr) {
-                    child.second->add<ComponentMaterial>().material = overrideMat;
+                    child.second->add<ComponentMaterial>().setMaterial(overrideMat);
                 } else if (mat != nullptr) {
-                    child.second->add<ComponentMaterial>().material = mat;
+                    child.second->add<ComponentMaterial>().setMaterial(mat);
                 } else {
-                    child.second->add<ComponentMaterial>().material = defaultMat;
+                    child.second->add<ComponentMaterial>().setMaterial(defaultMat);
                 }
             }
 
@@ -330,7 +330,7 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
     /* Create new scene object */
     auto newSceneObject = createEmptySceneObject(object.name, object.transform, parentItem);
     if (!object.active) {
-        newSceneObject.second->active() = false;
+        newSceneObject.second->setActive(false);
         newSceneObject.first->setForeground(0, QBrush(Qt::gray));
     }
 
@@ -338,13 +338,13 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
     if (object.mesh.has_value()) {
         auto model3D = instanceModels.get(object.mesh->modelName);
         auto mesh = model3D->mesh(object.mesh->submesh);
-        newSceneObject.second->add<ComponentMesh>().mesh = mesh;
+        newSceneObject.second->add<ComponentMesh>().setMesh(mesh);
     }
 
     /* Add material component */
     if (object.material.has_value()) {
         auto mat = instanceMaterials.get(object.material->name);
-        newSceneObject.second->add<ComponentMaterial>().material = mat;
+        newSceneObject.second->add<ComponentMaterial>().setMaterial(mat);
     }
 
     /* Add light component */
@@ -352,8 +352,8 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
         ComponentLight &lightComponent = newSceneObject.second->add<ComponentLight>();
 
         auto light = instanceLights.get(object.light->name);
-        lightComponent.light = light;
-        lightComponent.castShadows = object.light->shadows;
+        lightComponent.setLight(light);
+        lightComponent.setCastShadows(object.light->shadows);
     }
 
     /* Add children */
@@ -824,7 +824,7 @@ void MainWindow::onAddPointLightSlot()
 
     /* Add light component */
     auto &lights = AssetManager::getInstance().lightsMap();
-    newObject.second->add<ComponentLight>().light = lights.get("defaultPointLight");
+    newObject.second->add<ComponentLight>().setLight(lights.get("defaultPointLight"));
 
     m_engine->start();
 }
@@ -842,7 +842,7 @@ void MainWindow::onAddDirectionalLightSlot()
 
     /* Add light component */
     auto &lights = AssetManager::getInstance().lightsMap();
-    newObject.second->add<ComponentLight>().light = lights.get("defaultDirectionalLight");
+    newObject.second->add<ComponentLight>().setLight(lights.get("defaultDirectionalLight"));
 
     m_engine->start();
 }
@@ -865,8 +865,8 @@ void MainWindow::onAddMeshLightSlot()
 
     auto plane = instanceModels.get("assets/models/plane.obj");
 
-    newObject.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
-    newObject.second->add<ComponentMaterial>().material = matDefE;
+    newObject.second->add<ComponentMesh>().setMesh(plane->mesh("Plane"));
+    newObject.second->add<ComponentMaterial>().setMaterial(matDefE);
 
     m_engine->start();
 }
@@ -972,14 +972,14 @@ void MainWindow::onDuplicateSceneObjectSlot()
         auto newObject = createEmptySceneObject(so->name() + " (D)", so->localTransform(), parent);
 
         if (so->has<ComponentLight>()) {
-            auto l = so->get<ComponentLight>().light;
-            newObject.second->add<ComponentLight>().light = l;
+            auto l = so->get<ComponentLight>().light();
+            newObject.second->add<ComponentLight>().setLight(l);
         }
         if (so->has<ComponentMesh>()) {
-            newObject.second->add<ComponentMesh>().mesh = so->get<ComponentMesh>().mesh;
+            newObject.second->add<ComponentMesh>().setMesh(so->get<ComponentMesh>().mesh());
         }
         if (so->has<ComponentMaterial>()) {
-            newObject.second->add<ComponentMaterial>().material = so->get<ComponentMaterial>().material;
+            newObject.second->add<ComponentMaterial>().setMaterial(so->get<ComponentMaterial>().material());
         }
 
         for (int c = 0; c < duplicatedItem->childCount(); c++) {
@@ -1035,7 +1035,7 @@ void MainWindow::onSelectedSceneObjectActiveChangedSlot()
     if (selectedItem == nullptr)
         return;
 
-    if (selectedObject->active()) {
+    if (selectedObject->isActive()) {
         selectedItem->setForeground(0, QBrush(Qt::black));
     } else {
         selectedItem->setForeground(0, QBrush(Qt::gray));
@@ -1112,8 +1112,8 @@ void MainWindow::onStartUpInitialization()
 
         {
             auto o = createEmptySceneObject("plane", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
-            o.second->add<ComponentMesh>().mesh = plane->mesh("Plane");
-            o.second->add<ComponentMaterial>().material = matDef;
+            o.second->add<ComponentMesh>().setMesh(plane->mesh("Plane"));
+            o.second->add<ComponentMaterial>().setMaterial(matDef);
         }
 
         {
@@ -1123,13 +1123,13 @@ void MainWindow::onStartUpInitialization()
         {
             auto o = createEmptySceneObject(
                 "directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
-            o.second->add<ComponentLight>().light = AssetManager::getInstance().lightsMap().get("defaultDirectionalLight");
+            o.second->add<ComponentLight>().setLight(AssetManager::getInstance().lightsMap().get("defaultDirectionalLight"));
         }
 
         {
             auto o = createEmptySceneObject("volume", Transform({0, 0, 0}, {3, 3, 3}), nullptr);
-            o.second->add<ComponentMesh>().mesh = cube->mesh("Cube");
-            o.second->add<ComponentMaterial>().material = matVol;
+            o.second->add<ComponentMesh>().setMesh(cube->mesh("Cube"));
+            o.second->add<ComponentMaterial>().setMaterial(matVol);
         }
 
         m_widgetRightPanel->getEnvironmentWidget()->updateMaps();

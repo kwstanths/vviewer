@@ -2,15 +2,16 @@
 
 #include "vulkan/common/VulkanLimits.hpp"
 #include "vulkan/resources/VulkanMesh.hpp"
+#include "vulkan/VulkanScene.hpp"
 
 namespace vengine
 {
 
-VulkanInstancesManager::VulkanInstancesManager(VulkanContext &vkctx)
+VulkanInstancesManager::VulkanInstancesManager(VulkanContext &vkctx, VulkanScene *scene)
     : m_vkctx(vkctx)
     , m_instancesSSBO(VULKAN_LIMITS_MAX_OBJECTS)
     , m_lightInstancesUBO(VULKAN_LIMITS_MAX_LIGHT_INSTANCES)
-    , InstancesManager()
+    , InstancesManager(scene)
 {
 }
 
@@ -62,21 +63,23 @@ VkResult VulkanInstancesManager::releaseSwapchainResources()
     return VK_SUCCESS;
 }
 
-void VulkanInstancesManager::build(SceneObjectVector &sceneGraph)
+void VulkanInstancesManager::build()
 {
-    InstancesManager::build(sceneGraph);
+    InstancesManager::build();
 
     /* Update LightInstance data */
+    // TODO don't do this per frame if light instance data haven't changed
+
     for (uint32_t l = 0; l < m_lights.size(); l++) {
         assert(l < m_lightInstancesUBO.nblocks());
 
         SceneObject *so = m_lights[l];
-        Light *light = so->get<ComponentLight>().light;
+        Light *light = so->get<ComponentLight>().light();
         assert(light != nullptr);
 
         LightInstance *lightInstanceBlock = m_lightInstancesUBO.block(l);
         lightInstanceBlock->info.r = light->lightIndex();
-        lightInstanceBlock->info.g = instanceDataIndex(so); /* This is not used */
+        lightInstanceBlock->info.g = findInstanceDataIndex(so); /* This is not used */
         lightInstanceBlock->info.a = static_cast<int32_t>(light->type());
 
         if (light->type() == LightType::POINT_LIGHT) {
@@ -84,18 +87,18 @@ void VulkanInstancesManager::build(SceneObjectVector &sceneGraph)
         } else if (light->type() == LightType::DIRECTIONAL_LIGHT) {
             lightInstanceBlock->position = glm::vec4(so->modelMatrix() * glm::vec4(Transform::WORLD_Z, 0));
         }
-        lightInstanceBlock->position.a = static_cast<float>(so->get<ComponentLight>().castShadows);
+        lightInstanceBlock->position.a = static_cast<float>(so->get<ComponentLight>().castShadows());
     }
     for (uint32_t l = 0; l < m_meshLights.size(); l++) {
         uint32_t nl = static_cast<uint32_t>(m_lights.size()) + l;
         assert(nl < m_lightInstancesUBO.nblocks());
 
         SceneObject *so = m_meshLights[l];
-        Material *material = so->get<ComponentMaterial>().material;
+        Material *material = so->get<ComponentMaterial>().material();
         assert(material != nullptr);
 
         LightInstance *lightInstanceBlock = m_lightInstancesUBO.block(nl);
-        lightInstanceBlock->info.g = instanceDataIndex(so); /* This is not used */
+        lightInstanceBlock->info.g = findInstanceDataIndex(so); /* This is not used */
         lightInstanceBlock->info.a = static_cast<int32_t>(LightType::MESH_LIGHT);
 
         const auto &m = so->modelMatrix();
@@ -117,7 +120,7 @@ void VulkanInstancesManager::initInstanceData(InstanceData *instanceData, SceneO
 
     /* Set mesh data*/
     if (so->has<ComponentMesh>()) {
-        auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh);
+        auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh());
         assert(mesh->blas().initialized());
 
         instanceData->vertexAddress = mesh->vertexBuffer().address().deviceAddress;

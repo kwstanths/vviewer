@@ -30,12 +30,13 @@ protected:
 };
 
 /** MATERIALS **/
+class VulkanMaterials;
 
 /* Default PBR material */
 class VulkanMaterialPBRStandard : public MaterialPBRStandard, public VulkanUBODefault<MaterialData>::Block
 {
 public:
-    VulkanMaterialPBRStandard(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO);
+    VulkanMaterialPBRStandard(const AssetInfo &info, VulkanMaterials &materials, VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
 
@@ -75,7 +76,7 @@ private:
 class VulkanMaterialLambert : public MaterialLambert, public VulkanUBODefault<MaterialData>::Block
 {
 public:
-    VulkanMaterialLambert(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO);
+    VulkanMaterialLambert(const AssetInfo &info, VulkanMaterials &materials, VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
 
@@ -109,7 +110,10 @@ private:
 class VulkanMaterialSkybox : public MaterialSkybox, public VulkanMaterialDescriptor
 {
 public:
-    VulkanMaterialSkybox(const AssetInfo &info, EnvironmentMap *envMap, VkDescriptorSetLayout descriptorLayout);
+    VulkanMaterialSkybox(const AssetInfo &info,
+                         VulkanMaterials &materials,
+                         EnvironmentMap *envMap,
+                         VkDescriptorSetLayout descriptorLayout);
 
     virtual void setMap(EnvironmentMap *envMap) override;
 
@@ -124,7 +128,7 @@ private:
 class VulkanMaterialVolume : public MaterialVolume, public VulkanUBODefault<MaterialData>::Block
 {
 public:
-    VulkanMaterialVolume(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO);
+    VulkanMaterialVolume(const AssetInfo &info, VulkanMaterials &materials, VulkanUBODefault<MaterialData> &materialsUBO);
 
     MaterialIndex materialIndex() const override;
 

@@ -31,11 +31,13 @@ static const std::unordered_map<MaterialType, std::string> materialTypeNames = {
                                                                                 {MaterialType::MATERIAL_LAMBERT, "Lambert"},
                                                                                 {MaterialType::MATERIAL_VOLUME, "Homogenous Volume"}};
 
+class Materials;
 class Material : public Asset
 {
 public:
-    Material(const AssetInfo &info)
-        : Asset(info){};
+    Material(const AssetInfo &info, Materials &materials)
+        : Asset(info)
+        , m_materials(materials){};
 
     virtual ~Material(){};
 
@@ -46,17 +48,18 @@ public:
     virtual bool isEmissive() const { return false; }
 
     virtual bool isTransparent() const { return false; }
-    virtual void setTransparent(bool transparent) { return; }
+    virtual void setTransparent(bool transparent);
 
-private:
+protected:
+    Materials &m_materials;
     bool m_isTransparent = false;
 };
 
 class MaterialPBRStandard : public Material
 {
 public:
-    MaterialPBRStandard(const AssetInfo &info)
-        : Material(info){};
+    MaterialPBRStandard(const AssetInfo &info, Materials &materials)
+        : Material(info, materials){};
 
     virtual ~MaterialPBRStandard() {}
 
@@ -117,8 +120,8 @@ private:
 class MaterialLambert : public Material
 {
 public:
-    MaterialLambert(const AssetInfo &info)
-        : Material(info){};
+    MaterialLambert(const AssetInfo &info, Materials &materials)
+        : Material(info, materials){};
 
     virtual ~MaterialLambert() {}
 
@@ -163,8 +166,8 @@ protected:
 class MaterialSkybox : public Material
 {
 public:
-    MaterialSkybox(const AssetInfo &info)
-        : Material(info){};
+    MaterialSkybox(const AssetInfo &info, Materials &materials)
+        : Material(info, materials){};
 
     virtual ~MaterialSkybox() {}
 
@@ -180,8 +183,8 @@ protected:
 class MaterialVolume : public Material
 {
 public:
-    MaterialVolume(const AssetInfo &info)
-        : Material(info){};
+    MaterialVolume(const AssetInfo &info, Materials &materials)
+        : Material(info, materials){};
 
     virtual ~MaterialVolume() {}
 

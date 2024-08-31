@@ -3,6 +3,7 @@
 #include <core/AssetManager.hpp>
 
 #include "vulkan/common/VulkanInitializers.hpp"
+#include "vulkan/resources/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanTexture.hpp"
 #include "vulkan/resources/VulkanCubemap.hpp"
 
@@ -26,9 +27,11 @@ bool VulkanMaterialDescriptor::needsUpdate(size_t index) const
     return m_descirptorsNeedUpdate[index];
 }
 
-VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO)
+VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info,
+                                                     VulkanMaterials &materials,
+                                                     VulkanUBODefault<MaterialData> &materialsUBO)
     : VulkanUBODefault<MaterialData>::Block(materialsUBO)
-    , MaterialPBRStandard(info)
+    , MaterialPBRStandard(info, materials)
 {
     m_block->uvTiling.b = static_cast<float>(MaterialType::MATERIAL_PBR_STANDARD);
 
@@ -39,7 +42,6 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info, Vulk
     emissive() = glm::vec4(0, 0, 0, 1);
     uTiling() = 1;
     vTiling() = 1;
-    setTransparent(false);
 
     auto &textures = AssetManager::getInstance().texturesMap();
     auto white = textures.get("white");
@@ -55,7 +57,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info, Vulk
     setAlphaTexture(white);
 
     auto BRDFLUT = static_cast<VulkanTexture *>(textures.get("PBR_BRDF_LUT"));
-    m_block->gTexturesIndices2.b = static_cast<uint32_t>(BRDFLUT->getBindlessResourceIndex());
+    m_block->gTexturesIndices2.b = BRDFLUT->bindlessResourceIndex();
 }
 
 MaterialIndex VulkanMaterialPBRStandard::materialIndex() const
@@ -71,6 +73,7 @@ bool VulkanMaterialPBRStandard::isTransparent() const
 void VulkanMaterialPBRStandard::setTransparent(bool transparent)
 {
     m_block->metallicRoughnessAO.a = static_cast<bool>(transparent);
+    Material::setTransparent(transparent);
 }
 
 glm::vec4 &VulkanMaterialPBRStandard::albedo()
@@ -162,8 +165,7 @@ void VulkanMaterialPBRStandard::setAlbedoTexture(Texture *texture)
 {
     MaterialPBRStandard::setAlbedoTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices1.r = static_cast<uint32_t>(textureIndex);
 }
 
@@ -171,8 +173,7 @@ void VulkanMaterialPBRStandard::setMetallicTexture(Texture *texture)
 {
     MaterialPBRStandard::setMetallicTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices1.g = static_cast<uint32_t>(textureIndex);
 }
 
@@ -180,8 +181,7 @@ void VulkanMaterialPBRStandard::setRoughnessTexture(Texture *texture)
 {
     MaterialPBRStandard::setRoughnessTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices1.b = static_cast<uint32_t>(textureIndex);
 }
 
@@ -189,8 +189,7 @@ void VulkanMaterialPBRStandard::setAOTexture(Texture *texture)
 {
     MaterialPBRStandard::setAOTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices1.a = static_cast<uint32_t>(textureIndex);
 }
 
@@ -198,8 +197,7 @@ void VulkanMaterialPBRStandard::setEmissiveTexture(Texture *texture)
 {
     MaterialPBRStandard::setEmissiveTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.r = static_cast<uint32_t>(textureIndex);
 }
 
@@ -207,8 +205,7 @@ void VulkanMaterialPBRStandard::setNormalTexture(Texture *texture)
 {
     MaterialPBRStandard::setNormalTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
 }
 
@@ -216,16 +213,17 @@ void VulkanMaterialPBRStandard::setAlphaTexture(Texture *texture)
 {
     MaterialPBRStandard::setAlphaTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.a = static_cast<uint32_t>(textureIndex);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO)
+VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info,
+                                             VulkanMaterials &materials,
+                                             VulkanUBODefault<MaterialData> &materialsUBO)
     : VulkanUBODefault<MaterialData>::Block(materialsUBO)
-    , MaterialLambert(info)
+    , MaterialLambert(info, materials)
 {
     m_block->uvTiling.b = static_cast<float>(MaterialType::MATERIAL_LAMBERT);
 
@@ -234,7 +232,6 @@ VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info, VulkanUBODef
     emissive() = glm::vec4(0, 0, 0, 1);
     uTiling() = 1.F;
     vTiling() = 1.F;
-    setTransparent(false);
 
     auto &textures = AssetManager::getInstance().texturesMap();
 
@@ -262,6 +259,7 @@ bool VulkanMaterialLambert::isTransparent() const
 void VulkanMaterialLambert::setTransparent(bool transparent)
 {
     m_block->metallicRoughnessAO.a = static_cast<bool>(transparent);
+    Material::setTransparent(transparent);
 }
 
 glm::vec4 &VulkanMaterialLambert::albedo()
@@ -333,7 +331,7 @@ void VulkanMaterialLambert::setAlbedoTexture(Texture *texture)
 {
     MaterialLambert::setAlbedoTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     assert(textureIndex >= 0);
     m_block->gTexturesIndices1.r = static_cast<uint32_t>(textureIndex);
 }
@@ -342,8 +340,7 @@ void VulkanMaterialLambert::setAOTexture(Texture *texture)
 {
     MaterialLambert::setAOTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices1.a = static_cast<uint32_t>(textureIndex);
 }
 
@@ -351,8 +348,7 @@ void VulkanMaterialLambert::setEmissiveTexture(Texture *texture)
 {
     MaterialLambert::setEmissiveTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.r = static_cast<uint32_t>(textureIndex);
 }
 
@@ -360,8 +356,7 @@ void VulkanMaterialLambert::setNormalTexture(Texture *texture)
 {
     MaterialLambert::setNormalTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
 }
 
@@ -369,16 +364,18 @@ void VulkanMaterialLambert::setAlphaTexture(Texture *texture)
 {
     MaterialLambert::setAlphaTexture(texture);
 
-    int32_t textureIndex = static_cast<VulkanTexture *>(texture)->getBindlessResourceIndex();
-    assert(textureIndex >= 0);
+    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.a = static_cast<uint32_t>(textureIndex);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */
 
-VulkanMaterialSkybox::VulkanMaterialSkybox(const AssetInfo &info, EnvironmentMap *envMap, VkDescriptorSetLayout descriptorLayout)
+VulkanMaterialSkybox::VulkanMaterialSkybox(const AssetInfo &info,
+                                           VulkanMaterials &materials,
+                                           EnvironmentMap *envMap,
+                                           VkDescriptorSetLayout descriptorLayout)
     : VulkanMaterialDescriptor(descriptorLayout)
-    , MaterialSkybox(info)
+    , MaterialSkybox(info, materials)
 {
     m_envMap = envMap;
 }
@@ -436,9 +433,11 @@ void VulkanMaterialSkybox::updateDescriptorSet(VkDevice device, size_t index) co
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 }
 
-VulkanMaterialVolume::VulkanMaterialVolume(const AssetInfo &info, VulkanUBODefault<MaterialData> &materialsUBO)
-    : MaterialVolume(info)
-    , VulkanUBODefault<MaterialData>::Block(materialsUBO)
+VulkanMaterialVolume::VulkanMaterialVolume(const AssetInfo &info,
+                                           VulkanMaterials &materials,
+                                           VulkanUBODefault<MaterialData> &materialsUBO)
+    : VulkanUBODefault<MaterialData>::Block(materialsUBO)
+    , MaterialVolume(info, materials)
 {
     sigmaS() = glm::vec4(0.2F);
     sigmaA() = glm::vec4(0.01F);

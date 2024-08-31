@@ -35,13 +35,13 @@ void addModel3D(vengine::Scene &scene,
                 }
                 vengine::SceneObject *newObject = scene.addSceneObject(modelName, parent, nodeTransform);
 
-                newObject->add<vengine::ComponentMesh>().mesh = mesh;
+                newObject->add<vengine::ComponentMesh>().setMesh(mesh);
                 if (overrideMat != nullptr) {
-                    newObject->add<vengine::ComponentMaterial>().material = overrideMat;
+                    newObject->add<vengine::ComponentMaterial>().setMaterial(overrideMat);
                 } else if (mat != nullptr) {
-                    newObject->add<vengine::ComponentMaterial>().material = mat;
+                    newObject->add<vengine::ComponentMaterial>().setMaterial(mat);
                 } else {
-                    newObject->add<vengine::ComponentMaterial>().material = defaultMat;
+                    newObject->add<vengine::ComponentMaterial>().setMaterial(defaultMat);
                 }
             }
 

@@ -85,7 +85,7 @@ VkResult VulkanRendererForward::renderObject(VkCommandBuffer &cmdBuf,
 
     VulkanSceneObject *vkobject = static_cast<VulkanSceneObject *>(object);
 
-    const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(vkobject->get<ComponentMesh>().mesh);
+    const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(vkobject->get<ComponentMesh>().mesh());
     if (vkmesh == nullptr) {
         debug_tools::ConsoleWarning("VulkanRendererForward::renderObject(): SceneObject vkmesh is a null pointer");
         return VK_ERROR_UNKNOWN;
@@ -96,18 +96,18 @@ VkResult VulkanRendererForward::renderObject(VkCommandBuffer &cmdBuf,
     vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmdBuf, vkmesh->indexBuffer().buffer(), 0, vkmesh->indexType());
 
-    Material *material = vkobject->get<ComponentMaterial>().material;
+    Material *material = vkobject->get<ComponentMaterial>().material();
     PushBlockForward pushConstants;
     pushConstants.selected = glm::vec4(vkobject->getID(), 0.0, 0.0, 0.0);
     pushConstants.info.r = material->materialIndex();
-    pushConstants.info.g = instances.instanceDataIndex(vkobject);
+    pushConstants.info.g = instances.findInstanceDataIndex(vkobject);
 
     /* Find the 4 strongest lights to current object */
     glm::vec3 pos = vkobject->worldPosition();
     auto closestLights =
         findNSmallest<SceneObject *, 4>(instances.lights(), [&](SceneObject *const &m, SceneObject *const &n) -> bool {
-            auto lmp = m->get<ComponentLight>().light->power(m->worldPosition(), pos);
-            auto lnp = n->get<ComponentLight>().light->power(n->worldPosition(), pos);
+            auto lmp = m->get<ComponentLight>().light()->power(m->worldPosition(), pos);
+            auto lnp = n->get<ComponentLight>().light()->power(n->worldPosition(), pos);
             return lmp > lnp;
         });
     pushConstants.info.b = std::min<unsigned int>(static_cast<uint32_t>(instances.lights().size()), 4U);
@@ -143,8 +143,10 @@ VkResult VulkanRendererForward::createPipeline(const VulkanRenderPassDeferred &r
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
 
-    VkViewport viewport = vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
+    VkViewport viewport =
+        vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
+    VkRect2D scissor =
+        vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
     VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
 
     VkPipelineRasterizationStateCreateInfo rasterizer =

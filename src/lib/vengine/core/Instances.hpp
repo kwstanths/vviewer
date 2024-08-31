@@ -13,6 +13,7 @@ namespace vengine
 {
 
 /* A GPU clone */
+/* Describes the instance of a scene object */
 struct InstanceData {
     /* Transformation matrix */
     glm::mat4 modelMatrix;
@@ -31,7 +32,18 @@ struct InstanceData {
     uint32_t padding2;
     uint32_t padding3;
     uint32_t padding4;
-};
+}; /* sizeof(LightInstance) = 120 */
+
+/* A GPU clone */
+/* Describes the instance of a light */
+struct LightInstance {
+    glm::uvec4 info; /* R = LightData index, G = InstanceData index, B = Object Description index if Mesh type, A = type (LightType) */
+    glm::vec4 position;  /* RGB = world position/direction, A = casts shadow or RGBA = row 0 of transform matrix if mesh type */
+    glm::vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
+    glm::vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
+};                       /* sizeof(LightInstance) = 64 */
+
+class Scene;
 
 class InstancesManager
 {
@@ -42,9 +54,9 @@ public:
         uint32_t startIndex = 0;
     };
 
-    typedef std::unordered_map<SceneObject *, InstanceData *> SceneObjectMap;
+    typedef std::unordered_map<SceneObject *, InstanceData *> SceneObjectInstanceMap;
 
-    InstancesManager();
+    InstancesManager(Scene *scene);
 
     /**
      * @brief Initialize object
@@ -54,12 +66,10 @@ public:
      */
     void initResources(InstanceData *instancesBuffer, uint32_t instancesBufferSize);
 
-    virtual void build(SceneObjectVector &sceneGraph);
+    virtual void build();
     bool isBuilt() const { return m_isBuilt; }
 
-    void reset();
-
-    const SceneObjectMap &sceneObjectMap() const { return m_sceneObjectMap; }
+    void invalidate();
 
     const std::unordered_map<Mesh *, MeshGroup> &opaqueMeshes() const { return m_instancesOpaque; }
     const SceneObjectVector &transparentMeshes() const { return m_transparent; }
@@ -67,8 +77,9 @@ public:
     const SceneObjectVector &meshLights() const { return m_meshLights; }
     const SceneObjectVector &volumes() const { return m_volumes; }
 
-    InstanceData *instanceData(SceneObject *so) const;
-    uint32_t instanceDataIndex(SceneObject *so) const;
+    const SceneObjectInstanceMap &sceneObjectInstanceMap() const { return m_sceneObjectMap; }
+    InstanceData *findInstanceData(SceneObject *so) const;
+    uint32_t findInstanceDataIndex(SceneObject *so) const;
 
     void sortTransparent(const glm::vec3 &pos);
 
@@ -84,7 +95,7 @@ protected:
     /* Holds all scene objects that are volumes */
     SceneObjectVector m_volumes;
 
-    SceneObjectMap m_sceneObjectMap;
+    SceneObjectInstanceMap m_sceneObjectMap;
 
     bool m_isBuilt = false;
 
@@ -97,12 +108,14 @@ protected:
     virtual void initInstanceData(InstanceData *instanceData, SceneObject *so);
 
 private:
+    Scene *m_scene = nullptr;
+
     /* CPU memory for the InstanceData buffer */
     InstanceData *m_instancesBuffer = nullptr;
     uint32_t m_instancesBufferSize = 0;
 
     void fillSceneObjectVectors(SceneObjectVector &sceneGraph);
-    void buildInstanceData();
+    void buildInstanceDataFromScratch();
 };
 
 }  // namespace vengine

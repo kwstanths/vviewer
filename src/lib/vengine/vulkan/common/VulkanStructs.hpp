@@ -67,13 +67,6 @@ struct LightData {
     glm::uvec4 padding2;
 }; /* sizeof(LightData) = 64 */
 
-struct LightInstance {
-    glm::uvec4 info; /* R = LightData index, G = InstanceData index, B = Object Description index if Mesh type, A = type (LightType) */
-    glm::vec4 position;  /* RGB = world position/direction, A = casts shadow or RGBA = row 0 of transform matrix if mesh type */
-    glm::vec4 position1; /* RGBA = row 1 of transform matrix if mesh type */
-    glm::vec4 position2; /* RGBA = row 2 of transform matrix if mesh type */
-};                       /* sizeof(LightInstance) = 64 */
-
 struct PushBlockLightComposition {
     glm::uvec4 lights; /* R = light index, G = unused */
 };

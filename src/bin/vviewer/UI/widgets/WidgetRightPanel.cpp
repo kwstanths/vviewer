@@ -134,7 +134,7 @@ void WidgetRightPanel::createUI(SceneObject *object)
     connect(m_selectedObjectWidgetName->m_text, &QTextEdit::textChanged, this, &WidgetRightPanel::onSceneObjectNameChanged);
 
     QCheckBox *activeCheckBox = new QCheckBox();
-    activeCheckBox->setChecked(object->active());
+    activeCheckBox->setChecked(object->isActive());
     connect(activeCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onSceneObjectActiveChanged(int)));
     QHBoxLayout *layoutTest = new QHBoxLayout();
     layoutTest->addWidget(activeCheckBox);
@@ -214,7 +214,7 @@ void WidgetRightPanel::onSceneObjectNameChanged()
 
 void WidgetRightPanel::onSceneObjectActiveChanged(int)
 {
-    m_object->active() = !m_object->active();
+    m_object->setActive(!m_object->isActive());
     Q_EMIT selectedSceneObjectActiveChanged();
 }
 
@@ -232,7 +232,7 @@ void WidgetRightPanel::onAddComponentMesh()
     m_engine->stop();
     m_engine->waitIdle();
 
-    m_object->add<ComponentMesh>().mesh = sphere->meshes()[0];
+    m_object->add<ComponentMesh>().setMesh(sphere->meshes()[0]);
 
     m_engine->start();
 
@@ -248,7 +248,7 @@ void WidgetRightPanel::onAddComponentMaterial()
     m_engine->stop();
     m_engine->waitIdle();
 
-    m_object->add<ComponentMaterial>().material = matDef;
+    m_object->add<ComponentMaterial>().setMaterial(matDef);
 
     m_engine->start();
 
@@ -264,7 +264,7 @@ void WidgetRightPanel::onAddComponentPointLight()
     m_engine->stop();
     m_engine->waitIdle();
 
-    m_object->add<ComponentLight>().light = pointLight;
+    m_object->add<ComponentLight>().setLight(pointLight);
 
     m_engine->start();
 
@@ -280,7 +280,7 @@ void WidgetRightPanel::onAddComponentDirectionalLight()
     m_engine->stop();
     m_engine->waitIdle();
 
-    m_object->add<ComponentLight>().light = directionalLight;
+    m_object->add<ComponentLight>().setLight(directionalLight);
 
     m_engine->start();
 

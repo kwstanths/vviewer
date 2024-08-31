@@ -18,7 +18,7 @@ public:
     SceneNode(Transform transform)
         : m_localTransform(transform){};
 
-    /* Get set local transform */
+    /* Get/set local transform */
     const Transform &localTransform() const { return m_localTransform; }
     void setLocalTransform(const Transform &transform)
     {
@@ -27,12 +27,8 @@ public:
         transformChanged();
     }
 
-    /* notify transform change */
-    virtual void transformChanged(){};
-
-    /* get set world space model matrix */
+    /* get the world space model matrix */
     const glm::mat4 &modelMatrix() const { return m_modelMatrix; }
-    virtual void setModelMatrix(const glm::mat4 &modelMatrix) = 0;
 
     /* get node world position */
     glm::vec3 worldPosition() const { return getTranslation(m_modelMatrix); }
@@ -44,7 +40,7 @@ public:
     /* get node children */
     const std::vector<T *> &children() const { return m_children; }
 
-    /* add child */
+    /* add a child */
     T *addChild(T *node)
     {
         m_children.push_back(node);
@@ -52,7 +48,7 @@ public:
         return m_children.back();
     }
 
-    /* remove child */
+    /* remove a child */
     void removeChild(T *node) { m_children.erase(std::remove(m_children.begin(), m_children.end(), node), m_children.end()); }
 
     /* update node */
@@ -60,21 +56,25 @@ public:
     {
         m_modelMatrixChanged = false;
         if (m_parent) {
+            /* if nodes has a parent, update if parent changed, or if we changed */
             if (m_parent->modelMatrixChanged() || m_localTransformDirty) {
                 m_modelMatrix = m_parent->m_modelMatrix * m_localTransform.getModelMatrix();
                 m_modelMatrixChanged = true;
                 m_localTransformDirty = false;
             }
         } else if (m_localTransformDirty) {
+            /* else update only if we changed */
             m_modelMatrix = m_localTransform.getModelMatrix();
             m_modelMatrixChanged = true;
             m_localTransformDirty = false;
         }
 
+        /* if model matrix changed, notify */
         if (m_modelMatrixChanged) {
-            setModelMatrix(m_modelMatrix);
+            updateModelMatrix(m_modelMatrix);
         }
 
+        /* update children */
         for (auto &&child : m_children) {
             child->update();
         }
@@ -126,7 +126,13 @@ private:
 
     SceneNode<T> *m_parent = nullptr;
 
+    /* used internally to stop the update early */
     bool modelMatrixChanged() { return m_modelMatrixChanged; }
+
+    /* notify that the local transform has been changed */
+    virtual void transformChanged() = 0;
+    /* notify that the world space model matrix of this node has been changed */
+    virtual void updateModelMatrix(const glm::mat4 &modelMatrix) = 0;
 };
 
 }  // namespace vengine

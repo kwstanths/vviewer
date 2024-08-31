@@ -17,7 +17,7 @@ using namespace vengine;
 WidgetMaterial::WidgetMaterial(QWidget *parent, vengine::ComponentMaterial &materialComponent)
     : m_materialComponent(materialComponent)
 {
-    auto material = materialComponent.material;
+    auto material = materialComponent.material();
 
     m_comboBoxAvailableMaterials = new QComboBox();
     updateAvailableMaterials();
@@ -41,7 +41,7 @@ void WidgetMaterial::updateAvailableMaterials(bool updateTextures)
     m_comboBoxAvailableMaterials->clear();
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
     m_comboBoxAvailableMaterials->blockSignals(false);
-    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_materialComponent.material->name()));
+    m_comboBoxAvailableMaterials->setCurrentText(QString::fromStdString(m_materialComponent.material()->name()));
 
     if (updateTextures) {
         updateAvailableTextures();
@@ -50,7 +50,7 @@ void WidgetMaterial::updateAvailableMaterials(bool updateTextures)
 
 void WidgetMaterial::updateAvailableTextures()
 {
-    switch (m_materialComponent.material->type()) {
+    switch (m_materialComponent.material()->type()) {
         case vengine::MaterialType::MATERIAL_LAMBERT: {
             static_cast<WidgetMaterialLambert *>(m_widgetMaterial)->updateAvailableTextures();
             break;
@@ -111,5 +111,5 @@ void WidgetMaterial::onMaterialChanged(int)
     auto material = materials.get(newMaterial);
 
     createUI(createMaterialWidget(material));
-    m_materialComponent.material = material;
+    m_materialComponent.setMaterial(material);
 }

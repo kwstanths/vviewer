@@ -85,7 +85,7 @@ void VulkanTextures::updateTextures()
         imageInfos[i] = vkinit::descriptorImageInfo(tex->sampler(), tex->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         writeSets[i] = vkinit::writeDescriptorSet(m_descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1, &imageInfos[i]);
-        writeSets[i].dstArrayElement = tex->getBindlessResourceIndex();
+        writeSets[i].dstArrayElement = tex->bindlessResourceIndex();
     }
 
     vkUpdateDescriptorSets(m_vkctx.device(), static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
@@ -138,7 +138,7 @@ Texture *VulkanTextures::createTextureHDR(const AssetInfo &info)
 Texture *VulkanTextures::addTexture(Texture *tex)
 {
     auto vktex = static_cast<VulkanTexture *>(tex);
-    vktex->setBindlessResourceIndex(m_freeList.getFree());
+    vktex->bindlessResourceIndex() = m_freeList.getFree();
     m_texturesToUpdate.push_back(vktex);
     return vktex;
 }

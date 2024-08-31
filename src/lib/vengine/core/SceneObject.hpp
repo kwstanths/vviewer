@@ -24,14 +24,12 @@ public:
     bool &selected() { return m_selected; }
     const bool &selected() const { return m_selected; }
 
-    bool &active() { return m_active; }
-    const bool &active() const { return m_active; }
+    void setActive(bool active);
+    bool isActive() const { return m_active; }
 
     const AABB3 &AABB() const;
 
     void computeAABB();
-
-    void setModelMatrix(const glm::mat4 &modelMatrix) override;
 
 private:
     std::string m_name = "";
@@ -42,7 +40,13 @@ private:
 
     Scene *m_scene = nullptr;
 
-    void transformChanged() override;
+    virtual void transformChanged() override;
+    virtual void updateModelMatrix(const glm::mat4 &modelMatrix) override;
+    virtual void onComponentAdded() override;
+    virtual void onComponentRemoved() override;
+    virtual void onMeshComponentChanged() override;
+    virtual void onMaterialComponentChanged() override;
+    virtual void onLightComponentChanged() override;
 };
 
 typedef std::vector<SceneObject *> SceneObjectVector;

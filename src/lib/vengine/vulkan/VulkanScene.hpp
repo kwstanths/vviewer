@@ -42,12 +42,11 @@ public:
 
     SceneData getSceneData() const override;
 
-    void update() override;
     void updateFrame(VulkanCommandInfo vci, uint32_t frameIndex);
 
     Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) override;
 
-    const VulkanInstancesManager &instancesManager() const { return m_instances; }
+    InstancesManager &instancesManager() override { return m_instances; }
 
 private:
     VulkanContext &m_vkctx;

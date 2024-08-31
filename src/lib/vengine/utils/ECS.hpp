@@ -40,18 +40,39 @@ private:
 class ComponentMesh : public Component
 {
 public:
-    Mesh *mesh;
+    ComponentMesh(){};
+    ComponentMesh(Mesh *mesh);
+    Mesh *mesh() const;
+    void setMesh(Mesh *mesh);
+
+private:
+    Mesh *m_mesh = nullptr;
 };
 class ComponentMaterial : public Component
 {
 public:
-    Material *material;
+    ComponentMaterial(){};
+    ComponentMaterial(Material *material);
+    Material *material() const;
+    void setMaterial(Material *material);
+
+private:
+    Material *m_material = nullptr;
 };
 class ComponentLight : public Component
 {
 public:
-    Light *light;
-    bool castShadows = true;
+    ComponentLight(){};
+    ComponentLight(Light *light);
+    Light *light() const;
+    void setLight(Light *light);
+
+    bool castShadows();
+    void setCastShadows(bool castShadows);
+
+private:
+    Light *m_light = nullptr;
+    bool m_castShadows = true;
 };
 
 /* Component buffers */
@@ -139,7 +160,6 @@ private:
     std::unordered_map<const char *, IComponentBuffer *> m_componentBuffers;
 };
 
-/* Entity */
 class Entity
 {
 public:
@@ -167,6 +187,9 @@ public:
 
         const char *name = typeid(T).name();
         m_components[name] = c;
+
+        onComponentAdded();
+
         return *c;
     }
 
@@ -209,7 +232,15 @@ public:
 
         auto &cm = ComponentManager::getInstance();
         cm.remove<T>(t);
+
+        onComponentRemoved();
     }
+
+    virtual void onComponentAdded() {}
+    virtual void onComponentRemoved() {}
+    virtual void onMeshComponentChanged() {}
+    virtual void onMaterialComponentChanged() {}
+    virtual void onLightComponentChanged() {}
 
 private:
     ID m_id;

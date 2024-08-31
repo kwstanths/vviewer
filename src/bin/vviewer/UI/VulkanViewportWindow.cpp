@@ -256,7 +256,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
 void VulkanViewportWindow::wheelEvent(QWheelEvent *ev)
 {
     float delta = m_engine->delta();
-    float zoomSensitivity = 0.03F;
+    float zoomSensitivity = 0.3F;
     float speed = zoomSensitivity * delta;
     Transform &cameraTransform = m_engine->scene().camera()->transform();
 
@@ -270,7 +270,7 @@ void VulkanViewportWindow::wheelEvent(QWheelEvent *ev)
 void VulkanViewportWindow::onUpdateCamera()
 {
     /* FPS style camera movement */
-    float cameraDefaultSpeed = 3.f;
+    float cameraDefaultSpeed = 6.f;
     float cameraFastSpeed = 12.f;
 
     float speed = cameraDefaultSpeed;

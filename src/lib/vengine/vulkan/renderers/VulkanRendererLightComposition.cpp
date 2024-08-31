@@ -130,7 +130,7 @@ VkResult VulkanRendererLightComposition::renderLights(VkCommandBuffer &commandBu
                             0,
                             nullptr);
     for (uint32_t l = 0; l < lights.size(); l++) {
-        if (lights[l]->get<ComponentLight>().light->type() == LightType::POINT_LIGHT) {
+        if (lights[l]->get<ComponentLight>().light()->type() == LightType::POINT_LIGHT) {
             PushBlockLightComposition pushConstants;
             pushConstants.lights.r = l;
 
@@ -156,7 +156,7 @@ VkResult VulkanRendererLightComposition::renderLights(VkCommandBuffer &commandBu
                             0,
                             nullptr);
     for (uint32_t l = 0; l < lights.size(); l++) {
-        if (lights[l]->get<ComponentLight>().light->type() == LightType::DIRECTIONAL_LIGHT) {
+        if (lights[l]->get<ComponentLight>().light()->type() == LightType::DIRECTIONAL_LIGHT) {
             PushBlockLightComposition pushConstants;
             pushConstants.lights.r = l;
 
@@ -188,8 +188,10 @@ VkResult VulkanRendererLightComposition::createPipelineIBL(const VulkanRenderPas
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(0, nullptr, 0, nullptr);
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
 
-    VkViewport viewport = vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
-    VkRect2D scissor = vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
+    VkViewport viewport =
+        vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
+    VkRect2D scissor =
+        vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
     VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
 
     VkPipelineRasterizationStateCreateInfo rasterizer =
