@@ -15,9 +15,15 @@ bool PtSceneFurnace::create()
     camera->focalDistance() = 0.0F;
     scene().camera() = camera;
 
+    vengine::SceneObject *so = scene().addSceneObject("sphere", vengine::Transform({0, 0, 0}, {1, 1, 1}));
+
+    auto &instanceModels = vengine::AssetManager::getInstance().modelsMap();
+    auto cube = instanceModels.get("assets/models/uvsphere.obj");
+    so->add<vengine::ComponentMesh>().setMesh(cube->mesh("defaultobject"));
+
     auto material = engine().materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("material"));
     material->albedo() = glm::vec4(0.6, 0.6, 0.6, 1);
-    addModel3D(scene(), nullptr, "sphere", "assets/models/uvsphere.obj", vengine::Transform({0, 0, 0}, {1, 1, 1}), "material");
+    so->add<vengine::ComponentMaterial>().setMaterial(material);
 
     scene().environmentIntensity() = 1.0F;
     scene().environmentType() = vengine::EnvironmentType::SOLID_COLOR;

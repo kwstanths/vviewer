@@ -47,13 +47,14 @@ struct ModelData {
 };
 
 struct MaterialData {
-    glm::vec4 albedo;              /* RGB: albedo, A: alpha */
-    glm::vec4 metallicRoughnessAO; /* R: metallic, G: roughness, B: AO, A: is transparent */
-    glm::vec4 emissive;            /* RGB: emissive color, A: emissive intensity */
-    glm::uvec4 gTexturesIndices1;  /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture
-                            index */
-    glm::uvec4 gTexturesIndices2; /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: alpha texture */
-    glm::vec4 uvTiling;           /* R: u tiling, G: v tiling, B: material type, A: unused */
+    glm::vec4 albedo = glm::vec4(0, 0, 0, 1);                  /* RGB: albedo, A: alpha */
+    glm::vec4 metallicRoughnessAO = glm::vec4(0.5, 0.5, 1, 0); /* R: metallic, G: roughness, B: AO, A: is transparent */
+    glm::vec4 emissive = glm::vec4(1, 1, 1, 0);                /* RGB: emissive color, A: emissive intensity */
+    glm::uvec4 gTexturesIndices1 = glm::vec4(0, 0, 0, 0); /* R: albedo texture index, G: metallic texture index, B: roughness texture
+                          index, A: AO texture index */
+    glm::uvec4 gTexturesIndices2 =
+        glm::vec4(0, 0, 0, 0); /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: alpha texture */
+    glm::vec4 uvTiling = glm::vec4(1, 1, 0, 0); /* R: u tiling, G: v tiling, B: material type, A: unused */
 
     glm::uvec4 padding1;
     glm::uvec4 padding2;

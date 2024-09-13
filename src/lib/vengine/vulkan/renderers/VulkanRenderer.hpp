@@ -124,8 +124,6 @@ private:
 
     std::vector<VkCommandBuffer> m_commandBufferDeferred;
     std::vector<VkSemaphore> m_semaphoreDeferredFinished;
-    // std::vector<VkCommandBuffer> m_commandBufferPost;
-    // std::vector<VkSemaphore> m_semaphorePostFinished;
     std::vector<VkCommandBuffer> m_commandBufferOverlay;
     std::vector<VkSemaphore> m_semaphoreOverlayFinished;
     std::vector<VkCommandBuffer> m_commandBufferOutput;

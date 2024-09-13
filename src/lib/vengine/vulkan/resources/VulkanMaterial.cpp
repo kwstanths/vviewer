@@ -34,6 +34,7 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info,
     , MaterialPBRStandard(info, materials)
 {
     m_block->uvTiling.b = static_cast<float>(MaterialType::MATERIAL_PBR_STANDARD);
+    m_block->metallicRoughnessAO.a = 0;
 
     albedo() = glm::vec4(1, 1, 1, 1);
     metallic() = 0;
@@ -226,6 +227,7 @@ VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info,
     , MaterialLambert(info, materials)
 {
     m_block->uvTiling.b = static_cast<float>(MaterialType::MATERIAL_LAMBERT);
+    m_block->metallicRoughnessAO.a = 0;
 
     albedo() = glm::vec4(1, 1, 1, 1);
     ao() = 1;

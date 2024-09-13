@@ -40,6 +40,8 @@ VkResult VulkanScene::initSwapchainResources(uint32_t nImages)
     VULKAN_CHECK_CRITICAL(m_instances.initSwapchainResources(nImages));
 
     m_tlas.resize(nImages);
+    m_tlasNeedsUpdate.resize(nImages, true);
+    std::fill(m_tlasNeedsUpdate.begin(), m_tlasNeedsUpdate.end(), true);
 
     VULKAN_CHECK_CRITICAL(createBuffers(nImages));
     VULKAN_CHECK_CRITICAL(createDescriptorPool(nImages));
@@ -103,7 +105,9 @@ void VulkanScene::updateFrame(VulkanCommandInfo vci, uint32_t imageIndex)
 
     m_instances.updateBuffers(imageIndex);
 
-    buildTLAS(vci, imageIndex);
+    if (m_tlasNeedsUpdate[imageIndex]) {
+        buildTLAS(vci, imageIndex);
+    }
 }
 
 Light *VulkanScene::createLight(const AssetInfo &info, LightType type, glm::vec4 color)
@@ -141,6 +145,11 @@ SceneObject *VulkanScene::createObject(std::string name)
 void VulkanScene::deleteObject(SceneObject *object)
 {
     delete object;
+}
+
+void VulkanScene::invalidateTLAS()
+{
+    std::fill(m_tlasNeedsUpdate.begin(), m_tlasNeedsUpdate.end(), true);
 }
 
 VkResult VulkanScene::createDescriptorSetsLayouts()
@@ -286,7 +295,6 @@ VkResult VulkanScene::createBuffers(uint32_t nImages)
 void VulkanScene::buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex)
 {
     /* TODO update TLAS don't recreate */
-
     /* Create new TLAS */
     std::vector<BLASInstance> blasInstances;
     for (auto &meshGroup : m_instances.opaqueMeshes()) {
@@ -343,6 +351,8 @@ void VulkanScene::buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex)
     accelerationStructureWrite.descriptorCount = 1;
     accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     vkUpdateDescriptorSets(m_vkctx.device(), 1, &accelerationStructureWrite, 0, nullptr);
+
+    m_tlasNeedsUpdate[imageIndex] = false;
 }
 
 void VulkanScene::createTopLevelAccelerationStructure(const std::vector<BLASInstance> &blasInstances,

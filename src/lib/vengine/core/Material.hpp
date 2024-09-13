@@ -52,7 +52,6 @@ public:
 
 protected:
     Materials &m_materials;
-    bool m_isTransparent = false;
 };
 
 class MaterialPBRStandard : public Material

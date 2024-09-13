@@ -86,6 +86,7 @@ private:
     std::vector<VulkanAccelerationStructure> m_tlas;
     VkDescriptorSetLayout m_descriptorSetLayoutTLAS;
     std::vector<VkDescriptorSet> m_descriptorSetsTLAS;
+    std::vector<bool> m_tlasNeedsUpdate;
 
     VkResult createDescriptorSetsLayouts();
     VkResult createDescriptorPool(uint32_t nImages);
@@ -94,6 +95,7 @@ private:
 
     SceneObject *createObject(std::string name) override;
     void deleteObject(SceneObject *object) override;
+    void invalidateTLAS() override;
 
     void buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex);
     void createTopLevelAccelerationStructure(const std::vector<BLASInstance> &blasInstances,

@@ -16,7 +16,10 @@ Mesh *ComponentMesh::mesh() const
 void ComponentMesh::setMesh(Mesh *mesh)
 {
     m_mesh = mesh;
-    entity()->onMeshComponentChanged();
+
+    for (Entity *e : *m_owner) {
+        e->onMeshComponentChanged();
+    }
 }
 
 ComponentMaterial::ComponentMaterial(Material *material)
@@ -32,7 +35,10 @@ Material *ComponentMaterial::material() const
 void ComponentMaterial::setMaterial(Material *material)
 {
     m_material = material;
-    entity()->onMaterialComponentChanged();
+
+    for (Entity *e : *m_owner) {
+        e->onMaterialComponentChanged();
+    }
 }
 
 ComponentLight::ComponentLight(Light *light)
@@ -48,7 +54,10 @@ Light *ComponentLight::light() const
 void ComponentLight::setLight(Light *light)
 {
     m_light = light;
-    entity()->onLightComponentChanged();
+
+    for (Entity *e : *m_owner) {
+        e->onLightComponentChanged();
+    }
 }
 
 bool ComponentLight::castShadows()
@@ -59,12 +68,15 @@ bool ComponentLight::castShadows()
 void ComponentLight::setCastShadows(bool castShadows)
 {
     m_castShadows = castShadows;
-    entity()->onLightComponentChanged();
+
+    for (Entity *e : *m_owner) {
+        e->onLightComponentChanged();
+    }
 }
 
-Entity *Component::entity() const
+ComponentOwner *Component::owner() const
 {
-    return m_entity;
+    return m_owner;
 }
 
 Entity::Entity()

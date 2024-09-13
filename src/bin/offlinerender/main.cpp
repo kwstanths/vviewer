@@ -6,6 +6,7 @@
 #include "PtSceneDragonsOnPlane.hpp"
 #include "PtSceneBreakfastRoom.hpp"
 #include "PtSceneFurnace.hpp"
+#include "PtSceneSharedComponents.hpp"
 
 using namespace vengine;
 

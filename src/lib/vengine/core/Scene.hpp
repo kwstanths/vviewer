@@ -102,6 +102,7 @@ protected:
 
     virtual SceneObject *createObject(std::string name) = 0;
     virtual void deleteObject(SceneObject *) = 0;
+    virtual void invalidateTLAS() = 0;
 
 private:
     void invalidateSceneGraph(bool changed);

@@ -19,24 +19,27 @@
 namespace vengine
 {
 
-static const uint32_t MAX_COMPONENTS = 16384;
+static const uint32_t MAX_COMPONENTS = 32768;
 
 class Entity;
+class ComponentOwner;
+class ComponentManager;
 
 /* Base Component class */
 class Component
 {
     friend class Entity;
+    friend class ComponentManager;
 
 public:
     virtual ~Component() = default;
 
-    Entity *entity() const;
+    ComponentOwner *owner() const;
 
-private:
-    Entity *m_entity = nullptr;
+protected:
+    ComponentOwner *m_owner = nullptr;
 };
-
+/* Available components */
 class ComponentMesh : public Component
 {
 public:
@@ -75,7 +78,85 @@ private:
     bool m_castShadows = true;
 };
 
-/* Component buffers */
+/* Component owner */
+class ComponentOwner
+{
+    friend class Entity;
+
+public:
+    virtual ~ComponentOwner() = default;
+    struct Iterator {
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+        using pointer = Entity **;
+        using reference = Entity *&;
+
+        Iterator(pointer ptr)
+            : m_ptr(ptr)
+        {
+        }
+
+        reference operator*() const { return *m_ptr; }
+        pointer operator->() { return m_ptr; }
+        Iterator &operator++()
+        {
+            m_ptr++;
+            return *this;
+        }
+        Iterator operator++(int)
+        {
+            Iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+        friend bool operator==(const Iterator &a, const Iterator &b) { return a.m_ptr == b.m_ptr; };
+        friend bool operator!=(const Iterator &a, const Iterator &b) { return a.m_ptr != b.m_ptr; };
+
+        pointer m_ptr;
+    };
+
+    virtual bool isShared() = 0;
+
+    virtual Iterator begin() = 0;
+    virtual Iterator end() = 0;
+};
+class ComponentOwnerShared : public ComponentOwner
+{
+    friend class Entity;
+
+public:
+    bool isShared() { return true; }
+    Iterator begin()
+    {
+        if (m_entities.size() == 0)
+            return nullptr;
+        return &m_entities[0];
+    }
+    Iterator end()
+    {
+        if (m_entities.size() == 0)
+            return nullptr;
+        return &m_entities[m_entities.size() - 1];
+    }
+
+private:
+    void addEntity(Entity *e) { m_entities.push_back(e); }
+    std::vector<Entity *> m_entities;
+};
+class ComponentOwnerUnique : public ComponentOwner
+{
+    friend class Entity;
+
+public:
+    bool isShared() { return false; }
+    Iterator begin() { return &m_entity; }
+    Iterator end() { return &m_entity; }
+
+private:
+    Entity *m_entity = nullptr;
+};
+
+/* Component storage buffers */
 class IComponentBuffer
 {
 public:
@@ -113,17 +194,24 @@ public:
 
     void clear();
 
-    template <typename T>
+    template <typename T, typename OwnerType = ComponentOwnerUnique>
     T *create()
     {
+        static_assert(std::is_base_of<Component, T>::value);
+        static_assert(std::is_base_of<ComponentOwner, OwnerType>::value);
+
         auto componentBuffer = buffer<T>();
         auto *component = componentBuffer->get();
+        component->m_owner = new OwnerType();
         return component;
     }
 
     template <typename T>
     void remove(T *t)
     {
+        static_assert(std::is_base_of<Component, T>::value);
+
+        delete t->m_owner;
         auto componentBuffer = buffer<T>();
         componentBuffer->remove(t);
     }
@@ -160,6 +248,7 @@ private:
     std::unordered_map<const char *, IComponentBuffer *> m_componentBuffers;
 };
 
+/* Entity class */
 class Entity
 {
 public:
@@ -167,12 +256,18 @@ public:
 
     virtual ~Entity()
     {
-        // TODO optimise this
+        // TODO optimise this?
         remove<ComponentMesh>();
         remove<ComponentMaterial>();
         remove<ComponentLight>();
     }
 
+    /**
+     * @brief Creates a new unique component of type T, adds to the entity and returns its reference
+     *
+     * @tparam T
+     * @return T&
+     */
     template <typename T>
     T &add()
     {
@@ -182,8 +277,8 @@ public:
             return get<T>();
 
         auto &cm = ComponentManager::getInstance();
-        T *c = cm.create<T>();
-        c->m_entity = this;
+        T *c = cm.create<T, ComponentOwnerUnique>();
+        static_cast<ComponentOwnerUnique *>(c->m_owner)->m_entity = this;
 
         const char *name = typeid(T).name();
         m_components[name] = c;
@@ -193,6 +288,36 @@ public:
         return *c;
     }
 
+    /**
+     * @brief Adds a shared component of type T to the entity and returns its reference
+     *
+     * @tparam T
+     * @return T&
+     */
+    template <typename T>
+    void add_shared(Component *sharedComponent)
+    {
+        static_assert(std::is_base_of<Component, T>::value);
+        assert(sharedComponent != nullptr);
+        assert(sharedComponent->m_owner != nullptr);
+        assert(sharedComponent->m_owner->isShared());
+
+        if (has<T>())
+            return;
+
+        static_cast<ComponentOwnerShared *>(sharedComponent->m_owner)->addEntity(this);
+
+        const char *name = typeid(T).name();
+        m_components[name] = sharedComponent;
+
+        onComponentAdded();
+    }
+
+    /**
+     * @brief Get the component of type T
+     *
+     * @return Get&
+     */
     template <typename T>
     T &get() const
     {
@@ -206,6 +331,13 @@ public:
             return *static_cast<T *>(itr->second);
     }
 
+    /**
+     * @brief Check if it has the component of type T
+     *
+     * @tparam T
+     * @return true
+     * @return false
+     */
     template <typename T>
     bool has() const
     {
@@ -218,6 +350,11 @@ public:
 
     ID getID() const;
 
+    /**
+     * @brief Remove a component of type T
+     *
+     * @tparam T
+     */
     template <typename T>
     void remove()
     {
@@ -230,8 +367,10 @@ public:
         T *t = static_cast<T *>(m_components[name]);
         m_components.erase(name);
 
-        auto &cm = ComponentManager::getInstance();
-        cm.remove<T>(t);
+        if (!t->m_owner->isShared()) {
+            auto &cm = ComponentManager::getInstance();
+            cm.remove<T>(t);
+        }
 
         onComponentRemoved();
     }

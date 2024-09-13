@@ -264,14 +264,13 @@ void VulkanEngine::deleteImportedAssets()
 void VulkanEngine::mainLoop()
 {
     for (;;) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-
         if (m_threadMainExit) {
             break;
         }
 
         if (m_threadMainPaused) {
             m_status = STATUS::PAUSED;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
 

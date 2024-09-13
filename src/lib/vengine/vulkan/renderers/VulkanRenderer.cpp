@@ -309,7 +309,7 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
         vkCmdNextSubpass(commandBufferDeferred, VK_SUBPASS_CONTENTS_INLINE);
         {
             /* Perform IBL if needed */
-            if (m_scene.environmentType() == EnvironmentType::HDRI) {
+            if (m_scene.environmentIntensity() > 0.F) {
                 m_rendererLightComposition.renderIBL(commandBufferDeferred,
                                                      m_scene.m_instances,
                                                      m_renderPassDeferred.descriptor(imageIndex),

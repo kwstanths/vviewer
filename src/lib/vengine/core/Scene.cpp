@@ -97,6 +97,11 @@ void Scene::removeSceneObject(SceneObject *node)
 
 void Scene::update()
 {
+    bool tlasNeedsUpdate = m_sceneGraphNeedsUpdate || m_instancesNeedUpdate;
+    if (tlasNeedsUpdate) {
+        invalidateTLAS();
+    }
+
     if (m_sceneGraphNeedsUpdate) {
         m_sceneGraphNeedsUpdate = false;
         for (auto &node : m_sceneGraph) {
