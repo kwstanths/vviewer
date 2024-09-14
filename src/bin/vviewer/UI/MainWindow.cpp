@@ -556,7 +556,7 @@ void MainWindow::onImportMaterial()
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
 
-    if (task.success) {
+    if (task.isSuccess()) {
         m_widgetRightPanel->updateAvailableMaterials();
     }
 
@@ -597,7 +597,7 @@ void MainWindow::onImportMaterialZipStackSlot()
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
 
-    if (task.success) {
+    if (task.isSuccess()) {
         m_widgetRightPanel->updateAvailableMaterials();
     }
 
@@ -906,10 +906,8 @@ void MainWindow::onRenderSceneSlot()
         RendererPathTracing &renderer;
 
         RTRenderTask(RendererPathTracing &r)
-            : renderer(r)
-        {
-            function = Funct(renderer);
-        };
+            : Task(Funct(renderer))
+            , renderer(r){};
 
         struct Funct {
             RendererPathTracing &renderer;
@@ -1110,7 +1108,7 @@ void MainWindow::onStartUpInitialization()
         auto cube = instanceModels.get("assets/models/cube.obj");
         auto sphere = instanceModels.get("assets/models/uvsphere.obj");
 
-        {
+        /*{
             auto o = createEmptySceneObject("plane", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
             o.second->add<ComponentMesh>().setMesh(plane->mesh("Plane"));
             o.second->add<ComponentMaterial>().setMaterial(matDef);
@@ -1130,7 +1128,35 @@ void MainWindow::onStartUpInitialization()
             auto o = createEmptySceneObject("volume", Transform({0, 0, 0}, {3, 3, 3}), nullptr);
             o.second->add<ComponentMesh>().setMesh(cube->mesh("Cube"));
             o.second->add<ComponentMaterial>().setMaterial(matVol);
+        }*/
+
+        auto root = createEmptySceneObject("root", Transform(), nullptr);
+
+        vengine::ComponentManager &instance = vengine::ComponentManager::getInstance();
+        vengine::ComponentMesh *meshComponent = instance.create<vengine::ComponentMesh, vengine::ComponentOwnerShared>();
+        vengine::ComponentMaterial *materialComponent = instance.create<vengine::ComponentMaterial, vengine::ComponentOwnerShared>();
+
+        int32_t size = 100;
+        for (int32_t i = -size; i < size; i += 3) {
+            for (int32_t j = -size; j < size; j += 3) {
+                auto so = createEmptySceneObject("cube" + std::to_string(i) + std::to_string(j), Transform({i, 0, j}, {1, 1, 1}), root.first);
+                so.second->add_shared<vengine::ComponentMesh>(meshComponent);
+                so.second->add_shared<vengine::ComponentMaterial>(materialComponent);
+            }
         }
+        meshComponent->setMesh(cube->mesh("Cube"));
+        materialComponent->setMaterial(matDef);
+
+        {
+            auto so = createEmptySceneObject("directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
+
+            so.second->add<vengine::ComponentLight>().setLight(
+                vengine::AssetManager::getInstance().lightsMap().get("defaultDirectionalLight"));
+        }
+
+        m_scene->environmentType() = vengine::EnvironmentType::SOLID_COLOR;
+        m_scene->environmentIntensity() = 0.0F;
+
 
         m_widgetRightPanel->getEnvironmentWidget()->updateMaps();
         m_widgetRightPanel->getEnvironmentWidget()->updateMaterials();

@@ -30,7 +30,7 @@ DialogWaiting::DialogWaiting(QWidget *parent, QString text, Task * task) : m_tas
 
 void DialogWaiting::closeEvent(QCloseEvent *event)
 {
-    if (!m_task->finished)
+    if (!m_task->isFinished())
     {
         event->ignore();
     } else 
@@ -44,7 +44,7 @@ void DialogWaiting::closeEvent(QCloseEvent *event)
 void DialogWaiting::update()
 {
     m_progressBar->setValue(m_task->getProgress() * 100);
-    if (!m_task->finished) return;
+    if (!m_task->isFinished()) return;
 
     close();
 }
