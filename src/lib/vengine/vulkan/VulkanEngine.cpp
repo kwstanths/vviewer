@@ -1,7 +1,11 @@
 #include "VulkanEngine.hpp"
 
+#include <chrono>
+
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/common/VulkanLimits.hpp"
+
+//#define PRINT_FRAME_TIME
 
 namespace vengine
 {
@@ -12,7 +16,7 @@ VulkanEngine::VulkanEngine(const std::string &applicationName)
     , m_textures(m_context)
     , m_materials(*this, m_context)
     , m_swapchain(m_context)
-    , m_scene(m_context)
+    , m_scene(m_context, * this)
     , m_renderer(m_context, m_swapchain, m_textures, m_materials, m_scene)
 {
     m_threadMain = std::thread(&VulkanEngine::mainLoop, this);
@@ -276,13 +280,17 @@ void VulkanEngine::mainLoop()
 
         m_status = STATUS::RUNNING;
 
-        /* update scene */
-        m_scene.update();
-
         /* Calculate delta time */
         auto currentTime = std::chrono::steady_clock::now();
         m_deltaTime = (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_frameTimePrev).count()) / 1000.0f;
         m_frameTimePrev = currentTime;
+
+#ifdef PRINT_FRAME_TIME
+        debug_tools::ConsoleInfo("Frame time: " + std::to_string(static_cast<uint32_t>(m_deltaTime * 1000)) + " ms");
+#endif
+
+        /* update scene */
+        m_scene.update();
 
         /* Render frame */
         VULKAN_WARNING(m_renderer.renderFrame());

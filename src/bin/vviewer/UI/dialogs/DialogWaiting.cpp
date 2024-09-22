@@ -19,9 +19,7 @@ DialogWaiting::DialogWaiting(QWidget *parent, QString text, Task * task) : m_tas
     setLayout(layoutMain);
     setFixedSize(150, 70);
 
-    m_thread = std::thread([this]() {
-        (*m_task)(); 
-    });
+    m_thread = std::thread([this, task]() { task->run(); });
 
     m_timer = new QTimer(this);
     connect(m_timer, SIGNAL(timeout()), this, SLOT(update()));

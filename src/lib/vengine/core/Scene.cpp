@@ -3,17 +3,24 @@
 #include <algorithm>
 #include <functional>
 
+#include "Engine.hpp"
 #include "AssetManager.hpp"
-#include "Console.hpp"
 #include "core/Light.hpp"
 #include "core/SceneObject.hpp"
+#include "core/SceneUtils.hpp"
 #include "math/Transform.hpp"
 #include "utils/ECS.hpp"
+
+#include "debug_tools/Console.hpp"
+#include "debug_tools/Timer.hpp"
+
+//#define PRINT_UPDATE_TIME
 
 namespace vengine
 {
 
-Scene::Scene()
+Scene::Scene(Engine &engine)
+    : m_engine(engine)
 {
 }
 
@@ -97,6 +104,11 @@ void Scene::removeSceneObject(SceneObject *node)
 
 void Scene::update()
 {
+#ifdef PRINT_UPDATE_TIME
+    debug_tools::Timer timer;
+    timer.Start();
+#endif
+
     bool tlasNeedsUpdate = m_sceneGraphNeedsUpdate || m_instancesNeedUpdate;
     if (tlasNeedsUpdate) {
         invalidateTLAS();
@@ -104,10 +116,18 @@ void Scene::update()
 
     if (m_sceneGraphNeedsUpdate) {
         m_sceneGraphNeedsUpdate = false;
-        for (auto &node : m_sceneGraph) {
-            node->update();
-        }
+
+        UpdateSceneGraphParallel(m_sceneGraph, m_engine.threadPool());
     }
+
+#ifdef PRINT_UPDATE_TIME
+    timer.Stop();
+    if (timer.ToInt() != 0) {
+        debug_tools::ConsoleInfo("Scene update time: " + timer.ToString() + " ms");
+    }
+
+    timer.Start();
+#endif
 
     if (m_instancesNeedUpdate) {
         m_instancesNeedUpdate = false;
@@ -115,6 +135,13 @@ void Scene::update()
     }
 
     instancesManager().build();
+
+#ifdef PRINT_UPDATE_TIME
+    timer.Stop();
+    if (timer.ToInt() != 0) {
+        debug_tools::ConsoleInfo("Instances build time: " + timer.ToString() + " ms");
+    }
+#endif
 }
 
 SceneObjectVector Scene::getSceneObjectsFlat() const

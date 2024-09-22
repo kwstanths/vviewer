@@ -8,12 +8,14 @@
 #include "vulkan/common/VulkanLimits.hpp"
 #include "vulkan/resources/VulkanLight.hpp"
 #include "vulkan/renderers/VulkanRendererPathTracing.hpp"
+#include "vulkan/VulkanEngine.hpp"
 
 namespace vengine
 {
 
-VulkanScene::VulkanScene(VulkanContext &vkctx)
-    : m_vkctx(vkctx)
+VulkanScene::VulkanScene(VulkanContext &vkctx, VulkanEngine &engine)
+    : Scene(engine)
+    , m_vkctx(vkctx)
     , m_instances(vkctx, this)
     , m_lightDataUBO(VULKAN_LIMITS_MAX_UNIQUE_LIGHTS)
 {

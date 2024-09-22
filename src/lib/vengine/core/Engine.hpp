@@ -7,6 +7,7 @@
 #include "EnvironmentMap.hpp"
 #include "Textures.hpp"
 #include "Materials.hpp"
+#include "utils/ThreadPool.hpp"
 
 namespace vengine
 {
@@ -21,7 +22,7 @@ public:
         EXITED = 3,
     };
 
-    Engine(){};
+    Engine();
     virtual ~Engine(){};
 
     STATUS status() { return m_status; }
@@ -43,8 +44,12 @@ public:
 
     virtual void deleteImportedAssets() = 0;
 
+    ThreadPool &threadPool() { return m_threadPool; }
+
 protected:
     STATUS m_status = STATUS::NOT_STARTED;
+
+    ThreadPool m_threadPool;
 };
 
 }  // namespace vengine

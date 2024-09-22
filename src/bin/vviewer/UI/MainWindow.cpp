@@ -384,13 +384,13 @@ void MainWindow::onImportModelSlot()
     if (filename == "")
         return;
 
-    struct ImportFunct {
-        ImportFunct(Engine *e, std::string f)
+    struct ImportTask : Task {
+        ImportTask(Engine *e, std::string f)
             : engine(e)
             , filename(f){};
         Engine *engine;
         std::string filename;
-        bool operator()(float &)
+        bool work(float &)
         {
             bool ret = engine->importModel(AssetInfo(filename), true) != nullptr;
             if (ret) {
@@ -399,7 +399,7 @@ void MainWindow::onImportModelSlot()
             return ret;
         }
     };
-    Task task(ImportFunct(m_engine, filename.toStdString()));
+    ImportTask task(m_engine, filename.toStdString());
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -415,14 +415,14 @@ void MainWindow::onImportTextureSRGBSlot()
     if (filenames.length() == 0)
         return;
 
-    struct ImportFunct {
-        ImportFunct(Textures &t, QStringList &fs)
+    struct ImportTask : Task {
+        ImportTask(Textures &t, QStringList &fs)
             : textures(t)
             , filenames(fs){};
         Textures &textures;
         QStringList filenames;
 
-        bool operator()(float &progress)
+        bool work(float &progress)
         {
             bool success = true;
             for (uint32_t t = 0; t < filenames.length(); t++) {
@@ -438,7 +438,7 @@ void MainWindow::onImportTextureSRGBSlot()
             return success;
         }
     };
-    Task task(ImportFunct(m_engine->textures(), filenames));
+    ImportTask task(m_engine->textures(), filenames);
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -456,14 +456,14 @@ void MainWindow::onImportTextureLinearSlot()
     if (filenames.length() == 0)
         return;
 
-    struct ImportFunct {
-        ImportFunct(Textures &t, QStringList &fs)
+    struct ImportTask : Task {
+        ImportTask(Textures &t, QStringList &fs)
             : textures(t)
             , filenames(fs){};
         Textures &textures;
         QStringList filenames;
 
-        bool operator()(float &progress)
+        bool work(float &progress)
         {
             bool success = true;
             for (uint32_t t = 0; t < filenames.length(); t++) {
@@ -479,7 +479,7 @@ void MainWindow::onImportTextureLinearSlot()
             return success;
         }
     };
-    Task task(ImportFunct(m_engine->textures(), filenames));
+    ImportTask task(m_engine->textures(), filenames);
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -497,13 +497,13 @@ void MainWindow::onImportEnvironmentMap()
     if (filename == "")
         return;
 
-    struct ImportFunct {
-        ImportFunct(Engine *e, std::string f)
+    struct ImportTask : Task {
+        ImportTask(Engine *e, std::string f)
             : engine(e)
             , filename(f){};
         Engine *engine;
         std::string filename;
-        bool operator()(float &)
+        bool work(float &)
         {
             auto envMap = engine->importEnvironmentMap(AssetInfo(filename));
             if (envMap) {
@@ -513,7 +513,7 @@ void MainWindow::onImportEnvironmentMap()
             return false;
         }
     };
-    Task task(ImportFunct(m_engine, filename.toStdString()));
+    ImportTask task(m_engine, filename.toStdString());
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -532,15 +532,15 @@ void MainWindow::onImportMaterial()
     std::string materialName = dir.split('/').back().toStdString();
     std::string dirStd = dir.toStdString();
 
-    struct ImportFunct {
-        ImportFunct(Engine *e, std::string d, std::string n)
+    struct ImportTask : Task {
+        ImportTask(Engine *e, std::string d, std::string n)
             : engine(e)
             , dir(d)
             , materialName(n){};
         Engine *engine;
         std::string dir;
         std::string materialName;
-        bool operator()(float &)
+        bool work(float &)
         {
             auto material = engine->materials().createMaterialFromDisk(AssetInfo(materialName), dir, engine->textures());
             if (material) {
@@ -551,7 +551,7 @@ void MainWindow::onImportMaterial()
             }
         }
     };
-    Task task(ImportFunct(m_engine, dirStd, materialName));
+    ImportTask task(m_engine, dirStd, materialName);
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -573,15 +573,15 @@ void MainWindow::onImportMaterialZipStackSlot()
 
     std::string materialName = filename.split('/').back().toStdString();
 
-    struct ImportFunct {
-        ImportFunct(Engine *e, std::string f, std::string n)
+    struct ImportTask : Task{
+        ImportTask(Engine *e, std::string f, std::string n)
             : engine(e)
             , filename(f)
             , materialName(n){};
         Engine *engine;
         std::string filename;
         std::string materialName;
-        bool operator()(float &)
+        bool work(float &)
         {
             auto material = engine->materials().createZipMaterial(AssetInfo(materialName, filename), engine->textures());
             if (material) {
@@ -592,7 +592,7 @@ void MainWindow::onImportMaterialZipStackSlot()
             }
         }
     };
-    Task task(ImportFunct(m_engine, filename.toStdString(), materialName));
+    ImportTask task(m_engine, filename.toStdString(), materialName);
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -903,23 +903,16 @@ void MainWindow::onRenderSceneSlot()
     RTrenderer.renderInfo().exposure = m_scene->exposure();
 
     struct RTRenderTask : public Task {
+        RTRenderTask(RendererPathTracing &r)
+            : renderer(r){};
+
         RendererPathTracing &renderer;
 
-        RTRenderTask(RendererPathTracing &r)
-            : Task(Funct(renderer))
-            , renderer(r){};
-
-        struct Funct {
-            RendererPathTracing &renderer;
-
-            Funct(RendererPathTracing &r)
-                : renderer(r){};
-            bool operator()(float &)
-            {
-                renderer.render();
-                return true;
-            }
-        };
+        bool work(float &)
+        {
+            renderer.render();
+            return true;
+        }
 
         float getProgress() const override { return renderer.renderProgress(); }
     };
@@ -1108,7 +1101,7 @@ void MainWindow::onStartUpInitialization()
         auto cube = instanceModels.get("assets/models/cube.obj");
         auto sphere = instanceModels.get("assets/models/uvsphere.obj");
 
-        /*{
+        {
             auto o = createEmptySceneObject("plane", Transform({0, -1, 0}, {10, 10, 10}), nullptr);
             o.second->add<ComponentMesh>().setMesh(plane->mesh("Plane"));
             o.second->add<ComponentMaterial>().setMaterial(matDef);
@@ -1128,39 +1121,7 @@ void MainWindow::onStartUpInitialization()
             auto o = createEmptySceneObject("volume", Transform({0, 0, 0}, {3, 3, 3}), nullptr);
             o.second->add<ComponentMesh>().setMesh(cube->mesh("Cube"));
             o.second->add<ComponentMaterial>().setMaterial(matVol);
-        }*/
-
-        auto root = createEmptySceneObject("root", Transform(), nullptr);
-
-        vengine::ComponentManager &instance = vengine::ComponentManager::getInstance();
-        vengine::ComponentMesh *meshComponent = instance.create<vengine::ComponentMesh, vengine::ComponentOwnerShared>();
-        vengine::ComponentMaterial *materialComponent = instance.create<vengine::ComponentMaterial, vengine::ComponentOwnerShared>();
-
-        int32_t size = 100;
-        for (int32_t i = -size; i < size; i += 3) {
-            for (int32_t j = -size; j < size; j += 3) {
-                auto so = createEmptySceneObject("cube" + std::to_string(i) + std::to_string(j), Transform({i, 0, j}, {1, 1, 1}), root.first);
-                so.second->add_shared<vengine::ComponentMesh>(meshComponent);
-                so.second->add_shared<vengine::ComponentMaterial>(materialComponent);
-            }
         }
-        meshComponent->setMesh(cube->mesh("Cube"));
-        materialComponent->setMaterial(matDef);
-
-        {
-            auto so = createEmptySceneObject("directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
-
-            so.second->add<vengine::ComponentLight>().setLight(
-                vengine::AssetManager::getInstance().lightsMap().get("defaultDirectionalLight"));
-        }
-
-        m_scene->environmentType() = vengine::EnvironmentType::SOLID_COLOR;
-        m_scene->environmentIntensity() = 0.0F;
-
-
-        m_widgetRightPanel->getEnvironmentWidget()->updateMaps();
-        m_widgetRightPanel->getEnvironmentWidget()->updateMaterials();
-
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
     }

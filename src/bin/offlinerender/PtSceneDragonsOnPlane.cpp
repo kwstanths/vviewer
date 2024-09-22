@@ -26,12 +26,12 @@ bool PtSceneDragonsOnPlane::create()
 
     auto floorMat = engine().materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("floorMat"));
     floorMat->albedo() = glm::vec4(0.7, 0.7, 0.7, 1);
-    floorMat->metallic() = 0.3;
-    floorMat->roughness() = 0.07;
+    floorMat->metallic() = 0.3F;
+    floorMat->roughness() = 0.07F;
     auto wallMat = engine().materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("wallMat"));
     wallMat->albedo() = glm::vec4(0.7, 0.7, 0.7, 1);
-    wallMat->metallic() = 0.3;
-    wallMat->roughness() = 0.3;
+    wallMat->metallic() = 0.3F;
+    wallMat->roughness() = 0.3F;
 
     addModel3D(scene(), nullptr, "plane", "assets/models/plane.obj", vengine::Transform({0, 0, 0}, {400, 400, 400}), "floorMat");
     addModel3D(scene(),

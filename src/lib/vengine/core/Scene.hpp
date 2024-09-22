@@ -34,6 +34,8 @@ struct SceneData {
     glm::vec4 m_volumes;    /* R = material id of camera volume, G = near plane, B = far plane, A = unused */
 };
 
+class Engine;
+
 class Scene
 {
     friend class SceneObject;
@@ -41,7 +43,7 @@ class Scene
     friend class Materials;
 
 public:
-    Scene();
+    Scene(Engine &engine);
     ~Scene();
 
     const std::shared_ptr<Camera> &camera() const { return m_camera; }
@@ -86,10 +88,12 @@ public:
     virtual InstancesManager &instancesManager() = 0;
 
 protected:
+    Engine &m_engine;
+
     std::shared_ptr<Camera> m_camera = nullptr;
     float m_exposure = 0.0f;
 
-    MaterialSkybox *m_skybox;
+    MaterialSkybox *m_skybox = nullptr;
     EnvironmentType m_environmentType = EnvironmentType::HDRI;
     float m_environmentIntensity = 1.0f;
     glm::vec3 m_backgroundColor = {0.0, 0.0, 0.0};

@@ -17,12 +17,20 @@ namespace vengine
 class ThreadPool
 {
 public:
-    ThreadPool(uint32_t numThreads);
+    ThreadPool(){};
     ~ThreadPool();
 
+    /* Initialize thread pool */
+    bool init(uint32_t numThreads);
+
+    /* Push a task item */
     void push(Task* task);
 
+    /* Request exit and wait */
     void stop();
+
+    /* Get available workers */
+    uint32_t threads();
 
 private:
     class WorkerThread
@@ -39,6 +47,8 @@ private:
     std::vector<std::thread> m_workerThreads;
 
     std::queue<Task*> m_tasks;
+
+    bool m_initialized = false;
 
     /* Tasks queue mutex and condition variable */
     std::mutex m_lock;

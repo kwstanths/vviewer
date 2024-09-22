@@ -7,6 +7,7 @@
 
 #include <vengine/math/Transform.hpp>
 #include <vengine/math/MathUtils.hpp>
+#include <vengine/utils/ThreadPool.hpp>
 
 namespace vengine
 {
@@ -39,6 +40,7 @@ public:
 
     /* get node children */
     const std::vector<T *> &children() const { return m_children; }
+    std::vector<T *> &children() { return m_children; }
 
     /* add a child */
     T *addChild(T *node)
@@ -51,7 +53,7 @@ public:
     /* remove a child */
     void removeChild(T *node) { m_children.erase(std::remove(m_children.begin(), m_children.end(), node), m_children.end()); }
 
-    /* update node */
+    /* update this node */
     void update()
     {
         m_modelMatrixChanged = false;
@@ -73,19 +75,14 @@ public:
         if (m_modelMatrixChanged) {
             updateModelMatrix(m_modelMatrix);
         }
-
-        /* update children */
-        for (auto &&child : m_children) {
-            child->update();
-        }
     }
-
+    
     /* Get all nodes in a flat array */
     std::vector<T *> getSceneNodesFlat()
     {
         std::vector<T *> temp;
 
-        for (auto &&child : m_children) {
+        for (auto &child : m_children) {
             temp.push_back(child);
             auto childrenObjects = child->getSceneNodesFlat();
 
@@ -100,7 +97,7 @@ public:
     {
         std::vector<T *> temp;
 
-        for (auto &&child : m_children) {
+        for (auto &child : m_children) {
             temp.push_back(child);
             modelMatrices.push_back(child->m_modelMatrix);
 

@@ -41,7 +41,7 @@ void WidgetSceneGraph::removeItem(QTreeWidgetItem *item)
     removeChild = [&](QTreeWidgetItem *child) {
         SceneObject *object = WidgetSceneGraph::getSceneObject(child);
         m_treeWidgetItems.erase(object->getID());
-        for (size_t i = 0; i < child->childCount(); i++) {
+        for (int i = 0; i < child->childCount(); i++) {
             removeChild(child->child(i));
         }
     };
@@ -49,7 +49,7 @@ void WidgetSceneGraph::removeItem(QTreeWidgetItem *item)
     /* Remove from map */
     m_treeWidgetItems.erase(WidgetSceneGraph::getSceneObject(item)->getID());
     /* Do the same for all children recurisvely */
-    for (size_t i = 0; i < item->childCount(); i++) {
+    for (int i = 0; i < item->childCount(); i++) {
         removeChild(item->child(i));
     }
 

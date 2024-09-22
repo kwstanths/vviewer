@@ -1,5 +1,7 @@
 #include "ThreadPool.hpp"
 
+#include "debug_tools/Console.hpp"
+
 #include <mutex>
 
 namespace vengine
@@ -11,12 +13,14 @@ ThreadPool::WorkerThread::WorkerThread(ThreadPool &threadpool)
 void ThreadPool::WorkerThread::loop()
 {
     while (1) {
-        /* Wait for work */
+        /* Acquire lock */
         std::unique_lock<std::mutex> lock(m_threadpool.m_lock);
-        m_threadpool.m_condition.wait(lock, [&]() { return !m_threadpool.m_tasks.empty() || !m_threadpool.m_run; });
 
-        /* Exit if requested */
-        if (!m_threadpool.m_run) 
+        /* Wait for work */
+        m_threadpool.m_condition.wait(lock, [&]() { return !m_threadpool.m_tasks.empty() || !m_threadpool.m_run; });
+        
+        /* Exit if no work and exit is requested */
+        if (m_threadpool.m_tasks.empty()  && !m_threadpool.m_run) 
         {
             lock.unlock();
             return;
@@ -32,19 +36,22 @@ void ThreadPool::WorkerThread::loop()
         Task* task = m_threadpool.m_tasks.front();
         m_threadpool.m_tasks.pop();
 
-        /* Unlock and execure */
+        /* Unlock and run task */
         lock.unlock();
 
-        (*task)();
+        task->run();
     }
 }
 
-ThreadPool::ThreadPool(uint32_t numThreads)
+bool ThreadPool::init(uint32_t numThreads)
 {
     m_run = true;
     for (uint32_t i = 0; i < numThreads; i++) {
         m_workerThreads.push_back(std::thread(&WorkerThread::loop, new WorkerThread(*this)));
     }
+
+    m_initialized = true;
+    return m_initialized;
 }
 
 ThreadPool::~ThreadPool()
@@ -55,6 +62,9 @@ ThreadPool::~ThreadPool()
 
 void ThreadPool::push(Task *task)
 {
+    if (!m_initialized)
+        return;
+
     std::lock_guard<std::mutex> lock(m_lock);
     m_tasks.push(task);
     m_condition.notify_one();
@@ -62,13 +72,27 @@ void ThreadPool::push(Task *task)
 
 void ThreadPool::stop()
 {
-    m_run = false;
+    if (!m_initialized)
+        return;
 
-    m_condition.notify_all();
+    
+    /* Notify all threads */
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        m_run = false;
+        m_condition.notify_all();
+    }
+
+    /* Wait for them to finish */
     for (std::vector<std::thread>::iterator itr = m_workerThreads.begin(); itr != m_workerThreads.end(); itr++)
         itr->join();
 
     return;
+}
+
+uint32_t ThreadPool::threads()
+{
+    return static_cast<uint32_t>(m_workerThreads.size());
 }
 
 }  // vengine

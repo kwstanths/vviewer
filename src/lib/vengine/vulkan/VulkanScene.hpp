@@ -16,12 +16,14 @@
 namespace vengine
 {
 
+class VulkanEngine;
+
 class VulkanScene : public Scene
 {
     friend class VulkanRenderer;
 
 public:
-    VulkanScene(VulkanContext &vkctx);
+    VulkanScene(VulkanContext &vkctx, VulkanEngine& engine);
     ~VulkanScene();
 
     VkResult initResources();
