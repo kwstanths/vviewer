@@ -233,6 +233,9 @@ VkResult VulkanRenderer::renderFrame()
                                        VK_NULL_HANDLE,
                                        &imageIndex));
 
+    if (!(imageIndex < m_swapchain.imageCount()))
+        return VK_ERROR_SURFACE_LOST_KHR;
+
     VULKAN_CHECK(vkResetFences(m_vkctx.device(), 1, &m_fenceInFlight[m_currentFrame]));
 
     /* Render frame */

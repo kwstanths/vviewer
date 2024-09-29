@@ -38,6 +38,20 @@ private:
 
     vengine::ID m_selectedPressed = 0;
 
+    /* Camera mouse rotation speed */
+    float m_rotateSensitivity = 0.125F;
+    /* Middle mouse movement speed */
+    float m_panSensitivity = 2.0F;
+    /* Transform mouse drag speed */
+    float m_movementSensitivity = 2.0f;
+    /* Mouse scroll wheel zoom speed */
+    float m_zoomSensitivity = 0.3F;
+    /* AWSD movement speed default */
+    float m_cameraDefaultSpeed = 10.f;
+    /* AWSD movement speed fast */
+    float m_cameraFastSpeed = 50.f;
+
+
     void exposeEvent(QExposeEvent *event) override;
     bool event(QEvent *event) override;
     void resizeEvent(QResizeEvent *ev) override;

@@ -164,15 +164,12 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
     m_mousePos = newMousePos;
 
     float delta = m_engine->delta();
-    float rotateSensitivity = 0.125F;
-    float panSensitivity = 0.6F;
-    float movementSensitivity = 1.25f;
 
     /* Perform camera movement if right button is pressed */
     Qt::MouseButtons buttons = ev->buttons();
     Transform &cameraTransform = m_engine->scene().camera()->transform();
     if (buttons & Qt::RightButton) {
-        float speed = rotateSensitivity * delta;
+        float speed = m_rotateSensitivity * delta;
 
         /* FPS style camera rotation, if middle mouse is pressed while the mouse is dragged over the window */
         glm::quat rotation = cameraTransform.rotation();
@@ -183,7 +180,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
     }
 
     if (buttons & Qt::MiddleButton) {
-        float speed = panSensitivity * delta;
+        float speed = m_panSensitivity * delta;
         cameraTransform.position() += cameraTransform.right() * static_cast<float>(-mousePosDiff.x()) * speed;
         cameraTransform.position() += cameraTransform.up() * static_cast<float>(mousePosDiff.y()) * speed;
     }
@@ -191,7 +188,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
     /* Perform movement of selected object if left button is pressed */
     VulkanRenderer &renderer = static_cast<VulkanRenderer &>(m_engine->renderer());
     if (buttons & Qt::LeftButton) {
-        float speed = movementSensitivity * delta;
+        float speed = m_movementSensitivity * delta;
         SceneObject *selectedObject = renderer.getSelectedObject();
         if (selectedObject == nullptr)
             return;
@@ -256,8 +253,7 @@ void VulkanViewportWindow::mouseMoveEvent(QMouseEvent *ev)
 void VulkanViewportWindow::wheelEvent(QWheelEvent *ev)
 {
     float delta = m_engine->delta();
-    float zoomSensitivity = 0.3F;
-    float speed = zoomSensitivity * delta;
+    float speed = m_zoomSensitivity * delta;
     Transform &cameraTransform = m_engine->scene().camera()->transform();
 
     if (ev->angleDelta().y() > 0) {
@@ -270,12 +266,10 @@ void VulkanViewportWindow::wheelEvent(QWheelEvent *ev)
 void VulkanViewportWindow::onUpdateCamera()
 {
     /* FPS style camera movement */
-    float cameraDefaultSpeed = 6.f;
-    float cameraFastSpeed = 12.f;
-
-    float speed = cameraDefaultSpeed;
+    
+    float speed = m_cameraDefaultSpeed;
     if (m_keysPressed[Qt::Key_Shift])
-        speed = cameraFastSpeed;
+        speed = m_cameraFastSpeed;
 
     float finalSpeed = speed * m_engine->delta();
     Transform &cameraTransform = m_engine->scene().camera()->transform();
