@@ -90,6 +90,11 @@ struct PushBlockOverlayAABB3 {
     glm::vec4 selected; /* RGB = ID of object, A = if object is selected */
 };
 
+struct PushBlockOverlayOutline {
+    glm::mat4 modelMatrix;  /* model matrix */
+    glm::vec4 color;        /* RGB = color, A = scale */
+};
+
 struct PushBlockOutput {
     glm::vec4 info;
 };

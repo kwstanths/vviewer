@@ -207,10 +207,12 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
             std::string fullPath = folder + std::string(texturePath.C_Str());
 
 #ifdef _WIN32
-            // TODO
-            debug_tools::ConsoleWarning("assimpLoadTexture(): Not implemented");
-            return nullptr;
-#endif
+            unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+            if (textureData == nullptr) {
+                debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + fullPath + " from memory");
+            }
+            return textureData;
+#elif
             replaceAll(fullPath, "\\", "/");
 
             unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
@@ -218,6 +220,7 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
                 debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + fullPath + " from memory");
             }
             return textureData;
+#endif
         }
     }
     return nullptr;

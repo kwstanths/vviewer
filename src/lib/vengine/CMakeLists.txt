@@ -17,6 +17,7 @@ file(GLOB ${NAME}_MATH_HEADERS math/*.hpp)
 file(GLOB ${NAME}_MATH_SOURCES math/*.cpp)
 file(GLOB ${NAME}_UTILS_HEADERS utils/*.hpp)
 file(GLOB ${NAME}_UTILS_SOURCES utils/*.cpp)
+file(GLOB ${NAME}_SHADERS shaders/*.glsl)
 
 include(core/sources.cmake)
 include(vulkan/sources.cmake)

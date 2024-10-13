@@ -87,8 +87,13 @@ void VulkanSwapchain::releaseResources()
         vkDestroyImageView(m_vkctx.device(), imageView, nullptr);
     }
 
+    for (auto imageView : m_stencilImageViews) {
+        vkDestroyImageView(m_vkctx.device(), imageView, nullptr);
+    }
+
     m_framebufferAttachmentSwapchain.destroy(m_vkctx.device());
     m_framebufferAttachmentDepth.destroy(m_vkctx.device());
+    m_framebufferAttachmentStencil.destroy(m_vkctx.device());
 
     vkDestroySwapchainKHR(m_vkctx.device(), m_swapchain, nullptr);
 
@@ -113,6 +118,7 @@ VkResult VulkanSwapchain::createDepthBuffer()
     m_depthFormat = findDepthFormat();
 
     m_depthImages.resize(m_swapchainImageViews.size());
+    m_stencilImageViews.resize(m_swapchainImageViews.size());
     for (uint32_t i = 0; i < m_swapchainImageViews.size(); i++) {
         VkImageCreateInfo imageInfo = vkinit::imageCreateInfo(
             {m_extent.width, m_extent.height, 1},
@@ -128,9 +134,14 @@ VkResult VulkanSwapchain::createDepthBuffer()
                                           m_depthImages[i].image(),
                                           m_depthImages[i].memory()));
 
-        VkImageViewCreateInfo imageViewInfo =
+        /* Create depth view */
+        VkImageViewCreateInfo depthImageViewInfo =
             vkinit::imageViewCreateInfo(m_depthImages[i].image(), m_depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_vkctx.device(), &imageViewInfo, nullptr, &m_depthImages[i].view()));
+        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_vkctx.device(), &depthImageViewInfo, nullptr, &m_depthImages[i].view()));
+        /* Create stencil view */
+        VkImageViewCreateInfo stencilImageViewInfo = vkinit::imageViewCreateInfo(
+            m_depthImages[i].image(), m_depthFormat, VK_IMAGE_ASPECT_STENCIL_BIT, 1);
+        VULKAN_CHECK_CRITICAL(vkCreateImageView(m_vkctx.device(), &stencilImageViewInfo, nullptr, &m_stencilImageViews[i]));
     }
 
     return VK_SUCCESS;
@@ -151,10 +162,19 @@ VkResult VulkanSwapchain::createFrameBufferAttachments()
     {
         std::vector<VkImageView> depthViews;
         for (uint32_t i = 0; i < imageCount(); i++) {
-            depthViews.push_back(depthStencilImageView(i));
+            depthViews.push_back(depthImageView(i));
         }
         VulkanFrameBufferAttachmentInfo depthInfo("depth", extent().width, extent().height, depthFormat(), VK_SAMPLE_COUNT_1_BIT);
         VULKAN_CHECK_CRITICAL(m_framebufferAttachmentDepth.init(depthInfo, depthViews));
+    }
+
+    {
+        std::vector<VkImageView> stencilViews;
+        for (uint32_t i = 0; i < imageCount(); i++) {
+            stencilViews.push_back(stencilImageView(i));
+        }
+        VulkanFrameBufferAttachmentInfo stencilInfo("stencil", extent().width, extent().height, depthFormat(), VK_SAMPLE_COUNT_1_BIT);
+        VULKAN_CHECK_CRITICAL(m_framebufferAttachmentStencil.init(stencilInfo, stencilViews));
     }
 
     return VK_SUCCESS;
@@ -199,7 +219,7 @@ VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &cap
 VkFormat VulkanSwapchain::findDepthFormat()
 {
     return findSupportedFormat(m_vkctx.physicalDevice(),
-                               {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+                               {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
                                VK_IMAGE_TILING_OPTIMAL,
                                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }

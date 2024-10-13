@@ -11,6 +11,7 @@
 #include "vulkan/resources/VulkanMaterial.hpp"
 #include "vulkan/resources/VulkanModel3D.hpp"
 #include "vulkan/VulkanRenderPass.hpp"
+#include "vulkan/VulkanInstances.hpp"
 
 namespace vengine
 {
@@ -31,16 +32,20 @@ public:
     /* Draw a transform widget at a certain position */
     VkResult render3DTransform(VkCommandBuffer &cmdBuf,
                                VkDescriptorSet &descriptorScene,
-                               uint32_t imageIndex,
                                const glm::mat4 &modelMatrix,
                                const std::shared_ptr<Camera> &camera) const;
 
     /* Draw an AABB */
     VkResult renderAABB3(VkCommandBuffer &cmdBuf,
                          VkDescriptorSet &descriptorScene,
-                         uint32_t imageIndex,
                          const AABB3 &aabb,
                          const std::shared_ptr<Camera> &camera) const;
+
+    /* Render an outline */
+    VkResult renderOutline(VkCommandBuffer &cmdBuf,
+                           VkDescriptorSet &descriptorScene,
+                           SceneObject *so,
+                           const std::shared_ptr<Camera> &camera) const;
 
 private:
     VulkanContext &m_ctx;
@@ -48,14 +53,16 @@ private:
 
     VkDescriptorSetLayout m_descriptorSetLayoutCamera;
 
-    VkPipelineLayout m_pipelineLayout3DTransform, m_pipelineLayoutAABB3;
-    VkPipeline m_graphicsPipeline3DTransform, m_graphicsPipelineAABB3;
+    VkPipelineLayout m_pipelineLayout3DTransform, m_pipelineLayoutAABB3, m_pipelineLayoutOutline;
+    VkPipeline m_graphicsPipeline3DTransform, m_graphicsPipelineAABB3, m_graphicsPipelineOutlineStencil,
+        m_graphicsPipelineOutlineWrite;
 
     VulkanModel3D *m_arrow = nullptr;
     ID m_IdX, m_IdY, m_IdZ;
 
     VkResult createGraphicsPipeline3DTransform(const VulkanRenderPassOverlay &renderPass);
     VkResult createGraphicsPipelineAABB3(const VulkanRenderPassOverlay &renderPass);
+    VkResult createGraphicsPipelineOutline(const VulkanRenderPassOverlay &renderPass);
 };
 
 }  // namespace vengine

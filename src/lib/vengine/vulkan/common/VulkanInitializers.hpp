@@ -131,6 +131,27 @@ inline VkAttachmentDescription attachmentDescriptionInfo(VkFormat attachmentForm
     return attachment;
 }
 
+inline VkAttachmentDescription attachmentDescriptionInfo(VkFormat attachmentFormat,
+                                                         VkSampleCountFlagBits samples,
+                                                         VkAttachmentLoadOp loadOp,
+                                                         VkAttachmentStoreOp storeOp,
+                                                         VkAttachmentLoadOp stencilLoadOp,
+                                                         VkAttachmentStoreOp stencilStoreOp,
+                                                         VkImageLayout initialLayout,
+                                                         VkImageLayout finalLayout)
+{
+    VkAttachmentDescription attachment{};
+    attachment.format = attachmentFormat;
+    attachment.samples = samples;
+    attachment.loadOp = loadOp;
+    attachment.storeOp = storeOp;
+    attachment.stencilLoadOp = stencilLoadOp;
+    attachment.stencilStoreOp = stencilStoreOp;
+    attachment.initialLayout = initialLayout;
+    attachment.finalLayout = finalLayout;
+    return attachment;
+}
+
 inline VkRenderPassCreateInfo renderPassCreateInfo(uint32_t attachmentCount,
                                                    const VkAttachmentDescription *attachments,
                                                    uint32_t subpassCount,

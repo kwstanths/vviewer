@@ -39,6 +39,7 @@ VkResult VulkanRendererOverlay::initSwapChainResources(VkExtent2D swapchainExten
 
     VULKAN_CHECK_CRITICAL(createGraphicsPipeline3DTransform(renderPass));
     VULKAN_CHECK_CRITICAL(createGraphicsPipelineAABB3(renderPass));
+    VULKAN_CHECK_CRITICAL(createGraphicsPipelineOutline(renderPass));
 
     return VK_SUCCESS;
 }
@@ -50,6 +51,10 @@ VkResult VulkanRendererOverlay::releaseSwapChainResources()
 
     vkDestroyPipeline(m_ctx.device(), m_graphicsPipelineAABB3, nullptr);
     vkDestroyPipelineLayout(m_ctx.device(), m_pipelineLayoutAABB3, nullptr);
+
+    vkDestroyPipeline(m_ctx.device(), m_graphicsPipelineOutlineStencil, nullptr);
+    vkDestroyPipeline(m_ctx.device(), m_graphicsPipelineOutlineWrite, nullptr);
+    vkDestroyPipelineLayout(m_ctx.device(), m_pipelineLayoutOutline, nullptr);
 
     return VK_SUCCESS;
 }
@@ -63,7 +68,6 @@ VkResult VulkanRendererOverlay::releaseResources()
 
 VkResult VulkanRendererOverlay::render3DTransform(VkCommandBuffer &cmdBuf,
                                                   VkDescriptorSet &descriptorScene,
-                                                  uint32_t imageIndex,
                                                   const glm::mat4 &modelMatrix,
                                                   const std::shared_ptr<Camera> &camera) const
 {
@@ -143,7 +147,6 @@ VkResult VulkanRendererOverlay::render3DTransform(VkCommandBuffer &cmdBuf,
 
 VkResult VulkanRendererOverlay::renderAABB3(VkCommandBuffer &cmdBuf,
                                             VkDescriptorSet &descriptorScene,
-                                            uint32_t imageIndex,
                                             const AABB3 &aabb,
                                             const std::shared_ptr<Camera> &camera) const
 {
@@ -168,6 +171,72 @@ VkResult VulkanRendererOverlay::renderAABB3(VkCommandBuffer &cmdBuf,
                        &pushConstants);
 
     vkCmdDraw(cmdBuf, 1U, 1U, 0, 0);
+
+    return VK_SUCCESS;
+}
+
+VkResult VulkanRendererOverlay::renderOutline(VkCommandBuffer &cmdBuf,
+                                              VkDescriptorSet &descriptorScene,
+                                              SceneObject *so,
+                                              const std::shared_ptr<Camera> &camera) const
+{
+    if (!so->has<ComponentMesh>())
+        return VK_SUCCESS;
+
+    std::array<VkDescriptorSet, 1> descriptorSets = {descriptorScene};
+
+    const VulkanMesh *vkmesh = static_cast<const VulkanMesh *>(so->get<ComponentMesh>().mesh());
+
+    VkBuffer vertexBuffers[] = {vkmesh->vertexBuffer().buffer()};
+    VkDeviceSize offsets[] = {0};
+    PushBlockOverlayOutline pushConstants;
+    pushConstants.modelMatrix = so->modelMatrix();
+    
+    vkCmdBindDescriptorSets(cmdBuf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_pipelineLayoutOutline,
+                            0,
+                            static_cast<uint32_t>(descriptorSets.size()),
+                            &descriptorSets[0],
+                            0,
+                            nullptr);
+    vkCmdBindVertexBuffers(cmdBuf, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(cmdBuf, vkmesh->indexBuffer().buffer(), 0, vkmesh->indexType());
+
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineOutlineStencil);
+    pushConstants.color = glm::vec4(1, 1, 1, 0);
+    vkCmdPushConstants(cmdBuf,
+                       m_pipelineLayoutOutline,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                       0,
+                       sizeof(PushBlockOverlayOutline),
+                       &pushConstants);
+    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
+
+    glm::vec3 worldPos = so->worldPosition();
+    float cameraDistance = glm::distance(camera->transform().position(), worldPos);
+
+    /* Calculate the scale of the model matrix */
+    glm::vec3 scale;
+    {
+        glm::vec3 translation;
+        glm::quat rotation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(so->modelMatrix(), scale, rotation, translation, skew, perspective);
+    }
+
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineOutlineWrite);
+    float scaleFactor = 0.05F / scale.x;
+    scaleFactor *= cameraDistance / 20.F;
+    pushConstants.color.a = scaleFactor;
+    vkCmdPushConstants(cmdBuf,
+                       m_pipelineLayoutOutline,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                       0,
+                       sizeof(PushBlockOverlayOutline),
+                       &pushConstants);
+    vkCmdDrawIndexed(cmdBuf, static_cast<uint32_t>(vkmesh->indices().size()), 1, 0, 0, 0);
 
     return VK_SUCCESS;
 }
@@ -290,6 +359,98 @@ VkResult VulkanRendererOverlay::createGraphicsPipelineAABB3(const VulkanRenderPa
 
     vkDestroyShaderModule(m_ctx.device(), fragShaderStageInfo.module, nullptr);
     vkDestroyShaderModule(m_ctx.device(), geomShaderStageInfo.module, nullptr);
+    vkDestroyShaderModule(m_ctx.device(), vertShaderStageInfo.module, nullptr);
+
+    return VK_SUCCESS;
+}
+
+VkResult VulkanRendererOverlay::createGraphicsPipelineOutline(const VulkanRenderPassOverlay &renderPass)
+{
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+        VK_SHADER_STAGE_VERTEX_BIT, VulkanShader::load(m_ctx.device(), "shaders/SPIRV/overlay/outline.vert.spv"), "main");
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+        VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShader::load(m_ctx.device(), "shaders/SPIRV/overlay/outline.frag.spv"), "main");
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+    auto bindingDescription = VulkanVertex::getBindingDescription();
+    auto attributeDescriptions = VulkanVertex::getAttributeDescriptionsFull();
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = vkinit::pipelineVertexInputStateCreateInfo(
+        1, &bindingDescription, static_cast<uint32_t>(attributeDescriptions.size()), attributeDescriptions.data());
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = vkinit::pipelineInputAssemblyCreateInfo();
+
+    VkViewport viewport =
+        vkinit::viewport(static_cast<float>(m_swapchainExtent.width), static_cast<float>(m_swapchainExtent.height), 0.0F, 1.0F);
+    VkRect2D scissor =
+        vkinit::rect2D(static_cast<int32_t>(m_swapchainExtent.width), static_cast<int32_t>(m_swapchainExtent.height), 0, 0);
+    VkPipelineViewportStateCreateInfo viewportState = vkinit::pipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
+
+    VkPipelineRasterizationStateCreateInfo rasterizer =
+        vkinit::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    VkPipelineMultisampleStateCreateInfo multisampling = vkinit::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+    VkPipelineDepthStencilStateCreateInfo depthStencil =
+        vkinit::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+    /* Perform a depth test, but don't write the depth */
+    /* Enable depth stencil test and always pass it. Write the value of 1 to the stencil buffer */
+    depthStencil.stencilTestEnable = VK_TRUE;
+    depthStencil.back.compareOp = VK_COMPARE_OP_ALWAYS;
+    depthStencil.back.failOp = VK_STENCIL_OP_REPLACE;
+    depthStencil.back.depthFailOp = VK_STENCIL_OP_REPLACE;
+    depthStencil.back.passOp = VK_STENCIL_OP_REPLACE;
+    depthStencil.back.compareMask = 0xff;
+    depthStencil.back.writeMask = 0xff;
+    depthStencil.back.reference = 1;
+    depthStencil.front = depthStencil.back;
+
+    /* no color writing */
+    VkPipelineColorBlendAttachmentState colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(0, VK_FALSE);
+    VkPipelineColorBlendAttachmentState idBlendAttachment = vkinit::pipelineColorBlendAttachmentState(0, VK_FALSE);
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments = {colorBlendAttachment, idBlendAttachment};
+    VkPipelineColorBlendStateCreateInfo colorBlending =
+        vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
+
+    std::array<VkDescriptorSetLayout, 1> descriptorSetsLayouts{m_descriptorSetLayoutCamera};
+    VkPushConstantRange pushConstantRange =
+        vkinit::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(PushBlockOverlayOutline), 0);
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo(
+        static_cast<uint32_t>(descriptorSetsLayouts.size()), descriptorSetsLayouts.data(), 1, &pushConstantRange);
+    VULKAN_CHECK_CRITICAL(vkCreatePipelineLayout(m_ctx.device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayoutOutline));
+
+    VkGraphicsPipelineCreateInfo pipelineInfo =
+        vkinit::graphicsPipelineCreateInfo(m_pipelineLayoutOutline, renderPass.renderPass(), 0);
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    VULKAN_CHECK_CRITICAL(
+        vkCreateGraphicsPipelines(m_ctx.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineOutlineStencil));
+
+    /* Don't perform a depth test and don't write depth */
+    /* Do a stencil test and pass if the stencil is not equal */
+    depthStencil.stencilTestEnable = VK_TRUE;
+    depthStencil.back.compareOp = VK_COMPARE_OP_NOT_EQUAL;
+    depthStencil.back.failOp = VK_STENCIL_OP_KEEP;
+    depthStencil.back.depthFailOp = VK_STENCIL_OP_KEEP;
+    depthStencil.back.passOp = VK_STENCIL_OP_REPLACE;
+    depthStencil.front = depthStencil.back;
+    depthStencil.depthTestEnable = VK_FALSE;
+    colorBlendAttachment = vkinit::pipelineColorBlendAttachmentState(
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT, VK_FALSE);
+    idBlendAttachment = vkinit::pipelineColorBlendAttachmentState(0, VK_FALSE);
+    colorBlendAttachments = {colorBlendAttachment, idBlendAttachment};
+    colorBlending =
+        vkinit::pipelineColorBlendStateCreateInfo(static_cast<uint32_t>(colorBlendAttachments.size()), colorBlendAttachments.data());
+
+    VULKAN_CHECK_CRITICAL(
+        vkCreateGraphicsPipelines(m_ctx.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineOutlineWrite));
+
+    vkDestroyShaderModule(m_ctx.device(), fragShaderStageInfo.module, nullptr);
     vkDestroyShaderModule(m_ctx.device(), vertShaderStageInfo.module, nullptr);
 
     return VK_SUCCESS;

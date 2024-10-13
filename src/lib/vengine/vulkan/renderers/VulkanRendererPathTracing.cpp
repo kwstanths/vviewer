@@ -1040,7 +1040,7 @@ VkResult VulkanRendererPathTracing::storeToDisk(std::vector<float> &radiance,
 
         const char *errorMessage;
         if (device.getError(errorMessage) != oidn::Error::None) {
-            debug_tools::ConsoleWarning("VulkanRendererPathTracing::storeToDisk(): Denoising error[" + std::string(errorMessage) +
+            debug_tools::ConsoleWarning("VulkanRendererPathTracing::storeToDisk(): OpenImageDenoise error [" + std::string(errorMessage) +
                                         "]");
         }
     }

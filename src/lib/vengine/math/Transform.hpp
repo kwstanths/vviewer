@@ -51,6 +51,11 @@ public:
     {
         return (m_position == o.m_position) && (m_rotation == o.m_rotation) && (m_scale == o.m_scale);
     }
+    
+    inline bool operator!=(const Transform &o)
+    {
+        return (m_position != o.m_position) || (m_rotation != o.m_rotation) || (m_scale != o.m_scale);
+    }
 
 private:
     glm::vec3 m_position;

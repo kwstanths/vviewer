@@ -50,8 +50,8 @@ bool PtSceneBreakfastRoom::render()
 {
     engine().renderer().rendererPathTracing().renderInfo().width = 1600;
     engine().renderer().rendererPathTracing().renderInfo().height = 1080;
-    engine().renderer().rendererPathTracing().renderInfo().samples = 64;
-    engine().renderer().rendererPathTracing().renderInfo().batchSize = 16;
+    engine().renderer().rendererPathTracing().renderInfo().samples = 512;
+    engine().renderer().rendererPathTracing().renderInfo().batchSize = 8;
     engine().renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;
     engine().renderer().rendererPathTracing().renderInfo().denoise = true;
     engine().renderer().rendererPathTracing().renderInfo().writeAllFiles = false;

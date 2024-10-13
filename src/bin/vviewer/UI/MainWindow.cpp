@@ -251,6 +251,8 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem *treeItem)
 
     /* Get corresponding scene object */
     SceneObject *selectedObject = WidgetSceneGraph::getSceneObject(treeItem);
+    
+    m_widgetRightPanel->setSelectedObject(nullptr);
 
     /* Remove scene object from scene */
     m_scene->removeSceneObject(selectedObject);
@@ -758,10 +760,6 @@ void MainWindow::onRemoveSceneObjectSlot()
     m_engine->waitIdle();
 
     removeObjectFromScene(selectedItem);
-
-    if (m_sceneGraphWidget->isEmpty()) {
-        m_widgetRightPanel->setSelectedObject(nullptr);
-    }
 
     m_engine->start();
 }

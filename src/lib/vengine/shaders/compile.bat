@@ -15,6 +15,8 @@ set compiler=%VULKAN_SDK%\Bin\glslangValidator.exe
 %compiler% -V overlay/AABB3.vert.glsl -o SPIRV/overlay/AABB3.vert.spv
 %compiler% -V overlay/AABB3.geom.glsl -o SPIRV/overlay/AABB3.geom.spv
 %compiler% -V overlay/AABB3.frag.glsl -o SPIRV/overlay/AABB3.frag.spv
+%compiler% -V overlay/outline.vert.glsl -o SPIRV/overlay/outline.vert.spv
+%compiler% -V overlay/outline.frag.glsl -o SPIRV/overlay/outline.frag.spv
 
 %compiler% -V skybox/skybox.vert.glsl -o SPIRV/skybox.vert.spv
 %compiler% -V skybox/skybox.frag.glsl -o SPIRV/skybox.frag.spv

@@ -18,8 +18,8 @@ bool PtSceneFurnace::create()
     vengine::SceneObject *so = scene().addSceneObject("sphere", vengine::Transform({0, 0, 0}, {1, 1, 1}));
 
     auto &instanceModels = vengine::AssetManager::getInstance().modelsMap();
-    auto cube = instanceModels.get("assets/models/uvsphere.obj");
-    so->add<vengine::ComponentMesh>().setMesh(cube->mesh("defaultobject"));
+    auto sphere = instanceModels.get("assets/models/uvsphere.obj");
+    so->add<vengine::ComponentMesh>().setMesh(sphere->mesh("defaultobject"));
 
     auto material = engine().materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("material"));
     material->albedo() = glm::vec4(0.6, 0.6, 0.6, 1);
@@ -34,8 +34,6 @@ bool PtSceneFurnace::create()
 
 bool PtSceneFurnace::render()
 {
-    /* Performs a render sequence */
-
     engine().renderer().rendererPathTracing().renderInfo().samples = 2048;
     engine().renderer().rendererPathTracing().renderInfo().batchSize = 64;
     engine().renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;

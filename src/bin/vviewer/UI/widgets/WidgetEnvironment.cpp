@@ -249,7 +249,8 @@ void WidgetEnvironment::updateCamera()
         Else, check if the scene camera changed and update the UI with blocked signals, so as to not trigger
         another widget signal
     */
-    if (!(m_cameraTransformWidget->getTransform() == m_camera->transform())) {
+    Transform currentCameraWidgetTransform = m_cameraTransformWidget->getTransform();
+    if (currentCameraWidgetTransform != m_camera->transform()) {
         m_cameraTransformWidget->blockSignals(true);
         m_cameraTransformWidget->setTransform(m_camera->transform());
         m_cameraTransformWidget->blockSignals(false);

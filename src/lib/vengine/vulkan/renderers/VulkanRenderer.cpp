@@ -95,7 +95,8 @@ VkResult VulkanRenderer::initResources()
                                                           m_scene.descriptorSetlayoutTLAS()));
 
     try {
-        VULKAN_CHECK_CRITICAL(m_rendererOverlay.initResources(m_scene.descriptorSetlayoutSceneData()));
+        VULKAN_CHECK_CRITICAL(
+            m_rendererOverlay.initResources(m_scene.descriptorSetlayoutSceneData()));
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("VulkanRenderer::initResources(): Failed to initialize UI renderer: " + std::string(e.what()));
     }
@@ -142,7 +143,6 @@ VkResult VulkanRenderer::releaseSwapChainResources()
     m_attachmentGBuffer2.destroy(m_vkctx.device());
 
     m_frameBufferDeferred.destroy(m_vkctx.device());
-    // m_framebufferPost.destroy(m_vkctx.device());
     m_framebufferOverlay.destroy(m_vkctx.device());
     m_framebufferOutput.destroy(m_vkctx.device());
 
@@ -151,12 +151,10 @@ VkResult VulkanRenderer::releaseSwapChainResources()
     m_rendererSkybox.releaseSwapChainResources();
     m_rendererPBR.releaseSwapChainResources();
     m_rendererLambert.releaseSwapChainResources();
-    // m_rendererPost.releaseSwapChainResources();
     m_rendererOverlay.releaseSwapChainResources();
     m_rendererOutput.releaseSwapChainResources();
 
     m_renderPassDeferred.releaseResources(m_vkctx.device());
-    // m_renderPassPost.destroy(m_vkctx.device());
     m_renderPassOverlay.releaseResources(m_vkctx.device());
     m_renderPassOutput.releaseResources(m_vkctx.device());
 
@@ -172,7 +170,6 @@ VkResult VulkanRenderer::releaseResources()
     for (uint32_t f = 0; f < MAX_FRAMES_IN_FLIGHT; f++) {
         vkDestroySemaphore(m_vkctx.device(), m_semaphoreImageAvailable[f], nullptr);
         vkDestroySemaphore(m_vkctx.device(), m_semaphoreDeferredFinished[f], nullptr);
-        // vkDestroySemaphore(m_vkctx.device(), m_semaphorePostFinished[f], nullptr);
         vkDestroySemaphore(m_vkctx.device(), m_semaphoreOverlayFinished[f], nullptr);
         vkDestroySemaphore(m_vkctx.device(), m_semaphoreOutputFinished[f], nullptr);
         vkDestroyFence(m_vkctx.device(), m_fenceInFlight[f], nullptr);
@@ -192,7 +189,6 @@ VkResult VulkanRenderer::releaseResources()
     m_rendererSkybox.releaseResources();
     m_rendererPBR.releaseResources();
     m_rendererLambert.releaseResources();
-    // m_rendererPost.releaseResources();
     m_rendererOverlay.releaseResources();
     m_rendererOutput.releaseResources();
     if (m_rendererPathTracing.isRayTracingEnabled())
@@ -379,41 +375,6 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
         VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
     }
 
-    /* Post process pass, draw highlight */
-    // {
-    //     /* Get post command buffer */
-    //     VkCommandBuffer &commandBufferPost = m_commandBufferPost[m_currentFrame];
-    //     VULKAN_CHECK(vkResetCommandBuffer(commandBufferPost, 0));
-    //     VkCommandBufferBeginInfo beginInfo = vkinit::commandBufferBeginInfo();
-    //     VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBufferPost, &beginInfo));
-
-    //     std::array<VkClearValue, 2> clearValues{};
-    //     clearValues[0].color = {0, 0, 0, 0};
-    //     clearValues[1].color = {0, 0, 0, 0};
-    //     VkRenderPassBeginInfo rpBeginInfo = vkinit::renderPassBeginInfo(m_renderPassPost.renderPass(),
-    //                                                                     m_framebufferPost.framebuffer(imageIndex),
-    //                                                                     static_cast<uint32_t>(clearValues.size()),
-    //                                                                     clearValues.data());
-    //     rpBeginInfo.renderArea.extent = m_swapchain.extent();
-
-    //     vkCmdBeginRenderPass(commandBufferPost, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-    //     m_rendererPost.render(commandBufferPost, imageIndex);
-    //     vkCmdEndRenderPass(commandBufferPost);
-    //     vkEndCommandBuffer(commandBufferPost);
-
-    //     /* Submit post command buffer */
-    //     VkSemaphore waitSemaphores[] = {m_semaphoreForwardFinished[m_currentFrame]};
-    //     VkSemaphore signalSemaphores[] = {m_semaphorePostFinished[m_currentFrame]};
-    //     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT};
-    //     VkSubmitInfo submitInfo = vkinit::submitInfo(1, &commandBufferPost);
-    //     submitInfo.waitSemaphoreCount = 1;
-    //     submitInfo.pWaitSemaphores = waitSemaphores;
-    //     submitInfo.pWaitDstStageMask = waitStages;
-    //     submitInfo.signalSemaphoreCount = 1;
-    //     submitInfo.pSignalSemaphores = signalSemaphores;
-    //     VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
-    // }
-
     /* Overlay pass */
     {
         VkCommandBuffer &commandBufferOverlay = m_commandBufferOverlay[m_currentFrame];
@@ -433,7 +394,6 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
             if (m_showSelectedAABB) {
                 m_rendererOverlay.renderAABB3(commandBufferOverlay,
                                               m_scene.descriptorSetSceneData(imageIndex),
-                                              imageIndex,
                                               m_selectedObject->AABB(),
                                               m_scene.camera());
             }
@@ -441,9 +401,13 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
             glm::vec3 transformPosition = m_selectedObject->worldPosition();
             m_rendererOverlay.render3DTransform(commandBufferOverlay,
                                                 m_scene.descriptorSetSceneData(imageIndex),
-                                                imageIndex,
                                                 m_selectedObject->modelMatrix(),
                                                 m_scene.camera());
+
+            m_rendererOverlay.renderOutline(commandBufferOverlay,
+                                            m_scene.descriptorSetSceneData(imageIndex),
+                                            m_selectedObject,
+                                            m_scene.camera());
         }
 
         vkCmdEndRenderPass(commandBufferOverlay);
@@ -618,14 +582,6 @@ VkResult VulkanRenderer::createFrameBuffers()
     /* Connect frame buffer attachment with the render pass */
     m_renderPassDeferred.updateDescriptors(m_attachmentGBuffer1, m_attachmentGBuffer2, m_swapchain.depthAttachment());
 
-    /* Post frame buffer */
-    // {
-    //     std::vector<VulkanFrameBufferAttachment> postAttachments = {swapchainAttachment};
-    //     VULKAN_CHECK_CRITICAL(m_framebufferPost.create(
-    //         m_vkctx, swapchainImages, m_renderPassPost.renderPass(), swapchainExtent.width, swapchainExtent.height,
-    //         postAttachments));
-    // }
-
     /* Overlay framebuffer */
     {
         std::vector<VulkanFrameBufferAttachment> overlayAttachments = {
@@ -666,11 +622,6 @@ VkResult VulkanRenderer::createCommandBuffers()
             VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBufferDeferred.size()));
         VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_vkctx.device(), &allocInfo, m_commandBufferDeferred.data()));
     }
-    // {
-    //     VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(
-    //         VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBufferPost.size()));
-    //     VULKAN_CHECK_CRITICAL(vkAllocateCommandBuffers(m_vkctx.device(), &allocInfo, m_commandBufferPost.data()));
-    // }
     {
         VkCommandBufferAllocateInfo allocInfo = vkinit::commandBufferAllocateInfo(
             VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkctx.renderCommandPool(), static_cast<uint32_t>(m_commandBufferOverlay.size()));
@@ -702,7 +653,6 @@ VkResult VulkanRenderer::createSyncObjects()
     for (uint32_t f = 0; f < MAX_FRAMES_IN_FLIGHT; f++) {
         VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreImageAvailable[f]));
         VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreDeferredFinished[f]));
-        // VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphorePostFinished[f]));
         VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreOverlayFinished[f]));
         VULKAN_CHECK_CRITICAL(vkCreateSemaphore(m_vkctx.device(), &semaphoreInfo, nullptr, &m_semaphoreOutputFinished[f]));
         VULKAN_CHECK_CRITICAL(vkCreateFence(m_vkctx.device(), &fenceInfo, nullptr, &m_fenceInFlight[f]));

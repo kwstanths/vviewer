@@ -28,10 +28,12 @@ public:
     VkFormat &depthFormat() { return m_depthFormat; }
 
     VkImageView &swapchainImageView(uint32_t i) { return m_swapchainImageViews[i]; }
-    VkImageView &depthStencilImageView(uint32_t i) { return m_depthImages[i].view(); }
+    VkImageView &depthImageView(uint32_t i) { return m_depthImages[i].view(); }
+    VkImageView &stencilImageView(uint32_t i) { return m_stencilImageViews[i]; }
 
     const VulkanFrameBufferAttachment &swapchainAttachment() { return m_framebufferAttachmentSwapchain; }
     const VulkanFrameBufferAttachment &depthAttachment() { return m_framebufferAttachmentDepth; }
+    const VulkanFrameBufferAttachment &stencilAttachment() { return m_framebufferAttachmentStencil; }
 
 private:
     VulkanContext &m_vkctx;
@@ -48,9 +50,11 @@ private:
     /* Frame buffer attachments for said images */
     VulkanFrameBufferAttachment m_framebufferAttachmentSwapchain;
     VulkanFrameBufferAttachment m_framebufferAttachmentDepth;
+    VulkanFrameBufferAttachment m_framebufferAttachmentStencil;
 
     /* Depth stencil buffer */
     std::vector<VulkanImage> m_depthImages;
+    std::vector<VkImageView> m_stencilImageViews;
     VkFormat m_depthFormat;
 
     VkResult createImageViews();

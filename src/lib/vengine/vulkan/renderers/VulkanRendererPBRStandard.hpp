@@ -5,7 +5,6 @@
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/resources/VulkanMaterials.hpp"
 #include "vulkan/resources/VulkanTextures.hpp"
-#include "vulkan/renderers/VulkanRendererGBuffer.hpp"
 #include "vulkan/renderers/VulkanRendererForward.hpp"
 
 namespace vengine

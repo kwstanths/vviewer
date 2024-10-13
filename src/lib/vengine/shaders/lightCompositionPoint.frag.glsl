@@ -119,7 +119,7 @@ void main() {
             {
                 vec3 rayquery_direction = L_world_direction_normalized;
                 float rayquery_distance = L_distance;
-                vec3 fragPos_world = worldPos + L_world_direction_normalized * 0.01;
+                vec3 fragPos_world = worldPos + L_world_direction_normalized * 0.05;
                 #include "include/rayquery_occluded.glsl"
 
                 if (occluded)
