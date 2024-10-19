@@ -5,19 +5,24 @@
 namespace vengine
 {
 
-bool VulkanQueueFamilyIndices::hasGraphics() const
+bool VulkanQueueFamilyInfo::hasPresent() const
 {
-    return graphicsFamily.has_value();
+    return present;
 }
 
-bool VulkanQueueFamilyIndices::hasPresent() const
+bool VulkanQueueFamilyInfo::hasGraphics() const
 {
-    return presentFamily.has_value();
+    return properties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
 }
 
-bool VulkanQueueFamilyIndices::isComplete() const
+bool VulkanQueueFamilyInfo::hasCompute() const
 {
-    return hasGraphics() && hasPresent();
+    return properties.queueFlags & VK_QUEUE_COMPUTE_BIT;
+}
+
+bool VulkanQueueFamilyInfo::hasTransfer() const
+{
+    return properties.queueFlags & VK_QUEUE_TRANSFER_BIT;
 }
 
 }  // namespace vengine

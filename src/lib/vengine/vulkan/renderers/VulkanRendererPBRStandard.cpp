@@ -236,10 +236,10 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
         VkFenceCreateInfo fenceInfo = vkinit::fenceCreateInfo(0);
         VkFence fence;
         VULKAN_CHECK_CRITICAL(vkCreateFence(m_ctx.device(), &fenceInfo, nullptr, &fence));
-        VULKAN_CHECK_CRITICAL(vkQueueSubmit(m_ctx.graphicsQueue(), 1, &submitInfo, fence));
+        VULKAN_CHECK_CRITICAL(vkQueueSubmit(m_ctx.queueManager().graphicsQueue(), 1, &submitInfo, fence));
         VULKAN_CHECK_CRITICAL(vkWaitForFences(m_ctx.device(), 1, &fence, VK_TRUE, VULKAN_TIMEOUT_100S));
 
-        VULKAN_CHECK_CRITICAL(vkQueueWaitIdle(m_ctx.graphicsQueue()));
+        VULKAN_CHECK_CRITICAL(vkQueueWaitIdle(m_ctx.queueManager().graphicsQueue()));
 
         vkDestroyFence(m_ctx.device(), fence, nullptr);
         vkFreeCommandBuffers(m_ctx.device(), m_ctx.graphicsCommandPool(), 1, &commandBuffer);

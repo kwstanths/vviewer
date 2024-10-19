@@ -15,13 +15,15 @@ namespace vengine
 {
 
 /* --------------- CPU only structs --------------- */
-struct VulkanQueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
+struct VulkanQueueFamilyInfo {
+    VkQueueFamilyProperties properties;
+    uint32_t index;
+    bool present = false;
 
-    bool hasGraphics() const;
     bool hasPresent() const;
-    bool isComplete() const;
+    bool hasGraphics() const;
+    bool hasCompute() const;
+    bool hasTransfer() const;
 };
 
 struct VulkanSwapChainDetails {

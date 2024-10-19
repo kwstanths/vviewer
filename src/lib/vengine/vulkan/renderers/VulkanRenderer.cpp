@@ -65,7 +65,7 @@ VkResult VulkanRenderer::initResources()
     /* Initialize renderers */
     VULKAN_CHECK_CRITICAL(m_rendererSkybox.initResources(m_vkctx.physicalDevice(),
                                                          m_vkctx.device(),
-                                                         m_vkctx.graphicsQueue(),
+                                                         m_vkctx.queueManager().graphicsQueue(),
                                                          m_vkctx.graphicsCommandPool(),
                                                          m_scene.descriptorSetlayoutSceneData()));
     VULKAN_CHECK_CRITICAL(m_rendererGBuffer.initResources(m_scene.descriptorSetlayoutSceneData(),
@@ -247,7 +247,7 @@ VkResult VulkanRenderer::renderFrame()
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
-    VULKAN_CHECK(vkQueuePresentKHR(m_vkctx.presentQueue(), &presentInfo));
+    VULKAN_CHECK(vkQueuePresentKHR(m_vkctx.queueManager().presentQueue(), &presentInfo));
 
     return VK_SUCCESS;
 }
@@ -255,7 +255,8 @@ VkResult VulkanRenderer::renderFrame()
 VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
 {
     /* Update scene and buffers */
-    m_scene.updateFrame({m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.renderCommandPool(), m_vkctx.renderQueue()}, imageIndex);
+    m_scene.updateFrame(
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.renderCommandPool(), m_vkctx.queueManager().renderQueue()}, imageIndex);
     m_materials.updateBuffers(static_cast<uint32_t>(imageIndex));
     m_textures.updateTextures();
 
@@ -372,7 +373,7 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
         submitInfo.pWaitDstStageMask = waitStages;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
-        VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
+        VULKAN_CHECK(vkQueueSubmit(m_vkctx.queueManager().renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
     }
 
     /* Overlay pass */
@@ -423,7 +424,7 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
         submitInfo.pWaitDstStageMask = waitStages;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
-        VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
+        VULKAN_CHECK(vkQueueSubmit(m_vkctx.queueManager().renderQueue(), 1, &submitInfo, VK_NULL_HANDLE));
     }
 
     /* Output pass */
@@ -486,7 +487,7 @@ VkResult VulkanRenderer::buildFrame(uint32_t imageIndex)
         submitInfo.pWaitDstStageMask = waitStages;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
-        VULKAN_CHECK(vkQueueSubmit(m_vkctx.renderQueue(), 1, &submitInfo, m_fenceInFlight[m_currentFrame]));
+        VULKAN_CHECK(vkQueueSubmit(m_vkctx.queueManager().renderQueue(), 1, &submitInfo, m_fenceInFlight[m_currentFrame]));
     }
 
     return VK_SUCCESS;
@@ -687,7 +688,8 @@ VkResult VulkanRenderer::createSelectionImage()
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
-    VULKAN_CHECK_CRITICAL(endSingleTimeCommands(m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue(), cmdBuf));
+    VULKAN_CHECK_CRITICAL(
+        endSingleTimeCommands(m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue(), cmdBuf));
 
     return VK_SUCCESS;
 }

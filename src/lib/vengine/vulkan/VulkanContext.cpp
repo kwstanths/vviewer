@@ -31,6 +31,7 @@ VkResult VulkanContext::init()
 
     VULKAN_CHECK_CRITICAL(createDebugCallback());
     VULKAN_CHECK_CRITICAL(pickPhysicalDevice());
+    VULKAN_CHECK_CRITICAL(m_queueManager.init(*this));
     VULKAN_CHECK_CRITICAL(createLogicalDevice());
     VULKAN_CHECK_CRITICAL(createCommandPool());
 
@@ -52,6 +53,7 @@ VkResult VulkanContext::init(VkSurfaceKHR surface)
 
     VULKAN_CHECK_CRITICAL(createDebugCallback());
     VULKAN_CHECK_CRITICAL(pickPhysicalDevice());
+    VULKAN_CHECK_CRITICAL(m_queueManager.init(*this));
     VULKAN_CHECK_CRITICAL(createLogicalDevice());
     VULKAN_CHECK_CRITICAL(createCommandPool());
 
@@ -167,11 +169,23 @@ bool VulkanContext::isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, Vk
     suitable = suitable && (getMaxUsableSampleCount(physicalDeviceProperties) != VK_SAMPLE_COUNT_1_BIT);
     suitable = suitable && (checkDeviceExtensionSupport(physicalDevice) == VK_SUCCESS);
 
-    VulkanQueueFamilyIndices indices = findQueueFamilies(physicalDevice, m_surface);
+    std::vector<VulkanQueueFamilyInfo> queueFamilies = findQueueFamilies(physicalDevice, m_surface);
+    bool hasPresent = false;
+    bool hasGraphics = false;
+    for (VulkanQueueFamilyInfo& queueFamily : queueFamilies)
+    {
+        if (queueFamily.hasGraphics()) {
+            hasGraphics = true;
+        }
+        if (queueFamily.hasPresent()) {
+            hasPresent = true;
+        }
+    }
+
     if (!offlineMode()) {
-        suitable = suitable && indices.isComplete();
+        suitable = suitable && hasGraphics && hasPresent;
     } else {
-        suitable = suitable && indices.hasGraphics();
+        suitable = suitable && hasGraphics;
     }
 
     if (suitable && !offlineMode()) {
@@ -234,33 +248,6 @@ VkResult VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device)
 
 VkResult VulkanContext::createLogicalDevice()
 {
-    m_queueFamilyIndices = findQueueFamilies(m_physicalDevice, m_surface);
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::vector<float> priorities = {1.0F, 0.F};  // First queue will be the render queue and it will have the highest priority
-    if (!offlineMode()) {
-        std::set<std::pair<uint32_t, uint32_t>> uniqueQueueFamilies = {{m_queueFamilyIndices.graphicsFamily.value(), 2},
-                                                                       {m_queueFamilyIndices.presentFamily.value(), 1}};
-        for (auto queueFamily : uniqueQueueFamilies) {
-            VkDeviceQueueCreateInfo queueCreateInfo{};
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = queueFamily.first;
-            queueCreateInfo.queueCount = queueFamily.second;
-            queueCreateInfo.pQueuePriorities = priorities.data();
-            queueCreateInfos.push_back(queueCreateInfo);
-        }
-    } else {
-        std::set<std::pair<uint32_t, uint32_t>> uniqueQueueFamilies = {{m_queueFamilyIndices.graphicsFamily.value(), 2}};
-        for (auto queueFamily : uniqueQueueFamilies) {
-            VkDeviceQueueCreateInfo queueCreateInfo{};
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = queueFamily.first;
-            queueCreateInfo.queueCount = queueFamily.second;
-            queueCreateInfo.pQueuePriorities = priorities.data();
-            queueCreateInfos.push_back(queueCreateInfo);
-        }
-    }
-
     /* Physical device features needed for ray tracing */
     VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures = {};
     physicalDeviceBufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
@@ -312,6 +299,8 @@ VkResult VulkanContext::createLogicalDevice()
     for (auto e : VULKAN_DEVICE_EXTENSIONS)
         extensionNames.push_back(e.first);
 
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = m_queueManager.getQueueCreateInfo();
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
@@ -325,12 +314,7 @@ VkResult VulkanContext::createLogicalDevice()
 
     VULKAN_CHECK_CRITICAL(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device));
 
-    vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_renderQueue);
-    vkGetDeviceQueue(m_device, m_queueFamilyIndices.graphicsFamily.value(), 1, &m_graphicsQueue);
-
-    if (!offlineMode()) {
-        vkGetDeviceQueue(m_device, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
-    }
+    VULKAN_CHECK_CRITICAL(m_queueManager.createQueues(*this));
 
     return VK_SUCCESS;
 }
@@ -341,7 +325,7 @@ VkResult VulkanContext::createCommandPool()
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value();
+        poolInfo.queueFamilyIndex = m_queueManager.graphicsQueueIndex().first;
         VULKAN_CHECK_CRITICAL(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_graphicsCommandPool));
     }
 
@@ -349,7 +333,7 @@ VkResult VulkanContext::createCommandPool()
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value();
+        poolInfo.queueFamilyIndex = m_queueManager.renderQueueIndex().first;
         VULKAN_CHECK_CRITICAL(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_renderCommandPool));
     }
 

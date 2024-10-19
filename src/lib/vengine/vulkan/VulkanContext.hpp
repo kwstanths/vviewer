@@ -5,6 +5,7 @@
 
 #include "vulkan/common/IncludeVulkan.hpp"
 #include "vulkan/common/VulkanStructs.hpp"
+#include "vulkan/VulkanQueues.hpp"
 
 namespace vengine
 {
@@ -71,16 +72,10 @@ public:
     VkDevice &device() { return m_device; }
 
     VkSurfaceKHR &surface() { return m_surface; }
-    VulkanQueueFamilyIndices &queueFamilyIndices() { return m_queueFamilyIndices; }
-
-    VkQueue &graphicsQueue() { return m_graphicsQueue; }
-    VkQueue &presentQueue() { return m_presentQueue; }
-    VkQueue &renderQueue() { return m_renderQueue; }
+    VulkanQueueManager &queueManager() { return m_queueManager; }
 
     VkCommandPool &graphicsCommandPool() { return m_graphicsCommandPool; }
     VkCommandPool &renderCommandPool() { return m_renderCommandPool; }
-
-    // const VkSampleCountFlagBits &msaaSamples() { return m_msaaSamples; }
 
 private:
     bool m_initialized = false;
@@ -97,8 +92,7 @@ private:
     VkDebugUtilsMessengerEXT m_debugCallback;
 
     /* Queues */
-    VulkanQueueFamilyIndices m_queueFamilyIndices;
-    VkQueue m_graphicsQueue, m_presentQueue, m_renderQueue;
+    VulkanQueueManager m_queueManager;
 
     /* Command pools */
     VkCommandPool m_graphicsCommandPool;

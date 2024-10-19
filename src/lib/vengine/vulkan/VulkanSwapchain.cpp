@@ -40,9 +40,9 @@ VkResult VulkanSwapchain::initResources(uint32_t width, uint32_t height)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VulkanQueueFamilyIndices &indices = m_vkctx.queueFamilyIndices();
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-    if (indices.graphicsFamily != indices.presentFamily) {
+    VulkanQueueManager& queueManager = m_vkctx.queueManager();
+    uint32_t queueFamilyIndices[] = {queueManager.graphicsQueueIndex().first, queueManager.presentQueueIndex().first};
+    if (queueManager.graphicsQueueIndex().first != queueManager.presentQueueIndex().first) {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
         createInfo.pQueueFamilyIndices = queueFamilyIndices;

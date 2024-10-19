@@ -113,7 +113,9 @@ Texture *VulkanTextures::createTexture(const Image<stbi_uc> &image)
     }
 
     auto temp = new VulkanTexture(
-        image, {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, true);
+        image,
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue()},
+        true);
 
     addTexture(temp);
 
@@ -130,7 +132,9 @@ Texture *VulkanTextures::createTextureHDR(const AssetInfo &info)
     Image<float> image(info, ColorSpace::LINEAR);
 
     auto temp = new VulkanTexture(
-        image, {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, false);
+        image,
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue()},
+        false);
 
     return texturesMap.add(temp);
 }

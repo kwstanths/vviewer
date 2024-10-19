@@ -12,9 +12,9 @@ namespace vengine
 {
 
 #if !defined(NDEBUG) || defined(FORCE_VULKAN_DEBUG)
-#define VULKAN_WARNING(VK_COMMAND)                                                                                             \
-    if (VkResult VK_RESULT = VK_COMMAND; VK_RESULT != VK_SUCCESS) {                                                            \
-        debug_tools::ConsoleWarning(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " " + std::to_string(VK_RESULT)); \
+#define VULKAN_WARNING(VK_COMMAND)                                  \
+    if (VkResult VK_RESULT = VK_COMMAND; VK_RESULT != VK_SUCCESS) { \
+        PRINT_LINE_WARNING_NUMBER(VK_RESULT);                       \
     }
 #define VULKAN_CHECK(VK_COMMAND)                                    \
     if (VkResult VK_RESULT = VK_COMMAND; VK_RESULT != VK_SUCCESS) { \

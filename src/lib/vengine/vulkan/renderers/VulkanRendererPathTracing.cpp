@@ -63,7 +63,7 @@ VkResult VulkanRendererPathTracing::initResources(VkFormat format, VkDescriptorS
 
     m_device = m_vkctx.device();
     m_commandPool = m_vkctx.graphicsCommandPool();
-    m_queue = m_vkctx.graphicsQueue();
+    m_queue = m_vkctx.queueManager().graphicsQueue();
 
     /* Get ray tracing pipeline properties */
     {
@@ -199,7 +199,8 @@ void VulkanRendererPathTracing::render()
     updateBuffers(sceneData, m_pathTracingData);
 
     /* We will always use frame index 0 buffers for this renderer */
-    m_scene.updateFrame({m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.graphicsQueue()}, 0);
+    m_scene.updateFrame(
+        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue()}, 0);
     m_materials.updateBuffers(0);
     m_textures.updateTextures();
 
@@ -838,10 +839,12 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
 
     auto devF = VulkanDeviceFunctions::getInstance().rayTracingPipeline();
 
+    updateDescriptorSets();
+
     debug_tools::ConsoleInfo("Launching render with: " + std::to_string(batches * batchSize) + " samples");
     VkResult res = VK_SUCCESS;
     /* TODO some calls can go outside the loop? */
-    for (uint32_t batch = 0; batch < batches; batch++) {
+    for (uint32_t batch = 0; batch < batches; batch+=1) {
         VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
         PathTracingData batchData = m_pathTracingData;
@@ -849,7 +852,6 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
         batchData.samplesBatchesDepthIndex.g = batches;
         batchData.samplesBatchesDepthIndex.a = batch;
         VULKAN_CHECK_CRITICAL(updateBuffersPathTracingData(batchData));
-        updateDescriptorSets();
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline);
 

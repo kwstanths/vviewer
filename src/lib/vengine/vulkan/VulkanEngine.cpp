@@ -160,12 +160,14 @@ Model3D *VulkanEngine::importModel(const AssetInfo &info, bool importMaterials)
             importedNode = assimpLoadModel(info);
         }
 
-        auto vkmodel = new VulkanModel3D(
-            info,
-            importedNode,
-            materials,
-            {m_context.physicalDevice(), m_context.device(), m_context.graphicsCommandPool(), m_context.graphicsQueue()},
-            true);
+        auto vkmodel = new VulkanModel3D(info,
+                                         importedNode,
+                                         materials,
+                                         {m_context.physicalDevice(),
+                                          m_context.device(),
+                                          m_context.graphicsCommandPool(),
+                                          m_context.queueManager().graphicsQueue()},
+                                         true);
 
         return modelsMap.add(vkmodel);
     } catch (std::runtime_error &e) {
@@ -293,7 +295,9 @@ void VulkanEngine::mainLoop()
         m_scene.update();
 
         /* Render frame */
-        VULKAN_WARNING(m_renderer.renderFrame());
+        VkResult res = m_renderer.renderFrame();
+        if (res != VK_SUCCESS && res != VK_ERROR_OUT_OF_DATE_KHR)
+            PRINT_LINE_WARNING_NUMBER(res);
     }
 
     m_status = STATUS::EXITED;

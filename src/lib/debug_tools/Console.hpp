@@ -16,6 +16,9 @@
 
 namespace debug_tools {
     
+    #define PRINT_LINE_WARNING(MESSAGE) debug_tools::ConsoleWarning(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " " + MESSAGE);
+    #define PRINT_LINE_WARNING_NUMBER(NUMBER) debug_tools::ConsoleWarning(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " " + std::to_string(NUMBER));
+
     /**
         Print anything fast
         @param t What to print. Must have the << operator overloaded

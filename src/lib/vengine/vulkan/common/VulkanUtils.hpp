@@ -35,12 +35,12 @@ VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice,
                              VkFormatFeatureFlags features);
 
 /**
- * @brief Find the queue family indices for a physical device
+ * @brief Find the queue families for a physical device
  *
  * @param device
- * @return * Find
+ * @return
  */
-VulkanQueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+std::vector<VulkanQueueFamilyInfo> findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 /**
  * @brief Get supported swapchain information

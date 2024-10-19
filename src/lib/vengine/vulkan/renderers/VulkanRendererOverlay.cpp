@@ -23,8 +23,10 @@ VkResult VulkanRendererOverlay::initResources(VkDescriptorSetLayout cameraDescri
 
     AssetInfo arrowInfo = AssetInfo("assets/models/arrow.obj", AssetSource::INTERNAL);
     Tree<ImportedModelNode> modelData = assimpLoadModel(arrowInfo);
-    m_arrow = new VulkanModel3D(
-        arrowInfo, modelData, {m_ctx.physicalDevice(), m_ctx.device(), m_ctx.graphicsCommandPool(), m_ctx.graphicsQueue()}, false);
+    m_arrow = new VulkanModel3D(arrowInfo,
+                          modelData,
+                          {m_ctx.physicalDevice(), m_ctx.device(), m_ctx.graphicsCommandPool(), m_ctx.queueManager().graphicsQueue()},
+                          false);
 
     m_IdX = static_cast<ID>(ReservedObjectID::TRANSFORM_ARROW_X);
     m_IdY = static_cast<ID>(ReservedObjectID::TRANSFORM_ARROW_Y);
