@@ -1,4 +1,5 @@
 #include "SceneUtils.hpp"
+#include <list>
 
 namespace vengine
 {
@@ -7,7 +8,7 @@ void UpdateSceneObject(SceneObject *sceneObject)
 {
     sceneObject->update();
 
-    for (SceneObject* child : sceneObject->children()) {
+    for (SceneObject *child : sceneObject->children()) {
         UpdateSceneObject(child);
     }
 }
@@ -37,7 +38,6 @@ struct SceneObjectVectorUpdateTask : Task {
         return true;
     }
 };
-
 
 void UpdateSceneObjectParallel(SceneObject *sceneObject, ThreadPool &threadPool)
 {
@@ -78,4 +78,4 @@ void UpdateSceneGraphParallel(SceneObjectVector &sceneGraph, ThreadPool &threadP
     }
 }
 
-}
+}  // namespace vengine

@@ -3,26 +3,29 @@
 
 #include <functional>
 #include <mutex>
+#include <condition_variable>
 
 namespace vengine
 {
 
-class Task {
+class Task
+{
 public:
-    Task() { 
+    Task()
+    {
         m_waitLock = std::make_unique<std::mutex>();
         m_waitCondition = std::make_unique<std::condition_variable>();
     }
 
     /**
-    * Override with task work.
-    * [optional] Store current progress in progress 
-    */
+     * Override with task work.
+     * [optional] Store current progress in progress
+     */
     virtual bool work(float &progress) = 0;
     virtual float getProgress() const { return m_progress; }
 
     /* Wait on a task to finish */
-    void wait() 
+    void wait()
     {
         std::unique_lock<std::mutex> lock(*m_waitLock);
 
@@ -49,11 +52,9 @@ public:
     }
 
 protected:
-
     float m_progress = 0.0F;
 
 private:
-
     bool m_started = false;
     bool m_finished = false;
     bool m_success = false;

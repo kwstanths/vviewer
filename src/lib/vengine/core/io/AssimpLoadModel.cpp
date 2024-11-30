@@ -212,7 +212,7 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
                 debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + fullPath + " from memory");
             }
             return textureData;
-#elif
+#elif __linux__
             replaceAll(fullPath, "\\", "/");
 
             unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);

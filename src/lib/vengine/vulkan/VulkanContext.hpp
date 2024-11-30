@@ -25,7 +25,7 @@ static const std::vector<const char *> VULKAN_INSTANCE_EXTENSIONS = {"VK_EXT_deb
 #endif
 };
 
-/* true means mandatory */
+/* true means mandatory, TODO needs update */
 static const std::vector<std::pair<const char *, bool>> VULKAN_DEVICE_EXTENSIONS = {
     {"VK_KHR_swapchain", true},
     {"VK_KHR_acceleration_structure", true},
