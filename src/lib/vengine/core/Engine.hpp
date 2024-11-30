@@ -39,6 +39,7 @@ public:
     virtual void exit() = 0;
     virtual void waitIdle() = 0;
 
+    virtual Mesh *createMesh(const Mesh& mesh) = 0;
     virtual Model3D *importModel(const AssetInfo &info, bool importMaterials = true) = 0;
     virtual EnvironmentMap *importEnvironmentMap(const AssetInfo &info, bool keepTexture = false) = 0;
 

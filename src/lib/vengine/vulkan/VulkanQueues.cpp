@@ -81,7 +81,10 @@ VkResult VulkanQueueManager::createQueues(VulkanContext &context)
         }
     }
 
-    if (!foundGraphics || !foundPresent || !foundRender)
+    if (!foundGraphics || !foundRender)
+        return VK_ERROR_UNKNOWN;
+
+    if (!context.offlineMode() && !foundPresent)
         return VK_ERROR_UNKNOWN;
 
     return VK_SUCCESS;

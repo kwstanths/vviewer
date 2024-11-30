@@ -34,7 +34,7 @@ VkResult VulkanRendererSkybox::initResources(VkPhysicalDevice physicalDevice,
 
     VULKAN_CHECK_CRITICAL(createDescriptorSetsLayout());
 
-    m_cube = new VulkanCube(AssetInfo("Cube", AssetSource::INTERNAL), {m_physicalDevice, m_device, commandPool, queue}, false);
+    m_cube = new VulkanCube(AssetInfo("Cube", AssetSource::ENGINE), {m_physicalDevice, m_device, commandPool, queue}, false);
 
     return VK_SUCCESS;
 }

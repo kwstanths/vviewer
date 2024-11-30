@@ -34,8 +34,8 @@ static std::unordered_map<std::string, LightType> importedLightTypeNames = {
     {"DIRECTIONAL", LightType::DIRECTIONAL_LIGHT},
 };
 static std::unordered_map<std::string, AssetLocation> importedTextureTypeNames = {
-    {"STANDALONE", AssetLocation::STANDALONE},
-    {"EMBEDDED", AssetLocation::EMBEDDED},
+    {"STANDALONE", AssetLocation::DISK_STANDALONE},
+    {"EMBEDDED", AssetLocation::DISK_EMBEDDED},
 };
 
 float parseFloat(const rapidjson::Value &o, std::string name, float defaultValue)
@@ -364,7 +364,7 @@ std::optional<ImportedTexture> parseTexture(const rapidjson::Value &o, const std
     value.location = importedTextureTypeNames[o["texture"]["type"].GetString()];
     value.name = o["texture"]["name"].GetString();
 
-    if (value.location == AssetLocation::STANDALONE && o["texture"].HasMember("filepath")) {
+    if (value.location == AssetLocation::DISK_STANDALONE && o["texture"].HasMember("filepath")) {
         std::string filepath = o["texture"]["filepath"].GetString();
         value.image = new Image<uint8_t>(AssetInfo(relativePath + filepath), colorSpace);
     }
@@ -392,7 +392,7 @@ void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, I
 
     if (material.type == ImportedMaterialType::STACK) {
         std::string filepath = relativePath + o["path"].GetString();
-        material.info = AssetInfo(name, filepath, AssetSource::IMPORTED, AssetLocation::STANDALONE);
+        material.info = AssetInfo(name, filepath, AssetSource::IMPORTED, AssetLocation::DISK_STANDALONE);
         return;
     }
 

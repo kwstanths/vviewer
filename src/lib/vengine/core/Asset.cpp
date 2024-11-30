@@ -9,7 +9,7 @@ AssetInfo::AssetInfo(const std::string &n, const AssetSource &s)
     : name(n)
     , filepath(n)
     , source(s)
-    , location(AssetLocation::STANDALONE)
+    , location(AssetLocation::DISK_STANDALONE)
 {
 }
 
@@ -51,14 +51,14 @@ const AssetInfo &Asset::info() const
     return m_info;
 }
 
-const bool Asset::internal() const
+const bool Asset::isInternal() const
 {
-    return m_info.source == AssetSource::INTERNAL;
+    return m_info.source == AssetSource::ENGINE;
 }
 
-const bool Asset::embedded() const
+const bool Asset::isEmbedded() const
 {
-    return m_info.location == AssetLocation::EMBEDDED;
+    return m_info.location == AssetLocation::DISK_EMBEDDED;
 }
 
 }  // namespace vengine

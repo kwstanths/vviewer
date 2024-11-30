@@ -164,7 +164,7 @@ void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneO
 
 void addModel(rapidjson::Document &d, rapidjson::Value &v, const Model3D *model, std::string storeDirectory)
 {
-    if (model->internal())
+    if (model->isInternal())
         return;
 
     Value modelObject;
@@ -192,7 +192,7 @@ void addTexture(rapidjson::Document &d,
     Value textureObject;
     textureObject.SetObject();
 
-    if (tex->embedded()) {
+    if (tex->isEmbedded()) {
         Value type;
         type.SetString("EMBEDDED", d.GetAllocator());
         textureObject.AddMember("type", type, d.GetAllocator());
@@ -253,7 +253,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 albedoObject.SetObject();
 
                 if (m->getAlbedoTexture() != nullptr && m->getAlbedoTexture()->name() != "whiteColor") {
-                    if (!m->embedded() && !directoryCreated)
+                    if (!m->isEmbedded() && !directoryCreated)
                         createMatDirectory();
 
                     addTexture(d, albedoObject, m->getAlbedoTexture(), materialFolderPrefix, materialDirectory, "albedo");
@@ -270,7 +270,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 emissiveObject.SetObject();
 
                 if (m->getEmissiveTexture() != nullptr && m->getEmissiveTexture()->name() != "whiteColor") {
-                    if (!m->embedded() && !directoryCreated)
+                    if (!m->isEmbedded() && !directoryCreated)
                         createMatDirectory();
                     addTexture(d, emissiveObject, m->getEmissiveTexture(), materialFolderPrefix, materialDirectory, "emissive");
                 }
@@ -285,7 +285,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 Value normalObject;
                 normalObject.SetObject();
 
-                if (!m->embedded() && !directoryCreated)
+                if (!m->isEmbedded() && !directoryCreated)
                     createMatDirectory();
 
                 addTexture(d, normalObject, m->getNormalTexture(), materialFolderPrefix, materialDirectory, "normal");
@@ -298,7 +298,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 Value alphaObject;
                 alphaObject.SetObject();
 
-                if (!m->embedded() && !directoryCreated)
+                if (!m->isEmbedded() && !directoryCreated)
                     createMatDirectory();
 
                 addTexture(d, alphaObject, m->getAlphaTexture(), materialFolderPrefix, materialDirectory, "alpha");
@@ -336,7 +336,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 break;
             }
 
-            if (m->embedded()) {
+            if (m->isEmbedded()) {
                 Value type;
                 type.SetString("EMBEDDED");
                 mat.AddMember("type", type, d.GetAllocator());
@@ -355,7 +355,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 albedoObject.SetObject();
 
                 if (m->getAlbedoTexture() != nullptr && m->getAlbedoTexture()->name() != "whiteColor") {
-                    if (!m->embedded() && !directoryCreated)
+                    if (!m->isEmbedded() && !directoryCreated)
                         createMatDirectory();
 
                     addTexture(d, albedoObject, m->getAlbedoTexture(), materialFolderPrefix, materialDirectory, "albedo");
@@ -372,7 +372,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 roughnessObject.SetObject();
 
                 if (m->getRoughnessTexture() != nullptr && m->getRoughnessTexture()->name() != "white") {
-                    if (!m->embedded() && !directoryCreated)
+                    if (!m->isEmbedded() && !directoryCreated)
                         createMatDirectory();
                     addTexture(d, roughnessObject, m->getRoughnessTexture(), materialFolderPrefix, materialDirectory, "roughness");
                 }
@@ -390,7 +390,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 metallicObject.SetObject();
 
                 if (m->getMetallicTexture() != nullptr && m->getMetallicTexture()->name() != "white") {
-                    if (!m->embedded() && !directoryCreated)
+                    if (!m->isEmbedded() && !directoryCreated)
                         createMatDirectory();
                     addTexture(d, metallicObject, m->getMetallicTexture(), materialFolderPrefix, materialDirectory, "metallic");
                 }
@@ -408,7 +408,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 aoObject.SetObject();
 
                 if (m->getAOTexture() != nullptr && m->getAOTexture()->name() != "white") {
-                    if (!m->embedded() && !directoryCreated)
+                    if (!m->isEmbedded() && !directoryCreated)
                         createMatDirectory();
                     addTexture(d, aoObject, m->getAOTexture(), materialFolderPrefix, materialDirectory, "ao");
                 }
@@ -426,7 +426,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 emissiveObject.SetObject();
 
                 if (m->getEmissiveTexture() != nullptr && m->getEmissiveTexture()->name() != "whiteColor") {
-                    if (!m->embedded() && !directoryCreated)
+                    if (!m->isEmbedded() && !directoryCreated)
                         createMatDirectory();
                     addTexture(d, emissiveObject, m->getEmissiveTexture(), materialFolderPrefix, materialDirectory, "emissive");
                 }
@@ -441,7 +441,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 Value normalObject;
                 normalObject.SetObject();
 
-                if (!m->embedded() && !directoryCreated)
+                if (!m->isEmbedded() && !directoryCreated)
                     createMatDirectory();
 
                 addTexture(d, normalObject, m->getNormalTexture(), materialFolderPrefix, materialDirectory, "normal");
@@ -454,7 +454,7 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 Value alphaObject;
                 alphaObject.SetObject();
 
-                if (!m->embedded() && !directoryCreated)
+                if (!m->isEmbedded() && !directoryCreated)
                     createMatDirectory();
 
                 addTexture(d, alphaObject, m->getAlphaTexture(), materialFolderPrefix, materialDirectory, "alpha");

@@ -6,8 +6,8 @@
 namespace vengine
 {
 
-enum class AssetSource { UNDEFINED = -1, IMPORTED = 0, INTERNAL = 1 };
-enum class AssetLocation { UNDEFINED = -1, STANDALONE = 0, EMBEDDED = 1 };
+enum class AssetSource { IMPORTED = 0, ENGINE = 1 };
+enum class AssetLocation { UNDEFINED = -1, DISK_STANDALONE = 0, DISK_EMBEDDED = 1 };
 
 struct AssetInfo {
     std::string name;
@@ -34,7 +34,7 @@ struct AssetInfo {
     explicit AssetInfo(const std::string &n,
                        const std::string &f,
                        const AssetSource &s = AssetSource::IMPORTED,
-                       const AssetLocation &l = AssetLocation::STANDALONE);
+                       const AssetLocation &l = AssetLocation::DISK_STANDALONE);
 };
 
 class Asset
@@ -49,8 +49,8 @@ public:
 
     const AssetInfo &info() const;
 
-    const bool internal() const;
-    const bool embedded() const;
+    const bool isInternal() const;
+    const bool isEmbedded() const;
 
 private:
     AssetInfo m_info;

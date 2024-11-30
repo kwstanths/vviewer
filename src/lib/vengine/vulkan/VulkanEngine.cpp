@@ -141,6 +141,19 @@ void VulkanEngine::waitIdle()
     m_renderer.waitIdle();
 }
 
+Mesh *VulkanEngine::createMesh(const Mesh &mesh)
+{
+    auto vkmesh = new VulkanMesh(
+        mesh,
+        {m_context.physicalDevice(), m_context.device(), m_context.graphicsCommandPool(), m_context.queueManager().graphicsQueue()},
+        true);
+
+    auto &meshesMap = AssetManager::getInstance().meshesMap();
+    meshesMap.add(vkmesh);
+
+    return vkmesh;
+}
+
 Model3D *VulkanEngine::importModel(const AssetInfo &info, bool importMaterials)
 {
     try {
@@ -222,7 +235,7 @@ void VulkanEngine::deleteImportedAssets()
 {
     auto &modelsMap = AssetManager::getInstance().modelsMap();
     for (auto itr = modelsMap.begin(); itr != modelsMap.end();) {
-        if (!itr->second->internal()) {
+        if (!itr->second->isInternal()) {
             auto model = static_cast<VulkanModel3D *>(itr->second);
             model->destroy(m_context.device());
             itr = modelsMap.remove(itr->second);
@@ -234,7 +247,7 @@ void VulkanEngine::deleteImportedAssets()
 
     auto &materialsMap = AssetManager::getInstance().materialsMap();
     for (auto itr = materialsMap.begin(); itr != materialsMap.end();) {
-        if (!itr->second->internal()) {
+        if (!itr->second->isInternal()) {
             auto material = static_cast<Material *>(itr->second);
             itr = materialsMap.remove(itr->second);
             delete material;
@@ -245,7 +258,7 @@ void VulkanEngine::deleteImportedAssets()
 
     auto &texturesMap = AssetManager::getInstance().texturesMap();
     for (auto itr = texturesMap.begin(); itr != texturesMap.end();) {
-        if (!itr->second->internal()) {
+        if (!itr->second->isInternal()) {
             auto texture = static_cast<VulkanTexture *>(itr->second);
             itr = texturesMap.remove(itr->second);
             texture->destroy(m_context.device());
@@ -257,10 +270,22 @@ void VulkanEngine::deleteImportedAssets()
 
     auto &lightsMap = AssetManager::getInstance().lightsMap();
     for (auto itr = lightsMap.begin(); itr != lightsMap.end();) {
-        if (!itr->second->internal()) {
+        if (!itr->second->isInternal()) {
             auto light = static_cast<Light *>(itr->second);
             itr = lightsMap.remove(itr->second);
             delete light;
+        } else {
+            ++itr;
+        }
+    }
+
+    auto &meshesMap = AssetManager::getInstance().meshesMap();
+    for (auto itr = meshesMap.begin(); itr != meshesMap.end();) {
+        if (!itr->second->isInternal()) {
+            auto mesh = static_cast<VulkanMesh *>(itr->second);
+            itr = meshesMap.remove(itr->second);
+            mesh->destroy(m_context.device());
+            delete mesh;
         } else {
             ++itr;
         }
@@ -308,7 +333,7 @@ void VulkanEngine::initDefaultData()
     /* default materials */
     {
         auto defaultMaterial = static_cast<VulkanMaterialPBRStandard *>(
-            m_materials.createMaterial(AssetInfo("defaultMaterial", AssetSource::INTERNAL), MaterialType::MATERIAL_PBR_STANDARD));
+            m_materials.createMaterial(AssetInfo("defaultMaterial", AssetSource::ENGINE), MaterialType::MATERIAL_PBR_STANDARD));
         defaultMaterial->albedo() = glm::vec4(0.8, 0.8, 0.8, 1);
         defaultMaterial->metallic() = 0.5;
         defaultMaterial->roughness() = 0.5;
@@ -316,12 +341,12 @@ void VulkanEngine::initDefaultData()
         defaultMaterial->emissive() = glm::vec4(0.0, 0.0, 0.0, 1.0);
 
         auto defaultEmissive = static_cast<VulkanMaterialPBRStandard *>(
-            m_materials.createMaterial(AssetInfo("defaultEmissive", AssetSource::INTERNAL), MaterialType::MATERIAL_PBR_STANDARD));
+            m_materials.createMaterial(AssetInfo("defaultEmissive", AssetSource::ENGINE), MaterialType::MATERIAL_PBR_STANDARD));
         defaultEmissive->albedo() = glm::vec4(1, 1, 1, 1);
         defaultEmissive->emissive() = glm::vec4(1, 1, 1, 1.0);
 
         auto defaultVolume = static_cast<VulkanMaterialVolume *>(
-            m_materials.createMaterial(AssetInfo("defaultVolume", AssetSource::INTERNAL), MaterialType::MATERIAL_VOLUME));
+            m_materials.createMaterial(AssetInfo("defaultVolume", AssetSource::ENGINE), MaterialType::MATERIAL_VOLUME));
         defaultVolume->sigmaS() = glm::vec4(0.2, 0.2, 0.2, 1);
         defaultVolume->sigmaA() = glm::vec4(0);
         defaultVolume->g() = 0.0F;
@@ -331,30 +356,30 @@ void VulkanEngine::initDefaultData()
     {
         auto &lights = AssetManager::getInstance().lightsMap();
 
-        auto defaultPointLight = scene().createLight(AssetInfo("defaultPointLight", AssetSource::INTERNAL), LightType::POINT_LIGHT);
+        auto defaultPointLight = scene().createLight(AssetInfo("defaultPointLight", AssetSource::ENGINE), LightType::POINT_LIGHT);
         static_cast<PointLight *>(defaultPointLight)->color() = glm::vec4(1, 1, 1, 1);
         lights.add(defaultPointLight);
 
         auto defaultDirectionalLight =
-            scene().createLight(AssetInfo("defaultDirectionalLight", AssetSource::INTERNAL), LightType::DIRECTIONAL_LIGHT);
+            scene().createLight(AssetInfo("defaultDirectionalLight", AssetSource::ENGINE), LightType::DIRECTIONAL_LIGHT);
         static_cast<PointLight *>(defaultDirectionalLight)->color() = glm::vec4(1, 0.9, 0.8, 1);
         lights.add(defaultDirectionalLight);
     }
 
     {
         /* Some models */
-        auto uvsphereMeshModel = importModel(AssetInfo("assets/models/uvsphere.obj", AssetSource::INTERNAL), false);
-        auto planeMeshModel = importModel(AssetInfo("assets/models/plane.obj", AssetSource::INTERNAL), false);
-        auto cubeMeshModel = importModel(AssetInfo("assets/models/cube.obj", AssetSource::INTERNAL), false);
+        auto uvsphereMeshModel = importModel(AssetInfo("assets/models/uvsphere.obj", AssetSource::ENGINE), false);
+        auto planeMeshModel = importModel(AssetInfo("assets/models/plane.obj", AssetSource::ENGINE), false);
+        auto cubeMeshModel = importModel(AssetInfo("assets/models/cube.obj", AssetSource::ENGINE), false);
     }
 
     /* A skybox material */
     {
-        auto envMap = importEnvironmentMap(AssetInfo("assets/HDR/harbor.hdr", AssetSource::INTERNAL));
+        auto envMap = importEnvironmentMap(AssetInfo("assets/HDR/harbor.hdr", AssetSource::ENGINE));
 
         auto &materialsSkybox = AssetManager::getInstance().materialsSkyboxMap();
         auto skybox = materialsSkybox.add(new VulkanMaterialSkybox(
-            AssetInfo("skybox", AssetSource::INTERNAL), m_materials, envMap, m_renderer.rendererSkybox().descriptorSetLayout()));
+            AssetInfo("skybox", AssetSource::ENGINE), m_materials, envMap, m_renderer.rendererSkybox().descriptorSetLayout()));
 
         m_scene.skyboxMaterial() = skybox;
     }

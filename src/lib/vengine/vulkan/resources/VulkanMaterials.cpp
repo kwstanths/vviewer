@@ -211,7 +211,7 @@ Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &te
             stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, nullptr, STBI_rgb_alpha);
 
         std::string id = filename + ":" + albedoZipPath;
-        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::EMBEDDED),
+        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
                              rawImgBuffer,
                              x,
                              y,
@@ -237,7 +237,7 @@ Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &te
             stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, &channels, STBI_default);
 
         std::string id = filename + ":" + roughnessZipPath;
-        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::EMBEDDED),
+        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
                              rawImgBuffer,
                              x,
                              y,
@@ -263,7 +263,7 @@ Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &te
             stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, nullptr, STBI_rgb_alpha);
 
         std::string id = filename + ":" + normalZipPath;
-        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::EMBEDDED),
+        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
                              rawImgBuffer,
                              x,
                              y,

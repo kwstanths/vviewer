@@ -70,9 +70,9 @@ VkResult VulkanTextures::releaseSwapchainResources()
 
 void VulkanTextures::createBaseTextures()
 {
-    createTexture(Image<stbi_uc>(AssetInfo("white", AssetSource::INTERNAL), Color::WHITE, ColorSpace::LINEAR));
-    createTexture(Image<stbi_uc>(AssetInfo("whiteColor", AssetSource::INTERNAL), Color::WHITE, ColorSpace::sRGB));
-    createTexture(Image<stbi_uc>(AssetInfo("normalmapdefault", AssetSource::INTERNAL), Color::NORMAL_MAP, ColorSpace::LINEAR));
+    createTexture(Image<stbi_uc>(AssetInfo("white", AssetSource::ENGINE), Color::WHITE, ColorSpace::LINEAR));
+    createTexture(Image<stbi_uc>(AssetInfo("whiteColor", AssetSource::ENGINE), Color::WHITE, ColorSpace::sRGB));
+    createTexture(Image<stbi_uc>(AssetInfo("normalmapdefault", AssetSource::ENGINE), Color::NORMAL_MAP, ColorSpace::LINEAR));
 }
 
 void VulkanTextures::updateTextures()

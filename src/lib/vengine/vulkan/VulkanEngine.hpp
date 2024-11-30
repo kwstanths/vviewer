@@ -38,6 +38,7 @@ public:
     void exit() override;
     void waitIdle() override;
 
+    Mesh *createMesh(const Mesh &mesh) override;
     Model3D *importModel(const AssetInfo &info, bool importMaterials = true) override;
     EnvironmentMap *importEnvironmentMap(const AssetInfo &info, bool keepTexture = false) override;
 

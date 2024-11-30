@@ -21,7 +21,7 @@ VkResult VulkanRendererOverlay::initResources(VkDescriptorSetLayout cameraDescri
 {
     m_descriptorSetLayoutCamera = cameraDescriptorLayout;
 
-    AssetInfo arrowInfo = AssetInfo("assets/models/arrow.obj", AssetSource::INTERNAL);
+    AssetInfo arrowInfo = AssetInfo("assets/models/arrow.obj", AssetSource::ENGINE);
     Tree<ImportedModelNode> modelData = assimpLoadModel(arrowInfo);
     m_arrow = new VulkanModel3D(arrowInfo,
                           modelData,

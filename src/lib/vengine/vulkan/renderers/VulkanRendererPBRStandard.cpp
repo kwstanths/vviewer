@@ -252,7 +252,7 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
     vkDestroyDescriptorSetLayout(m_ctx.device(), descriptorSetlayout, nullptr);
 
     /* Create texture resource */
-    auto vktex = new VulkanTexture(AssetInfo("PBR_BRDF_LUT", AssetSource::INTERNAL),
+    auto vktex = new VulkanTexture(AssetInfo("PBR_BRDF_LUT", AssetSource::ENGINE),
                                    ColorSpace::LINEAR,
                                    ColorDepth::BITS16,
                                    imageWidth,

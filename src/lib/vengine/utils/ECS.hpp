@@ -136,7 +136,7 @@ public:
     {
         if (m_entities.size() == 0)
             return nullptr;
-        return &m_entities[m_entities.size() - 1];
+        return &m_entities[m_entities.size() - 1] + 1;
     }
 
 private:
@@ -150,7 +150,7 @@ class ComponentOwnerUnique : public ComponentOwner
 public:
     bool isShared() { return false; }
     Iterator begin() { return &m_entity; }
-    Iterator end() { return &m_entity; }
+    Iterator end() { return &m_entity + 1; }
 
 private:
     Entity *m_entity = nullptr;

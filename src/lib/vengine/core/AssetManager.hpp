@@ -99,6 +99,7 @@ public:
     AssetMap<Cubemap> &cubemapsMap() { return m_cubemapsMap; }
     AssetMap<Model3D> &modelsMap() { return m_modelsMap; }
     AssetMap<EnvironmentMap> &environmentsMapMap() { return m_environmentMapsMap; }
+    AssetMap<Mesh> &meshesMap() { return m_meshesMap; }
 
 private:
     AssetManager() {}
@@ -110,6 +111,7 @@ private:
     AssetMap<Cubemap> m_cubemapsMap;
     AssetMap<Model3D> m_modelsMap;
     AssetMap<EnvironmentMap> m_environmentMapsMap;
+    AssetMap<Mesh> m_meshesMap;
 };
 
 }  // namespace vengine

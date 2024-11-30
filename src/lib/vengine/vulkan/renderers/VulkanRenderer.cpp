@@ -204,6 +204,16 @@ VkResult VulkanRenderer::releaseResources()
         meshModelsMap.reset();
     }
 
+    /* Destroy imported meshes */
+    {
+        auto &meshesMap = AssetManager::getInstance().meshesMap();
+        for (auto itr = meshesMap.begin(); itr != meshesMap.end(); ++itr) {
+            auto vkmesh = static_cast<VulkanMesh *>(itr->second);
+            vkmesh->destroy(m_vkctx.device());
+        }
+        meshesMap.reset();
+    }
+
     return VK_SUCCESS;
 }
 
