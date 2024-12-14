@@ -10,7 +10,13 @@
 namespace vengine
 {
 
+ //#define FORCE_VULKAN_VALIDATION_LAYERS
+#if !defined(NDEBUG) || defined(FORCE_VULKAN_VALIDATION_LAYERS)
 static const std::vector<const char *> VULKAN_VALIDATION_LAYERS = {"VK_LAYER_KHRONOS_validation"};
+#else
+static const std::vector<const char *> VULKAN_VALIDATION_LAYERS = {};
+#endif
+
 
 static const std::vector<const char *> VULKAN_INSTANCE_EXTENSIONS = {"VK_EXT_debug_report",
                                                                      "VK_EXT_debug_utils",
