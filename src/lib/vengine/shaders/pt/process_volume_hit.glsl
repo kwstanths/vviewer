@@ -5,7 +5,7 @@
     vec3 sigma_s = volumeMaterial.metallicRoughnessAO.rgb;
     sigma_s = max(sigma_s, EPSILON);
     vec3 sigma_t = sigma_a + sigma_s;
-    float g = volumeMaterial.emissive.r;
+    float g = max(min(volumeMaterial.emissive.r, 0.99), -0.99);
 
     vec3 worldRayDirection = normalize(gl_WorldRayDirectionEXT);
     vec3 wo = -worldRayDirection;

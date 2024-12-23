@@ -23,7 +23,7 @@ class VulkanScene : public Scene
     friend class VulkanRenderer;
 
 public:
-    VulkanScene(VulkanContext &vkctx, VulkanEngine& engine);
+    VulkanScene(VulkanContext &vkctx, VulkanEngine &engine);
     ~VulkanScene();
 
     VkResult initResources();
@@ -57,7 +57,7 @@ private:
 
     VkDescriptorPool m_descriptorPool;
 
-    /* Buffers to hold the scene data struct */
+    /* Buffers to hold the SceneData struct */
     std::vector<VulkanBuffer> m_uniformBuffersScene;
     /* SceneData descriptor */
     VkDescriptorSetLayout m_descriptorSetLayoutScene;

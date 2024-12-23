@@ -197,7 +197,7 @@ public:
 
     /* Between (-1, 1) */
     virtual float &g() = 0;
-    virtual float &g() const = 0;
+    const virtual float &g() const = 0;
 
 protected:
 };

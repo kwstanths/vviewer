@@ -476,7 +476,7 @@ float &VulkanMaterialVolume::g()
     return m_block->emissive.r;
 }
 
-float &VulkanMaterialVolume::g() const
+const float &VulkanMaterialVolume::g() const
 {
     return m_block->emissive.r;
 }

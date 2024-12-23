@@ -139,7 +139,7 @@ public:
     const glm::vec4 &sigmaS() const override;
 
     float &g() override;
-    float &g() const override;
+    const float &g() const override;
 
 protected:
 };

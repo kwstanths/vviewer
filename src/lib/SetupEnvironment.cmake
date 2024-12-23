@@ -27,6 +27,10 @@ macro(SetupEnvironment)
     set(ZIP_INCLUDE_DIRS ${ZIP_DIR}/src)
     set(ZIP_LIBRARIES zip)
 
+    # googletest
+    set(GTEST_DIR ${PROJECT_ROOT}/src/lib/external/googletest)
+    set(GTEST_INCLUDE_DIRS ${GTEST_DIR}/googletest/include())
+
     # unused
     # TBB
     #set(TBB_INCLUDE_DIRS ${PROJECT_ROOT}/src/lib/external/oneTBB/include)

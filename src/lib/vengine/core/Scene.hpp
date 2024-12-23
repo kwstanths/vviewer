@@ -83,9 +83,14 @@ public:
 
     void exportScene(const ExportRenderParams &renderParams) const;
 
+    /* Create a light */
     virtual Light *createLight(const AssetInfo &info, LightType type, glm::vec4 color = {1, 1, 1, 1}) = 0;
 
+    /* Get the instances manager */
     virtual InstancesManager &instancesManager() = 0;
+
+    /* Clears the scene */
+    virtual void clear();
 
 protected:
     Engine &m_engine;

@@ -13,3 +13,6 @@
 [submodule "src/lib/external/oneTBB"]
 	path = src/lib/external/oneTBB
 	url = https://github.com/oneapi-src/oneTBB.git
+[submodule "src/lib/external/googletest"]
+	path = src/lib/external/googletest
+	url = https://github.com/google/googletest

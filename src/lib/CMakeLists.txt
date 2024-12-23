@@ -4,6 +4,7 @@ endif()
 
 add_subdirectory(debug_tools)
 add_subdirectory(external/zip)
+add_subdirectory(external/googletest)
 
 #set(TBB_TEST OFF)
 #add_subdirectory(external/oneTBB)

@@ -15,6 +15,7 @@ Mesh *ComponentMesh::mesh() const
 
 void ComponentMesh::setMesh(Mesh *mesh)
 {
+    assert(mesh != nullptr);
     m_mesh = mesh;
 
     for (Entity *e : *m_owner) {
@@ -34,6 +35,7 @@ Material *ComponentMaterial::material() const
 
 void ComponentMaterial::setMaterial(Material *material)
 {
+    assert(material != nullptr);
     m_material = material;
 
     for (Entity *e : *m_owner) {
@@ -53,6 +55,7 @@ Light *ComponentLight::light() const
 
 void ComponentLight::setLight(Light *light)
 {
+    assert(light != nullptr);
     m_light = light;
 
     for (Entity *e : *m_owner) {

@@ -181,6 +181,13 @@ void Scene::exportScene(const ExportRenderParams &renderParams) const
     exportJson(renderParams, m_camera, m_sceneGraph, envMap);
 }
 
+void Scene::clear()
+{
+    for (SceneObject *so : m_sceneGraph) {
+        removeSceneObject(so);
+    }
+}
+
 void Scene::invalidateSceneGraph(bool changed)
 {
     m_sceneGraphNeedsUpdate = changed;
