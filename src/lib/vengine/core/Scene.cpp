@@ -183,9 +183,25 @@ void Scene::exportScene(const ExportRenderParams &renderParams) const
 
 void Scene::clear()
 {
+    std::function<void(const SceneObjectVector &)> deleteChildren;
+    deleteChildren = [&](const SceneObjectVector &children) {
+        for (auto c : children) {
+            SceneObjectVector cChildren = c->children();
+            deleteObject(c);
+            deleteChildren(cChildren);
+        }
+    };
+
     for (SceneObject *so : m_sceneGraph) {
-        removeSceneObject(so);
+        SceneObjectVector nodeChildren = so->children();
+        deleteObject(so);
+        /* Delete children recusrively */
+        deleteChildren(nodeChildren);
     }
+    m_sceneGraph.clear();
+    m_objectsMap.clear();
+    m_sceneGraphNeedsUpdate = true;
+    m_instancesNeedUpdate = true;
 }
 
 void Scene::invalidateSceneGraph(bool changed)
