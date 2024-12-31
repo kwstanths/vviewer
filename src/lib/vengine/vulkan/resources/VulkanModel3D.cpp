@@ -11,22 +11,22 @@ VulkanModel3D::VulkanModel3D(const AssetInfo &info)
 }
 
 VulkanModel3D::VulkanModel3D(const AssetInfo &info,
-                             const Tree<ImportedModelNode> &importedData,
+                             const Tree<ImportedModelNode> &importedNodeTree,
                              VulkanCommandInfo vci,
                              bool generateBLAS)
     : Model3D(info)
 {
-    importNode(importedData, m_data, vci, generateBLAS, {});
+    importNode(importedNodeTree, m_nodeTree, vci, generateBLAS, {});
 }
 
 VulkanModel3D::VulkanModel3D(const AssetInfo &info,
-                             const Tree<ImportedModelNode> &importedData,
+                             const Tree<ImportedModelNode> &importedNodeTree,
                              const std::vector<Material *> &materials,
                              VulkanCommandInfo vci,
                              bool generateBLAS)
     : Model3D(info)
 {
-    importNode(importedData, m_data, vci, generateBLAS, materials);
+    importNode(importedNodeTree, m_nodeTree, vci, generateBLAS, materials);
 }
 
 void VulkanModel3D::destroy(VkDevice device)
@@ -38,25 +38,25 @@ void VulkanModel3D::destroy(VkDevice device)
             delete mesh;
         }
 
-        for (uint32_t i = 0; i < node.size(); i++) {
+        for (uint32_t i = 0; i < node.childrenCount(); i++) {
             destroyR(device, node.child(i));
         }
     };
 
-    destroyR(device, m_data);
+    destroyR(device, m_nodeTree);
 }
 
-void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
-                               Tree<Model3DNode> &data,
+void VulkanModel3D::importNode(const Tree<ImportedModelNode> &importedNodeTree,
+                               Tree<Model3DNode> &nodeTree,
                                VulkanCommandInfo vci,
                                bool generateBLAS,
                                const std::vector<Material *> &materials)
 {
     Model3DNode model3DNode;
-    model3DNode.name = node.data().name;
-    for (uint32_t i = 0; i < node.data().meshes.size(); i++) {
-        auto &mesh = node.data().meshes[i];
-        auto *mat = (materials.size() > 0 ? materials[node.data().materialIndices[i]] : nullptr);
+    model3DNode.name = importedNodeTree.data().name;
+    for (uint32_t i = 0; i < importedNodeTree.data().meshes.size(); i++) {
+        auto &mesh = importedNodeTree.data().meshes[i];
+        auto *mat = (materials.size() > 0 ? materials[importedNodeTree.data().materialIndices[i]] : nullptr);
 
         auto vkmesh = new VulkanMesh(mesh, vci, generateBLAS);
         vkmesh->m_model = this;
@@ -65,12 +65,12 @@ void VulkanModel3D::importNode(const Tree<ImportedModelNode> &node,
         m_meshes[mesh.name()] = vkmesh;
         model3DNode.materials.emplace_back(mat);
     }
-    model3DNode.transform = node.data().transform;
+    model3DNode.transform = importedNodeTree.data().transform;
 
-    data.data() = model3DNode;
+    nodeTree.data() = model3DNode;
 
-    for (uint32_t i = 0; i < node.size(); i++) {
-        importNode(node.child(i), m_data.add(), vci, generateBLAS, materials);
+    for (uint32_t i = 0; i < importedNodeTree.childrenCount(); i++) {
+        importNode(importedNodeTree.child(i), m_nodeTree.add(), vci, generateBLAS, materials);
     }
 }
 

@@ -8,9 +8,9 @@ Model3D::Model3D(const AssetInfo &info)
 {
 }
 
-Tree<Model3D::Model3DNode> &Model3D::data()
+const Tree<Model3D::Model3DNode> &Model3D::nodeTree() const
 {
-    return m_data;
+    return m_nodeTree;
 }
 
 Mesh *Model3D::mesh(std::string name) const

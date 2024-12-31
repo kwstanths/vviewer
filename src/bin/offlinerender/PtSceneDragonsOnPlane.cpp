@@ -1,8 +1,7 @@
 #include "PtSceneDragonsOnPlane.hpp"
 
+#include "vengine/core/SceneUtils.hpp"
 #include <filesystem>
-
-#include "SceneUtils.hpp"
 
 PtSceneDragonsOnPlane::PtSceneDragonsOnPlane(vengine::Engine &engine)
     : PtScene(engine){};
@@ -33,31 +32,27 @@ bool PtSceneDragonsOnPlane::create()
     wallMat->metallic() = 0.3F;
     wallMat->roughness() = 0.3F;
 
-    addModel3D(scene(), nullptr, "plane", "assets/models/plane.obj", vengine::Transform({0, 0, 0}, {400, 400, 400}), "floorMat");
+    addModel3D(scene(), nullptr, "assets/models/plane.obj", vengine::Transform({0, 0, 0}, {400, 400, 400}), "floorMat");
     addModel3D(scene(),
                nullptr,
-               "plane",
                "assets/models/plane.obj",
                vengine::Transform({0, 0, -200}, {400, 400, 400}, {glm::radians(90.F), 0, 0}),
                "wallMat");
     addModel3D(scene(),
                nullptr,
-               "plane",
                "assets/models/plane.obj",
                vengine::Transform({-200, 0, 0}, {400, 400, 400}, {0, 0, glm::radians(90.F)}),
                "wallMat");
     addModel3D(scene(),
                nullptr,
-               "plane",
                "assets/models/plane.obj",
                vengine::Transform({-80, 0, -80}, {400, 400, 400}, {glm::radians(90.F), glm::radians(45.F), 0}),
                "wallMat");
     for (int32_t i = -90; i <= 90; i += 10) {
         addModel3D(scene(),
                    nullptr,
-                   "dragon" + std::to_string(i),
                    "assets/models/dragon/scene.gltf",
-                   vengine::Transform({i, -2.7, 0}, {50, 50, 50}, {0, 0, 0}));
+                   vengine::Transform({i, -2.7, 0}, {50, 50, 50}, {0, 0, 0}), std::nullopt);
     }
 
     auto envMap = engine().importEnvironmentMap(vengine::AssetInfo("assets/HDR/kloppenheim_07_puresky_4k.hdr"));

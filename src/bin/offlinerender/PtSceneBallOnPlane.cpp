@@ -1,6 +1,6 @@
 #include "PtSceneBallOnPlane.hpp"
 
-#include "SceneUtils.hpp"
+#include "vengine/core/SceneUtils.hpp"
 
 PtSceneBallOnPlane::PtSceneBallOnPlane(vengine::Engine &engine)
     : PtScene(engine){};
@@ -15,8 +15,8 @@ bool PtSceneBallOnPlane::create()
     camera->focalDistance() = 7.0F;
     scene().camera() = camera;
 
-    addModel3D(scene(), nullptr, "plane", "assets/models/plane.obj", vengine::Transform({0, -3, 0}, {10, 10, 10}), "defaultMaterial");
-    addModel3D(scene(), nullptr, "sphere", "assets/models/uvsphere.obj", vengine::Transform({0, 0, 0}, {3, 3, 3}), "defaultMaterial");
+    addModel3D(scene(), nullptr, "assets/models/plane.obj", vengine::Transform({0, -3, 0}, {10, 10, 10}), "defaultMaterial");
+    addModel3D(scene(), nullptr, "assets/models/uvsphere.obj", vengine::Transform({0, 0, 0}, {3, 3, 3}), "defaultMaterial");
 
     auto &instanceLights = vengine::AssetManager::getInstance().lightsMap();
     vengine::SceneObject *lightObject = scene().addSceneObject("light", vengine::Transform({4, 1.5, 0}));

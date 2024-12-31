@@ -277,14 +277,14 @@ void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem,
         return;
     }
     auto model = instanceModels.get(modelName);
-    Tree<Model3D::Model3DNode> &modelData = model->data();
+    const Tree<Model3D::Model3DNode> &modelData = model->nodeTree();
 
     auto &instanceMaterials = AssetManager::getInstance().materialsMap();
     Material *defaultMat = instanceMaterials.get("defaultMaterial");
     Material *overrideMat = (overrideMaterial.has_value() ? instanceMaterials.get(overrideMaterial.value()) : nullptr);
 
-    std::function<void(QTreeWidgetItem *, Tree<Model3D::Model3DNode> &, bool)> addModelF =
-        [&](QTreeWidgetItem *parent, Tree<Model3D::Model3DNode> &modelData, bool isRoot) {
+    std::function<void(QTreeWidgetItem *, const Tree<Model3D::Model3DNode> &, bool)> addModelF =
+        [&](QTreeWidgetItem *parent, const Tree<Model3D::Model3DNode> &modelData, bool isRoot) {
             auto &modelNode = modelData.data();
             for (uint32_t i = 0; i < modelNode.meshes.size(); i++) {
                 auto &mesh = modelNode.meshes[i];
@@ -306,13 +306,13 @@ void MainWindow::addSceneObjectModel(QTreeWidgetItem *parentItem,
                 }
             }
 
-            if (modelData.size() > 0) {
+            if (modelData.childrenCount() > 0) {
                 Transform nodeTransform = modelNode.transform;
                 if (isRoot && overrideRootTransform.has_value()) {
                     nodeTransform = overrideRootTransform.value();
                 }
                 auto so = createEmptySceneObject(modelNode.name, nodeTransform, parent);
-                for (uint32_t i = 0; i < modelData.size(); i++) {
+                for (uint32_t i = 0; i < modelData.childrenCount(); i++) {
                     addModelF(so.first, modelData.child(i), false);
                 }
             }
@@ -359,7 +359,7 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
     }
 
     /* Add children */
-    for (uint32_t c = 0; c < scene.size(); c++) {
+    for (uint32_t c = 0; c < scene.childrenCount(); c++) {
         addImportedSceneObject(scene.child(c), newSceneObject.first);
     }
 
@@ -683,7 +683,7 @@ void MainWindow::onImportScene()
 
     /* Create new scene */
     debug_tools::ConsoleInfo("Creating new scene...");
-    for (uint32_t c = 0; c < scene.size(); c++) {
+    for (uint32_t c = 0; c < scene.childrenCount(); c++) {
         addImportedSceneObject(scene.child(c), nullptr);
     }
 

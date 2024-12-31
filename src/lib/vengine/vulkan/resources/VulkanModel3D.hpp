@@ -13,9 +13,9 @@ class VulkanModel3D : public Model3D
 {
 public:
     VulkanModel3D(const AssetInfo &info);
-    VulkanModel3D(const AssetInfo &info, const Tree<ImportedModelNode> &importedData, VulkanCommandInfo vci, bool generateBLAS);
+    VulkanModel3D(const AssetInfo &info, const Tree<ImportedModelNode> &importedNodeTree, VulkanCommandInfo vci, bool generateBLAS);
     VulkanModel3D(const AssetInfo &info,
-                  const Tree<ImportedModelNode> &importedData,
+                  const Tree<ImportedModelNode> &importedNodeTree,
                   const std::vector<Material *> &materials,
                   VulkanCommandInfo vci,
                   bool generateBLAS);
@@ -34,8 +34,8 @@ private:
      * @param commandPool
      * @param extraUsageFlags
      */
-    void importNode(const Tree<ImportedModelNode> &importedNode,
-                    Tree<Model3DNode> &data,
+    void importNode(const Tree<ImportedModelNode> &importedNodeTree,
+                    Tree<Model3DNode> &nodeTree,
                     VulkanCommandInfo vci,
                     bool generateBLAS,
                     const std::vector<Material *> &materials);

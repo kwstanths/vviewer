@@ -115,6 +115,9 @@ void VulkanScene::updateFrame(VulkanCommandInfo vci, uint32_t imageIndex)
 Light *VulkanScene::createLight(const AssetInfo &info, LightType type, glm::vec4 color)
 {
     auto &lights = AssetManager::getInstance().lightsMap();
+    if (lights.has(info.name)) {
+        return lights.get(info.name);
+    }
 
     switch (type) {
         case LightType::POINT_LIGHT: {

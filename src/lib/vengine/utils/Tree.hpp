@@ -18,7 +18,7 @@ public:
     inline T &data() { return m_data; }
     inline const T &data() const { return m_data; }
 
-    inline uint32_t size() const { return static_cast<uint32_t>(m_children.size()); }
+    inline uint32_t childrenCount() const { return static_cast<uint32_t>(m_children.size()); }
 
     inline Tree<T> &add()
     {
@@ -36,13 +36,13 @@ public:
 
     inline Tree<T> &child(uint32_t i)
     {
-        assert(i < size());
+        assert(i < childrenCount());
         return m_children[i];
     }
 
     inline const Tree<T> &child(uint32_t i) const
     {
-        assert(i < size());
+        assert(i < childrenCount());
         return m_children[i];
     }
 

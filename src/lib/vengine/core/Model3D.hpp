@@ -25,14 +25,14 @@ public:
 
     Model3D(const AssetInfo &info);
 
-    Tree<Model3DNode> &data();
+    const Tree<Model3DNode> &nodeTree() const;
 
     Mesh *mesh(std::string name) const;
 
     std::vector<Mesh *> meshes() const;
 
 protected:
-    Tree<Model3DNode> m_data;
+    Tree<Model3DNode> m_nodeTree;
     std::unordered_map<std::string, Mesh *> m_meshes;
 };
 

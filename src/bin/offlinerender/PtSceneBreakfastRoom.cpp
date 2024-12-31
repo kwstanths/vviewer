@@ -1,8 +1,8 @@
 #include "PtSceneBreakfastRoom.hpp"
 
+#include "vengine/core/SceneUtils.hpp"
 #include <filesystem>
 
-#include "SceneUtils.hpp"
 #include "debug_tools/Console.hpp"
 
 PtSceneBreakfastRoom::PtSceneBreakfastRoom(vengine::Engine &engine)
@@ -29,7 +29,7 @@ bool PtSceneBreakfastRoom::create()
     camera->focalDistance() = 7.0F;
     scene().camera() = camera;
 
-    addModel3D(scene(), nullptr, "breakfastroom", assetName, vengine::Transform());
+    addModel3D(scene(), nullptr, assetName, vengine::Transform(), std::nullopt);
 
     /* Get default directional light */
     auto &instanceLights = vengine::AssetManager::getInstance().lightsMap();

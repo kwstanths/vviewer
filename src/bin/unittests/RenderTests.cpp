@@ -1,5 +1,7 @@
 #include "RenderTests.hpp"
 
+#include "vengine/core/SceneUtils.hpp"
+
 VulkanEngine *RenderPTTest::mEngine = nullptr;
 
 float CompareImages(const std::string &filename1, const std::string &filename2, int channels)
@@ -20,7 +22,7 @@ float CompareImages(const std::string &filename1, const std::string &filename2, 
     }
 
     MSE = MSE / (double)size;
-    return MSE;
+    return static_cast<float>(MSE);
 }
 
 void PrepareBallOnPlaneScene(Engine &engine)
@@ -82,7 +84,7 @@ void PrepareTwoBallsOnPlaneScene(Engine &engine)
     auto materialFloor = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial3"));
 
     materialPBR->albedo() = glm::vec4(0.7, 0.1, 0.1, 1.0);
-    materialPBR->roughness() = 0.3;
+    materialPBR->roughness() = 0.3F;
     materialLambert->albedo() = glm::vec4(0.1, 0.7, 0.1, 1.0);
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({-1, 1, 0}, {1, 1, 1}));
@@ -526,5 +528,164 @@ TEST_F(RenderPTTest, Transparency)
     engine.renderer().rendererPathTracing().render();
     
     float diff = CompareImages("Transparency_test.hdr", "assets/unittests/Transparency_ref.hdr", 3);
+    EXPECT_LE(diff, 0.000001);
+}
+
+TEST_F(RenderPTTest, NormalMap)
+{
+    Engine &engine = *mEngine;
+    Scene &scene = engine.scene();
+
+    auto camera = std::make_shared<vengine::PerspectiveCamera>();
+    camera->transform().position() = glm::vec3(0, 3, 8);
+    camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(-20.F), 0, 0)));
+    scene.camera() = camera;
+
+    auto &instanceModels = vengine::AssetManager::getInstance().modelsMap();
+    auto sphereModel = instanceModels.get("assets/models/uvsphere.obj");
+    Mesh *sphereMesh = sphereModel->mesh("defaultobject");
+    auto planeModel = instanceModels.get("assets/models/plane.obj");
+    Mesh *planeMesh = planeModel->mesh("Plane");
+
+    {
+        auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial7"));
+        auto *tex = engine.textures().createTexture(AssetInfo("normal", "assets/textures/normal.png"), ColorSpace::LINEAR);
+        materialPBR->setNormalTexture(tex);
+
+        vengine::SceneObject *so = scene.addSceneObject("plane", vengine::Transform({0, 0, 0}, {5, 5, 5}));
+        so->add<vengine::ComponentMesh>().setMesh(planeMesh);
+        so->add<vengine::ComponentMaterial>().setMaterial(materialPBR);
+    }
+
+    engine.scene().environmentType() = EnvironmentType::HDRI;
+    scene.environmentIntensity() = 1.0F;
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "NormalMap_test";
+    engine.renderer().rendererPathTracing().renderInfo().width = 256;
+    engine.renderer().rendererPathTracing().renderInfo().height = 256;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 2048;
+    engine.renderer().rendererPathTracing().renderInfo().batchSize = 64;
+    engine.renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;
+    engine.renderer().rendererPathTracing().renderInfo().denoise = false;
+    engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
+    engine.renderer().rendererPathTracing().render();
+
+    float diff = CompareImages("NormalMap_test.hdr", "assets/unittests/NormalMap_ref.hdr", 3);
+    EXPECT_LE(diff, 0.000001);
+}
+
+TEST_F(RenderPTTest, GLTF)
+{
+    Engine &engine = *mEngine;
+    Scene &scene = engine.scene();
+
+    auto camera = std::make_shared<vengine::PerspectiveCamera>();
+    camera->transform().position() = glm::vec3(0, 0.5, 2);
+    camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(-20.F), 0, 0)));
+    scene.camera() = camera;
+
+    auto &instanceModels = vengine::AssetManager::getInstance().modelsMap();
+    auto sphereModel = instanceModels.get("assets/models/uvsphere.obj");
+    Mesh *sphereMesh = sphereModel->mesh("defaultobject");
+    auto planeModel = instanceModels.get("assets/models/plane.obj");
+    Mesh *planeMesh = planeModel->mesh("Plane");
+
+    auto &instanceMaterials = vengine::AssetManager::getInstance().materialsMap();
+    {
+        vengine::SceneObject *so = scene.addSceneObject("plane", vengine::Transform({0, -1, 0}, {5, 5, 5}));
+        so->add<vengine::ComponentMesh>().setMesh(planeMesh);
+        so->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+    }
+
+    std::string assetName = "assets/models/DamagedHelmet.gltf";
+    engine.importModel(AssetInfo(assetName), true);
+    addModel3D(scene, nullptr, assetName, std::nullopt, std::nullopt);
+
+    engine.scene().environmentType() = EnvironmentType::HDRI;
+    scene.environmentIntensity() = 1.0F;
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "GLTF_test";
+    engine.renderer().rendererPathTracing().renderInfo().width = 256;
+    engine.renderer().rendererPathTracing().renderInfo().height = 256;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 2048;
+    engine.renderer().rendererPathTracing().renderInfo().batchSize = 64;
+    engine.renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;
+    engine.renderer().rendererPathTracing().renderInfo().denoise = false;
+    engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
+    engine.renderer().rendererPathTracing().render();
+
+    float diff = CompareImages("GLTF_test.hdr", "assets/unittests/GLTF_ref.hdr", 3);
+    EXPECT_LE(diff, 0.000001);
+}
+
+TEST_F(RenderPTTest, Hierarchy)
+{
+    Engine &engine = *mEngine;
+    Scene &scene = engine.scene();
+
+    auto camera = std::make_shared<vengine::PerspectiveCamera>();
+    camera->transform().position() = glm::vec3(0, 3, 12);
+    camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(-20.F), 0, 0)));
+    scene.camera() = camera;
+
+    auto &instanceModels = vengine::AssetManager::getInstance().modelsMap();
+    auto sphereModel = instanceModels.get("assets/models/uvsphere.obj");
+    Mesh *sphereMesh = sphereModel->mesh("defaultobject");
+    auto planeModel = instanceModels.get("assets/models/plane.obj");
+    Mesh *planeMesh = planeModel->mesh("Plane");
+    auto cubeModel = instanceModels.get("assets/models/cube.obj");
+    Mesh *cubeMesh = cubeModel->mesh("Cube");
+
+    auto &instanceMaterials = vengine::AssetManager::getInstance().materialsMap();
+
+    vengine::SceneObject *root1 = scene.addSceneObject("root1", vengine::Transform({0, -8, 0}, {100, 100, 100}));
+    root1->add<vengine::ComponentMesh>().setMesh(planeMesh);
+    root1->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+
+    vengine::SceneObject *root2 =
+        scene.addSceneObject("root2", vengine::Transform({1, 0, 0}, {1.1, 1.1, 1.1}, {0.F, glm::radians(15.F), 0.F}));
+    root2->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+    root2->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+
+    vengine::SceneObject *l1_1 = scene.addSceneObject("l1_1", root2, vengine::Transform({0, 3, 0}, {0.5, 0.5, 0.5}));
+    l1_1->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+    l1_1->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+
+    vengine::SceneObject *l1_2 = scene.addSceneObject("l1_2", root2, vengine::Transform({0, -4, 0}, {1, 1, 1}, {glm::radians(20.F), 0.F, 0.F}));
+    l1_2->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+    l1_2->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+
+    vengine::SceneObject *l2_1 =
+        scene.addSceneObject("l2_1", l1_1, vengine::Transform({3, 0, 4}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}));
+    l2_1->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+    l2_1->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+
+    vengine::SceneObject *l2_2 = scene.addSceneObject("l2_2", l1_2, vengine::Transform({-3, 0, -4}));
+    l2_2->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+    l2_2->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+
+    auto *directionalLight = engine.scene().createLight(AssetInfo("Directional light", "Directional light"), LightType::DIRECTIONAL_LIGHT);
+    static_cast<DirectionalLight *>(directionalLight)->color() = glm::vec4(1);
+    auto *dirLight = engine.scene().addSceneObject("Directional light", l2_1, Transform());
+    dirLight->add<ComponentLight>().setLight(directionalLight);
+
+    engine.scene().environmentType() = EnvironmentType::HDRI;
+    engine.scene().backgroundColor() = glm::vec3(0, 0, 0);
+    scene.environmentIntensity() = 0.5F;
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Hierarchy_test";
+    engine.renderer().rendererPathTracing().renderInfo().width = 256;
+    engine.renderer().rendererPathTracing().renderInfo().height = 256;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 2048;
+    engine.renderer().rendererPathTracing().renderInfo().batchSize = 64;
+    engine.renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;
+    engine.renderer().rendererPathTracing().renderInfo().denoise = false;
+    engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
+    engine.renderer().rendererPathTracing().render();
+
+    float diff = CompareImages("Hierarchy_test.hdr", "assets/unittests/Hierarchy_ref.hdr", 3);
     EXPECT_LE(diff, 0.000001);
 }
