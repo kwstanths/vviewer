@@ -212,6 +212,8 @@ public:
         static_assert(std::is_base_of<Component, T>::value);
 
         delete t->m_owner;
+        t->m_owner = nullptr;
+
         auto componentBuffer = buffer<T>();
         componentBuffer->remove(t);
     }
@@ -281,7 +283,7 @@ public:
         static_cast<ComponentOwnerUnique *>(c->m_owner)->m_entity = this;
 
         const char *name = typeid(T).name();
-        m_components[name] = c;
+        m_components[name] = {c, false};
 
         onComponentAdded();
 
@@ -308,7 +310,7 @@ public:
         static_cast<ComponentOwnerShared *>(sharedComponent->m_owner)->addEntity(this);
 
         const char *name = typeid(T).name();
-        m_components[name] = sharedComponent;
+        m_components[name] = {sharedComponent, true};
 
         onComponentAdded();
     }
@@ -328,7 +330,7 @@ public:
         if (itr == m_components.end()) {
             throw std::runtime_error("Entity::get(): Component doesn't exist");
         } else
-            return *static_cast<T *>(itr->second);
+            return *static_cast<T *>(itr->second.first);
     }
 
     /**
@@ -364,12 +366,13 @@ public:
             return;
 
         const char *name = typeid(T).name();
-        T *t = static_cast<T *>(m_components[name]);
+        std::pair<Component *, bool> component = m_components[name];
+
         m_components.erase(name);
 
-        if (!t->m_owner->isShared()) {
+        if (!component.second) {
             auto &cm = ComponentManager::getInstance();
-            cm.remove<T>(t);
+            cm.remove<T>(static_cast<T *>(component.first));
         }
 
         onComponentRemoved();
@@ -383,7 +386,10 @@ public:
 
 private:
     ID m_id;
-    std::unordered_map<const char *, Component *> m_components;
+    /**
+        Map of component name to {Component* and bool to indicate if component was added as shared}
+     */
+    std::unordered_map<const char *, std::pair<Component *, bool>> m_components;
 };
 
 }  // namespace vengine

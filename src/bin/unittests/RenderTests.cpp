@@ -379,9 +379,9 @@ TEST_F(RenderPTTest, PointLight)
     engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
     engine.scene().backgroundColor() = glm::vec3(0);
     {
-        auto* pointLight = engine.scene().createLight(AssetInfo("Point light", "Point light"), LightType::POINT_LIGHT);
+        auto *pointLight = engine.scene().createLight(AssetInfo("Point light", "Point light"), LightType::POINT_LIGHT);
         static_cast<PointLight *>(pointLight)->color().a = 10;
-        auto* so = engine.scene().addSceneObject("Point light", Transform({0, 4, 0}));
+        auto *so = engine.scene().addSceneObject("Point light", Transform({0, 4, 0}));
         so->add<ComponentLight>().setLight(pointLight);
     }
     engine.scene().update();
@@ -409,7 +409,8 @@ TEST_F(RenderPTTest, DirectionalLight)
     engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
     engine.scene().backgroundColor() = glm::vec3(0);
     {
-        auto *directionalLight = engine.scene().createLight(AssetInfo("Directional light", "Directional light"), LightType::DIRECTIONAL_LIGHT);
+        auto *directionalLight =
+            engine.scene().createLight(AssetInfo("Directional light", "Directional light"), LightType::DIRECTIONAL_LIGHT);
         static_cast<DirectionalLight *>(directionalLight)->color().a = 1;
         auto *so = engine.scene().addSceneObject("Directional light",
                                                  Transform({0, 0, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}));
@@ -447,7 +448,7 @@ TEST_F(RenderPTTest, MeshLight)
         auto planeModel = instanceModels.get("assets/models/plane.obj");
         Mesh *planeMesh = planeModel->mesh("Plane");
         so->add<ComponentMesh>().setMesh(planeMesh);
-        
+
         auto materialPBREmissive =
             engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("emissivepbrmaterial"));
         materialPBREmissive->emissive() = glm::vec4(0.3, 0.3, 0.7, 15.0);
@@ -498,7 +499,7 @@ TEST_F(RenderPTTest, Transparency)
     }
     {
         auto materialPBR2 = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial6"));
-        auto* tex = engine.textures().createTexture(AssetInfo("checkerboard", "assets/textures/checkerboard.png"));
+        auto *tex = engine.textures().createTexture(AssetInfo("checkerboard", "assets/textures/checkerboard.png"));
         materialPBR2->setAlphaTexture(tex);
         materialPBR2->setTransparent(true);
 
@@ -520,7 +521,7 @@ TEST_F(RenderPTTest, Transparency)
     engine.renderer().rendererPathTracing().renderInfo().denoise = false;
     engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
     engine.renderer().rendererPathTracing().render();
-    
+
     float diff = CompareImages("Transparency_test.hdr", "assets/unittests/Transparency_ref.hdr", 3);
     EXPECT_LE(diff, 0.000001);
 }
@@ -647,7 +648,8 @@ TEST_F(RenderPTTest, Hierarchy)
     l1_1->add<vengine::ComponentMesh>().setMesh(cubeMesh);
     l1_1->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
 
-    vengine::SceneObject *l1_2 = scene.addSceneObject("l1_2", root2, vengine::Transform({0, -4, 0}, {1, 1, 1}, {glm::radians(20.F), 0.F, 0.F}));
+    vengine::SceneObject *l1_2 =
+        scene.addSceneObject("l1_2", root2, vengine::Transform({0, -4, 0}, {1, 1, 1}, {glm::radians(20.F), 0.F, 0.F}));
     l1_2->add<vengine::ComponentMesh>().setMesh(cubeMesh);
     l1_2->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
 
@@ -660,7 +662,8 @@ TEST_F(RenderPTTest, Hierarchy)
     l2_2->add<vengine::ComponentMesh>().setMesh(cubeMesh);
     l2_2->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
 
-    auto *directionalLight = engine.scene().createLight(AssetInfo("Directional light", "Directional light"), LightType::DIRECTIONAL_LIGHT);
+    auto *directionalLight =
+        engine.scene().createLight(AssetInfo("Directional light", "Directional light"), LightType::DIRECTIONAL_LIGHT);
     static_cast<DirectionalLight *>(directionalLight)->color() = glm::vec4(1);
     auto *dirLight = engine.scene().addSceneObject("Directional light", l2_1, Transform());
     dirLight->add<ComponentLight>().setLight(directionalLight);
@@ -745,7 +748,7 @@ TEST_F(RenderPTTest, DepthOfField)
     engine.renderer().rendererPathTracing().render();
 
     float diff = CompareImages("DepthOfField_test.hdr", "assets/unittests/DepthOfField_ref.hdr", 3);
-    EXPECT_LE(diff, 0.0001);
+    EXPECT_LE(diff, 0.000001);
 }
 
 TEST_F(RenderPTTest, SharedComponents)
@@ -808,5 +811,58 @@ TEST_F(RenderPTTest, SharedComponents)
     instance.remove(materialComponent);
 
     float diff = CompareImages("SharedComponents_test.hdr", "assets/unittests/SharedComponents_ref.hdr", 3);
-    EXPECT_LE(diff, 0.0001);
+    EXPECT_LE(diff, 0.000001);
+}
+
+TEST_F(RenderPTTest, Denoise)
+{
+    Engine &engine = *mEngine;
+    Scene &scene = engine.scene();
+
+    auto camera = std::make_shared<vengine::PerspectiveCamera>();
+    camera->transform().position() = glm::vec3(0, 1, 4);
+    camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(0.F), 0, 0)));
+    scene.camera() = camera;
+
+    auto &instanceModels = vengine::AssetManager::getInstance().modelsMap();
+    auto sphereModel = instanceModels.get("assets/models/uvsphere.obj");
+    Mesh *sphereMesh = sphereModel->mesh("defaultobject");
+    auto planeModel = instanceModels.get("assets/models/plane.obj");
+    Mesh *planeMesh = planeModel->mesh("Plane");
+    auto cubeModel = instanceModels.get("assets/models/cube.obj");
+    Mesh *cubeMesh = cubeModel->mesh("Cube");
+
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial1"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial1"));
+
+    {
+        vengine::SceneObject *so = scene.addSceneObject("sphere1", vengine::Transform({0, 1, 0}, {1, 1, 1}));
+        so->add<vengine::ComponentMesh>().setMesh(sphereMesh);
+        so->add<vengine::ComponentMaterial>().setMaterial(materialPBR);
+    }
+
+    {
+        vengine::SceneObject *so = scene.addSceneObject("plane", vengine::Transform({0, 0, 0}, {10, 10, 10}));
+        so->add<vengine::ComponentMesh>().setMesh(planeMesh);
+        so->add<vengine::ComponentMaterial>().setMaterial(materialLambert);
+    }
+
+    scene.environmentType() = vengine::EnvironmentType::HDRI;
+    scene.environmentIntensity() = 1.0F;
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Denoise_test";
+    engine.renderer().rendererPathTracing().renderInfo().width = 256;
+    engine.renderer().rendererPathTracing().renderInfo().height = 256;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 1024;
+    engine.renderer().rendererPathTracing().renderInfo().batchSize = 4;
+    engine.renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;
+    engine.renderer().rendererPathTracing().renderInfo().denoise = true;
+    engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = true;
+    engine.renderer().rendererPathTracing().render();
+
+    EXPECT_LE(CompareImages("Denoise_test.hdr", "assets/unittests/Denoise_ref.hdr", 3), 0.000001);
+    EXPECT_LE(CompareImages("Denoise_test_albedo.hdr", "assets/unittests/Denoise_ref_albedo.hdr", 3), 0.000001);
+    EXPECT_LE(CompareImages("Denoise_test_normal.hdr", "assets/unittests/Denoise_ref_normal.hdr", 3), 0.000001);
+    EXPECT_LE(CompareImages("Denoise_test_radiance.hdr", "assets/unittests/Denoise_ref_radiance.hdr", 3), 0.000001);
 }
