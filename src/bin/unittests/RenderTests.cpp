@@ -10,10 +10,17 @@ float CompareImages(const std::string &filename1, const std::string &filename2, 
     float *file1 = stbi_loadf(filename1.c_str(), &size_x, &size_y, &channels, channels);
     float *file2 = stbi_loadf(filename2.c_str(), &size_x, &size_y, &channels, channels);
 
-    if (file1 == nullptr || file2 == nullptr) {
-        std::cout << "Can't open file" << std::endl;
-        return 1000;
+    bool fileopenerror = false;
+    if (file1 == nullptr) {
+        std::cout << "Can't open file: " << filename1 << std::endl;
+        fileopenerror = true;
     }
+    if (file2 == nullptr) {
+        std::cout << "Can't open file: " << filename2 << std::endl;
+        fileopenerror = true; 
+    }
+    if (fileopenerror)
+        return 10000;
 
     int size = size_x * size_y * channels;
     double MSE = 0;
