@@ -11,9 +11,9 @@
 #include "defines_pt.glsl"
 
 #include "../include/structs.glsl"
-#include "../include/frame.glsl"
 #include "../include/constants.glsl"
 #include "../include/utils.glsl"
+#include "../include/frame.glsl"
 #include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
@@ -32,47 +32,51 @@ layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 void main()
 {
+    /* If the ray has no throughput, or we'be hit an emissive surface then exit early */
+    if (rayPayloadNEE.stop)
+        return;
+    
+    /* If this is called the NEE ray has hit a non emissive transparent surface with a volume change */
+
     #include "process_hit.glsl"
     #include "construct_frame.glsl"
-
-    if (flipped && rayPayloadNEE.insideVolume)
+    
+    /* Account for volume transmittance, if inside a volume */
+    if (rayPayloadNEE.insideVolume)
     {
-        /* 
-            The ray should *always* be inside a volume here, but because the order in which the any-hit shaders are invoked is undefined,
-            this prevents corner cases where the flipped part is executed before the unflipped
-        */
-
-        /* Exiting a volume, calculate volume transmittance */
-        
-        rayPayloadNEE.insideVolume = false;
-
-        uint volumeMaterialIndex = instanceData.materialIndex;
+        uint volumeMaterialIndex = rayPayloadNEE.volumeMaterialIndex;
         float vtend = gl_HitTEXT;
         float vtstart = rayPayloadNEE.vtmin;
         #include "process_volume_transmittance.glsl"
 
         rayPayloadNEE.throughput *= volumeTransmittance;
 
-        /* If throughput is large enough continue */
-        if (max3(rayPayloadNEE.throughput) > EPSILON)
+        /* If throughput is not large enough, then stop computation */
+        if (max3(rayPayloadNEE.throughput) < EPSILON)
         {
-            ignoreIntersectionEXT;
-        } 
-        else
-        {
-            /* else stop traversal */
+            rayPayloadNEE.stop = true;
             rayPayloadNEE.throughput = vec3(0);
             rayPayloadNEE.emissive = vec3(0);
-            terminateRayEXT;
-        }
-
-    } else 
-    {
-        /* If entering a volume, store parametric t value, set insideVolume and ignore intersection */
-
-        rayPayloadNEE.insideVolume = true;
-        rayPayloadNEE.vtmin = gl_HitTEXT;
-        rayPayloadNEE.volumeMaterialIndex = instanceData.materialIndex;
-        ignoreIntersectionEXT;
+            return;
+        } 
     }
+
+    /* store parametric t of hit */
+    rayPayloadNEE.vtmin = gl_HitTEXT;
+
+    /* Register volume change */
+    rayPayloadNEE.insideVolume = false;
+    float newVolumeMaterialIndex;
+    if (flipped)
+        newVolumeMaterialIndex = instanceData.id.g;        
+    else 
+        newVolumeMaterialIndex = instanceData.id.b;
+    if (newVolumeMaterialIndex != -1)
+    {
+        rayPayloadNEE.insideVolume = true;
+        rayPayloadNEE.volumeMaterialIndex = uint(newVolumeMaterialIndex);
+    }
+
+    /* Set new ray origin for the NEE ray */
+    rayPayloadNEE.origin = worldPosition;
 }

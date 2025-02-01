@@ -17,7 +17,7 @@ namespace vengine
 struct InstanceData {
     /* Transformation matrix */
     glm::mat4 modelMatrix;
-    /* R: ID, GBA: unused */
+    /* R: ID, G: front facing volume, B: back facing volume, A: unused */
     glm::vec4 id;
     /* Material index */
     uint32_t materialIndex;
@@ -92,7 +92,7 @@ protected:
     SceneObjectVector m_lights;
     /* Holds all scene objects that are mesh lights */
     SceneObjectVector m_meshLights;
-    /* Holds all scene objects that are volumes */
+    /* Holds all scene objects that constitute a volume change */
     SceneObjectVector m_volumes;
 
     SceneObjectInstanceMap m_sceneObjectMap;

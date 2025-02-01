@@ -1,4 +1,4 @@
-#include "WidgetModel3D.hpp"
+#include "WidgetComponentModel3D.hpp"
 
 #include <iostream>
 
@@ -12,7 +12,7 @@
 
 using namespace vengine;
 
-WidgetModel3D::WidgetModel3D(QWidget *parent, ComponentMesh &meshComponent)
+WidgetComponentModel3D::WidgetComponentModel3D(QWidget *parent, ComponentMesh &meshComponent)
     : QWidget(parent)
     , m_meshComponent(meshComponent)
 {
@@ -56,22 +56,22 @@ WidgetModel3D::WidgetModel3D(QWidget *parent, ComponentMesh &meshComponent)
     setLayout(layoutMain);
 }
 
-uint32_t WidgetModel3D::getHeight() const
+uint32_t WidgetComponentModel3D::getHeight() const
 {
     return 90;
 }
 
-std::string WidgetModel3D::getSelectedModel() const
+std::string WidgetComponentModel3D::getSelectedModel() const
 {
     return m_models->currentText().toStdString();
 }
 
-std::string WidgetModel3D::getSelectedMesh() const
+std::string WidgetComponentModel3D::getSelectedMesh() const
 {
     return m_meshes->currentText().toStdString();
 }
 
-QStringList WidgetModel3D::getModelMeshes(const Model3D *model)
+QStringList WidgetComponentModel3D::getModelMeshes(const Model3D *model)
 {
     QStringList list;
     for (auto itr : model->meshes()) {
@@ -80,7 +80,7 @@ QStringList WidgetModel3D::getModelMeshes(const Model3D *model)
     return list;
 }
 
-void WidgetModel3D::onMeshModelChangedSlot(int)
+void WidgetComponentModel3D::onMeshModelChangedSlot(int)
 {
     std::string newModel = getSelectedModel();
 
@@ -91,7 +91,7 @@ void WidgetModel3D::onMeshModelChangedSlot(int)
     m_meshes->addItems(getModelMeshes(m_model));
 }
 
-void WidgetModel3D::onMeshChangedSlot(int)
+void WidgetComponentModel3D::onMeshChangedSlot(int)
 {
     /* Find the mesh from the selected mesh model, and assign it to the scene object */
     std::string selectedMesh = getSelectedMesh();

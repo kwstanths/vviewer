@@ -12,9 +12,9 @@
 
 #include "../include/structs.glsl"
 #include "../include/frame.glsl"
+#include "../include/sampling.glsl"
 #include "../include/utils.glsl"
 #include "../include/lighting.glsl"
-#include "../include/brdfs/pbrStandard.glsl"
 #include "../include/phaseFunctions.glsl"
 #include "structs_pt.glsl"
 
@@ -29,6 +29,7 @@ layout(location = 2) rayPayloadEXT RayPayloadNEE rayPayloadNEE;
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
 layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
+#include "layoutDescriptors/SceneData.glsl"
 #include "layoutDescriptors/PathTracingData.glsl"
 #include "layoutDescriptors/InstanceData.glsl"
 #include "layoutDescriptors/TLAS.glsl"
@@ -62,28 +63,55 @@ void main()
         /* Tile uvs */
         vec2 tiledUV = uvs * material.uvTiling.rg;
 
+        float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+        float transparent = material.metallicRoughnessAO.a;
+        /* Check transparency */
+        if (transparent > 0)
+        {
+            float rand = rand1D(rayPayloadPrimary);
+            if (alpha < EPSILON || rand > alpha)
+            {
+                bool hasVolumeChange = instanceData.id.g != instanceData.id.b;
+                if (hasVolumeChange)
+                {
+                    /* Go through transparent surface and change volume material*/
+                    rayPayloadPrimary.insideVolume = false;
+                    if (!flipped && (instanceData.id.b != -1))
+                    {
+                        rayPayloadPrimary.volumeMaterialIndex = uint(instanceData.id.b);
+                        rayPayloadPrimary.insideVolume = true;
+                    }
+                    else if (flipped && (instanceData.id.g != -1))
+                    {
+                        rayPayloadPrimary.insideVolume = true;
+                        rayPayloadPrimary.volumeMaterialIndex = uint(instanceData.id.g);
+                    }
+                }
+                
+                rayPayloadPrimary.origin = worldPosition;
+                rayPayloadPrimary.direction = normalize(gl_WorldRayDirectionEXT);
+                return;
+            }
+        }
+        /* Else process surface hit */
+
         /* Apply normal map */
         vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
         applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
 
         /* Material information */
-        PBRStandard pbr;
-        pbr.albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
-        pbr.metallic = material.metallicRoughnessAO.r * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.g)], tiledUV).r;
-        pbr.roughness = material.metallicRoughnessAO.g * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.b)], tiledUV).r;
-        pbr.roughness = max(pbr.roughness, 0.035); /* Cap low rougness because of sampling problems */
-
+        vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
         vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
 
         /* Store first hit info */
         if (rayPayloadPrimary.surfaceDepth == 0)
         {
-            rayPayloadPrimary.albedo = pbr.albedo;
+            rayPayloadPrimary.albedo = albedo;
             rayPayloadPrimary.normal = frame.normal * 0.5 + vec3(0.5);
         }
 
-        /* Add emissive of first hit surface */
-        if (rayPayloadPrimary.surfaceDepth == 0 && !isBlack(emissive, 0.1) && !flipped) {
+        /* Add emissive of first hit */
+        if (rayPayloadPrimary.surfaceDepth == 0 && !isBlack(emissive, 0.05) && !flipped) {
             rayPayloadPrimary.radiance += emissive * rayPayloadPrimary.beta;
             rayPayloadPrimary.stop = true;
             return;
@@ -91,15 +119,14 @@ void main()
 
         rayPayloadPrimary.surfaceDepth += 1;
 
-        vec3 wo = worldToLocal(frame, -gl_WorldRayDirectionEXT);
-
         /* Light sampling */
         LightSamplingRecord lsr = sampleLight(worldPosition);
         if (!isBlack(lsr.radiance))
         {
             vec3 wi = worldToLocal(frame, lsr.direction);
+            float cosTheta = clamp(wi.y, 0, 1);
 
-            vec3 F = evalPBRStandard(pbr, wi, wo, normalize(wo + wi));
+            vec3 F = albedo * INV_PI * cosTheta;
 
             if (!isBlack(F))
             {
@@ -109,8 +136,9 @@ void main()
                 }
                 else 
                 {
-                    float bsdfPdf = pdfPBRStandard(wi, wo, pbr);
+                    float bsdfPdf = cosineSampleHemispherePdf(cosTheta);
                     float weightMIS = PowerHeuristic(1, lsr.pdf, 1, bsdfPdf);
+
                     rayPayloadPrimary.radiance += weightMIS * lsr.radiance * F * rayPayloadPrimary.beta / lsr.pdf;
                 }
             }
@@ -118,24 +146,18 @@ void main()
 
         /* BSDF sampling */
         float sampleDirectionPDF;
-        vec3 sampleDirectionLocal;
-        vec3 F = samplePBRStandard(sampleDirectionLocal, wo, sampleDirectionPDF, pbr, rand2D(rayPayloadPrimary), rand1D(rayPayloadPrimary));    
+        vec3 sampleDirectionLocal = cosineSampleHemisphere(rand2D(rayPayloadPrimary), sampleDirectionPDF);
         vec3 sampleDirectionWorld = localToWorld(frame, sampleDirectionLocal);
 
-        /* Set new direction */
         rayPayloadPrimary.origin = worldPosition;
         rayPayloadPrimary.direction = sampleDirectionWorld;
 
         /* Add throughput */
-        if (isBlack(F))
-        {
-            rayPayloadPrimary.stop = true;
-            return;
-        } 
-        rayPayloadPrimary.beta *= clamp(F / sampleDirectionPDF, 0, 1);
+        /* float cosTheta = sampleDirectionLocal.y */
+        rayPayloadPrimary.beta *= albedo /* * INV_PI * cosTheta / sampleDirectionPDF */;
 
         #include "next_event_estimation.glsl"
     }
-
+    
     #include "russian_roulette.glsl"
 }

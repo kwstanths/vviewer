@@ -1,5 +1,5 @@
-#ifndef __WidgetMaterial_hpp__
-#define __WidgetMaterial_hpp__
+#ifndef __WidgetComponentMaterial_hpp__
+#define __WidgetComponentMaterial_hpp__
 
 #include <qwidget.h>
 #include <qcombobox.h>
@@ -13,8 +13,8 @@
 #include "WidgetMaterialLambert.hpp"
 #include "WidgetMaterialVolume.hpp"
 
-/* A UI widget to represent a material */
-class WidgetMaterial : public QWidget
+/* A UI widget to represent a material component */
+class WidgetComponentMaterial : public QWidget
 {
     Q_OBJECT
 public:
@@ -22,7 +22,7 @@ public:
     static const int HEIGHT_LAMBERT = WidgetMaterialLambert::HEIGHT + 70;
     static const int HEIGHT_VOLUME = WidgetMaterialVolume::HEIGHT + 70;
 
-    WidgetMaterial(QWidget *parent, vengine::ComponentMaterial &materialComponent);
+    WidgetComponentMaterial(QWidget *parent, vengine::ComponentMaterial &materialComponent);
 
     void updateAvailableMaterials(bool updateTextures = false);
     void updateAvailableTextures();

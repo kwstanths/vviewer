@@ -1,19 +1,19 @@
-#ifndef __WidgetMeshModel_hpp__
-#define __WidgetMeshModel_hpp__
+#ifndef __WidgetComponentModel3D_hpp__
+#define __WidgetComponentModel3D_hpp__
 
 #include <qwidget.h>
 #include <qcombobox.h>
 
 #include "vengine/core/SceneObject.hpp"
 
-/* A UI widget to represent a mesh model */
-class WidgetModel3D : public QWidget
+/* A UI widget to represent a model3D component */
+class WidgetComponentModel3D : public QWidget
 {
     Q_OBJECT
 public:
     static const int HEIGHT = 90;
 
-    WidgetModel3D(QWidget *parent, vengine::ComponentMesh &meshComponent);
+    WidgetComponentModel3D(QWidget *parent, vengine::ComponentMesh &meshComponent);
 
     std::string getSelectedModel() const;
     std::string getSelectedMesh() const;

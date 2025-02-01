@@ -37,7 +37,6 @@ public:
 
     Material *createMaterial(const AssetInfo &info, MaterialType type) override;
     Material *createMaterialFromDisk(const AssetInfo &info, std::string stackDirectory, Textures &textures) override;
-    Material *createZipMaterial(const AssetInfo &info, Textures &textures) override;
     std::vector<Material *> createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
                                                     Textures &textures) override;
 

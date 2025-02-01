@@ -36,6 +36,11 @@ Material *ComponentMaterial::material() const
 void ComponentMaterial::setMaterial(Material *material)
 {
     assert(material != nullptr);
+
+    /* Use ComponentVolume to create volumes */
+    if (material->type() == MaterialType::MATERIAL_VOLUME)
+        return;
+
     m_material = material;
 
     for (Entity *e : *m_owner) {
@@ -74,6 +79,40 @@ void ComponentLight::setCastShadows(bool castShadows)
 
     for (Entity *e : *m_owner) {
         e->onLightComponentChanged();
+    }
+}
+
+ComponentVolume::ComponentVolume(MaterialVolume *frontFacing, MaterialVolume *backFacing)
+{
+    m_materialFrontFacing = frontFacing;
+    m_materialBackFacing = backFacing;
+}
+
+MaterialVolume *ComponentVolume::frontFacing() const
+{
+    return m_materialFrontFacing;
+}
+
+MaterialVolume *ComponentVolume::backFacing() const
+{
+    return m_materialBackFacing;
+}
+
+void ComponentVolume::setFrontFacingVolume(MaterialVolume *frontFacing)
+{
+    m_materialFrontFacing = frontFacing;
+
+    for (Entity *e : *m_owner) {
+        e->onVolumeComponentChanged();
+    }
+}
+
+void ComponentVolume::setBackFacingVolume(MaterialVolume *backFacing)
+{
+    m_materialBackFacing = backFacing;
+
+    for (Entity *e : *m_owner) {
+        e->onVolumeComponentChanged();
     }
 }
 

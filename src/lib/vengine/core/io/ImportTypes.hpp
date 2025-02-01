@@ -22,9 +22,8 @@ namespace vengine
 enum class ImportedMaterialType {
     LAMBERT = 0,
     PBR_STANDARD = 1,
-    STACK = 2,
-    EMBEDDED = 3,
-    VOLUME = 4,
+    EMBEDDED = 2,
+    VOLUME = 3,
 };
 
 struct ImportedModelNode {
@@ -138,6 +137,11 @@ struct ImportedSceneObjectLight {
     bool shadows = true;
 };
 
+struct ImportedSceneObjectVolume {
+    std::string frontFacing = "";
+    std::string backFacing = "";
+};
+
 struct ImportedSceneObject {
     std::string name;
     bool active = true;
@@ -145,6 +149,7 @@ struct ImportedSceneObject {
     std::optional<ImportedSceneObjectMesh> mesh = std::nullopt;
     std::optional<ImportedSceneObjectMaterial> material = std::nullopt;
     std::optional<ImportedSceneObjectLight> light = std::nullopt;
+    std::optional<ImportedSceneObjectVolume> volume = std::nullopt;
 };
 
 }  // namespace vengine

@@ -1,5 +1,5 @@
-#ifndef __WidgetPointLight_hpp__
-#define __WidgetPointLight_hpp__
+#ifndef __WidgetComponentLight_hpp__
+#define __WidgetComponentLight_hpp__
 
 #include <qcombobox.h>
 #include <qwidget.h>
@@ -12,13 +12,13 @@
 #include <vengine/core/Light.hpp>
 #include <vengine/utils/ECS.hpp>
 
-/* A UI widget for a light */
-class WidgetLight : public QWidget
+/* A UI widget for a light component */
+class WidgetComponentLight : public QWidget
 {
     Q_OBJECT
 public:
     static const int HEIGHT = 175;
-    WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponent);
+    WidgetComponentLight(QWidget *parent, vengine::ComponentLight &lightComponent);
 
     void updateAvailableLights();
 

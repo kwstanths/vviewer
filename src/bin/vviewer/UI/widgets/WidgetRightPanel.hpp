@@ -14,9 +14,9 @@
 #include "WidgetTransform.hpp"
 #include "WidgetComponent.hpp"
 #include "WidgetEnvironment.hpp"
-#include "WidgetModel3D.hpp"
-#include "WidgetMaterial.hpp"
-#include "WidgetLight.hpp"
+#include "WidgetComponentModel3D.hpp"
+#include "WidgetComponentMaterial.hpp"
+#include "WidgetComponentLight.hpp"
 
 class WidgetRightPanel : public QWidget
 {
@@ -45,6 +45,7 @@ private:
     WidgetTransform *m_selectedObjectWidgetTransform = nullptr;
     WidgetComponent *m_selectedObjectWidgetMaterial = nullptr;
     WidgetComponent *m_selectedObjectWidgetLight = nullptr;
+    WidgetComponent *m_selectedObjectWidgetVolume = nullptr;
     WidgetComponent *m_selectedObjectWidgetMeshModel = nullptr;
 
     /* Update timer */
@@ -68,6 +69,7 @@ private Q_SLOTS:
     void onAddComponentMaterial();
     void onAddComponentPointLight();
     void onAddComponentDirectionalLight();
+    void onAddComponentVolume();
 
 Q_SIGNALS:
     void selectedSceneObjectNameChanged(QString newName);

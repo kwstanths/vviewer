@@ -22,6 +22,7 @@
 #include "WidgetTransform.hpp"
 #include "WidgetSliderValue.hpp"
 #include "WidgetColorButton.hpp"
+#include "WidgetMaterialPicker.hpp"
 
 /* A UI widget to represent environment variables */
 class WidgetEnvironment : public QWidget
@@ -61,7 +62,7 @@ private:
     QDoubleSpinBox *m_cameraLensRadius = nullptr;
     QDoubleSpinBox *m_cameraFocalDistance = nullptr;
 
-    QComboBox *m_comboVolumes;
+    WidgetMaterialPicker *m_cameraVolume = nullptr;
 
     /* Update timer */
     QTimer *m_updateTimer;
@@ -79,7 +80,7 @@ private Q_SLOTS:
     void onCameraZNearChanged(double);
     void onCameraLensRadiusChanged(double);
     void onCameraFocalDistanceChanged(double);
-    void onCameraVolumeChanged(int);
+    void onCameraVolumeChanged(vengine::Material *);
 
     void updateCamera();
 };

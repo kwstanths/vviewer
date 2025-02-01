@@ -11,7 +11,9 @@ layout(location = 2) rayPayloadInEXT RayPayloadNEE rayPayloadNEE;
 
 void main()
 {
-    // Account for sampling the environment map + volume transmittance
-    // rayPayloadNEE.emissive = vec3(0, 0, 0);
-    // rayPayloadNEE.pdf = 0;
+    rayPayloadNEE.stop = true;
+    // Account for sampling the environment map + volume the transmittance if we are still inside a volume
+    // The environment map is not being sampled
+    rayPayloadNEE.emissive = vec3(0, 0, 0);
+    rayPayloadNEE.pdf = 0;
 }

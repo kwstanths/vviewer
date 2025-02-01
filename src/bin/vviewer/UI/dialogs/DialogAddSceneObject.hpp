@@ -8,7 +8,6 @@
 #include <qcheckbox.h>
 
 #include "UI/widgets/WidgetTransform.hpp"
-#include "UI/widgets//WidgetModel3D.hpp"
 
 /* A dialog to add an object in a scene */
 class DialogAddSceneObject : public QDialog

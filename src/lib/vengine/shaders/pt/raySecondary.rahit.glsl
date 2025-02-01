@@ -11,13 +11,14 @@
 #include "defines_pt.glsl"
 
 #include "../include/structs.glsl"
+#include "../include/utils.glsl"
 #include "../include/constants.glsl"
 #include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
 
 /* Ray payload */
-layout(location = 0) rayPayloadInEXT RayPayloadPrimary rayPayloadPrimary;
+layout(location = 1) rayPayloadInEXT RayPayloadSecondary rayPayloadSecondary;
 
 /* Types for the arrays of vertices and indices of the currently hit object */
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; };
@@ -27,8 +28,6 @@ layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 #include "layoutDescriptors/MaterialData.glsl"
 #include "layoutDescriptors/Textures.glsl"
 
-#include "../include/rng/rng.glsl"
-
 void main()
 {
     #include "process_hit.glsl"
@@ -37,20 +36,37 @@ void main()
 
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
     float transparent = material.metallicRoughnessAO.a;
+    bool isTransparent = transparent >= 0.99;
 
-    /* Check if material marked as transparent */
-    if (transparent > 0)
+    /* If not transparent make ray shadowed */
+    if (!isTransparent)
     {
-        float rand = rand1D(rayPayloadPrimary);
-        if (alpha < EPSILON)
-        {
-            ignoreIntersectionEXT;
-        } 
-        else if(rand > alpha)
-        {
-            ignoreIntersectionEXT;
-        }
+        rayPayloadSecondary.stop = true;
+        rayPayloadSecondary.shadowed = true;
+        terminateRayEXT;
     }
 
+    /* surface is transparent */
 
+    /* accumulate throughput of transparent surface */
+    rayPayloadSecondary.throughput *= vec3(1.0 - alpha);
+
+    /* If this surface constitutes a volume material change for a transparent surface, then accept the hit and call the closest hit shader */
+    if (instanceData.id.g != instanceData.id.b)
+    {
+        terminateRayEXT;
+    }
+
+    /* If throughput is large enough continue */
+    if (max3(rayPayloadSecondary.throughput) > EPSILON)
+    {
+        rayPayloadSecondary.shadowed = false;
+        ignoreIntersectionEXT;
+    } 
+    else
+    {
+        rayPayloadSecondary.stop = true;
+        rayPayloadSecondary.shadowed = true;
+        terminateRayEXT;
+    }
 }

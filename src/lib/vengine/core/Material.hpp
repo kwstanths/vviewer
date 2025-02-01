@@ -100,9 +100,6 @@ public:
     Texture *getNormalTexture() const;
     Texture *getAlphaTexture() const;
 
-    bool &zipMaterial() { return m_zipMaterial; }
-    const bool &zipMaterial() const { return m_zipMaterial; }
-
 protected:
     Texture *m_albedoTexture = nullptr;
     Texture *m_metallicTexture = nullptr;
@@ -113,7 +110,6 @@ protected:
     Texture *m_alphaTexture = nullptr;
 
 private:
-    bool m_zipMaterial = false;
 };
 
 class MaterialLambert : public Material

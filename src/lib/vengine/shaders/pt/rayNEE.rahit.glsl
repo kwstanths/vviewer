@@ -38,35 +38,40 @@ void main()
     float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
     float transparent = material.metallicRoughnessAO.a;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
+    bool isTransparent = transparent >= 0.99;
 
     /* If it's not an emissive surface, compute throughput and continue */
     if (isBlack(emissive, 0.05))
     {
         /* If not a transparent surface, stop NEE traversal */
-        if (transparent < 1)
+        if (!isTransparent)
         {
+            rayPayloadNEE.stop = true;
             rayPayloadNEE.throughput = vec3(0);
             rayPayloadNEE.emissive = vec3(0);
             terminateRayEXT;
             return;
         }
 
+        /* surface is transparent and not emissive */
+
+        /* accumulate throughput of transparent surface */
         rayPayloadNEE.throughput *= vec3(1.0 - alpha);
 
-        if (max3(rayPayloadNEE.throughput) > EPSILON)
+        /* If this surface constitutes a volume material change for a transparent surface, then accept the hit and call the closest hit shader */
+        if (instanceData.id.g != instanceData.id.b)
         {
-            /* If throughput is large enough continue */
-            ignoreIntersectionEXT;
-        } 
-        else
-        {
-            /* Else stop NEE traversal */
-            rayPayloadNEE.throughput = vec3(0);
-            rayPayloadNEE.emissive = vec3(0);
             terminateRayEXT;
         }
-        return;
+        else 
+        {
+            /* else ignore closest hit shader */
+            ignoreIntersectionEXT;
+        }
     }
+
+    /* Else it's an emissive surface, emissive surfaces shoudn't be transparent */
+    rayPayloadNEE.stop = true;
 
     /* Account for volume transmittance, if inside a volume */
     if (rayPayloadNEE.insideVolume)
@@ -86,8 +91,6 @@ void main()
             terminateRayEXT;
         } 
     }
-
-    /* Else it's an emissive surface, emissive surfaces shoudn't be transparent */
 
     /* Compute normal */
     const vec3 localNormal = v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z;

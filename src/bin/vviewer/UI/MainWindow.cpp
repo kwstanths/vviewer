@@ -144,9 +144,6 @@ void MainWindow::createMenu()
     QAction *actionImportMaterial = new QAction(tr("&Import material"), this);
     actionImportMaterial->setStatusTip(tr("Import material"));
     connect(actionImportMaterial, &QAction::triggered, this, &MainWindow::onImportMaterial);
-    QAction *actionImportMaterialZipStack = new QAction(tr("&Import material ZIP"), this);
-    actionImportMaterialZipStack->setStatusTip(tr("Import material ZIP"));
-    connect(actionImportMaterialZipStack, &QAction::triggered, this, &MainWindow::onImportMaterialZipStackSlot);
     QAction *actionImportScene = new QAction(tr("&Import scene"), this);
     actionImportScene->setStatusTip(tr("Import scene"));
     connect(actionImportScene, &QAction::triggered, this, &MainWindow::onImportScene);
@@ -172,7 +169,6 @@ void MainWindow::createMenu()
     m_menuImport->addAction(actionImportOtherTexture);
     m_menuImport->addAction(actionImportEnvironmentMap);
     m_menuImport->addAction(actionImportMaterial);
-    m_menuImport->addAction(actionImportMaterialZipStack);
     m_menuImport->addAction(actionImportScene);
     QMenu *m_menuAdd = menuBar()->addMenu(tr("&Create"));
     m_menuAdd->addAction(actionCreateMaterial);
@@ -251,7 +247,7 @@ void MainWindow::removeObjectFromScene(QTreeWidgetItem *treeItem)
 
     /* Get corresponding scene object */
     SceneObject *selectedObject = WidgetSceneGraph::getSceneObject(treeItem);
-    
+
     m_widgetRightPanel->setSelectedObject(nullptr);
 
     /* Remove scene object from scene */
@@ -356,6 +352,22 @@ void MainWindow::addImportedSceneObject(const Tree<ImportedSceneObject> &scene, 
         auto light = instanceLights.get(object.light->name);
         lightComponent.setLight(light);
         lightComponent.setCastShadows(object.light->shadows);
+    }
+
+    /* Add volume component */
+    if (object.volume.has_value()) {
+        ComponentVolume &volumeComponent = newSceneObject.second->add<ComponentVolume>();
+
+        if (!object.volume->frontFacing.empty()) {
+            auto frontVol = instanceMaterials.get(object.volume->frontFacing);
+            if (frontVol->type() == MaterialType::MATERIAL_VOLUME)
+                volumeComponent.setFrontFacingVolume(static_cast<MaterialVolume *>(frontVol));
+        }
+        if (!object.volume->backFacing.empty()) {
+            auto backVol = instanceMaterials.get(object.volume->backFacing);
+            if (backVol->type() == MaterialType::MATERIAL_VOLUME)
+                volumeComponent.setBackFacingVolume(static_cast<MaterialVolume *>(backVol));
+        }
     }
 
     /* Add children */
@@ -554,47 +566,6 @@ void MainWindow::onImportMaterial()
         }
     };
     ImportTask task(m_engine, dirStd, materialName);
-
-    DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
-    waiting->exec();
-
-    if (task.isSuccess()) {
-        m_widgetRightPanel->updateAvailableMaterials();
-    }
-
-    delete waiting;
-}
-
-void MainWindow::onImportMaterialZipStackSlot()
-{
-    QString filename =
-        QFileDialog::getOpenFileName(this, tr("Import zip stack material"), "./assets/materials/", tr("Model (*.zip);;All Files (*)"));
-
-    if (filename == "")
-        return;
-
-    std::string materialName = filename.split('/').back().toStdString();
-
-    struct ImportTask : Task{
-        ImportTask(Engine *e, std::string f, std::string n)
-            : engine(e)
-            , filename(f)
-            , materialName(n){};
-        Engine *engine;
-        std::string filename;
-        std::string materialName;
-        bool work(float &)
-        {
-            auto material = engine->materials().createZipMaterial(AssetInfo(materialName, filename), engine->textures());
-            if (material) {
-                debug_tools::ConsoleInfo("Material: " + materialName + " has been created");
-                return true;
-            } else {
-                return false;
-            }
-        }
-    };
-    ImportTask task(m_engine, filename.toStdString(), materialName);
 
     DialogWaiting *waiting = new DialogWaiting(nullptr, "Importing...", &task);
     waiting->exec();
@@ -906,7 +877,7 @@ void MainWindow::onRenderSceneSlot()
 
         RendererPathTracing &renderer;
 
-        bool work(float &)
+        bool work(float &) override
         {
             renderer.render();
             return true;
@@ -969,6 +940,10 @@ void MainWindow::onDuplicateSceneObjectSlot()
         }
         if (so->has<ComponentMaterial>()) {
             newObject.second->add<ComponentMaterial>().setMaterial(so->get<ComponentMaterial>().material());
+        }
+        if (so->has<ComponentVolume>()) {
+            newObject.second->add<ComponentVolume>().setFrontFacingVolume(so->get<ComponentVolume>().frontFacing());
+            newObject.second->add<ComponentVolume>().setBackFacingVolume(so->get<ComponentVolume>().backFacing());
         }
 
         for (int c = 0; c < duplicatedItem->childCount(); c++) {
@@ -1112,14 +1087,10 @@ void MainWindow::onStartUpInitialization()
         {
             auto o = createEmptySceneObject(
                 "directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
-            o.second->add<ComponentLight>().setLight(AssetManager::getInstance().lightsMap().get("defaultDirectionalLight"));
+            o.second->add<ComponentLight>().setLight(AssetManager::getInstance().lightsMap().get("defaultDirectionalLightSun"));
         }
 
-        {
-            auto o = createEmptySceneObject("volume", Transform({0, 0, 0}, {3, 3, 3}), nullptr);
-            o.second->add<ComponentMesh>().setMesh(cube->mesh("Cube"));
-            o.second->add<ComponentMaterial>().setMaterial(matVol);
-        }
+        m_widgetRightPanel->getEnvironmentWidget()->updateMaterials();
     } catch (std::exception &e) {
         debug_tools::ConsoleCritical("Failed to setup initialization scene: " + std::string(e.what()));
     }

@@ -32,7 +32,7 @@ float CompareImages(const std::string &filename1, const std::string &filename2, 
     return static_cast<float>(MSE);
 }
 
-void PrepareTwoBallsOnPlaneScene(Engine &engine)
+void PrepareTwoBallsOnPlaneScene(Engine &engine, Material *floorMaterial, Material *ballMaterial1, Material *ballMaterial2)
 {
     Scene &scene = engine.scene();
 
@@ -49,29 +49,22 @@ void PrepareTwoBallsOnPlaneScene(Engine &engine)
     auto cubeModel = instanceModels.get("assets/models/cube.obj");
     Mesh *cubeMesh = cubeModel->mesh("Cube");
 
-    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial2"));
-    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial2"));
-    auto materialFloor = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial3"));
-
-    materialPBR->albedo() = glm::vec4(0.7, 0.1, 0.1, 1.0);
-    materialPBR->roughness() = 0.3F;
-    materialLambert->albedo() = glm::vec4(0.1, 0.7, 0.1, 1.0);
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({-1, 1, 0}, {1, 1, 1}));
         so->add<vengine::ComponentMesh>().setMesh(sphereMesh);
-        so->add<vengine::ComponentMaterial>().setMaterial(materialPBR);
+        so->add<vengine::ComponentMaterial>().setMaterial(ballMaterial1);
     }
 
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({1, 1, 0}, {1, 1, 1}));
         so->add<vengine::ComponentMesh>().setMesh(sphereMesh);
-        so->add<vengine::ComponentMaterial>().setMaterial(materialLambert);
+        so->add<vengine::ComponentMaterial>().setMaterial(ballMaterial2);
     }
 
     {
         vengine::SceneObject *so = scene.addSceneObject("plane", vengine::Transform({0, 0, 0}, {10, 10, 10}));
         so->add<vengine::ComponentMesh>().setMesh(planeMesh);
-        so->add<vengine::ComponentMaterial>().setMaterial(materialFloor);
+        so->add<vengine::ComponentMaterial>().setMaterial(floorMaterial);
     }
 
     scene.environmentIntensity() = 1.0F;
@@ -96,7 +89,7 @@ TEST_F(RenderPTTest, FurnacePBR)
     auto sphere = instanceModels.get("assets/models/uvsphere.obj");
     so->add<vengine::ComponentMesh>().setMesh(sphere->mesh("defaultobject"));
 
-    auto material = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial3"));
+    auto material = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial1"));
     material->albedo() = glm::vec4(0.6, 0.6, 0.6, 1);
     so->add<vengine::ComponentMaterial>().setMaterial(material);
 
@@ -137,7 +130,7 @@ TEST_F(RenderPTTest, FurnaceLambert)
     auto sphere = instanceModels.get("assets/models/uvsphere.obj");
     so->add<vengine::ComponentMesh>().setMesh(sphere->mesh("defaultobject"));
 
-    auto material = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial4"));
+    auto material = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial1"));
     material->albedo() = glm::vec4(0.6, 0.6, 0.6, 1);
     so->add<vengine::ComponentMaterial>().setMaterial(material);
 
@@ -178,8 +171,8 @@ TEST_F(RenderPTTest, EnvironmentMap)
     auto cubeModel = instanceModels.get("assets/models/cube.obj");
     Mesh *cubeMesh = cubeModel->mesh("Cube");
 
-    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial1"));
-    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial1"));
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial2"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial2"));
 
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({0, 1, 0}, {1, 1, 1}));
@@ -225,7 +218,7 @@ TEST_F(RenderPTTest, EnvironmentMapPBR)
     auto sphereModel = instanceModels.get("assets/models/uvsphere.obj");
     Mesh *sphereMesh = sphereModel->mesh("defaultobject");
 
-    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial4"));
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial3"));
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({0, 0, 0}, {1, 1, 1}));
         so->add<vengine::ComponentMesh>().setMesh(sphereMesh);
@@ -287,7 +280,7 @@ TEST_F(RenderPTTest, EnvironmentMapLambert)
     auto sphereModel = instanceModels.get("assets/models/uvsphere.obj");
     Mesh *sphereMesh = sphereModel->mesh("defaultobject");
 
-    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial5"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial3"));
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({0, 0, 0}, {1, 1, 1}));
         so->add<vengine::ComponentMesh>().setMesh(sphereMesh);
@@ -313,13 +306,13 @@ TEST_F(RenderPTTest, EnvironmentMapLambert)
     EXPECT_LE(diff, 0.000005);
 }
 
-TEST_F(RenderPTTest, EnvironmentMapVolume)
+TEST_F(RenderPTTest, Volume1)
 {
     Engine &engine = *mEngine;
     Scene &scene = engine.scene();
 
     auto camera = std::make_shared<vengine::PerspectiveCamera>();
-    camera->transform().position() = glm::vec3(0, 0, 3);
+    camera->transform().position() = glm::vec3(0, 0.5, 4);
     camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(0.F), 0, 0)));
     scene.camera() = camera;
 
@@ -328,52 +321,246 @@ TEST_F(RenderPTTest, EnvironmentMapVolume)
     Mesh *sphereMesh = sphereModel->mesh("defaultobject");
     auto cubeModel = instanceModels.get("assets/models/cube.obj");
     Mesh *cubeMesh = cubeModel->mesh("Cube");
+    auto planeModel = instanceModels.get("assets/models/plane.obj");
+    Mesh *planeMesh = planeModel->mesh("Plane");
 
     auto &instanceMaterials = vengine::AssetManager::getInstance().materialsMap();
 
-    auto materialVolume = engine.materials().createMaterial<vengine::MaterialVolume>(vengine::AssetInfo("volumematerial1"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial4"));
+    materialLambert->setTransparent(true);
+    materialLambert->albedo() = glm::vec4(1, 1, 1, 0.2);
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial4"));
+    materialPBR->setTransparent(true);
+    materialPBR->albedo() = glm::vec4(1, 1, 1, 0.2);
+    materialPBR->metallic() = 0;
+    materialPBR->roughness() = 0;
+
+    auto materialVolume1 = engine.materials().createMaterial<vengine::MaterialVolume>(vengine::AssetInfo("volumematerial1"));
+
     {
-        vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({0, 0, 0}, {1, 1, 1}));
-        so->add<vengine::ComponentMesh>().setMesh(sphereMesh);
-        so->add<vengine::ComponentMaterial>().setMaterial(materialVolume);
+        vengine::SceneObject *so = scene.addSceneObject("cube1", vengine::Transform({0, 0.5, 0}, {1, 1, 1}));
+        so->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+        so->add<vengine::ComponentMaterial>().setMaterial(materialPBR);
+        so->add<vengine::ComponentVolume>().setBackFacingVolume(materialVolume1);
     }
     {
-        vengine::SceneObject *so = scene.addSceneObject("cube", vengine::Transform({-1, -1, -1}, {1, 1, 1}));
-        so->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+        vengine::SceneObject *so = scene.addSceneObject("plane", vengine::Transform({0, -1, 0}, {10, 10, 10}));
+        so->add<vengine::ComponentMesh>().setMesh(planeMesh);
         so->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
     }
 
-    scene.environmentIntensity() = 1.0F;
-    scene.update();
+    materialVolume1->sigmaA() = glm::vec4(0.2F, 0.4F, 0.8F, 0.F);
+    materialVolume1->sigmaS() = glm::vec4(0.8F, 0.4F, 0.2F, 0.F);
 
     engine.renderer().rendererPathTracing().renderInfo().width = 256;
     engine.renderer().rendererPathTracing().renderInfo().height = 256;
-    engine.renderer().rendererPathTracing().renderInfo().samples = 1024;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 2048;
     engine.renderer().rendererPathTracing().renderInfo().batchSize = 64;
     engine.renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;
     engine.renderer().rendererPathTracing().renderInfo().denoise = false;
     engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
     float diff;
 
-    materialVolume->sigmaA() = glm::vec4(0.2F, 0.4F, 0.8F, 0.F);
-    materialVolume->sigmaS() = glm::vec4(0.8F, 0.4F, 0.2F, 0.F);
+    /* Environment map test */
 
-    materialVolume->g() = 0.0F;
-    engine.renderer().rendererPathTracing().renderInfo().filename = "EnvironmentMapVolume0_test";
+    scene.environmentIntensity() = 1.0F;
+    scene.environmentType() = EnvironmentType::HDRI;
+    scene.update();
+
+    materialVolume1->g() = 0;
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume0_test";
     engine.renderer().rendererPathTracing().render();
-    diff = CompareImages("EnvironmentMapVolume0_test.hdr", "assets/unittests/EnvironmentMapVolume0_ref.hdr", 3);
+    diff = CompareImages("Volume0_test.hdr", "assets/unittests/Volume0_ref.hdr", 3);
     EXPECT_LE(diff, 0.00001);
 
-    materialVolume->g() = -1.0F;
-    engine.renderer().rendererPathTracing().renderInfo().filename = "EnvironmentMapVolume-1_test";
+    materialVolume1->g() = -0.99F;
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume1_test";
     engine.renderer().rendererPathTracing().render();
-    diff = CompareImages("EnvironmentMapVolume-1_test.hdr", "assets/unittests/EnvironmentMapVolume-1_ref.hdr", 3);
+    diff = CompareImages("Volume1_test.hdr", "assets/unittests/Volume1_ref.hdr", 3);
+    EXPECT_LE(diff, 0.00001);
+
+    materialVolume1->g() = 0.99F;
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume2_test";
+    engine.renderer().rendererPathTracing().render();
+    diff = CompareImages("Volume2_test.hdr", "assets/unittests/Volume2_ref.hdr", 3);
+    EXPECT_LE(diff, 0.00001);
+
+    /* Directional light test */
+    engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
+    engine.scene().backgroundColor() = glm::vec3(0);
+    materialVolume1->g() = 0;
+
+    auto *directionalLight =
+        engine.scene().createLight(AssetInfo("Directional light 1", "Directional light 1"), LightType::DIRECTIONAL_LIGHT);
+    static_cast<DirectionalLight *>(directionalLight)->color().a = 1;
+    auto *soLight =
+        engine.scene().addSceneObject("light", Transform({0, 4, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}));
+    soLight->add<ComponentLight>().setLight(directionalLight);
+
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume3_test";
+    engine.renderer().rendererPathTracing().render();
+    diff = CompareImages("Volume3_test.hdr", "assets/unittests/Volume3_ref.hdr", 3);
     EXPECT_LE(diff, 0.000008);
 
-    materialVolume->g() = 1.0F;
-    engine.renderer().rendererPathTracing().renderInfo().filename = "EnvironmentMapVolume1_test";
+    /* Point light test */
+    auto *pointlLight = engine.scene().createLight(AssetInfo("Point light 1", "Point light 1"), LightType::POINT_LIGHT);
+    static_cast<PointLight *>(pointlLight)->color().a = 15;
+    soLight->get<ComponentLight>().setLight(pointlLight);
+
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume4_test";
     engine.renderer().rendererPathTracing().render();
-    diff = CompareImages("EnvironmentMapVolume1_test.hdr", "assets/unittests/EnvironmentMapVolume1_ref.hdr", 3);
+    diff = CompareImages("Volume4_test.hdr", "assets/unittests/Volume4_ref.hdr", 3);
+    EXPECT_LE(diff, 0.000008);
+
+    /* Mesh light test */
+    soLight->remove<ComponentLight>();
+    {
+        auto materialPBREmissive =
+            engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("emissivepbrmaterial1"));
+        materialPBREmissive->emissive() = glm::vec4(0.3, 0.3, 0.7, 15.0);
+
+        soLight->setLocalTransform(vengine::Transform({0, 1.5, -3}, {1, 1, 1}, {glm::radians(90.F), glm::radians(0.F), 0}));
+        soLight->add<vengine::ComponentMesh>().setMesh(planeMesh);
+        soLight->add<vengine::ComponentMaterial>().setMaterial(materialPBREmissive);
+    }
+    scene.environmentIntensity() = 1.0F;
+    engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
+    engine.scene().backgroundColor() = glm::vec3(0);
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume5_test";
+    engine.renderer().rendererPathTracing().render();
+    diff = CompareImages("Volume5_test.hdr", "assets/unittests/Volume5_ref.hdr", 3);
+    EXPECT_LE(diff, 0.00001);
+}
+
+TEST_F(RenderPTTest, Volume2)
+{
+    Engine &engine = *mEngine;
+    Scene &scene = engine.scene();
+
+    auto camera = std::make_shared<vengine::PerspectiveCamera>();
+    camera->transform().position() = glm::vec3(0, 1.0, 7);
+    camera->transform().setRotation(glm::quat(glm::vec3(glm::radians(0.F), 0, 0)));
+    camera->zfar() = 10.0;
+    scene.camera() = camera;
+
+    auto &instanceModels = vengine::AssetManager::getInstance().modelsMap();
+    auto sphereModel = instanceModels.get("assets/models/uvsphere.obj");
+    Mesh *sphereMesh = sphereModel->mesh("defaultobject");
+    auto cubeModel = instanceModels.get("assets/models/cube.obj");
+    Mesh *cubeMesh = cubeModel->mesh("Cube");
+    auto planeModel = instanceModels.get("assets/models/plane.obj");
+    Mesh *planeMesh = planeModel->mesh("Plane");
+
+    auto &instanceMaterials = vengine::AssetManager::getInstance().materialsMap();
+
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial5"));
+    materialLambert->setTransparent(true);
+    materialLambert->albedo() = glm::vec4(1, 1, 1, 0.2);
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial5"));
+    materialPBR->setTransparent(true);
+    materialPBR->albedo() = glm::vec4(1, 1, 1, 0.2);
+    materialPBR->metallic() = 0;
+    materialPBR->roughness() = 0;
+
+    auto materialVolume1 = engine.materials().createMaterial<vengine::MaterialVolume>(vengine::AssetInfo("volumematerial2"));
+    auto materialVolume2 = engine.materials().createMaterial<vengine::MaterialVolume>(vengine::AssetInfo("volumematerial3"));
+
+    {
+        vengine::SceneObject *so = scene.addSceneObject("cube1", vengine::Transform({0, 0.5, 0}, {1, 1, 1}));
+        so->add<vengine::ComponentMesh>().setMesh(cubeMesh);
+        so->add<vengine::ComponentMaterial>().setMaterial(materialPBR);
+        so->add<vengine::ComponentVolume>().setBackFacingVolume(materialVolume1);
+        so->add<vengine::ComponentVolume>().setFrontFacingVolume(materialVolume2);
+    }
+    {
+        vengine::SceneObject *so = scene.addSceneObject("plane", vengine::Transform({0, -1, 0}, {10, 10, 10}));
+        so->add<vengine::ComponentMesh>().setMesh(planeMesh);
+        so->add<vengine::ComponentMaterial>().setMaterial(instanceMaterials.get("defaultMaterial"));
+    }
+
+    materialVolume1->sigmaA() = glm::vec4(0.2F, 0.4F, 0.0F, 0.F);
+    materialVolume1->sigmaS() = glm::vec4(0.8F, 0.4F, 0.2F, 0.F);
+    materialVolume2->sigmaA() = glm::vec4(0.04F, 0.04F, 0.04F, 0.F);
+    materialVolume2->sigmaS() = glm::vec4(0.04F, 0.04F, 0.04F, 0.F);
+    materialVolume1->g() = 0;
+    materialVolume2->g() = 0;
+    camera->volume() = materialVolume2;
+
+    engine.renderer().rendererPathTracing().renderInfo().width = 256;
+    engine.renderer().rendererPathTracing().renderInfo().height = 256;
+    engine.renderer().rendererPathTracing().renderInfo().samples = 2048;
+    engine.renderer().rendererPathTracing().renderInfo().batchSize = 64;
+    engine.renderer().rendererPathTracing().renderInfo().fileType = vengine::FileType::HDR;
+    engine.renderer().rendererPathTracing().renderInfo().denoise = false;
+    engine.renderer().rendererPathTracing().renderInfo().writeAllFiles = false;
+    float diff;
+
+    /* Environment map test */
+
+    scene.environmentIntensity() = 1.0F;
+    scene.environmentType() = EnvironmentType::HDRI;
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume6_test";
+    engine.renderer().rendererPathTracing().render();
+    diff = CompareImages("Volume6_test.hdr", "assets/unittests/Volume6_ref.hdr", 3);
+    EXPECT_LE(diff, 0.00001);
+
+    /* Directional light test */
+    engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
+    engine.scene().backgroundColor() = glm::vec3(0);
+
+    auto *directionalLight =
+        engine.scene().createLight(AssetInfo("Directional light 1", "Directional light 1"), LightType::DIRECTIONAL_LIGHT);
+    static_cast<DirectionalLight *>(directionalLight)->color().a = 1;
+    auto *soLight =
+        engine.scene().addSceneObject("light", Transform({0, 4, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}));
+    soLight->add<ComponentLight>().setLight(directionalLight);
+
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume7_test";
+    engine.renderer().rendererPathTracing().render();
+    diff = CompareImages("Volume7_test.hdr", "assets/unittests/Volume7_ref.hdr", 3);
+    EXPECT_LE(diff, 0.000008);
+
+    /* Point light test */
+    auto *pointlLight = engine.scene().createLight(AssetInfo("Point light 1", "Point light 1"), LightType::POINT_LIGHT);
+    static_cast<PointLight *>(pointlLight)->color().a = 15;
+    soLight->get<ComponentLight>().setLight(pointlLight);
+
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume8_test";
+    engine.renderer().rendererPathTracing().render();
+    diff = CompareImages("Volume8_test.hdr", "assets/unittests/Volume8_ref.hdr", 3);
+    EXPECT_LE(diff, 0.000008);
+
+    /* Mesh light test */
+    soLight->remove<ComponentLight>();
+    {
+        auto materialPBREmissive =
+            engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("emissivepbrmaterial2"));
+        materialPBREmissive->emissive() = glm::vec4(0.3, 0.3, 0.7, 15.0);
+
+        soLight->setLocalTransform(vengine::Transform({0, 1.5, -3}, {1, 1, 1}, {glm::radians(90.F), glm::radians(0.F), 0}));
+        soLight->add<vengine::ComponentMesh>().setMesh(planeMesh);
+        soLight->add<vengine::ComponentMaterial>().setMaterial(materialPBREmissive);
+    }
+    scene.environmentIntensity() = 1.0F;
+    engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
+    engine.scene().backgroundColor() = glm::vec3(0);
+    scene.update();
+
+    engine.renderer().rendererPathTracing().renderInfo().filename = "Volume9_test";
+    engine.renderer().rendererPathTracing().render();
+    diff = CompareImages("Volume9_test.hdr", "assets/unittests/Volume9_ref.hdr", 3);
     EXPECT_LE(diff, 0.00001);
 }
 
@@ -381,7 +568,14 @@ TEST_F(RenderPTTest, PointLight)
 {
     Engine &engine = *mEngine;
 
-    PrepareTwoBallsOnPlaneScene(engine);
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial6"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial6"));
+    auto materialFloor = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial7"));
+    materialPBR->albedo() = glm::vec4(0.7, 0.1, 0.1, 1.0);
+    materialPBR->roughness() = 0.3F;
+    materialLambert->albedo() = glm::vec4(0.1, 0.7, 0.1, 1.0);
+
+    PrepareTwoBallsOnPlaneScene(engine, materialFloor, materialPBR, materialLambert);
 
     engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
     engine.scene().backgroundColor() = glm::vec3(0);
@@ -411,7 +605,14 @@ TEST_F(RenderPTTest, DirectionalLight)
 {
     Engine &engine = *mEngine;
 
-    PrepareTwoBallsOnPlaneScene(engine);
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial6"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial6"));
+    auto materialFloor = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial7"));
+    materialPBR->albedo() = glm::vec4(0.7, 0.1, 0.1, 1.0);
+    materialPBR->roughness() = 0.3F;
+    materialLambert->albedo() = glm::vec4(0.1, 0.7, 0.1, 1.0);
+
+    PrepareTwoBallsOnPlaneScene(engine, materialFloor, materialPBR, materialLambert);
 
     engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
     engine.scene().backgroundColor() = glm::vec3(0);
@@ -443,7 +644,14 @@ TEST_F(RenderPTTest, MeshLight)
 {
     Engine &engine = *mEngine;
 
-    PrepareTwoBallsOnPlaneScene(engine);
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial6"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial6"));
+    auto materialFloor = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial7"));
+    materialPBR->albedo() = glm::vec4(0.7, 0.1, 0.1, 1.0);
+    materialPBR->roughness() = 0.3F;
+    materialLambert->albedo() = glm::vec4(0.1, 0.7, 0.1, 1.0);
+
+    PrepareTwoBallsOnPlaneScene(engine, materialFloor, materialPBR, materialLambert);
 
     engine.scene().environmentType() = EnvironmentType::SOLID_COLOR;
     engine.scene().backgroundColor() = glm::vec3(0);
@@ -457,7 +665,7 @@ TEST_F(RenderPTTest, MeshLight)
         so->add<ComponentMesh>().setMesh(planeMesh);
 
         auto materialPBREmissive =
-            engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("emissivepbrmaterial"));
+            engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("emissivepbrmaterial3"));
         materialPBREmissive->emissive() = glm::vec4(0.3, 0.3, 0.7, 15.0);
         so->add<ComponentMaterial>().setMaterial(materialPBREmissive);
 
@@ -497,7 +705,7 @@ TEST_F(RenderPTTest, Transparency)
     Mesh *planeMesh = planeModel->mesh("Plane");
 
     {
-        auto materialPBR1 = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial5"));
+        auto materialPBR1 = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial7"));
         materialPBR1->setTransparent(true);
         materialPBR1->albedo() = glm::vec4(0.7, 0.7, 0.7, 0.5);
         vengine::SceneObject *so = scene.addSceneObject("sphere", vengine::Transform({0, 0, 0}, {1, 1, 1}));
@@ -505,7 +713,7 @@ TEST_F(RenderPTTest, Transparency)
         so->add<vengine::ComponentMaterial>().setMaterial(materialPBR1);
     }
     {
-        auto materialPBR2 = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial6"));
+        auto materialPBR2 = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial8"));
         auto *tex = engine.textures().createTexture(AssetInfo("checkerboard", "assets/textures/checkerboard.png"));
         materialPBR2->setAlphaTexture(tex);
         materialPBR2->setTransparent(true);
@@ -550,7 +758,7 @@ TEST_F(RenderPTTest, NormalMap)
     Mesh *planeMesh = planeModel->mesh("Plane");
 
     {
-        auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial7"));
+        auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial9"));
         auto *tex = engine.textures().createTexture(AssetInfo("normal", "assets/textures/normal.png"), ColorSpace::LINEAR);
         materialPBR->setNormalTexture(tex);
 
@@ -715,8 +923,8 @@ TEST_F(RenderPTTest, DepthOfField)
     auto cubeModel = instanceModels.get("assets/models/cube.obj");
     Mesh *cubeMesh = cubeModel->mesh("Cube");
 
-    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial1"));
-    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial1"));
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial10"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial8"));
 
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere1", vengine::Transform({0, 1, 0}, {1, 1, 1}));
@@ -797,7 +1005,8 @@ TEST_F(RenderPTTest, SharedComponents)
         vengine::SceneObject *so = scene.addSceneObject(
             "directionalLight", nullptr, vengine::Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}));
 
-        so->add<vengine::ComponentLight>().setLight(vengine::AssetManager::getInstance().lightsMap().get("defaultDirectionalLight"));
+        so->add<vengine::ComponentLight>().setLight(
+            vengine::AssetManager::getInstance().lightsMap().get("defaultDirectionalLightSun"));
     }
 
     scene.environmentType() = vengine::EnvironmentType::SOLID_COLOR;
@@ -839,8 +1048,8 @@ TEST_F(RenderPTTest, Denoise)
     auto cubeModel = instanceModels.get("assets/models/cube.obj");
     Mesh *cubeMesh = cubeModel->mesh("Cube");
 
-    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial1"));
-    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial1"));
+    auto materialPBR = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial11"));
+    auto materialLambert = engine.materials().createMaterial<vengine::MaterialLambert>(vengine::AssetInfo("lambertmaterial9"));
 
     {
         vengine::SceneObject *so = scene.addSceneObject("sphere1", vengine::Transform({0, 1, 0}, {1, 1, 1}));

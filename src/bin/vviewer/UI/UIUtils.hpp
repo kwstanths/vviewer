@@ -1,6 +1,8 @@
 #ifndef __UIUtils_hpp__
 #define __UIUtils_hpp__
 
+#include <unordered_set>
+
 #include <qstringlist.h>
 #include <qwidget.h>
 #include <qpushbutton.h>
@@ -13,7 +15,7 @@
 
 QStringList getImportedModels();
 QStringList getCreatedMaterials();
-QStringList getCreatedMaterials(vengine::MaterialType type);
+QStringList getCreatedMaterials(const std::unordered_set<vengine::MaterialType> &types);
 QStringList getCreatedLights();
 QStringList getImportedTextures(vengine::ColorSpace colorSpace);
 QStringList getImportedCubemaps();

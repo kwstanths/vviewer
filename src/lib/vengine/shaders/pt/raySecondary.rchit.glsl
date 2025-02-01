@@ -11,9 +11,9 @@
 #include "defines_pt.glsl"
 
 #include "../include/structs.glsl"
-#include "../include/frame.glsl"
 #include "../include/utils.glsl"
 #include "../include/constants.glsl"
+#include "../include/frame.glsl"
 #include "structs_pt.glsl"
 
 hitAttributeEXT vec2 attribs;
@@ -31,47 +31,48 @@ layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 void main()
 {
+    if (rayPayloadSecondary.stop)
+        return;
+
+    /* If this shader is called not stopped, then the secondary ray has hit a transparent surface with a volume change */
+
     #include "process_hit.glsl"
     #include "construct_frame.glsl"
 
-    if (flipped && rayPayloadSecondary.insideVolume)
+    /* If the ray travelled inside a volume compute volume transmittance */
+    if (rayPayloadSecondary.insideVolume)
     {
-        /* 
-            The ray should *always* be inside a volume here, but because the order in which the any-hit shaders are invoked is undefined,
-            this prevents corner cases where the flipped part is executed before the unflipped
-        */
-
-        /* Exiting a volume boundary, calculate volume transmittance */
-
-        rayPayloadSecondary.insideVolume = false;
-
-        uint volumeMaterialIndex = instanceData.materialIndex;
+        uint volumeMaterialIndex = rayPayloadSecondary.volumeMaterialIndex;
         float vtend = gl_HitTEXT;
         float vtstart = rayPayloadSecondary.vtmin;
         #include "process_volume_transmittance.glsl"
 
         rayPayloadSecondary.throughput *= volumeTransmittance;
-
-        /* If throughput is large enough continue */
-        if (max3(rayPayloadSecondary.throughput) > EPSILON)
+        /* If throughput is not large enough stop */
+        if (max3(rayPayloadSecondary.throughput) < EPSILON)
         {
-            ignoreIntersectionEXT;
-        } 
-        else
-        {
+            rayPayloadSecondary.stop = true;
             rayPayloadSecondary.shadowed = true;
-            terminateRayEXT;
-        }
-
-    } 
-    else 
-    {
-        /* Store parametric t value at volume entry, the volume material and ignore intersection */
-
-        rayPayloadSecondary.insideVolume = true;
-        rayPayloadSecondary.vtmin = gl_HitTEXT;
-        rayPayloadSecondary.volumeMaterialIndex = instanceData.materialIndex;
-        ignoreIntersectionEXT;
-
+            return;
+        } 
     }
+
+    /* store parametric t of hit */
+    rayPayloadSecondary.vtmin = gl_HitTEXT;
+
+    /* Register volume change */
+    rayPayloadSecondary.insideVolume = false;
+    float newVolumeMaterialIndex;
+    if (flipped)
+        newVolumeMaterialIndex = instanceData.id.g;        
+    else 
+        newVolumeMaterialIndex = instanceData.id.b;
+    if (newVolumeMaterialIndex != -1)
+    {
+        rayPayloadSecondary.insideVolume = true;
+        rayPayloadSecondary.volumeMaterialIndex = uint(newVolumeMaterialIndex);
+    }
+
+    /* Set new ray origin for the secondary ray */
+    rayPayloadSecondary.origin = worldPosition;
 }

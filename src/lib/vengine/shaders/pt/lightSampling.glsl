@@ -16,7 +16,6 @@ LightSamplingRecord sampleLight(vec3 originPosition)
     uint randomLight = uint(rand1D(rayPayloadPrimary) * totalLights);
     LightInstance light = lightInstances.data[randomLight];
 
-    float tmin = 0.001;
     float tmax = 10000.0;
     if (light.info.a == 0)
     {
@@ -36,6 +35,8 @@ LightSamplingRecord sampleLight(vec3 originPosition)
 
         /* Directional light */
         lsr.direction = -light.position.rgb;
+        /* tmax will be used to calculate volume transmittance if the shadow ray misses, use the  camera zfar value for max */
+        tmax = sceneData.data.volumes.b;
         lsr.radiance = ld.color.rgb * ld.color.a;
         lsr.pdf = pdf * 1.0;
         lsr.isDeltaLight = true;
@@ -100,25 +101,40 @@ LightSamplingRecord sampleLight(vec3 originPosition)
     else if (light.position.a == 3)
     {
         /* TODO sample Environment map */
-
+        // tmax = ...
         lsr.isDeltaLight = false;
     }
 
     /* Shadow ray */
     if (!isBlack(lsr.radiance))
     {
-        /* Trace shadow ray */
-        rayPayloadSecondary.shadowed = true;
+        /* Trace shadow (secondary) ray */
+        float tmin = 0.0001;
+        rayPayloadSecondary.stop = false;
+        rayPayloadSecondary.origin = originPosition;
+        rayPayloadSecondary.shadowed = false;
         rayPayloadSecondary.throughput = vec3(1.0);
         rayPayloadSecondary.vtmin = tmin;
         rayPayloadSecondary.insideVolume = rayPayloadPrimary.insideVolume;
         rayPayloadSecondary.volumeMaterialIndex = rayPayloadPrimary.volumeMaterialIndex;
+        float distanceT = tmax - tmin;
 
-        /* Slightly reduce tmax to make sure we don't hit the sampled surface at all */
-        uint secondaryRayFlags = gl_RayFlagsSkipClosestHitShaderEXT;
-        traceRayEXT(topLevelAS, secondaryRayFlags, 0xFF, 1, 3, 1, originPosition, tmin, lsr.direction, tmax - tmin, 1);		
+        uint secondaryRayFlags = gl_RayFlagsNoneEXT;
         
-        /* If shadowed is still true make sure throughput is zero */
+        uint depth = pathTracingData.samplesBatchesDepthIndex.b;
+        for (int d = 0; d < depth; d++)
+        {
+            rayPayloadSecondary.vtmin = tmin;
+            traceRayEXT(topLevelAS, secondaryRayFlags, 0xFF, 1, 3, 1, rayPayloadSecondary.origin, tmin, lsr.direction, distanceT, 1);
+            
+            /* If we hit closest hit shader, reduce t */
+            distanceT -= rayPayloadSecondary.vtmin;
+            
+            if (rayPayloadSecondary.stop)
+                break;
+        }
+
+        /* If shadowed is true make sure throughput is zero */
         if (rayPayloadSecondary.shadowed) 
         {
             rayPayloadSecondary.throughput = vec3(0.0);

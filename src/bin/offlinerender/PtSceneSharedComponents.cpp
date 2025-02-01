@@ -41,7 +41,8 @@ bool PtSceneSharedComponents::create()
         vengine::SceneObject *so = scene().addSceneObject(
             "directionalLight", nullptr, vengine::Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}));
 
-        so->add<vengine::ComponentLight>().setLight(vengine::AssetManager::getInstance().lightsMap().get("defaultDirectionalLight"));
+        so->add<vengine::ComponentLight>().setLight(
+            vengine::AssetManager::getInstance().lightsMap().get("defaultDirectionalLightSun"));
     }
 
     scene().environmentType() = vengine::EnvironmentType::SOLID_COLOR;

@@ -14,7 +14,6 @@
 
 #include "UI/widgets/WidgetComponent.hpp"
 #include "UI/widgets/WidgetEnvironment.hpp"
-#include "UI/widgets/WidgetMaterial.hpp"
 
 using namespace vengine;
 
@@ -72,21 +71,24 @@ WidgetEnvironment *WidgetRightPanel::getEnvironmentWidget()
 void WidgetRightPanel::updateAvailableMaterials()
 {
     if (m_selectedObjectWidgetMaterial != nullptr) {
-        m_selectedObjectWidgetMaterial->getWidget<WidgetMaterial>()->updateAvailableMaterials(true);
+        m_selectedObjectWidgetMaterial->getWidget<WidgetComponentMaterial>()->updateAvailableMaterials(true);
+    }
+    if (m_selectedObjectWidgetVolume != nullptr) {
+        m_selectedObjectWidgetVolume->getWidget<WidgetComponentVolume>()->updateAvailableMaterials();
     }
 }
 
 void WidgetRightPanel::updateAvailableLights()
 {
     if (m_selectedObjectWidgetLight != nullptr) {
-        m_selectedObjectWidgetLight->getWidget<WidgetLight>()->updateAvailableLights();
+        m_selectedObjectWidgetLight->getWidget<WidgetComponentLight>()->updateAvailableLights();
     }
 }
 
 void WidgetRightPanel::updateAvailableTextures()
 {
     if (m_selectedObjectWidgetMaterial != nullptr) {
-        m_selectedObjectWidgetMaterial->getWidget<WidgetMaterial>()->updateAvailableTextures();
+        m_selectedObjectWidgetMaterial->getWidget<WidgetComponentMaterial>()->updateAvailableTextures();
     }
 }
 
@@ -103,6 +105,9 @@ void WidgetRightPanel::onUpdate()
 {
     if (m_selectedObjectWidgetMaterial != nullptr) {
         m_selectedObjectWidgetMaterial->updateHeight();
+    }
+    if (m_selectedObjectWidgetVolume != nullptr) {
+        m_selectedObjectWidgetVolume->updateHeight();
     }
 }
 
@@ -122,6 +127,7 @@ void WidgetRightPanel::deleteWidgets()
     m_selectedObjectWidgetMeshModel = nullptr;
     m_selectedObjectWidgetMaterial = nullptr;
     m_selectedObjectWidgetLight = nullptr;
+    m_selectedObjectWidgetVolume = nullptr;
 }
 
 void WidgetRightPanel::createUI(SceneObject *object)
@@ -167,6 +173,12 @@ void WidgetRightPanel::createUI(SceneObject *object)
         m_layoutControls->addWidget(m_selectedObjectWidgetLight);
     }
 
+    if (object->has<ComponentVolume>()) {
+        m_selectedObjectWidgetVolume = new WidgetComponent(nullptr, new UIComponentVolume(object, "Volume"), m_engine);
+        connect(m_selectedObjectWidgetVolume, &WidgetComponent::componentRemoved, this, &WidgetRightPanel::onComponentRemoved);
+        m_layoutControls->addWidget(m_selectedObjectWidgetVolume);
+    }
+
     QMenu *menu = new QMenu();
     if (!object->has<ComponentMesh>()) {
         QAction *actionAddMeshComponent = new QAction("Mesh", this);
@@ -190,6 +202,11 @@ void WidgetRightPanel::createUI(SceneObject *object)
 
         menu->addMenu(lightMenu);
     }
+    if (!object->has<ComponentVolume>()) {
+        QAction *actionAddVolumeComponent = new QAction("Volume", this);
+        connect(actionAddVolumeComponent, SIGNAL(triggered()), this, SLOT(onAddComponentVolume()));
+        menu->addAction(actionAddVolumeComponent);
+    }
     QPushButton *buttonAddComponent = new QPushButton(tr("Add component"));
     buttonAddComponent->setMenu(menu);
     m_layoutControls->addWidget(buttonAddComponent);
@@ -198,7 +215,7 @@ void WidgetRightPanel::createUI(SceneObject *object)
     m_widgetControls->setLayout(m_layoutControls);
     m_widgetScroll->setWidget(m_widgetControls);
     m_widgetControls->setFixedWidth(340);
-    m_widgetControls->setMinimumHeight(1300);
+    m_widgetControls->setMinimumHeight(2000);
 }
 
 void WidgetRightPanel::onTransformChanged()
@@ -281,6 +298,22 @@ void WidgetRightPanel::onAddComponentDirectionalLight()
     m_engine->waitIdle();
 
     m_object->add<ComponentLight>().setLight(directionalLight);
+
+    m_engine->start();
+
+    deleteWidgets();
+    createUI(m_object);
+}
+
+void WidgetRightPanel::onAddComponentVolume()
+{
+    auto &instanceMaterials = AssetManager::getInstance().materialsMap();
+    auto matDef = instanceMaterials.get("defaultVolume");
+
+    m_engine->stop();
+    m_engine->waitIdle();
+
+    m_object->add<ComponentVolume>();
 
     m_engine->start();
 

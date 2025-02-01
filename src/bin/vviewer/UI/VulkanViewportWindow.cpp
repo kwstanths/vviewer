@@ -266,7 +266,7 @@ void VulkanViewportWindow::wheelEvent(QWheelEvent *ev)
 void VulkanViewportWindow::onUpdateCamera()
 {
     /* FPS style camera movement */
-    
+
     float speed = m_cameraDefaultSpeed;
     if (m_keysPressed[Qt::Key_Shift])
         speed = m_cameraFastSpeed;

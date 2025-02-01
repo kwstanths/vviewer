@@ -9,14 +9,15 @@
 #include <qgroupbox.h>
 #include <stdexcept>
 
-#include "UI/widgets/WidgetLight.hpp"
 #include "vengine/core/Materials.hpp"
 #include "vengine/core/SceneObject.hpp"
 #include "vengine/core/Engine.hpp"
 #include "vengine/utils/ECS.hpp"
 
-#include "WidgetModel3D.hpp"
-#include "WidgetMaterial.hpp"
+#include "WidgetComponentModel3D.hpp"
+#include "WidgetComponentMaterial.hpp"
+#include "WidgetComponentLight.hpp"
+#include "WidgetComponentVolume.hpp"
 
 /* UI classes that represent each available component, QT doesn't support templated Q_OBJECT */
 class UIComponentWrapper
@@ -71,7 +72,7 @@ public:
     UIComponentMesh(vengine::SceneObject *object, QString name)
         : UIComponentWrapper(object, name){};
 
-    QWidget *generateWidget() { return new WidgetModel3D(nullptr, m_object->get<vengine::ComponentMesh>()); }
+    QWidget *generateWidget() { return new WidgetComponentModel3D(nullptr, m_object->get<vengine::ComponentMesh>()); }
 
     void removeComponent()
     {
@@ -79,7 +80,7 @@ public:
         return;
     }
 
-    int getWidgetHeight() { return WidgetModel3D::HEIGHT; }
+    int getWidgetHeight() { return WidgetComponentModel3D::HEIGHT; }
 
 private:
 };
@@ -90,7 +91,7 @@ public:
     UIComponentMaterial(vengine::SceneObject *object, QString name)
         : UIComponentWrapper(object, name){};
 
-    QWidget *generateWidget() { return new WidgetMaterial(nullptr, m_object->get<vengine::ComponentMaterial>()); }
+    QWidget *generateWidget() { return new WidgetComponentMaterial(nullptr, m_object->get<vengine::ComponentMaterial>()); }
 
     void removeComponent()
     {
@@ -101,11 +102,11 @@ public:
     int getWidgetHeight()
     {
         if (m_object->get<vengine::ComponentMaterial>().material()->type() == vengine::MaterialType::MATERIAL_PBR_STANDARD) {
-            return WidgetMaterial::HEIGHT_PBR;
+            return WidgetComponentMaterial::HEIGHT_PBR;
         } else if (m_object->get<vengine::ComponentMaterial>().material()->type() == vengine::MaterialType::MATERIAL_LAMBERT) {
-            return WidgetMaterial::HEIGHT_LAMBERT;
+            return WidgetComponentMaterial::HEIGHT_LAMBERT;
         } else if (m_object->get<vengine::ComponentMaterial>().material()->type() == vengine::MaterialType::MATERIAL_VOLUME) {
-            return WidgetMaterial::HEIGHT_VOLUME;
+            return WidgetComponentMaterial::HEIGHT_VOLUME;
         } else {
             throw std::runtime_error("UIComponentMaterial::Unexpected material");
         }
@@ -120,7 +121,7 @@ public:
     UIComponentLight(vengine::SceneObject *object, QString name)
         : UIComponentWrapper(object, name){};
 
-    QWidget *generateWidget() { return new WidgetLight(nullptr, m_object->get<vengine::ComponentLight>()); }
+    QWidget *generateWidget() { return new WidgetComponentLight(nullptr, m_object->get<vengine::ComponentLight>()); }
 
     void removeComponent()
     {
@@ -128,9 +129,33 @@ public:
         return;
     }
 
-    int getWidgetHeight() { return WidgetLight::HEIGHT; }
+    int getWidgetHeight() { return WidgetComponentLight::HEIGHT; }
 
 private:
+};
+
+class UIComponentVolume : public UIComponentWrapper
+{
+public:
+    UIComponentVolume(vengine::SceneObject *object, QString name)
+        : UIComponentWrapper(object, name){};
+
+    QWidget *generateWidget()
+    {
+        m_widget = new WidgetComponentVolume(nullptr, m_object->get<vengine::ComponentVolume>());
+        return m_widget;
+    }
+
+    void removeComponent()
+    {
+        m_object->remove<vengine::ComponentVolume>();
+        return;
+    }
+
+    int getWidgetHeight() { return m_widget->getWidgetHeight(); }
+
+private:
+    WidgetComponentVolume *m_widget = nullptr;
 };
 
 #endif

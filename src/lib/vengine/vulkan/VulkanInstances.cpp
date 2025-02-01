@@ -132,12 +132,12 @@ void VulkanInstancesManager::initInstanceData(InstanceData *instanceData, SceneO
 VkResult VulkanInstancesManager::createDescriptorSetsLayouts()
 {
     /* Binding 0, instance data buffer */
-    VkDescriptorSetLayoutBinding instanceDataBufferBinding =
-        vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT |
-                                               VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
-                                           0,
-                                           1);
+    VkDescriptorSetLayoutBinding instanceDataBufferBinding = vkinit::descriptorSetLayoutBinding(
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+            VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+        0,
+        1);
 
     std::vector<VkDescriptorSetLayoutBinding> bindings({instanceDataBufferBinding});
     VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo =

@@ -75,14 +75,26 @@ void InstancesManager::sortTransparent(const glm::vec3 &pos)
 
 void InstancesManager::initInstanceData(InstanceData *instanceData, SceneObject *so)
 {
-    /* Set material index  */
-    if (so->has<ComponentMaterial>()) {
-        instanceData->materialIndex = so->get<ComponentMaterial>().material()->materialIndex();
-    }
-    /* Set object id */
-    instanceData->id = glm::vec4(so->getID(), 0, 0, 0);
     /* Set object model matrix transformation */
     instanceData->modelMatrix = so->modelMatrix();
+    /* Set object id */
+    instanceData->id = glm::vec4(so->getID(), -1, -1, 0);
+
+    /* Set material index  */
+    if (so->has<ComponentMaterial>()) {
+        Material *mat = so->get<ComponentMaterial>().material();
+        instanceData->materialIndex = mat->materialIndex();
+    }
+
+    /* Set volumes */
+    if (so->has<ComponentVolume>()) {
+        Material *frontVol = so->get<ComponentVolume>().frontFacing();
+        if (frontVol != nullptr)
+            instanceData->id.g = frontVol->materialIndex();
+        Material *backVol = so->get<ComponentVolume>().backFacing();
+        if (backVol != nullptr)
+            instanceData->id.b = backVol->materialIndex();
+    }
 }
 
 void InstancesManager::fillSceneObjectVectors(SceneObjectVector &sceneGraph)
@@ -91,37 +103,41 @@ void InstancesManager::fillSceneObjectVectors(SceneObjectVector &sceneGraph)
         if (!sceneObject->isActive())
             continue;
 
-        if (sceneObject->has<ComponentMesh>() && sceneObject->has<ComponentMaterial>()) {
+        if (sceneObject->has<ComponentMesh>()) {
             Mesh *mesh = sceneObject->get<ComponentMesh>().mesh();
-            Material *material = sceneObject->get<ComponentMaterial>().material();
 
-            if (material->isEmissive()) {
-                m_meshLights.push_back(sceneObject);
-            }
+            if (sceneObject->has<ComponentMaterial>()) {
+                Material *material = sceneObject->get<ComponentMaterial>().material();
 
-            if (!material->isTransparent()) {
-                if (material->type() == MaterialType::MATERIAL_VOLUME) {
-                    m_volumes.push_back(sceneObject);
-                    continue;
+                if (material->isEmissive()) {
+                    m_meshLights.push_back(sceneObject);
                 }
 
-                /* Search mesh in existing groups */
-                auto itr = m_instancesOpaque.find(mesh);
-                if (itr == m_instancesOpaque.end()) {
-                    MeshGroup meshGroup;
-                    meshGroup.sceneObjects.push_back(sceneObject);
+                if (!material->isTransparent()) {
+                    /* Search mesh in existing groups */
+                    auto itr = m_instancesOpaque.find(mesh);
+                    if (itr == m_instancesOpaque.end()) {
+                        MeshGroup meshGroup;
+                        meshGroup.sceneObjects.push_back(sceneObject);
 
-                    m_instancesOpaque.insert({mesh, meshGroup});
+                        m_instancesOpaque.insert({mesh, meshGroup});
+                    } else {
+                        itr->second.sceneObjects.push_back(sceneObject);
+                    }
                 } else {
-                    itr->second.sceneObjects.push_back(sceneObject);
+                    m_transparent.push_back(sceneObject);
                 }
-            } else {
-                m_transparent.push_back(sceneObject);
             }
-
-        } else if (sceneObject->has<ComponentLight>()) {
+        }
+        if (sceneObject->has<ComponentLight>()) {
             ComponentLight &lightComponent = sceneObject->get<ComponentLight>();
-            m_lights.push_back(sceneObject);
+            if (lightComponent.light() != nullptr)
+                m_lights.push_back(sceneObject);
+        }
+        if (sceneObject->has<ComponentVolume>()) {
+            ComponentVolume &volumeComponent = sceneObject->get<ComponentVolume>();
+            if (volumeComponent.frontFacing() != nullptr || volumeComponent.backFacing() != nullptr)
+                m_volumes.push_back(sceneObject);
         }
     }
 }
@@ -146,15 +162,6 @@ void InstancesManager::buildInstanceDataFromScratch()
     }
 
     for (SceneObject *&sceneObject : m_transparent) {
-        assert(currentIndex < m_instancesBufferSize);
-
-        initInstanceData(&m_instancesBuffer[currentIndex], sceneObject);
-        m_sceneObjectMap.insert({sceneObject, &m_instancesBuffer[currentIndex]});
-
-        currentIndex++;
-    }
-
-    for (SceneObject *&sceneObject : m_volumes) {
         assert(currentIndex < m_instancesBufferSize);
 
         initInstanceData(&m_instancesBuffer[currentIndex], sceneObject);

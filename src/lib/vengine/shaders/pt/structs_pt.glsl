@@ -31,20 +31,24 @@ struct RayPayloadPrimary {
 
 /* Struct with ray payload for the secondary (shadow) ray in PT */
 struct RayPayloadSecondary {
-    bool shadowed;              /* Ray is shadowed or not */
+    vec3 origin;                /* The origin of the ray to use */
     vec3 throughput;            /* Ray throughput */
-    bool insideVolume;          /* If true, ray traveled inside a volume */
     float vtmin;                /* The parametric t when we entered the volume, or when the ray started */
+    bool shadowed;              /* Ray is shadowed or not */
+    bool stop;                  /* Stop ray traversal */
+    bool insideVolume;          /* If true, ray traveled inside a volume */
     uint volumeMaterialIndex;   /* The material index for the volume */
 };
 
 /* Struct with ray payload for the NEE (next event estimation) ray in PT */
 struct RayPayloadNEE {
+    vec3 origin;                /* The origin of the ray to use */
     vec3 emissive;              /* emissive value of ray */
     vec3 throughput;            /* Ray throughput */
     float pdf;                  /* pdf of sampling that emissive surface */
-    bool insideVolume;          /* If true, ray traveled inside a volume */
     float vtmin;                /* The parametric t when we entered the volume, or when the ray started */
+    bool stop;                  /* Stop ray traversal */
+    bool insideVolume;          /* If true, ray traveled inside a volume */
     uint volumeMaterialIndex;   /* The material index for the volume */
 };
 

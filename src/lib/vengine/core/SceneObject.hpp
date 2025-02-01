@@ -47,6 +47,7 @@ private:
     virtual void onMeshComponentChanged() override;
     virtual void onMaterialComponentChanged() override;
     virtual void onLightComponentChanged() override;
+    virtual void onVolumeComponentChanged() override;
 };
 
 typedef std::vector<SceneObject *> SceneObjectVector;

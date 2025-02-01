@@ -15,7 +15,7 @@ int main(int argc, char **argv)
     VulkanEngine engine("offlinerender");
     engine.initResources();
 
-    PtSceneFurnace ptscene(engine);
+    PtSceneDragonsOnPlane ptscene(engine);
     ptscene.create();
     ptscene.render();
 

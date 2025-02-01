@@ -149,11 +149,12 @@ Texture *VulkanTextures::addTexture(Texture *tex)
 
 VkResult VulkanTextures::createDescriptorSetsLayout(uint32_t nBindlessTextures)
 {
-    VkDescriptorSetLayoutBinding bindlessSamplersLayoutBinding = vkinit::descriptorSetLayoutBinding(
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
-        0,
-        nBindlessTextures);
+    VkDescriptorSetLayoutBinding bindlessSamplersLayoutBinding =
+        vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                           VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+                                               VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+                                           0,
+                                           nBindlessTextures);
     VkDescriptorSetLayoutBinding bindlessStorageImagesLayoutBinding = vkinit::descriptorSetLayoutBinding(
         VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,

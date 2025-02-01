@@ -238,9 +238,7 @@ uint32_t VulkanRendererPathTracing::SBTMaterialOffset(MaterialType type)
         return 0 * nTypeRays;
     else if (type == MaterialType::MATERIAL_PBR_STANDARD)
         return 1 * nTypeRays;
-    else if (type == MaterialType::MATERIAL_VOLUME) {
-        return 2 * nTypeRays;
-    } else {
+    else {
         throw std::runtime_error("VulkanRendererPathTracing::SBTMaterialOffset(): Unexpected material");
     }
 }
@@ -458,7 +456,7 @@ VkResult VulkanRendererPathTracing::createDescriptorSets()
 {
     /* Main set is:
      * 3 storages image for output
-     * 1 uniform buffer for the scene data
+     * 1 uniform buffer for the path tracing data
      */
     std::vector<VkDescriptorPoolSize> poolSizes = {
         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
@@ -519,11 +517,12 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
             1,
             1);
         /* Binding 2, the path tracing data */
-        VkDescriptorSetLayoutBinding pathTracingDataBufferBinding = vkinit::descriptorSetLayoutBinding(
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
-            2,
-            1);
+        VkDescriptorSetLayoutBinding pathTracingDataBufferBinding =
+            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                               VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+                                                   VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+                                               2,
+                                               1);
 
         std::vector<VkDescriptorSetLayoutBinding> bindings(
             {resultImageLayoutBinding, sceneDataBufferBinding, pathTracingDataBufferBinding});
@@ -570,7 +569,7 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
     {
         /* Primary ray miss */
         VkPipelineShaderStageCreateInfo rayMissShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-            VK_SHADER_STAGE_MISS_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raymissPrimary.rmiss.spv"), "main");
+            VK_SHADER_STAGE_MISS_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayPrimary.rmiss.spv"), "main");
         shaderStages.push_back(rayMissShaderStageInfo);
         VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
             vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
@@ -580,143 +579,114 @@ VkResult VulkanRendererPathTracing::createRayTracingPipeline()
 
         /* Secondary ray miss */
         VkPipelineShaderStageCreateInfo secondaryMissShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-            VK_SHADER_STAGE_MISS_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raymissSecondary.rmiss.spv"), "main");
+            VK_SHADER_STAGE_MISS_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raySecondary.rmiss.spv"), "main");
         shaderStages.push_back(secondaryMissShaderStageInfo);
         shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
         m_shaderGroups.push_back(shaderGroup);
 
         /* NEE ray miss */
         VkPipelineShaderStageCreateInfo neeMissShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-            VK_SHADER_STAGE_MISS_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raymissNEE.rmiss.spv"), "main");
+            VK_SHADER_STAGE_MISS_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayNEE.rmiss.spv"), "main");
         shaderStages.push_back(neeMissShaderStageInfo);
         shaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size()) - 1;
         m_shaderGroups.push_back(shaderGroup);
     }
 
-    /* Any hit shaders */
-    /* Primary ray any hit shader */
-    VkPipelineShaderStageCreateInfo rayPrimaryAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitPrimary.rahit.spv"), "main");
-    shaderStages.push_back(rayPrimaryAnyHitShaderStageInfo);
-    uint32_t shaderStageAnyHitPrimary = static_cast<uint32_t>(shaderStages.size()) - 1;
+    /* Hit groups */
+    {
+        /* Any hit shaders */
+        /* Primary ray any hit shader */
+        VkPipelineShaderStageCreateInfo rayPrimaryAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayPrimary.rahit.spv"), "main");
+        shaderStages.push_back(rayPrimaryAnyHitShaderStageInfo);
+        uint32_t shaderStageAnyHitPrimary = static_cast<uint32_t>(shaderStages.size()) - 1;
+        /* Secondary ray any hit shader */
+        VkPipelineShaderStageCreateInfo raySecondaryAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raySecondary.rahit.spv"), "main");
+        shaderStages.push_back(raySecondaryAnyHitShaderStageInfo);
+        uint32_t shaderStageAnyHitSecondary = static_cast<uint32_t>(shaderStages.size()) - 1;
+        /* NEE any hit shader */
+        VkPipelineShaderStageCreateInfo rayNEEAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayNEE.rahit.spv"), "main");
+        shaderStages.push_back(rayNEEAnyHitShaderStageInfo);
+        uint32_t shaderStageAnyHitNEE = static_cast<uint32_t>(shaderStages.size()) - 1;
 
-    /* Secondary ray any hit shader */
-    VkPipelineShaderStageCreateInfo raySecondaryAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitSecondary.rahit.spv"), "main");
-    shaderStages.push_back(raySecondaryAnyHitShaderStageInfo);
-    uint32_t shaderStageAnyHitSecondary = static_cast<uint32_t>(shaderStages.size()) - 1;
+        /* Closest hit shaders */
+        VkPipelineShaderStageCreateInfo raySecondaryClosestHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raySecondary.rchit.spv"), "main");
+        shaderStages.push_back(raySecondaryClosestHitShaderStageInfo);
+        uint32_t shaderStageClosestHitSecondary = static_cast<uint32_t>(shaderStages.size()) - 1;
 
-    /* Secondary ray volume any hit shader */
-    VkPipelineShaderStageCreateInfo raySecondaryVolumeAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitSecondaryVolume.rahit.spv"), "main");
-    shaderStages.push_back(raySecondaryVolumeAnyHitShaderStageInfo);
-    uint32_t shaderStageAnyHitSecondaryVolume = static_cast<uint32_t>(shaderStages.size()) - 1;
+        VkPipelineShaderStageCreateInfo rayNEEClosestHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayNEE.rchit.spv"), "main");
+        shaderStages.push_back(rayNEEClosestHitShaderStageInfo);
+        uint32_t shaderStageClosestHitNEE = static_cast<uint32_t>(shaderStages.size()) - 1;
 
-    /* NEE any hit shader */
-    VkPipelineShaderStageCreateInfo rayNEEAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitNEE.rahit.spv"), "main");
-    shaderStages.push_back(rayNEEAnyHitShaderStageInfo);
-    uint32_t shaderStageAnyHitNEE = static_cast<uint32_t>(shaderStages.size()) - 1;
+        /* Hit group, lambert material, Primary ray */
+        {
+            VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo =
+                vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+                                                      VulkanShader::load(m_device, "shaders/SPIRV/pt/rayPrimaryLambert.rchit.spv"),
+                                                      "main");
+            shaderStages.push_back(rayClosestHitShaderStageInfo);
+            VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+                vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                           /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                           /* closestHitShader = */ static_cast<uint32_t>(shaderStages.size()) - 1,
+                                                           /* anyHitShader = */ shaderStageAnyHitPrimary);
+            m_shaderGroups.push_back(shaderGroup);
+        }
+        /* Hit group, lambert material, Secondary ray */
+        {
+            VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+                vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                           /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                           /* closestHitShader = */ shaderStageClosestHitSecondary,
+                                                           /* anyHitShader = */ shaderStageAnyHitSecondary);
+            m_shaderGroups.push_back(shaderGroup);
+        }
+        /* Hit group, lambert material, NEE ray */
+        {
+            VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+                vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                           /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                           /* closestHitShader = */ shaderStageClosestHitNEE,
+                                                           /* anyHitShader = */ shaderStageAnyHitNEE);
+            m_shaderGroups.push_back(shaderGroup);
+        }
 
-    /* NEE volume any hit shader */
-    VkPipelineShaderStageCreateInfo rayNEEVolumeAnyHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-        VK_SHADER_STAGE_ANY_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/rayahitNEEVolume.rahit.spv"), "main");
-    shaderStages.push_back(rayNEEVolumeAnyHitShaderStageInfo);
-    uint32_t shaderStageAnyHitNEEVolume = static_cast<uint32_t>(shaderStages.size()) - 1;
-
-    /* Hit group, lambert material, Primary ray */
-    {
-        VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raychitLambert.rchit.spv"), "main");
-        shaderStages.push_back(rayClosestHitShaderStageInfo);
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ static_cast<uint32_t>(shaderStages.size()) - 1,
-                                                       /* anyHitShader = */ shaderStageAnyHitPrimary);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-    /* Hit group, lambert material, Secondary ray */
-    {
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* anyHitShader = */ shaderStageAnyHitSecondary);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-    /* Hit group, lambert material, NEE ray */
-    {
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* anyHitShader = */ shaderStageAnyHitNEE);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-
-    /* Hit group, PBRStandard material, Primary ray */
-    {
-        VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo =
-            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-                                                  VulkanShader::load(m_device, "shaders/SPIRV/pt/raychitPBRStandard.rchit.spv"),
-                                                  "main");
-        shaderStages.push_back(rayClosestHitShaderStageInfo);
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ static_cast<uint32_t>(shaderStages.size()) - 1,
-                                                       /* anyHitShader = */ shaderStageAnyHitPrimary);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-    /* Hit group, PBRStandard material, Secondary ray */
-    {
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* anyHitShader = */ shaderStageAnyHitSecondary);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-    /* Hit group, PBRStandard material, NEE ray */
-    {
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* anyHitShader = */ shaderStageAnyHitNEE);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-
-    /* Hit group, volume material, Primary ray */
-    {
-        VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo = vkinit::pipelineShaderStageCreateInfo(
-            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, VulkanShader::load(m_device, "shaders/SPIRV/pt/raychitVolume.rchit.spv"), "main");
-        shaderStages.push_back(rayClosestHitShaderStageInfo);
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ static_cast<uint32_t>(shaderStages.size()) - 1,
-                                                       /* anyHitShader = */ VK_SHADER_UNUSED_KHR);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-    /* Hit group, volume material, Secondary ray */
-    {
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* anyHitShader = */ shaderStageAnyHitSecondaryVolume);
-        m_shaderGroups.push_back(shaderGroup);
-    }
-    /* Hit group, volume material, NEE ray */
-    {
-        VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
-            vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                                                       /* generalShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* closestHitShader = */ VK_SHADER_UNUSED_KHR,
-                                                       /* anyHitShader = */ shaderStageAnyHitNEEVolume);
-        m_shaderGroups.push_back(shaderGroup);
+        /* Hit group, PBRStandard material, Primary ray */
+        {
+            VkPipelineShaderStageCreateInfo rayClosestHitShaderStageInfo =
+                vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+                                                      VulkanShader::load(m_device, "shaders/SPIRV/pt/rayPrimaryPBRStandard.rchit.spv"),
+                                                      "main");
+            shaderStages.push_back(rayClosestHitShaderStageInfo);
+            VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+                vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                           /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                           /* closestHitShader = */ static_cast<uint32_t>(shaderStages.size()) - 1,
+                                                           /* anyHitShader = */ shaderStageAnyHitPrimary);
+            m_shaderGroups.push_back(shaderGroup);
+        }
+        /* Hit group, PBRStandard material, Secondary ray */
+        {
+            VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+                vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                           /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                           /* closestHitShader = */ shaderStageClosestHitSecondary,
+                                                           /* anyHitShader = */ shaderStageAnyHitSecondary);
+            m_shaderGroups.push_back(shaderGroup);
+        }
+        /* Hit group, PBRStandard material, NEE ray */
+        {
+            VkRayTracingShaderGroupCreateInfoKHR shaderGroup =
+                vkinit::rayTracingShaderGroupCreateInfoKHR(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                                                           /* generalShader = */ VK_SHADER_UNUSED_KHR,
+                                                           /* closestHitShader = */ shaderStageClosestHitNEE,
+                                                           /* anyHitShader = */ shaderStageAnyHitNEE);
+            m_shaderGroups.push_back(shaderGroup);
+        }
     }
 
     /* Spec only guarantees 1 level of "recursion". Check for that sad possibility here */
@@ -773,7 +743,7 @@ VkResult VulkanRendererPathTracing::createShaderBindingTable()
 
     uint32_t nGenGroups = 1U;
     uint32_t nMissGroups = 3U;
-    uint32_t nHitGroups = 9U;
+    uint32_t nHitGroups = 6U;
     VULKAN_CHECK_CRITICAL(createBuffer(
         m_vkctx.physicalDevice(), m_device, nGenGroups * handleSize, bufferUsageFlags, memoryUsageFlags, m_sbt.raygenBuffer));
     VULKAN_CHECK_CRITICAL(createBuffer(
@@ -844,7 +814,7 @@ VkResult VulkanRendererPathTracing::render(VkDescriptorSet skyboxDescriptor)
     debug_tools::ConsoleInfo("Launching render with: " + std::to_string(batches * batchSize) + " samples");
     VkResult res = VK_SUCCESS;
     /* TODO some calls can go outside the loop? */
-    for (uint32_t batch = 0; batch < batches; batch+=1) {
+    for (uint32_t batch = 0; batch < batches; batch += 1) {
         VULKAN_CHECK_CRITICAL(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
         PathTracingData batchData = m_pathTracingData;
@@ -1042,8 +1012,8 @@ VkResult VulkanRendererPathTracing::storeToDisk(std::vector<float> &radiance,
 
         const char *errorMessage;
         if (device.getError(errorMessage) != oidn::Error::None) {
-            debug_tools::ConsoleWarning("VulkanRendererPathTracing::storeToDisk(): OpenImageDenoise error [" + std::string(errorMessage) +
-                                        "]");
+            debug_tools::ConsoleWarning("VulkanRendererPathTracing::storeToDisk(): OpenImageDenoise error [" +
+                                        std::string(errorMessage) + "]");
         }
     }
 

@@ -42,17 +42,6 @@
     if (sampledMedium)
     {
         /* Calculate scattering event */
-
-        /* Add first hit info */
-        if (rayPayloadPrimary.surfaceDepth == 0)
-        {
-            vec3 volumeAlbedo = sigma_s / sigma_t;
-            rayPayloadPrimary.albedo = volumeAlbedo;
-            rayPayloadPrimary.normal = frame.normal * 0.5 + vec3(0.5);
-        }
-
-        rayPayloadPrimary.surfaceDepth += 1;
-
         vec3 scatteringPosition = rayPayloadPrimary.origin + (vtstart + hit_distance) * worldRayDirection;
         
         /* Light sampling */

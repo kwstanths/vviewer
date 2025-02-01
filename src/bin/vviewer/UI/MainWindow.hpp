@@ -10,10 +10,7 @@
 
 #include "widgets/WidgetName.hpp"
 #include "widgets/WidgetTransform.hpp"
-#include "widgets/WidgetModel3D.hpp"
-#include "widgets/WidgetMaterial.hpp"
 #include "widgets/WidgetEnvironment.hpp"
-#include "widgets/WidgetLight.hpp"
 #include "widgets/WidgetComponent.hpp"
 #include "widgets/WidgetRightPanel.hpp"
 #include "widgets/WidgetSceneGraph.hpp"
@@ -93,8 +90,6 @@ private Q_SLOTS:
     void onImportEnvironmentMap();
     /* Import a material */
     void onImportMaterial();
-    /* Import a material from a zip stack */
-    void onImportMaterialZipStackSlot();
     /* Import a scene */
     void onImportScene();
 

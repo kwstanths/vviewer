@@ -16,7 +16,7 @@ VulkanEngine::VulkanEngine(const std::string &applicationName)
     , m_textures(m_context)
     , m_materials(*this, m_context)
     , m_swapchain(m_context)
-    , m_scene(m_context, * this)
+    , m_scene(m_context, *this)
     , m_renderer(m_context, m_swapchain, m_textures, m_materials, m_scene)
 {
     m_threadMain = std::thread(&VulkanEngine::mainLoop, this);
@@ -347,8 +347,8 @@ void VulkanEngine::initDefaultData()
 
         auto defaultVolume = static_cast<VulkanMaterialVolume *>(
             m_materials.createMaterial(AssetInfo("defaultVolume", AssetSource::ENGINE), MaterialType::MATERIAL_VOLUME));
-        defaultVolume->sigmaS() = glm::vec4(0.2, 0.2, 0.2, 1);
-        defaultVolume->sigmaA() = glm::vec4(0);
+        defaultVolume->sigmaS() = glm::vec4(0.01, 0.01, 0.01, 1);
+        defaultVolume->sigmaA() = glm::vec4(0.01, 0.01, 0.01, 1);
         defaultVolume->g() = 0.0F;
     }
 
@@ -360,10 +360,15 @@ void VulkanEngine::initDefaultData()
         static_cast<PointLight *>(defaultPointLight)->color() = glm::vec4(1, 1, 1, 1);
         lights.add(defaultPointLight);
 
-        auto defaultDirectionalLight =
-            scene().createLight(AssetInfo("defaultDirectionalLight", AssetSource::ENGINE), LightType::DIRECTIONAL_LIGHT);
-        static_cast<PointLight *>(defaultDirectionalLight)->color() = glm::vec4(1, 0.9, 0.8, 1);
-        lights.add(defaultDirectionalLight);
+        auto defaultDirectionalLightSun =
+            scene().createLight(AssetInfo("defaultDirectionalLightSun", AssetSource::ENGINE), LightType::DIRECTIONAL_LIGHT);
+        static_cast<PointLight *>(defaultDirectionalLightSun)->color() = glm::vec4(1, 0.9, 0.8, 1);
+        lights.add(defaultDirectionalLightSun);
+
+        auto defaultDirectionalLightMoon =
+            scene().createLight(AssetInfo("defaultDirectionalLightMoon", AssetSource::ENGINE), LightType::DIRECTIONAL_LIGHT);
+        static_cast<PointLight *>(defaultDirectionalLightMoon)->color() = glm::vec4(0.31, 0.4, 0.52, 1);
+        lights.add(defaultDirectionalLightMoon);
     }
 
     {

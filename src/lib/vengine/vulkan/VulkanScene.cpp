@@ -175,11 +175,17 @@ VkResult VulkanScene::createDescriptorSetsLayouts()
     {
         /* binding 0, LightData matrix */
         VkDescriptorSetLayoutBinding lightDataLayoutBinding = vkinit::descriptorSetLayoutBinding(
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, 1);
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+            0,
+            1);
 
         /* binding 0, LightInstance matrix */
         VkDescriptorSetLayoutBinding lightInstancesLayoutBinding = vkinit::descriptorSetLayoutBinding(
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 1, 1);
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+            1,
+            1);
 
         std::array<VkDescriptorSetLayoutBinding, 2> bindings = {lightDataLayoutBinding, lightInstancesLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo =
@@ -190,12 +196,12 @@ VkResult VulkanScene::createDescriptorSetsLayouts()
     /* Create descriptor set layout for the TLAS */
     {
         /* binding 0, the accelleration strucure */
-        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding =
-            vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-                                               VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR |
-                                                   VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
-                                               0,
-                                               1);
+        VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding = vkinit::descriptorSetLayoutBinding(
+            VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+            VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+                VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+            0,
+            1);
 
         std::vector<VkDescriptorSetLayoutBinding> bindings({accelerationStructureLayoutBinding});
         VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo =
@@ -319,16 +325,6 @@ void VulkanScene::buildTLAS(VulkanCommandInfo vci, uint32_t imageIndex)
         }
     }
     for (SceneObject *so : m_instances.transparentMeshes()) {
-        Material *mat = so->get<ComponentMaterial>().material();
-        assert(mat != nullptr);
-
-        uint32_t instanceSBTOffset = VulkanRendererPathTracing::SBTMaterialOffset(mat->type());
-
-        auto mesh = static_cast<VulkanMesh *>(so->get<ComponentMesh>().mesh());
-        assert(mesh->blas().initialized());
-        blasInstances.emplace_back(mesh->blas(), so->modelMatrix(), instanceSBTOffset, m_instances.findInstanceDataIndex(so));
-    }
-    for (SceneObject *so : m_instances.volumes()) {
         Material *mat = so->get<ComponentMaterial>().material();
         assert(mat != nullptr);
 

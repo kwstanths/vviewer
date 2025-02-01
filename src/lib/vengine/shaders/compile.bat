@@ -33,14 +33,13 @@ set compiler=%VULKAN_SDK%\Bin\glslangValidator.exe
 %compiler% -V post/output.frag.glsl -o SPIRV/output.frag.spv
 
 %compiler% -V --target-env spirv1.4 pt/raygen.rgen.glsl -o SPIRV/pt/raygen.rgen.spv
-%compiler% -V --target-env spirv1.4 pt/raychitLambert.rchit.glsl -o SPIRV/pt/raychitLambert.rchit.spv
-%compiler% -V --target-env spirv1.4 pt/raychitPBRStandard.rchit.glsl -o SPIRV/pt/raychitPBRStandard.rchit.spv
-%compiler% -V --target-env spirv1.4 pt/raychitVolume.rchit.glsl -o SPIRV/pt/raychitVolume.rchit.spv
-%compiler% -V --target-env spirv1.4 pt/rayahitPrimary.rahit.glsl -o SPIRV/pt/rayahitPrimary.rahit.spv
-%compiler% -V --target-env spirv1.4 pt/rayahitSecondary.rahit.glsl -o SPIRV/pt/rayahitSecondary.rahit.spv
-%compiler% -V --target-env spirv1.4 pt/rayahitSecondaryVolume.rahit.glsl -o SPIRV/pt/rayahitSecondaryVolume.rahit.spv
-%compiler% -V --target-env spirv1.4 pt/rayahitNEE.rahit.glsl -o SPIRV/pt/rayahitNEE.rahit.spv
-%compiler% -V --target-env spirv1.4 pt/rayahitNEEVolume.rahit.glsl -o SPIRV/pt/rayahitNEEVolume.rahit.spv
-%compiler% -V --target-env spirv1.4 pt/raymissPrimary.rmiss.glsl -o SPIRV/pt/raymissPrimary.rmiss.spv
-%compiler% -V --target-env spirv1.4 pt/raymissSecondary.rmiss.glsl -o SPIRV/pt/raymissSecondary.rmiss.spv
-%compiler% -V --target-env spirv1.4 pt/raymissNEE.rmiss.glsl -o SPIRV/pt/raymissNEE.rmiss.spv
+%compiler% -V --target-env spirv1.4 pt/rayPrimaryLambert.rchit.glsl -o SPIRV/pt/rayPrimaryLambert.rchit.spv
+%compiler% -V --target-env spirv1.4 pt/rayPrimaryPBRStandard.rchit.glsl -o SPIRV/pt/rayPrimaryPBRStandard.rchit.spv
+%compiler% -V --target-env spirv1.4 pt/rayPrimary.rahit.glsl -o SPIRV/pt/rayPrimary.rahit.spv
+%compiler% -V --target-env spirv1.4 pt/rayPrimary.rmiss.glsl -o SPIRV/pt/rayPrimary.rmiss.spv
+%compiler% -V --target-env spirv1.4 pt/raySecondary.rahit.glsl -o SPIRV/pt/raySecondary.rahit.spv
+%compiler% -V --target-env spirv1.4 pt/raySecondary.rchit.glsl -o SPIRV/pt/raySecondary.rchit.spv
+%compiler% -V --target-env spirv1.4 pt/raySecondary.rmiss.glsl -o SPIRV/pt/raySecondary.rmiss.spv
+%compiler% -V --target-env spirv1.4 pt/rayNEE.rchit.glsl -o SPIRV/pt/rayNEE.rchit.spv
+%compiler% -V --target-env spirv1.4 pt/rayNEE.rahit.glsl -o SPIRV/pt/rayNEE.rahit.spv
+%compiler% -V --target-env spirv1.4 pt/rayNEE.rmiss.glsl -o SPIRV/pt/rayNEE.rmiss.spv

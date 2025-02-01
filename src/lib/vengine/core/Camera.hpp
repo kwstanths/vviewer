@@ -62,7 +62,7 @@ private:
     Material *m_volume = nullptr;
 
     float m_znear = 0.5F;
-    float m_zfar = 500.F;
+    float m_zfar = 50.F;
 
     float m_lensRadius = 0.0F;
     float m_focalDistance = 10.F;

@@ -1,4 +1,4 @@
-#include "WidgetLight.hpp"
+#include "WidgetComponentLight.hpp"
 
 #include <qcolordialog.h>
 #include <qglobal.h>
@@ -16,7 +16,7 @@
 
 using namespace vengine;
 
-WidgetLight::WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponent)
+WidgetComponentLight::WidgetComponentLight(QWidget *parent, vengine::ComponentLight &lightComponent)
     : QWidget(parent)
     , m_lightComponent(lightComponent)
 {
@@ -45,7 +45,7 @@ WidgetLight::WidgetLight(QWidget *parent, vengine::ComponentLight &lightComponen
     setLayout(m_layoutMain);
 }
 
-void WidgetLight::updateAvailableLights()
+void WidgetComponentLight::updateAvailableLights()
 {
     QStringList availableLights = getCreatedLights();
     m_comboBoxLights->blockSignals(true);
@@ -55,7 +55,7 @@ void WidgetLight::updateAvailableLights()
     m_comboBoxLights->setCurrentText(QString::fromStdString(m_lightComponent.light()->name()));
 }
 
-void WidgetLight::createUI(QWidget *widgetLight)
+void WidgetComponentLight::createUI(QWidget *widgetLight)
 {
     if (m_layoutGroupBox != nullptr) {
         delete m_layoutGroupBox;
@@ -86,7 +86,7 @@ void WidgetLight::createUI(QWidget *widgetLight)
     m_widgetGroupBox->setLayout(m_layoutGroupBox);
 }
 
-QWidget *WidgetLight::createLightWidget(vengine::Light *light)
+QWidget *WidgetComponentLight::createLightWidget(vengine::Light *light)
 {
     if (m_widgetLight != nullptr) {
         delete m_widgetLight;
@@ -103,7 +103,7 @@ QWidget *WidgetLight::createLightWidget(vengine::Light *light)
     return m_widgetLight;
 }
 
-void WidgetLight::onLightChanged(int)
+void WidgetComponentLight::onLightChanged(int)
 {
     QString lightName = m_comboBoxLights->currentText();
 
@@ -114,7 +114,7 @@ void WidgetLight::onLightChanged(int)
     m_lightComponent.setLight(light);
 }
 
-void WidgetLight::onCheckBoxCastShadows(int)
+void WidgetComponentLight::onCheckBoxCastShadows(int)
 {
     m_lightComponent.setCastShadows(m_checkBoxCastShadows->isChecked());
 }

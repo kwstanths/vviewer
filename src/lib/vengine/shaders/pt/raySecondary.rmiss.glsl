@@ -12,15 +12,20 @@
 layout(location = 1) rayPayloadInEXT RayPayloadSecondary rayPayloadSecondary;
 
 #include "layoutDescriptors/MaterialData.glsl"
+#include "layoutDescriptors/SceneData.glsl"
 
 void main()
 {
+    rayPayloadSecondary.stop = true;
+
     /* If secondary (shadow) ray missed, calculate volume transmittance if still inside a volume */
+    rayPayloadSecondary.shadowed = false;
 
     if (rayPayloadSecondary.insideVolume)
     {
         uint volumeMaterialIndex = rayPayloadSecondary.volumeMaterialIndex;
-        float vtend = gl_RayTmaxEXT;
+        /* If a secondary ray missed while inside a volume, then use the z far of the camera for the end of the distance travelled inside the volume */
+        float vtend = min(uint(sceneData.data.volumes.b), gl_RayTmaxEXT);
         float vtstart = rayPayloadSecondary.vtmin;
         #include "process_volume_transmittance.glsl"
 
@@ -35,9 +40,5 @@ void main()
         {
             rayPayloadSecondary.shadowed = true;
         }
-
-    } else {
-        rayPayloadSecondary.shadowed = false;
-    }
-
+    } 
 }

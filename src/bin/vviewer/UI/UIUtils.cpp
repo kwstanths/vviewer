@@ -33,13 +33,13 @@ QStringList getCreatedMaterials()
     return createdMaterials;
 }
 
-QStringList getCreatedMaterials(vengine::MaterialType type)
+QStringList getCreatedMaterials(const std::unordered_set<vengine::MaterialType> &types)
 {
     QStringList createdMaterials;
     auto &instance = AssetManager::getInstance().materialsMap();
     for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
         auto mat = static_cast<Material *>(itr->second);
-        if (mat->type() == type) {
+        if (types.contains(mat->type())) {
             createdMaterials.push_back(QString::fromStdString(itr->first));
         }
     }

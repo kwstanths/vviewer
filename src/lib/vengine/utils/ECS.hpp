@@ -19,7 +19,7 @@
 namespace vengine
 {
 
-static const uint32_t MAX_COMPONENTS = 32768;
+static const uint32_t MAX_COMPONENTS = 16384;
 
 class Entity;
 class ComponentOwner;
@@ -45,6 +45,7 @@ class ComponentMesh : public Component
 public:
     ComponentMesh(){};
     ComponentMesh(Mesh *mesh);
+
     Mesh *mesh() const;
     void setMesh(Mesh *mesh);
 
@@ -56,7 +57,13 @@ class ComponentMaterial : public Component
 public:
     ComponentMaterial(){};
     ComponentMaterial(Material *material);
+
     Material *material() const;
+    /**
+     * @brief Set the Material object, non volume materials
+     *
+     * @param material
+     */
     void setMaterial(Material *material);
 
 private:
@@ -67,6 +74,7 @@ class ComponentLight : public Component
 public:
     ComponentLight(){};
     ComponentLight(Light *light);
+
     Light *light() const;
     void setLight(Light *light);
 
@@ -76,6 +84,22 @@ public:
 private:
     Light *m_light = nullptr;
     bool m_castShadows = true;
+};
+class ComponentVolume : public Component
+{
+public:
+    ComponentVolume(){};
+    ComponentVolume(MaterialVolume *frontFacing, MaterialVolume *backFacing);
+
+    MaterialVolume *frontFacing() const;
+    MaterialVolume *backFacing() const;
+
+    void setFrontFacingVolume(MaterialVolume *frontFacing);
+    void setBackFacingVolume(MaterialVolume *backFacing);
+
+private:
+    MaterialVolume *m_materialFrontFacing = nullptr;
+    MaterialVolume *m_materialBackFacing = nullptr;
 };
 
 /* Component owner */
@@ -240,6 +264,10 @@ private:
             const char *name = typeid(ComponentLight).name();
             m_componentBuffers.insert({name, new ComponentBuffer<ComponentLight>(MAX_COMPONENTS)});
         }
+        {
+            const char *name = typeid(ComponentVolume).name();
+            m_componentBuffers.insert({name, new ComponentBuffer<ComponentVolume>(MAX_COMPONENTS)});
+        }
     }
     ~ComponentManager()
     {
@@ -262,6 +290,7 @@ public:
         remove<ComponentMesh>();
         remove<ComponentMaterial>();
         remove<ComponentLight>();
+        remove<ComponentVolume>();
     }
 
     /**
@@ -383,11 +412,12 @@ public:
     virtual void onMeshComponentChanged() {}
     virtual void onMaterialComponentChanged() {}
     virtual void onLightComponentChanged() {}
+    virtual void onVolumeComponentChanged() {}
 
 private:
     ID m_id;
     /**
-        Map of component name to {Component* and bool to indicate if component was added as shared}
+        Map of component name to {Component* and bool to indicate if the component was added as shared}
      */
     std::unordered_map<const char *, std::pair<Component *, bool>> m_components;
 };

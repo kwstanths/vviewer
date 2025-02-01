@@ -151,146 +151,6 @@ Material *VulkanMaterials::createMaterialFromDisk(const AssetInfo &info, std::st
     return material;
 }
 
-Material *VulkanMaterials::createZipMaterial(const AssetInfo &info, Textures &textures)
-{
-    struct zip_t *zip = zip_open(info.filepath.c_str(), 0, 'r');
-    if (zip == nullptr) {
-        debug_tools::ConsoleWarning("VulkanMaterials()::createZipMaterial: Unable to open: " + info.filepath);
-    }
-
-    /* Get .xtex file name */
-    std::string xtexName;
-    std::string texturesFolder = "";
-    ssize_t i, n = zip_entries_total(zip);
-    for (i = 0; i < n; ++i) {
-        zip_entry_openbyindex(zip, i);
-        {
-            const std::string name = std::string(zip_entry_name(zip));
-            auto pointPos = name.find(".");
-            if (pointPos != std::string::npos && name.substr(pointPos) == ".xtex") {
-                xtexName = name;
-
-                auto internalFolderIndex = name.rfind("/");
-                if (internalFolderIndex != std::string::npos) {
-                    texturesFolder = name.substr(0, internalFolderIndex) + "/";
-                }
-                break;
-            }
-        }
-        zip_entry_close(zip);
-    }
-
-    void *buf = NULL;
-    size_t bufsize;
-
-    /* Parse .xtex file paremeters */
-    glm::vec2 uv(1.F);
-    if (zip_entry_open(zip, xtexName.c_str()) == 0) {
-        zip_entry_read(zip, &buf, &bufsize);
-
-        std::string testT((char *)buf);
-
-        const std::string X = testT.substr(0, testT.find("</width>")).substr(testT.find("<width>") + std::string("<width>").length());
-        const std::string Y =
-            testT.substr(0, testT.find("</height>")).substr(testT.find("<height>") + std::string("<height>").length());
-
-        uv *= glm::vec2(100.F / std::stof(X), 100.F / std::stof(Y));
-        zip_entry_close(zip);
-    }
-
-    std::string filename = getFilename(info.filepath);
-
-    /* Parse albedo */
-    Texture *albedoTexture = nullptr;
-    std::string albedoZipPath = texturesFolder + "textures/albedo.png";
-    if (zip_entry_open(zip, albedoZipPath.c_str()) == 0) {
-        zip_entry_read(zip, &buf, &bufsize);
-
-        int32_t x, y;
-        stbi_uc *rawImgBuffer =
-            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, nullptr, STBI_rgb_alpha);
-
-        std::string id = filename + ":" + albedoZipPath;
-        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                             rawImgBuffer,
-                             x,
-                             y,
-                             STBI_rgb_alpha,
-                             ColorSpace::sRGB,
-                             true);
-        albedoTexture = textures.createTexture(image);
-        if (albedoTexture == nullptr) {
-            debug_tools::ConsoleWarning("Unable to load albedo from zip texture stack");
-        }
-        /* entry_close will delete the memory */
-        zip_entry_close(zip);
-    }
-
-    /* Parse roughness */
-    Texture *roughnessTexture = nullptr;
-    std::string roughnessZipPath = texturesFolder + "textures/roughness.png";
-    if (zip_entry_open(zip, roughnessZipPath.c_str()) == 0) {
-        zip_entry_read(zip, &buf, &bufsize);
-
-        int32_t x, y, channels;
-        stbi_uc *rawImgBuffer =
-            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, &channels, STBI_default);
-
-        std::string id = filename + ":" + roughnessZipPath;
-        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                             rawImgBuffer,
-                             x,
-                             y,
-                             channels,
-                             ColorSpace::LINEAR,
-                             true);
-        roughnessTexture = textures.createTexture(image);
-        if (roughnessTexture == nullptr) {
-            debug_tools::ConsoleWarning("Unable to load roughness from zip texture stack");
-        }
-        /* entry_close will delete the memory */
-        zip_entry_close(zip);
-    }
-
-    /* Parse normal */
-    Texture *normalTexture = nullptr;
-    std::string normalZipPath = texturesFolder + "textures/normal.png";
-    if (zip_entry_open(zip, normalZipPath.c_str()) == 0) {
-        zip_entry_read(zip, &buf, &bufsize);
-
-        int32_t x, y;
-        stbi_uc *rawImgBuffer =
-            stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(buf), static_cast<int>(bufsize), &x, &y, nullptr, STBI_rgb_alpha);
-
-        std::string id = filename + ":" + normalZipPath;
-        Image<stbi_uc> image(AssetInfo(id, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                             rawImgBuffer,
-                             x,
-                             y,
-                             STBI_rgb_alpha,
-                             ColorSpace::LINEAR,
-                             true);
-        normalTexture = textures.createTexture(image);
-        if (normalTexture == nullptr) {
-            debug_tools::ConsoleWarning("Unable to load normal from zip texture stack");
-        }
-        /* entry_close will delete the memory */
-        zip_entry_close(zip);
-    }
-
-    auto mat = dynamic_cast<MaterialPBRStandard *>(createMaterial(info, MaterialType::MATERIAL_PBR_STANDARD));
-    mat->setAlbedoTexture(albedoTexture);
-    mat->setRoughnessTexture(roughnessTexture);
-    mat->roughness() = 1.0F;
-    mat->setNormalTexture(normalTexture);
-    mat->metallic() = 0.0F;
-    mat->uTiling() = uv.x;
-    mat->vTiling() = uv.y;
-    mat->zipMaterial() = true;
-
-    return mat;
-}
-
 std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vector<ImportedMaterial> &importedMaterials,
                                                                  Textures &textures)
 {
@@ -306,22 +166,12 @@ std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vect
         return texture;
     };
 
-    /* Create stack materials first */
-    for (uint32_t i = 0; i < importedMaterials.size(); i++) {
-        const ImportedMaterial &mat = importedMaterials[i];
-        if (mat.type == ImportedMaterialType::STACK) {
-            createZipMaterial(mat.info, textures);
-        }
-    }
-
     std::vector<Material *> materials;
     for (uint32_t i = 0; i < importedMaterials.size(); i++) {
         const ImportedMaterial &mat = importedMaterials[i];
 
         if (mat.type == ImportedMaterialType::EMBEDDED) {
             materials.push_back(nullptr);
-        } else if (mat.type == ImportedMaterialType::STACK) {
-            materials.push_back(AssetManager::getInstance().materialsMap().get(mat.info.name));
         } else if (mat.type == ImportedMaterialType::LAMBERT) {
             auto material = Materials::createMaterial<MaterialLambert>(mat.info);
 

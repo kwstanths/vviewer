@@ -1,4 +1,4 @@
-#include "WidgetMaterial.hpp"
+#include "WidgetComponentMaterial.hpp"
 
 #include <qgroupbox.h>
 #include <qlayout.h>
@@ -14,7 +14,7 @@
 
 using namespace vengine;
 
-WidgetMaterial::WidgetMaterial(QWidget *parent, vengine::ComponentMaterial &materialComponent)
+WidgetComponentMaterial::WidgetComponentMaterial(QWidget *parent, vengine::ComponentMaterial &materialComponent)
     : m_materialComponent(materialComponent)
 {
     auto material = materialComponent.material();
@@ -34,9 +34,9 @@ WidgetMaterial::WidgetMaterial(QWidget *parent, vengine::ComponentMaterial &mate
     setLayout(m_layoutMain);
 }
 
-void WidgetMaterial::updateAvailableMaterials(bool updateTextures)
+void WidgetComponentMaterial::updateAvailableMaterials(bool updateTextures)
 {
-    QStringList availableMaterials = getCreatedMaterials();
+    QStringList availableMaterials = getCreatedMaterials({MaterialType::MATERIAL_LAMBERT, MaterialType::MATERIAL_PBR_STANDARD});
     m_comboBoxAvailableMaterials->blockSignals(true);
     m_comboBoxAvailableMaterials->clear();
     m_comboBoxAvailableMaterials->addItems(availableMaterials);
@@ -48,7 +48,7 @@ void WidgetMaterial::updateAvailableMaterials(bool updateTextures)
     }
 }
 
-void WidgetMaterial::updateAvailableTextures()
+void WidgetComponentMaterial::updateAvailableTextures()
 {
     switch (m_materialComponent.material()->type()) {
         case vengine::MaterialType::MATERIAL_LAMBERT: {
@@ -65,10 +65,11 @@ void WidgetMaterial::updateAvailableTextures()
     }
 }
 
-void WidgetMaterial::createUI(QWidget *widgetMaterial)
+void WidgetComponentMaterial::createUI(QWidget *widgetMaterial)
 {
     if (m_layoutGroupBox != nullptr) {
         delete m_layoutGroupBox;
+        m_layoutGroupBox = nullptr;
     }
 
     m_layoutGroupBox = new QVBoxLayout();
@@ -81,7 +82,7 @@ void WidgetMaterial::createUI(QWidget *widgetMaterial)
     m_widgetGroupBox->setLayout(m_layoutGroupBox);
 }
 
-QWidget *WidgetMaterial::createMaterialWidget(Material *material)
+QWidget *WidgetComponentMaterial::createMaterialWidget(Material *material)
 {
     if (m_widgetMaterial != nullptr) {
         delete m_widgetMaterial;
@@ -103,7 +104,7 @@ QWidget *WidgetMaterial::createMaterialWidget(Material *material)
     return m_widgetMaterial;
 }
 
-void WidgetMaterial::onMaterialChanged(int)
+void WidgetComponentMaterial::onMaterialChanged(int)
 {
     std::string newMaterial = m_comboBoxAvailableMaterials->currentText().toStdString();
 

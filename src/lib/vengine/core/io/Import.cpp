@@ -26,7 +26,6 @@ namespace vengine
 static std::unordered_map<std::string, ImportedMaterialType> importedMaterialTypeNames = {
     {"LAMBERT", ImportedMaterialType::LAMBERT},
     {"PBR_STANDARD", ImportedMaterialType::PBR_STANDARD},
-    {"STACK", ImportedMaterialType::STACK},
     {"EMBEDDED", ImportedMaterialType::EMBEDDED},
     {"VOLUME", ImportedMaterialType::VOLUME}};
 static std::unordered_map<std::string, LightType> importedLightTypeNames = {
@@ -300,6 +299,24 @@ std::optional<ImportedSceneObjectLight> parseLightComponent(const rapidjson::Val
     return importedLight;
 }
 
+std::optional<ImportedSceneObjectVolume> parseVolumeComponent(const rapidjson::Value &o)
+{
+    if (!o.HasMember("volume")) {
+        return std::nullopt;
+    }
+
+    ImportedSceneObjectVolume importedVolume;
+    if (o["volume"].HasMember("frontFacing")) {
+        importedVolume.frontFacing = o["volume"]["frontFacing"].GetString();
+    }
+
+    if (o["volume"].HasMember("backFacing")) {
+        importedVolume.backFacing = o["volume"]["backFacing"].GetString();
+    }
+
+    return importedVolume;
+}
+
 Tree<ImportedSceneObject> parseSceneObject(const rapidjson::Value &o)
 {
     ImportedSceneObject object;
@@ -322,6 +339,7 @@ Tree<ImportedSceneObject> parseSceneObject(const rapidjson::Value &o)
     object.mesh = parseMeshComponent(o);
     object.material = parseMaterialComponent(o);
     object.light = parseLightComponent(o);
+    object.volume = parseVolumeComponent(o);
 
     Tree<ImportedSceneObject> root;
     root.data() = object;
@@ -387,12 +405,6 @@ void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, I
 
     if (material.type == ImportedMaterialType::EMBEDDED) {
         material.info = AssetInfo(name);
-        return;
-    }
-
-    if (material.type == ImportedMaterialType::STACK) {
-        std::string filepath = relativePath + o["path"].GetString();
-        material.info = AssetInfo(name, filepath, AssetSource::IMPORTED, AssetLocation::DISK_STANDALONE);
         return;
     }
 

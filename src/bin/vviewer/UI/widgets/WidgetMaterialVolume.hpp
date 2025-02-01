@@ -20,7 +20,7 @@ class WidgetMaterialVolume : public QWidget
 {
     Q_OBJECT
 public:
-    static const int HEIGHT = 230;
+    static const int HEIGHT = 220;
 
     WidgetMaterialVolume(QWidget *parent, vengine::MaterialVolume *material);
 

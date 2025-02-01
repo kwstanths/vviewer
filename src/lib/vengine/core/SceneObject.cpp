@@ -31,23 +31,25 @@ const AABB3 &SceneObject::AABB() const
 
 void SceneObject::computeAABB()
 {
-    if (has<ComponentMesh>()) {
-        ComponentMesh &mc = get<ComponentMesh>();
+    m_aabb = AABB3();
 
-        /* Transform mesh aabb points based on the current node model matrix */
-        std::array<glm::vec3, 8> aabbPoints;
-        for (uint32_t i = 0; i < 8; i++) {
-            aabbPoints[i] = modelMatrix() * glm::vec4(mc.mesh()->aabb().corner(i), 1);
-        }
+    if (!has<ComponentMesh>())
+        return;
 
-        /* Create new AABB out of all transformed corners */
-        m_aabb = AABB3::fromPoint(aabbPoints[0]);
-        for (uint32_t i = 1; i < 8; i++) {
-            m_aabb.add(aabbPoints[i]);
-        }
+    ComponentMesh &mc = get<ComponentMesh>();
+    if (mc.mesh() == nullptr)
+        return;
 
-    } else {
-        m_aabb = AABB3();
+    /* Transform mesh aabb points based on the current node model matrix */
+    std::array<glm::vec3, 8> aabbPoints;
+    for (uint32_t i = 0; i < 8; i++) {
+        aabbPoints[i] = modelMatrix() * glm::vec4(mc.mesh()->aabb().corner(i), 1);
+    }
+
+    /* Create new AABB out of all transformed corners */
+    m_aabb = AABB3::fromPoint(aabbPoints[0]);
+    for (uint32_t i = 1; i < 8; i++) {
+        m_aabb.add(aabbPoints[i]);
     }
 }
 
@@ -68,11 +70,13 @@ void SceneObject::updateModelMatrix(const glm::mat4 &modelMatrix)
 void SceneObject::onComponentAdded()
 {
     m_scene->invalidateInstances(true);
+    computeAABB();
 }
 
 void SceneObject::onComponentRemoved()
 {
     m_scene->invalidateInstances(true);
+    computeAABB();
 }
 
 void SceneObject::onMeshComponentChanged()
@@ -89,6 +93,11 @@ void SceneObject::onLightComponentChanged()
 {
     /* don't have to invalidate scene, light instance data are built every frame regardless the invalidation of isntances */
     // m_scene->invalidateInstances(true);
+}
+
+void SceneObject::onVolumeComponentChanged()
+{
+    m_scene->invalidateInstances(true);
 }
 
 }  // namespace vengine

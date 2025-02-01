@@ -89,6 +89,7 @@ WidgetMaterialVolume::WidgetMaterialVolume(QWidget *parent, MaterialVolume *mate
     QHBoxLayout *layoutG = new QHBoxLayout();
     layoutG->addWidget(new QLabel("Henyey Greenstein g: "));
     layoutG->addWidget(m_g);
+    layoutG->setContentsMargins(0, 0, 0, 0);
     layoutG->setAlignment(Qt::AlignLeft);
     QWidget *widgetHG = new QWidget();
     widgetHG->setLayout(layoutG);

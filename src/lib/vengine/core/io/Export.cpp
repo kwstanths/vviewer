@@ -162,6 +162,29 @@ void addLightComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneO
     v.AddMember("light", lightObject, d.GetAllocator());
 }
 
+void addVolumeComponent(rapidjson::Document &d, rapidjson::Value &v, const SceneObject *sceneObject)
+{
+    Value volumeObject;
+    volumeObject.SetObject();
+
+    MaterialVolume *frontFacingVolume = sceneObject->get<ComponentVolume>().frontFacing();
+    MaterialVolume *backFacingVolume = sceneObject->get<ComponentVolume>().backFacing();
+
+    if (frontFacingVolume != nullptr) {
+        Value frontFacing;
+        frontFacing.SetString(frontFacingVolume->name().c_str(), d.GetAllocator());
+        volumeObject.AddMember("frontFacing", frontFacing, d.GetAllocator());
+    }
+
+    if (backFacingVolume != nullptr) {
+        Value backFacing;
+        backFacing.SetString(backFacingVolume->name().c_str(), d.GetAllocator());
+        volumeObject.AddMember("backFacing", backFacing, d.GetAllocator());
+    }
+
+    v.AddMember("volume", volumeObject, d.GetAllocator());
+}
+
 void addModel(rapidjson::Document &d, rapidjson::Value &v, const Model3D *model, std::string storeDirectory)
 {
     if (model->isInternal())
@@ -320,21 +343,6 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
         }
         case MaterialType::MATERIAL_PBR_STANDARD: {
             auto m = dynamic_cast<const MaterialPBRStandard *>(material);
-
-            /* If it's a zip material */
-            if (m->zipMaterial()) {
-                Value type;
-                type.SetString("STACK");
-                mat.AddMember("type", type, d.GetAllocator());
-
-                std::string relativePath =
-                    VENGINE_EXPORT_TEXTURES_FOLDER + copyFileToDirectoryAndGetFileName(m->filepath(), storeDirectory);
-
-                Value path;
-                path.SetString(relativePath.c_str(), d.GetAllocator());
-                mat.AddMember("path", path, d.GetAllocator());
-                break;
-            }
 
             if (m->isEmbedded()) {
                 Value type;
@@ -595,6 +603,11 @@ void parseSceneObject(rapidjson::Document &d, rapidjson::Value &v, const SceneOb
     /* light */
     if (sceneObject->has<ComponentLight>()) {
         addLightComponent(d, sceneObjectEntry, sceneObject);
+    }
+
+    /* volume */
+    if (sceneObject->has<ComponentVolume>()) {
+        addVolumeComponent(d, sceneObjectEntry, sceneObject);
     }
 
     /* Add children */

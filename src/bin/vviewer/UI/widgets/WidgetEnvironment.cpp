@@ -67,8 +67,9 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
     m_cameraLensRadius = new QDoubleSpinBox(nullptr);
     m_cameraLensRadius->setMinimum(0.0F);
     m_cameraLensRadius->setMaximum(1000);
+    m_cameraLensRadius->setDecimals(4);
     m_cameraLensRadius->setValue(m_camera->lensRadius());
-    m_cameraLensRadius->setSingleStep(0.01);
+    m_cameraLensRadius->setSingleStep(0.0001);
     connect(m_cameraLensRadius, SIGNAL(valueChanged(double)), this, SLOT(onCameraLensRadiusChanged(double)));
     m_cameraFocalDistance = new QDoubleSpinBox(nullptr);
     m_cameraFocalDistance->setMinimum(0.0F);
@@ -87,16 +88,8 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
     QWidget *widgetCameraDOF = new QWidget();
     widgetCameraDOF->setLayout(layoutCameraDOF);
     /* Initialize camera volume materials */
-    m_comboVolumes = new QComboBox();
-    m_comboVolumes->addItem("");
-    m_comboVolumes->addItems(getCreatedMaterials(vengine::MaterialType::MATERIAL_VOLUME));
-    m_comboVolumes->setCurrentIndex(0);
-    connect(m_comboVolumes, SIGNAL(currentIndexChanged(int)), this, SLOT(onCameraVolumeChanged(int)));
-    QHBoxLayout *layoutCameraVolumes = new QHBoxLayout();
-    layoutCameraVolumes->addWidget(new QLabel("Material:"));
-    layoutCameraVolumes->addWidget(m_comboVolumes);
-    QGroupBox *groupCameraVolume = new QGroupBox("Volume");
-    groupCameraVolume->setLayout(layoutCameraVolumes);
+    m_cameraVolume = new WidgetMaterialPicker(nullptr, MaterialType::MATERIAL_VOLUME, "Volume:");
+    connect(m_cameraVolume, SIGNAL(materialChanged(vengine::Material *)), this, SLOT(onCameraVolumeChanged(vengine::Material *)));
 
     /* Prepate group box */
     QGroupBox *cameraGroupBox = new QGroupBox("Camera:");
@@ -105,7 +98,7 @@ WidgetEnvironment::WidgetEnvironment(QWidget *parent, Scene *scene)
     cameraLayout->addWidget(widgetCameraFoV);
     cameraLayout->addWidget(widgetCameraZ);
     cameraLayout->addWidget(widgetCameraDOF);
-    cameraLayout->addWidget(groupCameraVolume);
+    cameraLayout->addWidget(m_cameraVolume);
     cameraGroupBox->setLayout(cameraLayout);
 
     /* Initialize environment maps dropdown list widget */
@@ -177,11 +170,7 @@ void WidgetEnvironment::updateMaps()
 
 void WidgetEnvironment::updateMaterials()
 {
-    QString currentText = m_comboVolumes->currentText();
-    m_comboVolumes->clear();
-    m_comboVolumes->addItem("");
-    m_comboVolumes->addItems(getCreatedMaterials(MaterialType::MATERIAL_VOLUME));
-    m_comboVolumes->setCurrentText(currentText);
+    m_cameraVolume->updateAvailableMaterials();
 }
 
 void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
@@ -196,7 +185,13 @@ void WidgetEnvironment::setCamera(std::shared_ptr<Camera> c)
 
 void WidgetEnvironment::setCameraVolume(const std::string &name)
 {
-    m_comboVolumes->setCurrentText(QString::fromStdString(name));
+    auto &materials = AssetManager::getInstance().materialsMap();
+    if (materials.has(name)) {
+        auto newMat = materials.get(name);
+        m_cameraVolume->setMaterial(newMat);
+    } else {
+        m_cameraVolume->setMaterial(nullptr);
+    }
 }
 
 void WidgetEnvironment::setEnvironmentType(const EnvironmentType &type, bool updateUI)
@@ -324,16 +319,7 @@ void WidgetEnvironment::onEnvironmentMapChanged(int)
     m_scene->skyboxMaterial()->setMap(newEnvMap);
 }
 
-void WidgetEnvironment::onCameraVolumeChanged(int)
+void WidgetEnvironment::onCameraVolumeChanged(vengine::Material *material)
 {
-    std::string newCameraVolumeName = m_comboVolumes->currentText().toStdString();
-    if (newCameraVolumeName.empty()) {
-        m_camera->volume() = nullptr;
-        return;
-    }
-
-    auto &materialsMap = AssetManager::getInstance().materialsMap();
-    auto newVolMat = materialsMap.get(newCameraVolumeName);
-
-    m_camera->volume() = newVolMat;
+    m_camera->volume() = material;
 }
