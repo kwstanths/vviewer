@@ -117,7 +117,7 @@ void Scene::update()
     if (m_sceneGraphNeedsUpdate) {
         m_sceneGraphNeedsUpdate = false;
 
-        UpdateSceneGraph(m_sceneGraph);
+        UpdateSceneGraphParallel(m_sceneGraph, m_engine.threadPool());
     }
 
 #ifdef PRINT_UPDATE_TIME

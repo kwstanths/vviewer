@@ -43,7 +43,8 @@ protected:
 class ComponentMesh : public Component
 {
 public:
-    ComponentMesh(){};
+    ComponentMesh()
+        : m_mesh(nullptr){};
     ComponentMesh(Mesh *mesh);
 
     Mesh *mesh() const;
@@ -55,7 +56,8 @@ private:
 class ComponentMaterial : public Component
 {
 public:
-    ComponentMaterial(){};
+    ComponentMaterial()
+        : m_material(nullptr){};
     ComponentMaterial(Material *material);
 
     Material *material() const;
@@ -72,7 +74,9 @@ private:
 class ComponentLight : public Component
 {
 public:
-    ComponentLight(){};
+    ComponentLight()
+        : m_light(nullptr)
+        , m_castShadows(false){};
     ComponentLight(Light *light);
 
     Light *light() const;
@@ -88,7 +92,9 @@ private:
 class ComponentVolume : public Component
 {
 public:
-    ComponentVolume(){};
+    ComponentVolume()
+        : m_materialFrontFacing(nullptr)
+        , m_materialBackFacing(nullptr){};
     ComponentVolume(MaterialVolume *frontFacing, MaterialVolume *backFacing);
 
     MaterialVolume *frontFacing() const;
@@ -226,6 +232,7 @@ public:
 
         auto componentBuffer = buffer<T>();
         auto *component = componentBuffer->get();
+        *component = T();
         component->m_owner = new OwnerType();
         return component;
     }

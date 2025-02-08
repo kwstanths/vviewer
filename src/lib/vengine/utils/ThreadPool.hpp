@@ -24,7 +24,7 @@ public:
     bool init(uint32_t numThreads);
 
     /* Push a task item */
-    void push(Task* task);
+    Waitable *push(Task *task);
 
     /* Request exit and wait */
     void stop();
@@ -46,7 +46,7 @@ private:
 
     std::vector<std::thread> m_workerThreads;
 
-    std::queue<Task*> m_tasks;
+    std::queue<Task *> m_tasks;
 
     bool m_initialized = false;
 
@@ -57,6 +57,6 @@ private:
     std::atomic<bool> m_run;
 };
 
-}
+}  // namespace vengine
 
 #endif

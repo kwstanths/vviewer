@@ -28,7 +28,6 @@ set compiler=%VULKAN_SDK%\Bin\glslangValidator.exe
 %compiler% -V quad.vert.glsl -o SPIRV/quad.vert.spv
 %compiler% -V genBRDFLUT.frag.glsl -o SPIRV/genBRDFLUT.frag.spv
 
-%compiler% -V post/highlight.frag.glsl -o SPIRV/highlight.frag.spv
 %compiler% -V post/pass.frag.glsl -o SPIRV/pass.frag.spv
 %compiler% -V post/output.frag.glsl -o SPIRV/output.frag.spv
 

@@ -6,25 +6,22 @@
 namespace vengine
 {
 
-void UpdateSceneObject(SceneObject *sceneObject)
-{
-    sceneObject->update();
-
-    for (SceneObject *child : sceneObject->children()) {
-        UpdateSceneObject(child);
-    }
-}
-
 void UpdateSceneGraph(SceneObjectVector &sceneGraph)
 {
     for (SceneObject *&node : sceneGraph) {
-        UpdateSceneObject(node);
+        node->update();
+        UpdateSceneGraph(node->children());
     }
 }
 
 struct SceneObjectVectorUpdateTask : Task {
-    SceneObjectVectorUpdateTask(SceneObjectVector &sov, uint32_t s, uint32_t e, ThreadPool &tp)
-        : sceneObjectVector(sov)
+    SceneObjectVectorUpdateTask(SceneObjectVector &sov,
+                                uint32_t s,
+                                uint32_t e,
+                                ThreadPool &tp,
+                                SceneObjectVectorUpdateTask *parent = nullptr)
+        : Task(parent)
+        , sceneObjectVector(sov)
         , start(s)
         , end(e)
         , threadPool(tp){};
@@ -32,46 +29,42 @@ struct SceneObjectVectorUpdateTask : Task {
     ThreadPool &threadPool;
     SceneObjectVector &sceneObjectVector;
     uint32_t start, end;
+    std::vector<SceneObjectVectorUpdateTask> childrenTasks;
     bool work(float &progress) override
     {
         for (uint32_t i = start; i < end; i++) {
-            UpdateSceneObjectParallel(sceneObjectVector[i], threadPool);
+            SceneObject *sceneObject = sceneObjectVector[i];
+            sceneObject->update();
+            createTasks(sceneObject->children(), childrenTasks, threadPool, this);
+            for (Task &task : childrenTasks) {
+                threadPool.push(&task);
+            }
         }
         return true;
     }
+
+    static void createTasks(SceneObjectVector &sos,
+                            std::vector<SceneObjectVectorUpdateTask> &tasks,
+                            ThreadPool &threadPool,
+                            SceneObjectVectorUpdateTask *parent = nullptr)
+    {
+        uint32_t batchSize = static_cast<uint32_t>(sos.size()) / threadPool.threads();
+        batchSize++;
+
+        uint32_t start = 0;
+        for (uint32_t start = 0; start < sos.size(); start += batchSize) {
+            uint32_t s = std::min(start, static_cast<uint32_t>(sos.size() - 1));
+            uint32_t e = std::min(start + batchSize, static_cast<uint32_t>(sos.size()));
+            tasks.emplace_back(sos, s, e, threadPool, parent);
+        }
+    }
 };
-
-void UpdateSceneObjectParallel(SceneObject *sceneObject, ThreadPool &threadPool)
-{
-    sceneObject->update();
-
-    SceneObjectVector &children = sceneObject->children();
-
-    uint32_t totalThreads = threadPool.threads();
-    uint32_t batchSize = static_cast<uint32_t>(children.size()) / totalThreads;
-    batchSize++;
-
-    std::list<SceneObjectVectorUpdateTask> tasks;
-    uint32_t start = 0;
-    for (uint32_t start = 0; start < children.size(); start += batchSize) {
-        uint32_t s = std::min(start, static_cast<uint32_t>(children.size() - 1));
-        uint32_t e = std::min(start + batchSize, static_cast<uint32_t>(children.size()));
-        tasks.emplace_back(children, s, e, threadPool);
-    }
-    for (Task &task : tasks) {
-        threadPool.push(&task);
-    }
-    for (Task &task : tasks) {
-        task.wait();
-    }
-}
 
 void UpdateSceneGraphParallel(SceneObjectVector &sceneGraph, ThreadPool &threadPool)
 {
     std::vector<SceneObjectVectorUpdateTask> tasks;
-    for (uint32_t i = 0; i < sceneGraph.size(); i++) {
-        tasks.emplace_back(sceneGraph, i, i + 1, threadPool);
-    }
+
+    SceneObjectVectorUpdateTask::createTasks(sceneGraph, tasks, threadPool);
     for (Task &task : tasks) {
         threadPool.push(&task);
     }
@@ -97,9 +90,8 @@ void addModel3D(vengine::Scene &scene,
     vengine::Material *defaultMat = instanceMaterials.get("defaultMaterial");
     vengine::Material *overrideMat = (overrideMaterial.has_value() ? instanceMaterials.get(overrideMaterial.value()) : nullptr);
 
-    std::function<void(const Tree<Model3D::Model3DNode>&, SceneObject *, bool)> addModelF =
-        [&](const Tree<Model3D::Model3DNode> &nodeTree, SceneObject *parent, bool isRoot) 
-        {
+    std::function<void(const Tree<Model3D::Model3DNode> &, SceneObject *, bool)> addModelF =
+        [&](const Tree<Model3D::Model3DNode> &nodeTree, SceneObject *parent, bool isRoot) {
             auto &modelNode = nodeTree.data();
             /* Add all meshes of current node under parent */
             for (uint32_t i = 0; i < modelNode.meshes.size(); i++) {
