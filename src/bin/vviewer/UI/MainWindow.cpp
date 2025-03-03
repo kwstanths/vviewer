@@ -123,7 +123,6 @@ QWidget *MainWindow::initRightPanel()
             &MainWindow::onSelectedSceneObjectActiveChangedSlot);
     connect(m_viewport, &ViewportWindow::selectedObjectPositionChanged, m_widgetRightPanel, &WidgetRightPanel::onTransformChanged);
 
-    m_widgetRightPanel->setFixedWidth(380);
     return m_widgetRightPanel;
 }
 
@@ -1088,6 +1087,7 @@ void MainWindow::onStartUpInitialization()
             auto o = createEmptySceneObject(
                 "directionalLight", Transform({0, 2, 0}, {1, 1, 1}, {glm::radians(45.F), glm::radians(90.F), 0}), nullptr);
             o.second->add<ComponentLight>().setLight(AssetManager::getInstance().lightsMap().get("defaultDirectionalLightSun"));
+            o.second->get<ComponentLight>().setCastShadows(true);
         }
 
         m_widgetRightPanel->getEnvironmentWidget()->updateMaterials();

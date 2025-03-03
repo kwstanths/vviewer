@@ -11,12 +11,12 @@ Cubemap::Cubemap(const AssetInfo &info)
 Cubemap::Cubemap(const AssetInfo &info, std::string directory)
     : Asset(info)
 {
-    m_image_front = new Image<stbi_uc>(AssetInfo(directory + "/front.png", info.source), ColorSpace::sRGB);
-    m_image_back = new Image<stbi_uc>(AssetInfo(directory + "/back.png", info.source), ColorSpace::sRGB);
-    m_image_top = new Image<stbi_uc>(AssetInfo(directory + "/top.png", info.source), ColorSpace::sRGB);
-    m_image_bottom = new Image<stbi_uc>(AssetInfo(directory + "/bottom.png", info.source), ColorSpace::sRGB);
-    m_image_right = new Image<stbi_uc>(AssetInfo(directory + "/right.png", info.source), ColorSpace::sRGB);
-    m_image_left = new Image<stbi_uc>(AssetInfo(directory + "/left.png", info.source), ColorSpace::sRGB);
+    m_image_front = new Image(AssetInfo(directory + "/front.png", info.source), ColorSpace::sRGB);
+    m_image_back = new Image(AssetInfo(directory + "/back.png", info.source), ColorSpace::sRGB);
+    m_image_top = new Image(AssetInfo(directory + "/top.png", info.source), ColorSpace::sRGB);
+    m_image_bottom = new Image(AssetInfo(directory + "/bottom.png", info.source), ColorSpace::sRGB);
+    m_image_right = new Image(AssetInfo(directory + "/right.png", info.source), ColorSpace::sRGB);
+    m_image_left = new Image(AssetInfo(directory + "/left.png", info.source), ColorSpace::sRGB);
 }
 
 Cubemap::~Cubemap()

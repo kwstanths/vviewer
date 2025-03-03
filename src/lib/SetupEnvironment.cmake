@@ -18,6 +18,10 @@ macro(SetupEnvironment)
     set(STB_DIR ${PROJECT_ROOT}/src/lib/external/stb)
     set(STB_INCLUDE_DIRS ${STB_DIR})
     
+    # DDS
+    set(DDS_DIR ${PROJECT_ROOT}/src/lib/external/dds_image/)
+    set(DDS_INCLUDE_DIRS ${DDS_DIR}/include)
+    
     # RAPIDJSON
     set(RAPIDJSON_DIR ${PROJECT_ROOT}/src/lib/external/rapidjson)
     set(RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_DIR}/include)
@@ -68,6 +72,7 @@ macro(SetupEnvironment)
         ${VENGINE_INCLUDE_DIRS}
         ${ASSIMP_INCLUDE_DIRS}
         ${OIDN_INCLUDE_DIRS}
+        ${DDS_INCLUDE_DIRS}
     )
     
     set(ENGINE_LIBS

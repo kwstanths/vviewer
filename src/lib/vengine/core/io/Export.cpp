@@ -316,19 +316,6 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 mat.AddMember("normal", normalObject, d.GetAllocator());
             }
 
-            /* Set alpha */
-            if (m->getAlphaTexture() != nullptr && m->getAlphaTexture()->name() != "white") {
-                Value alphaObject;
-                alphaObject.SetObject();
-
-                if (!m->isEmbedded() && !directoryCreated)
-                    createMatDirectory();
-
-                addTexture(d, alphaObject, m->getAlphaTexture(), materialFolderPrefix, materialDirectory, "alpha");
-
-                mat.AddMember("alpha", alphaObject, d.GetAllocator());
-            }
-
             Value transparent;
             transparent.SetBool(m->isTransparent());
             mat.AddMember("transparent", transparent, d.GetAllocator());
@@ -455,19 +442,6 @@ void addMaterial(rapidjson::Document &d, rapidjson::Value &v, const Material *ma
                 addTexture(d, normalObject, m->getNormalTexture(), materialFolderPrefix, materialDirectory, "normal");
 
                 mat.AddMember("normal", normalObject, d.GetAllocator());
-            }
-
-            /* Set alpha */
-            if (m->getAlphaTexture() != nullptr && m->getAlphaTexture()->name() != "white") {
-                Value alphaObject;
-                alphaObject.SetObject();
-
-                if (!m->isEmbedded() && !directoryCreated)
-                    createMatDirectory();
-
-                addTexture(d, alphaObject, m->getAlphaTexture(), materialFolderPrefix, materialDirectory, "alpha");
-
-                mat.AddMember("alpha", alphaObject, d.GetAllocator());
             }
 
             Value transparent;

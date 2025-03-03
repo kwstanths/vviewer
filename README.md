@@ -33,7 +33,7 @@ A real time rendering and offline volumetric path tracing engine library written
 ## Dependencies
 ### vengine library
 * [Vulkan SDK](https://vulkan.lunarg.com/sdk/home). Set the VULKAN_SDK environment variable. Version tested 1.3.204.1
-* [assimp](https://github.com/assimp/assimp). Set the ASSIMP_ROOT_DIR environment variable. Version tested 5.2.5
+* [assimp](https://github.com/assimp/assimp). Set the ASSIMP_ROOT_DIR environment variable. Version tested 5.4.3
 * [OpenImageDenoise](https://github.com/OpenImageDenoise/oidn). Set the OIDN_ROOT_DIR environment variable. Version tested 2.1.0
 
 ### vviewer binary

@@ -18,7 +18,7 @@ class WidgetMaterialLambert : public QWidget
 {
     Q_OBJECT
 public:
-    static const int HEIGHT = 525;
+    static const int HEIGHT = 460;
 
     WidgetMaterialLambert(QWidget *parent, vengine::MaterialLambert *material);
 
@@ -31,7 +31,6 @@ public:
     QComboBox *m_comboBoxAO;
     QComboBox *m_comboBoxNormal;
     QComboBox *m_comboBoxEmissive;
-    QComboBox *m_comboBoxAlpha;
 
     QDoubleSpinBox *m_uTiling;
     QDoubleSpinBox *m_vTiling;
@@ -52,7 +51,6 @@ private Q_SLOTS:
     void onNormalTextureChanged(int);
     void onAlphaStateChanged(bool);
     void onAlphaChanged();
-    void onAlphaTextureChanged(int);
     void onUTilingChanged(double);
     void onVTilingChanged(double);
 };

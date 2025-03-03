@@ -15,28 +15,22 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 
+#include "dds.hpp"
+
 #include "debug_tools/Console.hpp"
 
 #include "core/io/FileTypes.hpp"
 #include "core/StringUtils.hpp"
+#include "core/ImageUtils.hpp"
 #include "math/Transform.hpp"
 #include "math/MathUtils.hpp"
 
 #define SANITIZATION_CHECK
 // #define DEBUG_MATERIAL_WRITE_EMBEDDED_IMAGES
-// #define DEBUG_MATERIAL_PRINT_IMPORTED_IMAGE_NAMES
+ //#define DEBUG_MATERIAL_DUMP_ALL_PROPERTIES
 
 namespace vengine
 {
-
-FileType detectFileType(std::string extension)
-{
-    auto itr = fileTypesFromExtensions.find(extension);
-    if (itr == fileTypesFromExtensions.end()) {
-        return FileType::UNKNOWN;
-    }
-    return itr->second;
-}
 
 bool checkValid(glm::vec3 in)
 {
@@ -171,12 +165,31 @@ void assimpLoadNode(aiNode *node, const aiScene *scene, const AssetInfo &info, T
     }
 }
 
-uint8_t *assimpLoadTextureData(const aiScene *scene,
-                               const std::string &folder,
-                               aiString texturePath,
-                               int &width,
-                               int &height,
-                               int &channels)
+void assimpPrintAllMaterialProperties(const aiScene *scene, const aiMaterial* mat)
+{
+    debug_tools::ConsoleInfo("assimp material: " + std::string(mat->GetName().C_Str()) + " properties");
+    for (unsigned int i = 0; i < mat->mNumProperties; ++i) {
+        aiMaterialProperty *prop = mat->mProperties[i];
+
+        if (prop->mType == aiPropertyTypeInfo::aiPTI_String) {
+            aiString temp;
+            aiReturn ret = mat->Get(prop->mKey.data, UINT_MAX, prop->mIndex, temp);
+            std::cout << prop->mKey.C_Str() << " [" << temp.C_Str() << "]" << std::endl;
+        }
+        else if (prop->mType == aiPropertyTypeInfo::aiPTI_Double)
+        {
+            double temp;
+            aiReturn ret = mat->Get(prop->mKey.data, UINT_MAX, prop->mIndex, temp);
+            std::cout << prop->mKey.C_Str() << " [" << std::to_string(temp) << "]" << std::endl;
+        } 
+    }
+}
+
+Image *assimpLoadTextureData(const aiScene *scene,
+                             const std::string &folder,
+                             aiString texturePath,
+                             const AssetInfo &info,
+                             ColorSpace colorSpace)
 {
     if (texturePath.length != 0) {
         const aiTexture *texture = scene->GetEmbeddedTexture(texturePath.data);
@@ -186,67 +199,46 @@ uint8_t *assimpLoadTextureData(const aiScene *scene,
                 /* Encoded */
                 unsigned char *encodedData = reinterpret_cast<unsigned char *>(texture->pcData);
 
+                int width, height, channels;
                 unsigned char *textureData =
                     stbi_load_from_memory(encodedData, texture->mWidth, &width, &height, &channels, STBI_rgb_alpha);
                 if (textureData == nullptr) {
                     debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + std::string(texturePath.C_Str()) +
                                                 " from memory");
+                    return nullptr;
                 }
 #ifdef DEBUG_MATERIAL_WRITE_EMBEDDED_IMAGES
                 stbi_write_png(texturePath.C_Str(), width, height, 4U, textureData, width * 4 * sizeof(unsigned char));
 #endif
-                return textureData;
-
+                Format format;
+                if (colorSpace == ColorSpace::sRGB)
+                    format = Format::R8G8B8A8_SRGB;
+                else 
+                    format = Format::R8G8B8A8_UNORM;
+                bool hasAlpha = (channels < 4) ? false : true;
+                return new Image(info, textureData, width, height, format, colorSpace, hasAlpha, true);
             } else {
                 /* Not encoded */
-                /* TODO */
                 debug_tools::ConsoleWarning("assimpLoadTexture(): Not implemented");
+                return nullptr;
             }
-        } else {
+        } 
+        else 
+        {
             /* Parse from disk */
             std::string fullPath = folder + std::string(texturePath.C_Str());
-
-#ifdef _WIN32
-            unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-            if (textureData == nullptr) {
-                debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + fullPath + " from memory");
-            }
-            return textureData;
-#elif __linux__
+#ifdef __linux__
             replaceAll(fullPath, "\\", "/");
-
-            unsigned char *textureData = stbi_load(fullPath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-            if (textureData == nullptr) {
-                debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + fullPath + " from memory");
-            }
-            return textureData;
 #endif
+            try {
+                return new Image(AssetInfo(fullPath), colorSpace);
+            } catch (std::exception &e) {
+                debug_tools::ConsoleWarning("assimpLoadTexture(): Failed to load texture: " + fullPath + " from memory: " + e.what());
+                return nullptr;
+            }
         }
     }
     return nullptr;
-}
-
-Image<uint8_t> *
-assimpCreateImage(const AssetInfo &info, uint8_t *data, int width, int height, int channels, ColorSpace colorSpace, int channel = -1)
-{
-    if (channel == -1) {
-#ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGE_NAMES
-        debug_tools::ConsoleInfo("Loaded image: " + name);
-#endif
-        return new Image<uint8_t>(info, data, width, height, channels, colorSpace, true);
-    } else {
-        uint8_t *channelData = new uint8_t[width * height];
-        uint32_t index = 0;
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                channelData[index++] = data[width * channels * i + j * channels + channel];
-            }
-        }
-#ifdef DEBUG_MATERIAL_PRINT_IMPORTED_IMAGE_NAMES
-        debug_tools::ConsoleInfo("Loaded image: " + name);
-#endif
-        return new Image<uint8_t>(info, channelData, width, height, 1, colorSpace, true);
-    }
 }
 
 std::vector<ImportedMaterial> assimpLoadMaterialsOBJ(const aiScene *scene,
@@ -258,6 +250,10 @@ std::vector<ImportedMaterial> assimpLoadMaterialsOBJ(const aiScene *scene,
 
     for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
         aiMaterial *mat = scene->mMaterials[i];
+
+#ifdef DEBUG_MATERIAL_DUMP_ALL_PROPERTIES
+        assimpPrintAllMaterialProperties(scene, mat);
+#endif
 
         ImportedMaterial &importedMaterial = materials[i];
 
@@ -279,43 +275,27 @@ std::vector<ImportedMaterial> assimpLoadMaterialsOBJ(const aiScene *scene,
             aiString diffuseColorTexture;
             mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseColorTexture);
 
-            int width, height, channels;
-            auto *texData = assimpLoadTextureData(scene, folderPath, diffuseColorTexture, width, height, channels);
-            if (texData != nullptr) {
-                ImportedTexture diffuseColorTex;
-                diffuseColorTex.location = AssetLocation::DISK_EMBEDDED;
-                diffuseColorTex.image = assimpCreateImage(
-                    AssetInfo(importedMaterial.info.name + ":albedo", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::sRGB);
-                importedMaterial.albedoTexture = diffuseColorTex;
-
-                if (isBlack(glm::vec3(importedMaterial.albedo))) {
+            Image *image = assimpLoadTextureData(
+                scene,
+                folderPath,
+                diffuseColorTexture,
+                AssetInfo(importedMaterial.info.name + ":albedo", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                ColorSpace::sRGB);
+            if (image != nullptr) 
+            {
+                importedMaterial.albedoTexture = ImportedTexture(image);
+                if (isBlack(glm::vec3(importedMaterial.albedo))) 
+                {
                     importedMaterial.albedo = glm::vec4(1, 1, 1, importedMaterial.albedo.a);
                 }
-            }
-            if (texData != nullptr && channels == 4) {
-                ImportedTexture alphaTex;
-                alphaTex.location = AssetLocation::DISK_EMBEDDED;
-                alphaTex.image = assimpCreateImage(
-                    AssetInfo(importedMaterial.info.name + ":alpha", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::LINEAR,
-                    3);
-                importedMaterial.alphaTexture = alphaTex;
-
-                if (importedMaterial.albedo.a == 0) {
-                    importedMaterial.albedo.a = 1;
+                if (image->hasAlpha()) 
+                {
+                    importedMaterial.transparent = true;
+                    if (importedMaterial.albedo.a == 0) {
+                        importedMaterial.albedo.a = 1;
+                    }
                 }
-
-                importedMaterial.transparent = true;
-            }
+            } 
         }
 
         /* Try to simulate a PBR material from the .mtl shading model illum 4 */
@@ -340,21 +320,14 @@ std::vector<ImportedMaterial> assimpLoadMaterialsOBJ(const aiScene *scene,
             aiString normalTexture;
             mat->Get(AI_MATKEY_TEXTURE(aiTextureType_HEIGHT, 0), normalTexture);
 
-            int width, height, channels;
-            auto *texData = assimpLoadTextureData(scene, folderPath, normalTexture, width, height, channels);
-            /* Somes .mtl files use map_Bump for displacement, others for normals...... Check at least that it doesn't have 1 channel
-             * only before using as a normal map */
-            if (texData != nullptr && channels != 1) {
-                ImportedTexture normalTex;
-                normalTex.location = AssetLocation::DISK_EMBEDDED;
-                normalTex.image = assimpCreateImage(
-                    AssetInfo(importedMaterial.info.name + ":normal", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::LINEAR);
-                importedMaterial.normalTexture = normalTex;
+            Image *image = assimpLoadTextureData(
+                scene,
+                folderPath,
+                normalTexture,
+                AssetInfo(importedMaterial.info.name + ":normal", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                ColorSpace::LINEAR);
+            if (image != nullptr) {
+                importedMaterial.normalTexture = ImportedTexture(image);
             }
         }
     }
@@ -370,6 +343,10 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
 
     for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
         aiMaterial *mat = scene->mMaterials[i];
+
+#ifdef DEBUG_MATERIAL_DUMP_ALL_PROPERTIES
+        assimpPrintAllMaterialProperties(scene, mat);
+#endif
 
         ImportedMaterial &importedMaterial = materials[i];
 
@@ -391,33 +368,21 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
             aiString baseColorTexture;
             mat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &baseColorTexture);
 
-            int width, height, channels;
-            auto *texData = assimpLoadTextureData(scene, folderPath, baseColorTexture, width, height, channels);
-            if (texData != nullptr) {
-                ImportedTexture baseColorTex;
-                baseColorTex.location = AssetLocation::DISK_EMBEDDED;
-                baseColorTex.image = assimpCreateImage(
-                    AssetInfo(importedMaterial.info.name + ":albedo", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::sRGB);
-                importedMaterial.albedoTexture = baseColorTex;
+            Image *image = assimpLoadTextureData(
+                scene,
+                folderPath,
+                baseColorTexture,
+                AssetInfo(importedMaterial.info.name + ":albedo", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                ColorSpace::sRGB);
+            if (image != nullptr) {
+                importedMaterial.albedoTexture = ImportedTexture(image);
+                if (image->hasAlpha())
+                    importedMaterial.transparent = true;
             }
-            if (texData != nullptr && channels == 4) {
-                ImportedTexture alphaTex;
-                alphaTex.location = AssetLocation::DISK_EMBEDDED;
-                alphaTex.image = assimpCreateImage(
-                    AssetInfo(importedMaterial.info.name + ":alpha", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::LINEAR,
-                    3);
-                importedMaterial.alphaTexture = alphaTex;
 
+            aiString alphaMode;
+            mat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
+            if (strcmp(alphaMode.C_Str(), "OPAQUE") != 0) {
                 importedMaterial.transparent = true;
             }
         }
@@ -428,53 +393,49 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
 
             aiString roughnessTexture;
             mat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &roughnessTexture);
-            int width, height, channels;
-            auto *texData = assimpLoadTextureData(scene, folderPath, roughnessTexture, width, height, channels);
-            if (texData != nullptr) {
-                ImportedTexture roughnessTex;
-                roughnessTex.location = AssetLocation::DISK_EMBEDDED;
-                roughnessTex.image = assimpCreateImage(
+            Image *image =
+                assimpLoadTextureData(scene,
+                                      folderPath,
+                                      roughnessTexture,
+                                      AssetInfo(importedMaterial.info.name, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                                      ColorSpace::LINEAR);
+            if (image != nullptr) {
+                Image* roughnessImage = extractChannel(
+                    *image,
                     AssetInfo(importedMaterial.info.name + ":roughness", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::LINEAR,
                     1);
-                importedMaterial.roughnessTexture = roughnessTex;
-            }
-            if (texData != nullptr) {
-                ImportedTexture metallicTex;
-                metallicTex.location = AssetLocation::DISK_EMBEDDED;
-                metallicTex.image = assimpCreateImage(
+                if (roughnessImage != nullptr)
+                    importedMaterial.roughnessTexture = ImportedTexture(roughnessImage);
+                
+                Image* metallicImage = extractChannel(
+                    *image,
                     AssetInfo(importedMaterial.info.name + ":metallic", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::LINEAR,
                     2);
-                importedMaterial.metallicTexture = metallicTex;
+                if (metallicImage != nullptr)
+                    importedMaterial.metallicTexture = ImportedTexture(metallicImage);
+                
+                delete image;
             }
         }
 
         {
             aiString occlusionTexture;
             mat->Get(AI_MATKEY_TEXTURE(aiTextureType_LIGHTMAP, 0), occlusionTexture);
-            int width, height, channels;
-            auto *texData = assimpLoadTextureData(scene, folderPath, occlusionTexture, width, height, channels);
-            if (texData != nullptr) {
-                ImportedTexture aoTex;
-                aoTex.location = AssetLocation::DISK_EMBEDDED;
-                aoTex.image = assimpCreateImage(
+            Image *image =
+                assimpLoadTextureData(scene,
+                                      folderPath,
+                                      occlusionTexture,
+                                      AssetInfo(importedMaterial.info.name, info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                                      ColorSpace::LINEAR);
+            if (image != nullptr) {
+                Image *aoImage = extractChannel(
+                    *image,
                     AssetInfo(importedMaterial.info.name + ":ao", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::LINEAR,
                     1);
-                importedMaterial.aoTexture = aoTex;
+                if (aoImage != nullptr)
+                    importedMaterial.aoTexture = ImportedTexture(aoImage);
+                
+                delete image;
             }
         }
 
@@ -487,19 +448,14 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
 
             aiString emissiveTexture;
             mat->Get(AI_MATKEY_TEXTURE(aiTextureType_EMISSIVE, 0), emissiveTexture);
-            int width, height, channels;
-            auto *texData = assimpLoadTextureData(scene, folderPath, emissiveTexture, width, height, channels);
-            if (texData != nullptr) {
-                ImportedTexture emissiveTex;
-                emissiveTex.location = AssetLocation::DISK_EMBEDDED;
-                emissiveTex.image = assimpCreateImage(
-                    AssetInfo(importedMaterial.info.name + ":emissive", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::sRGB);
-                importedMaterial.emissiveTexture = emissiveTex;
+            Image *image = assimpLoadTextureData(
+                scene,
+                folderPath,
+                emissiveTexture,
+                AssetInfo(importedMaterial.info.name + ":emissive", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                ColorSpace::sRGB);
+            if (image != nullptr) {
+                importedMaterial.emissiveTexture = ImportedTexture(image);
 
                 /* If it has en emissive texture, then make sure that the color and strength are not zero */
                 if (isBlack(importedMaterial.emissiveColor)) {
@@ -514,25 +470,98 @@ std::vector<ImportedMaterial> assimpLoadMaterialsGLTF(const aiScene *scene,
         {
             aiString normalTexture;
             mat->Get(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), normalTexture);
-            int width, height, channels;
-            auto *texData = assimpLoadTextureData(scene, folderPath, normalTexture, width, height, channels);
-            if (texData != nullptr) {
-                ImportedTexture normalTex;
-                normalTex.location = AssetLocation::DISK_EMBEDDED;
-                normalTex.image = assimpCreateImage(
-                    AssetInfo(importedMaterial.info.name + ":normal", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
-                    texData,
-                    width,
-                    height,
-                    4,
-                    ColorSpace::LINEAR);
-                importedMaterial.normalTexture = normalTex;
+            Image *image = assimpLoadTextureData(
+                scene,
+                folderPath,
+                normalTexture,
+                AssetInfo(importedMaterial.info.name + ":normal", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                ColorSpace::LINEAR);
+            if (image != nullptr) {
+                importedMaterial.normalTexture = ImportedTexture(image);
             }
         }
     }
 
     return materials;
 }
+
+std::vector<ImportedMaterial> assimpLoadMaterialsFBX(const aiScene *scene,
+                                                      const AssetInfo &info,
+                                                      std::string folderPath,
+                                                      std::string materialNamePrefix = "")
+{
+    std::vector<ImportedMaterial> materials(scene->mNumMaterials);
+
+    for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
+        aiMaterial *mat = scene->mMaterials[i];
+
+#ifdef DEBUG_MATERIAL_DUMP_ALL_PROPERTIES
+        assimpPrintAllMaterialProperties(scene, mat);
+#endif
+
+        ImportedMaterial &importedMaterial = materials[i];
+        
+        aiReturn ret;
+        {
+            aiString name;
+            ret = mat->Get(AI_MATKEY_NAME, name);
+            if (ret == aiReturn_SUCCESS)
+            {
+                importedMaterial.info = AssetInfo(
+                    materialNamePrefix + ":" + std::string(name.C_Str()), info.filepath, info.source, AssetLocation::DISK_EMBEDDED);
+            }
+        }
+
+        importedMaterial.type = ImportedMaterialType::PBR_STANDARD;
+
+        {
+            aiColor4D baseColor;
+            ret = mat->Get(AI_MATKEY_COLOR_DIFFUSE, baseColor);
+
+            if (ret == aiReturn_SUCCESS)
+                importedMaterial.albedo = glm::vec4(baseColor.r, baseColor.g, baseColor.b, baseColor.a);
+
+            aiString baseColorTexture;
+            ret = mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), baseColorTexture);
+            if (ret == aiReturn_SUCCESS)
+            {
+                Image *image = assimpLoadTextureData(
+                    scene,
+                    folderPath,
+                    baseColorTexture,
+                    AssetInfo(importedMaterial.info.name + ":albedo", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                    ColorSpace::sRGB);
+                if (image != nullptr) 
+                {
+                    importedMaterial.albedoTexture = {image};
+                    if (image->hasAlpha()) 
+                        importedMaterial.transparent = true;
+                }
+            }
+        }
+
+        {
+            aiString normalTexture;
+            ret = mat->Get(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), normalTexture);
+            if (ret == aiReturn_SUCCESS)
+            {
+                Image *image = assimpLoadTextureData(
+                    scene,
+                    folderPath,
+                    normalTexture,
+                    AssetInfo(importedMaterial.info.name + ":normal", info.filepath, info.source, AssetLocation::DISK_EMBEDDED),
+                    ColorSpace::LINEAR);
+                if (image != nullptr) 
+                {
+                    importedMaterial.normalTexture = {image};
+                }
+            }
+        }
+    }
+
+    return materials;
+}
+
 
 Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info)
 {
@@ -582,7 +611,7 @@ Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info, std::vector<Impor
             filenameWithoutExtension:   test
         */
 
-        fileType = detectFileType(info.filepath.substr(extensionPointPosition + 1));
+        fileType = findFileType(info.filepath);
         folderPath = info.filepath.substr(0, lastDashPosition) + "/";
         filenameWithoutExtension = info.filepath.substr(lastDashPosition + 1, extensionPointPosition - lastDashPosition - 1);
     }
@@ -597,7 +626,7 @@ Tree<ImportedModelNode> assimpLoadModel(const AssetInfo &info, std::vector<Impor
             break;
         }
         case FileType::FBX: {
-            debug_tools::ConsoleWarning("AssimpLoadMaterials(): .fbx materials not implemented");
+            materials = assimpLoadMaterialsFBX(scene, info, folderPath, filenameWithoutExtension);
             break;
         }
         default: {

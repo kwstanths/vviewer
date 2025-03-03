@@ -384,7 +384,7 @@ std::optional<ImportedTexture> parseTexture(const rapidjson::Value &o, const std
 
     if (value.location == AssetLocation::DISK_STANDALONE && o["texture"].HasMember("filepath")) {
         std::string filepath = o["texture"]["filepath"].GetString();
-        value.image = new Image<uint8_t>(AssetInfo(relativePath + filepath), colorSpace);
+        value.image = new Image(AssetInfo(relativePath + filepath), colorSpace);
     }
     return value;
 }
@@ -436,9 +436,6 @@ void parseMaterial(const rapidjson::Value &o, const std::string &relativePath, I
     }
     if (o.HasMember("normal")) {
         material.normalTexture = parseTexture(o["normal"], relativePath, ColorSpace::LINEAR);
-    }
-    if (o.HasMember("alpha")) {
-        material.alphaTexture = parseTexture(o["alpha"], relativePath, ColorSpace::LINEAR);
     }
     if (o.HasMember("transparent")) {
         material.transparent = o["transparent"].GetBool();

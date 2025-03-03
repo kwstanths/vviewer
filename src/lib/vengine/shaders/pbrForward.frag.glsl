@@ -72,7 +72,7 @@ void main() {
 
     /* Normal mapping */
     vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
-    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
+    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal, material.uvTiling.a > 0.5));
     
     /* Calculate PBR data */
     PBRStandard pbr;
@@ -81,7 +81,7 @@ void main() {
     pbr.roughness = material.metallicRoughnessAO.g * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.b)], tiledUV).r;
     float ao = material.metallicRoughnessAO.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
-    float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+    float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).a;
     
     /* Calculate ambient IBL */
     vec3 ambient = ao * calculateIBLContribution(pbr, frame.normal, V_world, skyboxIrradiance, skyboxPrefiltered, global_textures[nonuniformEXT(material.gTexturesIndices2.b)]);

@@ -122,10 +122,6 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     layoutNormal->setContentsMargins(5, 5, 5, 5);
     groupBoxNormal->setLayout(layoutNormal);
 
-    m_comboBoxAlpha = new QComboBox();
-    m_comboBoxAlpha->addItems(availableLinearTextures);
-    m_comboBoxAlpha->setCurrentText(QString::fromStdString(material->getAlphaTexture()->name()));
-    connect(m_comboBoxAlpha, SIGNAL(currentIndexChanged(int)), this, SLOT(onAlphaTextureChanged(int)));
     m_alpha = new QSlider(Qt::Horizontal);
     m_alpha->setMaximum(100);
     m_alpha->setMinimum(0);
@@ -137,7 +133,6 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     connect(m_groupBoxAlpha, SIGNAL(clicked(bool)), this, SLOT(onAlphaStateChanged(bool)));
     QVBoxLayout *layoutAlpha = new QVBoxLayout();
     layoutAlpha->addWidget(m_alpha);
-    layoutAlpha->addWidget(m_comboBoxAlpha);
     layoutAlpha->setContentsMargins(5, 5, 5, 5);
     m_groupBoxAlpha->setLayout(layoutAlpha);
 
@@ -164,12 +159,12 @@ WidgetMaterialPBR::WidgetMaterialPBR(QWidget *parent, MaterialPBRStandard *mater
     QVBoxLayout *layoutMain = new QVBoxLayout();
     layoutMain->addWidget(new QLabel(QString::fromStdString("Type: " + itr->second)));
     layoutMain->addWidget(groupBoxAlbedo);
+    layoutMain->addWidget(m_groupBoxAlpha);
     layoutMain->addWidget(groupBoxMetallic);
     layoutMain->addWidget(groupBoxRoughness);
     layoutMain->addWidget(groupBoxAO);
     layoutMain->addWidget(groupBoxEmssive);
     layoutMain->addWidget(groupBoxNormal);
-    layoutMain->addWidget(m_groupBoxAlpha);
     layoutMain->addWidget(groupBoxUVTiling);
     layoutMain->setSpacing(15);
     layoutMain->setAlignment(Qt::AlignTop);
@@ -200,7 +195,6 @@ void WidgetMaterialPBR::updateAvailableTextures()
     updateTextureComboBox(m_comboBoxAO, availableLinearTextures, QString::fromStdString(m_material->getAOTexture()->name()));
     updateTextureComboBox(m_comboBoxEmissive, availableSRGBTextures, QString::fromStdString(m_material->getEmissiveTexture()->name()));
     updateTextureComboBox(m_comboBoxNormal, availableLinearTextures, QString::fromStdString(m_material->getNormalTexture()->name()));
-    updateTextureComboBox(m_comboBoxAlpha, availableLinearTextures, QString::fromStdString(m_material->getAlphaTexture()->name()));
 }
 
 void WidgetMaterialPBR::onAlbedoButton()
@@ -316,14 +310,6 @@ void WidgetMaterialPBR::onAlphaStateChanged(bool)
 void WidgetMaterialPBR::onAlphaChanged()
 {
     m_material->albedo().a = static_cast<float>(m_alpha->value()) / 100;
-}
-
-void WidgetMaterialPBR::onAlphaTextureChanged(int)
-{
-    std::string newTexture = m_comboBoxAlpha->currentText().toStdString();
-
-    auto &textures = AssetManager::getInstance().texturesMap();
-    m_material->setAlphaTexture(textures.get(newTexture));
 }
 
 void WidgetMaterialPBR::onUTilingChanged(double)

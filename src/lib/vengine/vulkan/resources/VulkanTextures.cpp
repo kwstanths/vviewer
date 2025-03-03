@@ -70,9 +70,9 @@ VkResult VulkanTextures::releaseSwapchainResources()
 
 void VulkanTextures::createBaseTextures()
 {
-    createTexture(Image<stbi_uc>(AssetInfo("white", AssetSource::ENGINE), Color::WHITE, ColorSpace::LINEAR));
-    createTexture(Image<stbi_uc>(AssetInfo("whiteColor", AssetSource::ENGINE), Color::WHITE, ColorSpace::sRGB));
-    createTexture(Image<stbi_uc>(AssetInfo("normalmapdefault", AssetSource::ENGINE), Color::NORMAL_MAP, ColorSpace::LINEAR));
+    createTexture(Image(AssetInfo("white", AssetSource::ENGINE), Color::WHITE, ColorSpace::LINEAR));
+    createTexture(Image(AssetInfo("whiteColor", AssetSource::ENGINE), Color::WHITE, ColorSpace::sRGB));
+    createTexture(Image(AssetInfo("normalmapdefault", AssetSource::ENGINE), Color::NORMAL_MAP, ColorSpace::LINEAR));
 }
 
 void VulkanTextures::updateTextures()
@@ -96,7 +96,7 @@ void VulkanTextures::updateTextures()
 Texture *VulkanTextures::createTexture(const AssetInfo &info, ColorSpace colorSpace)
 {
     try {
-        Image<stbi_uc> image(info, colorSpace);
+        Image image(info, colorSpace);
         auto temp = createTexture(image);
         return temp;
     } catch (std::exception &e) {
@@ -105,7 +105,7 @@ Texture *VulkanTextures::createTexture(const AssetInfo &info, ColorSpace colorSp
     }
 }
 
-Texture *VulkanTextures::createTexture(const Image<stbi_uc> &image)
+Texture *VulkanTextures::createTexture(const Image &image)
 {
     auto &texturesMap = AssetManager::getInstance().texturesMap();
     if (texturesMap.has(image.name())) {
@@ -113,9 +113,7 @@ Texture *VulkanTextures::createTexture(const Image<stbi_uc> &image)
     }
 
     auto temp = new VulkanTexture(
-        image,
-        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue()},
-        true);
+        image, {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue()});
 
     addTexture(temp);
 
@@ -129,12 +127,10 @@ Texture *VulkanTextures::createTextureHDR(const AssetInfo &info)
         return texturesMap.get(info.name);
     }
 
-    Image<float> image(info, ColorSpace::LINEAR);
+    Image image(info, ColorSpace::LINEAR);
 
     auto temp = new VulkanTexture(
-        image,
-        {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue()},
-        false);
+        image, {m_vkctx.physicalDevice(), m_vkctx.device(), m_vkctx.graphicsCommandPool(), m_vkctx.queueManager().graphicsQueue()});
 
     return texturesMap.add(temp);
 }

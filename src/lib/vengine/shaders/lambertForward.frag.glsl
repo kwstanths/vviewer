@@ -72,7 +72,7 @@ void main() {
     
     /* Normal mapping */
     vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
-    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
+    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal, material.uvTiling.a > 0.5));
 
     vec3 V = worldToLocal(frame, V_world);
     
@@ -80,7 +80,7 @@ void main() {
     vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;
     float ao = material.metallicRoughnessAO.b * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.a)], tiledUV).r;
     vec3 emissive = material.emissive.a * material.emissive.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.r)], tiledUV).rgb;
-    float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+    float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).a;
 
     /* Calculate ambient */
     vec3 irradiance = texture(skyboxIrradiance, frame.normal).rgb;

@@ -45,7 +45,7 @@ void main() {
 
     /* Apply normal mapping on frame */
     vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
-    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
+    applyNormalToFrame(frame, processNormalFromNormalMap(newNormal, material.uvTiling.a > 0.5));
 
     /* Material data */
     vec3 albedo = material.albedo.rgb * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).rgb;

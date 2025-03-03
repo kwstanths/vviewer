@@ -25,7 +25,6 @@ WidgetRightPanel::WidgetRightPanel(QWidget *parent, Engine *engine)
     m_layoutControls->setAlignment(Qt::AlignTop);
     m_widgetControls = new QWidget();
     m_widgetControls->setLayout(m_layoutControls);
-    m_widgetControls->setFixedWidth(350);
 
     m_widgetScroll = new QScrollArea();
     m_widgetScroll->setWidget(m_widgetControls);
@@ -45,6 +44,8 @@ WidgetRightPanel::WidgetRightPanel(QWidget *parent, Engine *engine)
     m_updateTimer->setInterval(30);
     connect(m_updateTimer, SIGNAL(timeout()), this, SLOT(onUpdate()));
     m_updateTimer->start();
+
+    setFixedWidth(390);
 }
 
 void WidgetRightPanel::setSelectedObject(SceneObject *object)

@@ -7,10 +7,13 @@ vec3 getTranslation(mat4 m)
     return vec3(m[3][0], m[3][1], m[3][2]);
 }
 
-vec3 processNormalFromNormalMap(vec3 normalMapNormal)
+vec3 processNormalFromNormalMap(vec3 normalMapNormal, bool dxrFormat)
 {
     vec3 N = normalMapNormal * 2 - 1;
-    return normalize(vec3(N.x, N.z, -N.y));
+    if (!dxrFormat)
+        return normalize(vec3(N.x, N.z, -N.y));
+    else
+        return normalize(vec3(N.y, -N.z, N.x));
 }
 
 float distanceSquared(vec3 p0, vec3 p1)

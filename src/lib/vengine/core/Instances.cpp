@@ -78,7 +78,7 @@ void InstancesManager::initInstanceData(InstanceData *instanceData, SceneObject 
     /* Set object model matrix transformation */
     instanceData->modelMatrix = so->modelMatrix();
     /* Set object id */
-    instanceData->id = glm::vec4(so->getID(), -1, -1, 0);
+    instanceData->id = glm::ivec4(so->getID(), -1, -1, 0);
 
     /* Set material index  */
     if (so->has<ComponentMaterial>()) {

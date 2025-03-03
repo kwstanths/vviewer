@@ -4,12 +4,6 @@
 namespace vengine
 {
 
-enum class ColorDepth {
-    BITS8 = 0,
-    BITS16 = 1,
-    BITS32 = 2,
-};
-
 enum class ColorSpace {
     sRGB = 0,
     LINEAR = 1,

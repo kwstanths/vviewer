@@ -16,3 +16,6 @@
 [submodule "src/lib/external/googletest"]
 	path = src/lib/external/googletest
 	url = https://github.com/google/googletest
+[submodule "src/lib/external/dds_image"]
+	path = src/lib/external/dds_image
+	url = https://github.com/spnda/dds_image.git

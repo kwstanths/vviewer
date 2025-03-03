@@ -11,6 +11,7 @@
 
 #include "core/Mesh.hpp"
 #include "core/Color.hpp"
+#include "core/Image.hpp"
 #include "IncludeVulkan.hpp"
 #include "VulkanStructs.hpp"
 #include "vulkan/resources/VulkanBuffer.hpp"
@@ -143,7 +144,7 @@ void transitionImageLayout(VkCommandBuffer cmdBuf,
 
 VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *depthFormat);
 
-VkFormat autoChooseFormat(ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels);
+VkFormat getVkFormat(Format format);
 
 VkDeviceOrHostAddressKHR getBufferDeviceAddress(VkDevice device, VkBuffer buffer);
 

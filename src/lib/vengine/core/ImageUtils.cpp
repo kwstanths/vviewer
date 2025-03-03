@@ -6,6 +6,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+#include "debug_tools/Console.hpp"
+
 namespace vengine
 {
 
@@ -71,6 +73,76 @@ void writeToDisk(const std::vector<float> &in,
         default:
             throw std::runtime_error("writeToDisk(): Unsupported file type");
             break;
+    }
+}
+
+uint32_t getBitsPerPixel(const Format format)
+{
+    switch (format) {
+        case Format::R32G32B32A32_SFLOAT:
+            return 128;
+        case Format::R32_SFLOAT:
+            return 32;
+        case Format::R8G8B8A8_UNORM:
+            return 32;
+        case Format::R8G8B8A8_SRGB:
+            return 32;
+        case Format::R8_UNORM:
+        case Format::BC3_UNORM_BLOCK:
+        case Format::BC3_SRGB_BLOCK:
+        case Format::BC5_UNORM:
+            return 8;
+        case Format::BC1_RGB_UNORM_BLOCK:
+        case Format::BC1_RGBA_UNORM_BLOCK:
+            return 4;
+        case Format::UNKNOWN:
+            return 0;
+        default:
+            return 0;
+    }
+}
+
+Image *extractChannel(const Image &image, const AssetInfo &info, uint32_t channel)
+{
+    Format imageFormat = image.format();
+    if (imageFormat == Format::R8G8B8A8_UNORM)
+    {
+        const uint8_t *imageData = static_cast<const uint8_t *>(image.data());
+
+        /* Extra requested channel */
+        uint8_t *channelData = new uint8_t[image.width() * image.height()];
+        uint32_t index = 0;
+        for (uint32_t i = 0; i < image.height(); i++) {
+            for (uint32_t j = 0; j < image.width(); j++) {
+                channelData[index++] = imageData[image.width() * 4U * i + j * 4U + channel];
+            }
+        }
+        return new Image(info, channelData, image.width(), image.height(), Format::R8_UNORM, ColorSpace::LINEAR, false, true);
+    }
+    else
+    {
+        debug_tools::ConsoleWarning("extractChannel(): Unsupported format");
+    }
+    return nullptr;
+}
+
+Format getFormat(DXGI_FORMAT dxgiFormat, bool hasAlpha)
+{
+    switch (dxgiFormat) {
+        case DXGI_FORMAT_BC1_UNORM: {
+            if (hasAlpha)
+                return Format::BC1_RGBA_UNORM_BLOCK;
+            else
+                return Format::BC1_RGB_UNORM_BLOCK;
+        }
+        case DXGI_FORMAT_BC3_UNORM:
+            return Format::BC3_UNORM_BLOCK;
+        case DXGI_FORMAT_BC3_UNORM_SRGB:
+            return Format::BC3_SRGB_BLOCK;
+        case DXGI_FORMAT_BC5_UNORM:
+            return Format::BC5_UNORM;
+        default:
+            return Format::UNKNOWN;
     }
 }
 

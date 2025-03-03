@@ -32,7 +32,7 @@ public:
     void updateTextures();
 
     Texture *createTexture(const AssetInfo &info, ColorSpace colorSpace = ColorSpace::sRGB) override;
-    Texture *createTexture(const Image<stbi_uc> &image) override;
+    Texture *createTexture(const Image& image) override;
     Texture *createTextureHDR(const AssetInfo &info) override;
 
     Texture *addTexture(Texture *tex);

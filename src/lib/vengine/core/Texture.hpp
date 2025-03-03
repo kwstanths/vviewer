@@ -5,6 +5,7 @@
 
 #include "Asset.hpp"
 #include "Color.hpp"
+#include "Image.hpp"
 
 namespace vengine
 {
@@ -12,26 +13,27 @@ namespace vengine
 class Texture : public Asset
 {
 public:
-    Texture(const AssetInfo &info, ColorSpace colorSpace, ColorDepth colorDepth, size_t width, size_t height, size_t channels)
+    Texture(const AssetInfo &info, size_t width, size_t height, Format format, ColorSpace colorSpace, bool isDXR = false)
         : Asset(info)
-        , m_colorSpace(colorSpace)
-        , m_colorDepth(colorDepth)
         , m_width(width)
         , m_height(height)
-        , m_channels(channels){};
+        , m_format(format)
+        , m_colorSpace(colorSpace)
+        , m_isDXR(isDXR)
+    {};
 
-    const uint32_t width() const { return static_cast<uint32_t>(m_width); }
-    const uint32_t height() const { return static_cast<uint32_t>(m_height); }
-    const uint32_t channels() const { return static_cast<uint32_t>(m_channels); }
-    const ColorSpace colorSpace() const { return m_colorSpace; }
-    const ColorDepth colorDepth() const { return m_colorDepth; }
+    uint32_t width() const { return static_cast<uint32_t>(m_width); }
+    uint32_t height() const { return static_cast<uint32_t>(m_height); }
+    Format format() const { return m_format; }
+    ColorSpace colorSpace() const { return m_colorSpace; }
+    bool isDXR() const { return m_isDXR; }
 
 private:
-    ColorSpace m_colorSpace;
-    ColorDepth m_colorDepth;
     size_t m_width;
     size_t m_height;
-    size_t m_channels;
+    Format m_format;
+    ColorSpace m_colorSpace;
+    bool m_isDXR;
 };
 
 }  // namespace vengine

@@ -15,21 +15,18 @@ namespace vengine
 class VulkanTexture : public Texture
 {
 public:
-    VulkanTexture(const Image<stbi_uc> &image, VulkanCommandInfo vci, bool genMipMaps);
-
-    VulkanTexture(const Image<float> &image, VulkanCommandInfo vci, bool genMipMaps);
+    VulkanTexture(const Image &image, VulkanCommandInfo vci);
 
     VulkanTexture(const AssetInfo &info,
-                  ColorSpace colorSpace,
-                  ColorDepth colorDepth,
                   size_t width,
                   size_t height,
-                  size_t channels,
+                  Format format,
+                  ColorSpace colorSpace,
                   VkImage &image,
                   VkDeviceMemory &imageMemory,
                   VkImageView &imageView,
                   VkSampler &sampler,
-                  VkFormat &format,
+                  VkFormat &vkformat,
                   uint32_t numMips);
 
     void destroy(VkDevice device);
@@ -49,7 +46,7 @@ private:
     VkImageView m_imageView;
     VkSampler m_sampler;
 
-    VkFormat m_format;
+    VkFormat m_vkformat;
     uint32_t m_numMips = 1;
 
     uint32_t m_bindlessResourceIndex = 0;

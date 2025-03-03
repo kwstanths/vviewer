@@ -67,7 +67,6 @@ public:
     void setAOTexture(Texture *texture) override;
     void setEmissiveTexture(Texture *texture) override;
     void setNormalTexture(Texture *texture) override;
-    void setAlphaTexture(Texture *texture) override;
 
 private:
 };
@@ -101,7 +100,6 @@ public:
     void setAOTexture(Texture *texture) override;
     void setEmissiveTexture(Texture *texture) override;
     void setNormalTexture(Texture *texture) override;
-    void setAlphaTexture(Texture *texture) override;
 
 private:
 };

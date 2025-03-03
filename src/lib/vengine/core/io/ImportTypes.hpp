@@ -37,7 +37,10 @@ struct ImportedModelNode {
 struct ImportedTexture {
     AssetLocation location = AssetLocation::UNDEFINED;
     std::string name = "";
-    Image<uint8_t> *image = nullptr;
+    Image *image = nullptr;
+    ImportedTexture(){};
+    ImportedTexture(Image *im)
+        : image(im){};
 };
 
 struct ImportedMaterial {
@@ -46,6 +49,7 @@ struct ImportedMaterial {
 
     glm::vec4 albedo = glm::vec4(1, 1, 1, 1);
     std::optional<ImportedTexture> albedoTexture = std::nullopt;
+    bool transparent = false;
 
     float roughness = 0.5F;
     std::optional<ImportedTexture> roughnessTexture = std::nullopt;
@@ -62,8 +66,6 @@ struct ImportedMaterial {
 
     std::optional<ImportedTexture> normalTexture = std::nullopt;
 
-    std::optional<ImportedTexture> alphaTexture = std::nullopt;
-    bool transparent = false;
 
     glm::vec2 scale = {1, 1};
 

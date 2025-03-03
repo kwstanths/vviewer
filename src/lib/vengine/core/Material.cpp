@@ -42,11 +42,6 @@ void MaterialPBRStandard::setNormalTexture(Texture *texture)
     m_normalTexture = texture;
 }
 
-void MaterialPBRStandard::setAlphaTexture(Texture *texture)
-{
-    m_alphaTexture = texture;
-}
-
 Texture *MaterialPBRStandard::getAlbedoTexture() const
 {
     return m_albedoTexture;
@@ -77,11 +72,6 @@ Texture *MaterialPBRStandard::getNormalTexture() const
     return m_normalTexture;
 }
 
-Texture *MaterialPBRStandard::getAlphaTexture() const
-{
-    return m_alphaTexture;
-}
-
 bool MaterialPBRStandard::isEmissive() const
 {
     return (emissiveIntensity() > std::numeric_limits<float>::epsilon()) && !isBlack(emissiveColor(), 0.01F);
@@ -107,11 +97,6 @@ void MaterialLambert::setNormalTexture(Texture *texture)
     m_normalTexture = texture;
 }
 
-void MaterialLambert::setAlphaTexture(Texture *texture)
-{
-    m_alphaTexture = texture;
-}
-
 Texture *MaterialLambert::getAlbedoTexture() const
 {
     return m_albedoTexture;
@@ -130,11 +115,6 @@ Texture *MaterialLambert::getEmissiveTexture() const
 Texture *MaterialLambert::getNormalTexture() const
 {
     return m_normalTexture;
-}
-
-Texture *MaterialLambert::getAlphaTexture() const
-{
-    return m_alphaTexture;
 }
 
 bool MaterialLambert::isEmissive() const

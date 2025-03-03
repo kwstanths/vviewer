@@ -192,9 +192,6 @@ std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vect
             if (mat.normalTexture.has_value()) {
                 material->setNormalTexture(getTexture(mat.normalTexture.value()));
             }
-            if (mat.alphaTexture.has_value()) {
-                material->setAlphaTexture(getTexture(mat.alphaTexture.value()));
-            }
             material->setTransparent(mat.transparent);
         } else if (mat.type == ImportedMaterialType::PBR_STANDARD) {
             auto material = Materials::createMaterial<MaterialPBRStandard>(mat.info);
@@ -222,9 +219,6 @@ std::vector<Material *> VulkanMaterials::createImportedMaterials(const std::vect
             }
             if (mat.normalTexture.has_value()) {
                 material->setNormalTexture(getTexture(mat.normalTexture.value()));
-            }
-            if (mat.alphaTexture.has_value()) {
-                material->setAlphaTexture(getTexture(mat.alphaTexture.value()));
             }
             material->setTransparent(mat.transparent);
         } else if (mat.type == ImportedMaterialType::VOLUME) {

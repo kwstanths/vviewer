@@ -18,7 +18,7 @@ struct InstanceData {
     /* Transformation matrix */
     glm::mat4 modelMatrix;
     /* R: ID, G: front facing volume, B: back facing volume, A: unused */
-    glm::vec4 id;
+    glm::ivec4 id;
     /* Material index */
     uint32_t materialIndex;
     /* A pointer to a buffer holding mesh vertex data */

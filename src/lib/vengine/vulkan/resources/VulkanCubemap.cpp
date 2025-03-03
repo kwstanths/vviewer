@@ -61,9 +61,17 @@ VkResult VulkanCubemap::createCubemap(VulkanCommandInfo vci)
 {
     int width = m_image_top->width();
     int height = m_image_top->height();
-    int channels = m_image_top->channels();
 
-    const VkDeviceSize imageSize = width * height * channels * 6;
+    /* Input images must have at least one mipmap */
+    assert(m_image_front->mipmaps().size() > 0);
+    assert(m_image_back->mipmaps().size() > 0);
+    assert(m_image_top->mipmaps().size() > 0);
+    assert(m_image_bottom->mipmaps().size() > 0);
+    assert(m_image_right->mipmaps().size() > 0);
+    assert(m_image_left->mipmaps().size() > 0);
+
+    /* All 6 images should have the same size and format */
+    const VkDeviceSize imageSize = m_image_top->mipmaps()[0].byteSize * 6;
     const VkDeviceSize layerSize = imageSize / 6;
 
     /* Create staging buffer */
@@ -78,12 +86,12 @@ VkResult VulkanCubemap::createCubemap(VulkanCommandInfo vci)
     /* Copy data to staging buffer */
     void *data;
     VULKAN_CHECK_CRITICAL(vkMapMemory(vci.device, stagingBuffer.memory(), 0, imageSize, 0, &data));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 0), m_image_front->data(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 1), m_image_back->data(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 2), m_image_top->data(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 3), m_image_bottom->data(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 4), m_image_right->data(), static_cast<size_t>(layerSize));
-    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 5), m_image_left->data(), static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 0), m_image_front->mipmaps()[0].ptr, static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 1), m_image_back->mipmaps()[0].ptr, static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 2), m_image_top->mipmaps()[0].ptr, static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 3), m_image_bottom->mipmaps()[0].ptr, static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 4), m_image_right->mipmaps()[0].ptr, static_cast<size_t>(layerSize));
+    memcpy(static_cast<stbi_uc *>(data) + (layerSize * 5), m_image_left->mipmaps()[0].ptr, static_cast<size_t>(layerSize));
     vkUnmapMemory(vci.device, stagingBuffer.memory());
 
     // Create optimal tiled target image

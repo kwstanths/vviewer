@@ -253,11 +253,10 @@ VkResult VulkanRendererPBR::createBRDFLUT(VulkanTextures &textures, uint32_t res
 
     /* Create texture resource */
     auto vktex = new VulkanTexture(AssetInfo("PBR_BRDF_LUT", AssetSource::ENGINE),
-                                   ColorSpace::LINEAR,
-                                   ColorDepth::BITS16,
                                    imageWidth,
                                    imageHeight,
-                                   2U,
+                                   Format::R16G16_SFLOAT,
+                                   ColorSpace::LINEAR,
                                    image,
                                    imageMemory,
                                    imageView,

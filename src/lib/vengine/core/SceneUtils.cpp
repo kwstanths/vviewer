@@ -29,16 +29,20 @@ struct SceneObjectVectorUpdateTask : Task {
     ThreadPool &threadPool;
     SceneObjectVector &sceneObjectVector;
     uint32_t start, end;
-    std::vector<SceneObjectVectorUpdateTask> childrenTasks;
+    std::vector<std::vector<SceneObjectVectorUpdateTask>> childrenTasks;
     bool work(float &progress) override
     {
+        uint32_t o = 0;
+        childrenTasks.resize(end - start);
         for (uint32_t i = start; i < end; i++) {
             SceneObject *sceneObject = sceneObjectVector[i];
             sceneObject->update();
-            createTasks(sceneObject->children(), childrenTasks, threadPool, this);
-            for (Task &task : childrenTasks) {
+            createTasks(sceneObject->children(), childrenTasks[o], threadPool, this);
+            for (Task &task : childrenTasks[o])
+            {
                 threadPool.push(&task);
             }
+            o++;
         }
         return true;
     }
@@ -51,24 +55,25 @@ struct SceneObjectVectorUpdateTask : Task {
         uint32_t batchSize = static_cast<uint32_t>(sos.size()) / threadPool.threads();
         batchSize++;
 
+        auto itr = tasks.begin();
         uint32_t start = 0;
         for (uint32_t start = 0; start < sos.size(); start += batchSize) {
             uint32_t s = std::min(start, static_cast<uint32_t>(sos.size() - 1));
             uint32_t e = std::min(start + batchSize, static_cast<uint32_t>(sos.size()));
             tasks.emplace_back(sos, s, e, threadPool, parent);
         }
+        return;
     }
 };
 
 void UpdateSceneGraphParallel(SceneObjectVector &sceneGraph, ThreadPool &threadPool)
 {
     std::vector<SceneObjectVectorUpdateTask> tasks;
-
     SceneObjectVectorUpdateTask::createTasks(sceneGraph, tasks, threadPool);
-    for (Task &task : tasks) {
+    for (Task& task : tasks) {
         threadPool.push(&task);
     }
-    for (Task &task : tasks) {
+    for (Task& task : tasks) {
         task.wait();
     }
 }

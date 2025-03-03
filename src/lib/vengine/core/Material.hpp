@@ -90,7 +90,6 @@ public:
     virtual void setAOTexture(Texture *texture);
     virtual void setEmissiveTexture(Texture *texture);
     virtual void setNormalTexture(Texture *texture);
-    virtual void setAlphaTexture(Texture *texture);
 
     Texture *getAlbedoTexture() const;
     Texture *getMetallicTexture() const;
@@ -98,7 +97,6 @@ public:
     Texture *getAOTexture() const;
     Texture *getEmissiveTexture() const;
     Texture *getNormalTexture() const;
-    Texture *getAlphaTexture() const;
 
 protected:
     Texture *m_albedoTexture = nullptr;
@@ -107,7 +105,6 @@ protected:
     Texture *m_aoTexture = nullptr;
     Texture *m_emissiveTexture = nullptr;
     Texture *m_normalTexture = nullptr;
-    Texture *m_alphaTexture = nullptr;
 
 private:
 };
@@ -142,20 +139,17 @@ public:
     virtual void setAOTexture(Texture *texture);
     virtual void setEmissiveTexture(Texture *texture);
     virtual void setNormalTexture(Texture *texture);
-    virtual void setAlphaTexture(Texture *texture);
 
     Texture *getAlbedoTexture() const;
     Texture *getAOTexture() const;
     Texture *getEmissiveTexture() const;
     Texture *getNormalTexture() const;
-    Texture *getAlphaTexture() const;
 
 protected:
     Texture *m_albedoTexture = nullptr;
     Texture *m_aoTexture = nullptr;
     Texture *m_emissiveTexture = nullptr;
     Texture *m_normalTexture = nullptr;
-    Texture *m_alphaTexture = nullptr;
 };
 
 class MaterialSkybox : public Material

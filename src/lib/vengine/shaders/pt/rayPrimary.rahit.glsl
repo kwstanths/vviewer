@@ -31,41 +31,5 @@ layout(buffer_reference, scalar) buffer Indices {ivec3  i[]; };
 
 void main()
 {
-    // #include "process_hit.glsl"
-    // #include "construct_frame.glsl"
-
-    // vec2 tiledUV = uvs * material.uvTiling.rg;
-    // float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
-    // float transparent = material.metallicRoughnessAO.a;
-
-    // /* Check if material marked as transparent */
-    // if (transparent > 0)
-    // {
-    //     /* If the ray traveled inside a volume */
-    //     if (rayPayloadPrimary.insideVolume)
-    //     {
-    //         /* and this transparent surface constitutes a volume material change then accept the hit */
-    //         uint volumeMaterialIndex = rayPayloadPrimary.volumeMaterialIndex;
-    //         if (flipped && (instanceData.id.g != -1))
-    //             terminateRayEXT;
-    //         else if (flipped && (instanceData.id.b != -1))
-    //             terminateRayEXT;
-    //     } 
-    //     else 
-    //     {
-            
-    //     }
-
-    //     float rand = rand1D(rayPayloadPrimary);
-    //     if (alpha < EPSILON)
-    //     {
-    //         ignoreIntersectionEXT;
-    //     } 
-    //     else if(rand > alpha)
-    //     {
-    //         ignoreIntersectionEXT;
-    //     }
-    // }
-
-
+    // Not implemented
 }

@@ -25,7 +25,7 @@ struct SceneData {
 /* InstanceData struct. A mirror of the CPU struct */
 struct InstanceData {
     mat4 model;
-    vec4 id;
+    ivec4 id;
     uint materialIndex;
     uint64_t vertexAddress;
     uint64_t indexAddress;
@@ -45,7 +45,7 @@ struct MaterialData
     vec4 emissive;              /* RGB: emissive color, A = emissive intensity */
     uvec4 gTexturesIndices1;    /* R: albedo texture index, G: metallic texture index, B: roughness texture index, A: AO texture index */   
     uvec4 gTexturesIndices2;    /* R: emissive texture index, G: normal texture index, B: BRDF LUT texture index, A: unused */
-    vec4 uvTiling;              /* R: u tiling, G: v tiling, B: material type, A: unused */
+    vec4 uvTiling;              /* R: u tiling, G: v tiling, B: material type, A: Normal map format */
     
     uvec4 padding1;
     uvec4 padding2;

@@ -34,7 +34,7 @@ void main()
 
     vec2 tiledUV = uvs * material.uvTiling.rg;
 
-    float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+    float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).a;
     float transparent = material.metallicRoughnessAO.a;
     bool isTransparent = transparent >= 0.99;
 

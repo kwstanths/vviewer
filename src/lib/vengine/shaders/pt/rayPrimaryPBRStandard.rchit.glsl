@@ -63,7 +63,7 @@ void main()
         /* Tile uvs */
         vec2 tiledUV = uvs * material.uvTiling.rg;
 
-        float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices2.a)], tiledUV).r;
+        float alpha = material.albedo.a * texture(global_textures[nonuniformEXT(material.gTexturesIndices1.r)], tiledUV).a;
         float transparent = material.metallicRoughnessAO.a;
         /* Check transparency */
         if (transparent > 0)
@@ -98,7 +98,7 @@ void main()
 
         /* Apply normal map */
         vec3 newNormal = texture(global_textures[nonuniformEXT(material.gTexturesIndices2.g)], tiledUV).rgb;
-        applyNormalToFrame(frame, processNormalFromNormalMap(newNormal));
+        applyNormalToFrame(frame, processNormalFromNormalMap(newNormal, material.uvTiling.a > 0.5));
 
         /* Material information */
         PBRStandard pbr;

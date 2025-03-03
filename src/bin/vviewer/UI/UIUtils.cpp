@@ -63,9 +63,13 @@ QStringList getImportedTextures(ColorSpace colorSpace)
         auto &instance = AssetManager::getInstance().texturesMap();
         for (auto itr = instance.begin(); itr != instance.end(); ++itr) {
             auto tex = static_cast<Texture *>(itr->second);
-            if (tex->colorSpace() == colorSpace) {
+            bool add = false;
+            if (colorSpace == tex->colorSpace())
+                add = true;
+            else if (colorSpace == ColorSpace::LINEAR && tex->format() != Format::R8G8B8A8_SRGB)
+                add = true;
+            if (add)
                 importedTextures.push_back(QString::fromStdString(itr->first));
-            }
         }
     }
 

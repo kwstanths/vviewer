@@ -16,7 +16,7 @@ class WidgetMaterialPBR : public QWidget
 {
     Q_OBJECT
 public:
-    static const int HEIGHT = 715;
+    static const int HEIGHT = 630;
 
     WidgetMaterialPBR(QWidget *parent, vengine::MaterialPBRStandard *material);
 
@@ -31,7 +31,6 @@ public:
     QComboBox *m_comboBoxAO;
     QComboBox *m_comboBoxEmissive;
     QComboBox *m_comboBoxNormal;
-    QComboBox *m_comboBoxAlpha;
 
     QDoubleSpinBox *m_uTiling;
     QDoubleSpinBox *m_vTiling;
@@ -56,7 +55,6 @@ private Q_SLOTS:
     void onNormalTextureChanged(int);
     void onAlphaStateChanged(bool);
     void onAlphaChanged();
-    void onAlphaTextureChanged(int);
     void onUTilingChanged(double);
     void onVTilingChanged(double);
 };

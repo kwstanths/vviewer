@@ -55,7 +55,6 @@ VulkanMaterialPBRStandard::VulkanMaterialPBRStandard(const AssetInfo &info,
     setAOTexture(white);
     setEmissiveTexture(whiteColor);
     setNormalTexture(normalmap);
-    setAlphaTexture(white);
 
     auto BRDFLUT = static_cast<VulkanTexture *>(textures.get("PBR_BRDF_LUT"));
     m_block->gTexturesIndices2.b = BRDFLUT->bindlessResourceIndex();
@@ -208,14 +207,8 @@ void VulkanMaterialPBRStandard::setNormalTexture(Texture *texture)
 
     uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
-}
 
-void VulkanMaterialPBRStandard::setAlphaTexture(Texture *texture)
-{
-    MaterialPBRStandard::setAlphaTexture(texture);
-
-    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
-    m_block->gTexturesIndices2.a = static_cast<uint32_t>(textureIndex);
+    m_block->uvTiling.a = static_cast<float>(texture->isDXR());
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */
@@ -245,7 +238,6 @@ VulkanMaterialLambert::VulkanMaterialLambert(const AssetInfo &info,
     setAOTexture(white);
     setEmissiveTexture(whiteColor);
     setNormalTexture(normalmap);
-    setAlphaTexture(white);
 }
 
 MaterialIndex VulkanMaterialLambert::materialIndex() const
@@ -360,14 +352,8 @@ void VulkanMaterialLambert::setNormalTexture(Texture *texture)
 
     uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
     m_block->gTexturesIndices2.g = static_cast<uint32_t>(textureIndex);
-}
 
-void VulkanMaterialLambert::setAlphaTexture(Texture *texture)
-{
-    MaterialLambert::setAlphaTexture(texture);
-
-    uint32_t textureIndex = static_cast<VulkanTexture *>(texture)->bindlessResourceIndex();
-    m_block->gTexturesIndices2.a = static_cast<uint32_t>(textureIndex);
+    m_block->uvTiling.a = static_cast<float>(texture->isDXR());
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */

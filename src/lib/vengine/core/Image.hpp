@@ -3,6 +3,8 @@
 
 #include <string>
 #include <stdexcept>
+#include <vector>
+#include <span>
 
 #include <stb_image.h>
 
@@ -12,115 +14,81 @@
 namespace vengine
 {
 
-template <typename T>
+enum class Format {
+    UNKNOWN = 0,
+    R8_UNORM = 1,
+    R32_SFLOAT = 2,
+    R8G8B8A8_UNORM = 3,
+    R8G8B8A8_SRGB = 4,
+    R32G32B32A32_SFLOAT = 5,
+    R16G16_SFLOAT = 6,
+    BC1_RGB_UNORM_BLOCK = 7,
+    BC1_RGBA_UNORM_BLOCK = 8,
+    BC3_UNORM_BLOCK = 9,
+    BC3_SRGB_BLOCK = 10,
+    BC5_UNORM = 11,
+};
+
 class Image : public Asset
 {
 public:
-    Image(const AssetInfo &info, ColorSpace colorSpace)
-        : Asset(info)
-        , m_colorSpace(colorSpace)
-    {
-        m_data = loadDiskImage(info.filepath, m_width, m_height, m_channels);
-        if (m_data == nullptr) {
-            throw std::runtime_error("Unable to load image from disk: " + info.filepath);
-        }
-    }
+    explicit Image(const AssetInfo &info, ColorSpace colorSpace);
+    explicit Image(const AssetInfo &info,
+                   void *data,
+                   uint32_t width,
+                   uint32_t height,
+                   Format format,
+                   ColorSpace colorSpace,
+                   bool hasAlpha,
+                   bool freeDataOnDestroy);
+    explicit Image(const AssetInfo &info, Color color, ColorSpace colorSpace);
+    
+    ~Image();
 
-    Image(const AssetInfo &info, T *data, int width, int height, int channels, ColorSpace colorSpace, bool freeDataOnDestroy)
-        : Asset(info)
-        , m_colorSpace(colorSpace)
-        , m_data(data)
-        , m_width(width)
-        , m_height(height)
-        , m_channels(channels)
-        , m_freeDataOnDestroy(freeDataOnDestroy)
-    {
-    }
+    inline const void *data() const { return m_data; }
+    
+    struct MipMap {
+        void *ptr;
+        uint64_t byteSize;
+        MipMap(void *p, uint64_t s)
+            : ptr(p)
+            , byteSize(s){};
+    };
+    inline const std::vector<MipMap> &mipmaps() const { return m_mipmaps; }
 
-    Image(const AssetInfo &info, Color color, ColorSpace colorSpace)
-        : Asset(info)
-        , m_colorSpace(colorSpace)
-    {
-        m_width = 1;
-        m_height = 1;
-        m_channels = 4;
+    inline uint32_t width() const { return m_width; }
+    inline uint32_t height() const { return m_height; }
+    
+    inline Format format() const { return m_format; }
 
-        m_data = new T[4];
-        switch (color) {
-            case Color::BLACK:
-                m_data[0] = 0x00;
-                m_data[1] = 0x00;
-                m_data[2] = 0x00;
-                m_data[3] = 0xFF;
-                break;
-            case Color::WHITE:
-                m_data[0] = 0xFF;
-                m_data[1] = 0xFF;
-                m_data[2] = 0xFF;
-                m_data[3] = 0xFF;
-                break;
-            case Color::RED:
-                m_data[0] = 0xFF;
-                m_data[1] = 0x00;
-                m_data[2] = 0x00;
-                m_data[3] = 0xFF;
-                break;
-            case Color::GREEN:
-                m_data[0] = 0x00;
-                m_data[1] = 0xFF;
-                m_data[2] = 0x00;
-                m_data[3] = 0xFF;
-                break;
-            case Color::BLUE:
-                m_data[0] = 0x00;
-                m_data[1] = 0x00;
-                m_data[2] = 0xFF;
-                m_data[3] = 0xFF;
-                break;
-            case Color::NORMAL_MAP:
-                m_data[0] = 0x80;
-                m_data[1] = 0x80;
-                m_data[2] = 0xFF;
-                m_data[3] = 0xFF;
-                break;
-            default:
-                break;
-        }
-    }
-    ~Image()
-    {
-        if (m_freeDataOnDestroy) {
-            stbi_image_free(m_data);
-        }
-    }
+    inline ColorSpace colorSpace() const { return m_colorSpace; }
 
-    T *data() { return m_data; }
-    const T *data() const { return m_data; }
-    int width() const { return m_width; }
-    int height() const { return m_height; }
-    int channels() const { return m_channels; }
-    ColorSpace colorSpace() const { return m_colorSpace; }
-    ColorDepth colorDepth() const;
-    bool hasTransparency() const { return m_channels >= 4; }
+    /* Does the image have meaningful alpha values? */
+    inline bool hasAlpha() const { return m_hasAlpha; }
 
-    static T *loadDiskImage(std::string filename, int &width, int &height, int &channels);
+    /* Does this image hold with DXR data? */
+    inline bool isDXRData() const { return m_isDXRData; }
 
 private:
-    int m_width, m_height, m_channels;
+    uint32_t m_width, m_height;
+    Format m_format;
     ColorSpace m_colorSpace;
-    T *m_data;
+    bool m_hasAlpha;
+
+    void *m_data;
+    std::vector<MipMap> m_mipmaps;
+    
     bool m_freeDataOnDestroy = true;
+
+    /* Does this image represent data that are in the DirextX format? */
+    bool m_isDXRData = false;
+    
+private:
+    bool loadImageFromDisk(std::string filename, ColorSpace colorSpace);
+
+    /* Calculates image size in bytes */
+    uint32_t calculateImageSize();
 };
-
-template <>
-stbi_uc *Image<stbi_uc>::loadDiskImage(std::string filename, int &width, int &height, int &channels);
-template <>
-float *Image<float>::loadDiskImage(std::string filename, int &width, int &height, int &channels);
-
-template <>
-ColorDepth Image<stbi_uc>::colorDepth() const;
-template <>
-ColorDepth Image<float>::colorDepth() const;
 
 }  // namespace vengine
 

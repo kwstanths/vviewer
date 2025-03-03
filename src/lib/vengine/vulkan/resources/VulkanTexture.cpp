@@ -7,21 +7,26 @@
 namespace vengine
 {
 
-VulkanTexture::VulkanTexture(const Image<stbi_uc> &image, VulkanCommandInfo vci, bool genMipMaps)
-    : Texture(image.info(), image.colorSpace(), image.colorDepth(), image.width(), image.height(), image.channels())
+VulkanTexture::VulkanTexture(const Image &image, VulkanCommandInfo vci)
+    : Texture(image.info(), image.width(), image.height(), image.format(), image.colorSpace(), image.isDXRData())
 {
     uint32_t imageWidth = image.width();
     uint32_t imageHeight = image.height();
 
+    /* Input image must have at least one mipmap */
+    assert(image.mipmaps().size() > 0);
+
+    // TODO use mipmaps directly from the image data, if they are present
+    bool genMipMaps = (image.mipmaps().size() <= 1);
     if (genMipMaps) {
         m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(width(), height())))) + 1;
     }
 
-    m_format = autoChooseFormat(colorSpace(), colorDepth(), channels());
-    assert(m_format != VK_FORMAT_UNDEFINED);
+    m_vkformat = getVkFormat(image.format());
+    assert(m_vkformat != VK_FORMAT_UNDEFINED);
 
     /* Size of image in bytes  */
-    VkDeviceSize imageSize = imageWidth * imageHeight * image.channels();
+    VkDeviceSize imageSize = image.mipmaps()[0].byteSize;
 
     /* Create staging buffer */
     VulkanBuffer stagingBuffer;
@@ -35,7 +40,7 @@ VulkanTexture::VulkanTexture(const Image<stbi_uc> &image, VulkanCommandInfo vci,
     /* Copy image data to staging buffer */
     void *data;
     vkMapMemory(vci.device, stagingBuffer.memory(), 0, imageSize, 0, &data);
-    memcpy(data, image.data(), static_cast<size_t>(imageSize));
+    memcpy(data, image.mipmaps()[0].ptr, imageSize);
     vkUnmapMemory(vci.device, stagingBuffer.memory());
 
     /* Create vulkan image and memory */
@@ -46,7 +51,7 @@ VulkanTexture::VulkanTexture(const Image<stbi_uc> &image, VulkanCommandInfo vci,
     }
 
     VkImageCreateInfo imageInfo = vkinit::imageCreateInfo(
-        {imageWidth, imageHeight, 1}, m_format, m_numMips, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, imageFlags);
+        {imageWidth, imageHeight, 1}, m_vkformat, m_numMips, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, imageFlags);
     createImage(vci.physicalDevice, vci.device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
 
     /* Transition image to DST_OPTIMAL in order to transfer the data */
@@ -77,84 +82,7 @@ VulkanTexture::VulkanTexture(const Image<stbi_uc> &image, VulkanCommandInfo vci,
     stagingBuffer.destroy(vci.device);
 
     /* Create view */
-    VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
-    vkCreateImageView(vci.device, &imageViewInfo, nullptr, &m_imageView);
-
-    /* Create a sampler */
-    createSampler(vci.device, m_sampler);
-}
-
-VulkanTexture::VulkanTexture(const Image<float> &image, VulkanCommandInfo vci, bool genMipMaps)
-    : Texture(image.info(), image.colorSpace(), image.colorDepth(), image.width(), image.height(), image.channels())
-{
-    uint32_t imageWidth = image.width();
-    uint32_t imageHeight = image.height();
-
-    if (genMipMaps) {
-        m_numMips = static_cast<uint32_t>(std::floor(std::log2(std::max(width(), height())))) + 1;
-    }
-
-    m_format = autoChooseFormat(colorSpace(), colorDepth(), channels());
-    assert(m_format != VK_FORMAT_UNDEFINED);
-
-    /* Size of image in bytes  */
-    VkDeviceSize imageSize = imageWidth * imageHeight * image.channels() * sizeof(float);
-
-    /* Create staging buffer */
-    VulkanBuffer stagingBuffer;
-    createBuffer(vci.physicalDevice,
-                 vci.device,
-                 imageSize,
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer);
-
-    /* Copy image data to staging buffer */
-    void *data;
-    vkMapMemory(vci.device, stagingBuffer.memory(), 0, imageSize, 0, &data);
-    memcpy(data, image.data(), static_cast<size_t>(imageSize));
-    vkUnmapMemory(vci.device, stagingBuffer.memory());
-
-    /* Create vulkan image and memory */
-    VkImageUsageFlags imageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (genMipMaps) {
-        /* If mip maps are to be generated, it will be used a transfer src as well */
-        imageFlags = imageFlags | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    }
-
-    VkImageCreateInfo imageInfo = vkinit::imageCreateInfo(
-        {imageWidth, imageHeight, 1}, m_format, m_numMips, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, imageFlags);
-    createImage(vci.physicalDevice, vci.device, imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
-
-    /* Transition image to DST_OPTIMAL in order to transfer the data */
-    transitionImageLayout(vci, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_numMips);
-
-    /* copy data fronm staging buffer to image */
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {static_cast<uint32_t>(imageWidth), static_cast<uint32_t>(imageHeight), 1};
-    copyBufferToImage(vci, stagingBuffer.buffer(), m_image, {region});
-
-    if (genMipMaps) {
-        /* If mip maps are to be generated, transition to shader read only while creating the mip maps */
-        generateMipMaps(vci);
-    } else {
-        /* Transition to SHADER_READ_ONLY layout */
-        transitionImageLayout(vci, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_numMips);
-    }
-
-    /* Cleanup staging buffer */
-    stagingBuffer.destroy(vci.device);
-
-    /* Create view */
-    VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
+    VkImageViewCreateInfo imageViewInfo = vkinit::imageViewCreateInfo(m_image, m_vkformat, VK_IMAGE_ASPECT_COLOR_BIT, m_numMips);
     vkCreateImageView(vci.device, &imageViewInfo, nullptr, &m_imageView);
 
     /* Create a sampler */
@@ -162,24 +90,23 @@ VulkanTexture::VulkanTexture(const Image<float> &image, VulkanCommandInfo vci, b
 }
 
 VulkanTexture::VulkanTexture(const AssetInfo &info,
-                             ColorSpace colorSpace,
-                             ColorDepth colorDepth,
                              size_t width,
                              size_t height,
-                             size_t channels,
+                             Format format,
+                             ColorSpace colorSpace,
                              VkImage &image,
                              VkDeviceMemory &imageMemory,
                              VkImageView &imageView,
                              VkSampler &sampler,
-                             VkFormat &format,
+                             VkFormat &vkformat,
                              uint32_t numMips)
-    : Texture(info, colorSpace, colorDepth, width, height, channels)
+    : Texture(info, width, height, format, colorSpace)
     , m_image(image)
     , m_imageMemory(imageMemory)
     , m_imageView(imageView)
     , m_sampler(sampler)
     , m_numMips(numMips)
-    , m_format(format)
+    , m_vkformat(vkformat)
 {
 }
 
@@ -208,7 +135,7 @@ const VkDeviceMemory &VulkanTexture::imageMemory() const
 
 const VkFormat &VulkanTexture::format() const
 {
-    return m_format;
+    return m_vkformat;
 }
 
 const VkSampler &VulkanTexture::sampler() const

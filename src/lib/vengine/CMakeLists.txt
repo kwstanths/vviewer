@@ -45,6 +45,7 @@ source_group("math\\"		FILES	${${NAME}_MATH_HEADERS} ${${NAME}_MATH_SOURCES})
 source_group("core\\"		FILES	${${NAME}_CORE_HEADERS} ${${NAME}_CORE_SOURCES})
 source_group("vulkan\\"		FILES	${${NAME}_VULKAN_HEADERS} ${${NAME}_VULKAN_SOURCES})
 source_group("utils\\"		FILES	${${NAME}_UTILS_HEADERS} ${${NAME}_UTILS_SOURCES})
+source_group("shaders\\"	FILES	${${NAME}_SHADERS})
 
 # Build shaders
 message("Building shaders...")

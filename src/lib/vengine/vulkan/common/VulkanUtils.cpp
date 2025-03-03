@@ -532,25 +532,37 @@ VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *dept
     return false;
 }
 
-VkFormat autoChooseFormat(ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels)
+VkFormat getVkFormat(Format format)
 {
-    auto uid = [&](ColorSpace colorSpace, ColorDepth colorDepth, uint32_t channels) {
-        return channels * 10000 + static_cast<int>(colorDepth) * 1000 + static_cast<int>(colorSpace);
-    };
-    static std::unordered_map<int, VkFormat> autoformats{
-        {uid(ColorSpace::LINEAR, ColorDepth::BITS8, 1), VK_FORMAT_R8_UNORM},
-        {uid(ColorSpace::LINEAR, ColorDepth::BITS8, 4), VK_FORMAT_R8G8B8A8_UNORM},
-        {uid(ColorSpace::LINEAR, ColorDepth::BITS32, 4), VK_FORMAT_R32G32B32A32_SFLOAT},
-        {uid(ColorSpace::sRGB, ColorDepth::BITS8, 4), VK_FORMAT_R8G8B8A8_SRGB},
-    };
-
-    auto itr = autoformats.find(uid(colorSpace, colorDepth, channels));
-    if (itr == autoformats.end()) {
-        debug_tools::ConsoleCritical("Unable to automatically determine the Vulkan format");
-        return VK_FORMAT_UNDEFINED;
+    switch (format) {
+        case vengine::Format::UNKNOWN:
+            return VK_FORMAT_UNDEFINED;
+        case vengine::Format::R8_UNORM:
+            return VK_FORMAT_R8_UNORM;
+        case vengine::Format::R32_SFLOAT:
+            return VK_FORMAT_R32_SFLOAT;
+        case vengine::Format::R8G8B8A8_UNORM:
+            return VK_FORMAT_R8G8B8A8_UNORM;
+        case vengine::Format::R8G8B8A8_SRGB:
+            return VK_FORMAT_R8G8B8A8_SRGB;
+        case vengine::Format::R32G32B32A32_SFLOAT:
+            return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case vengine::Format::R16G16_SFLOAT:
+            return VK_FORMAT_R16G16_SFLOAT;
+        case vengine::Format::BC1_RGB_UNORM_BLOCK:
+            return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+        case vengine::Format::BC1_RGBA_UNORM_BLOCK:
+            return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+        case vengine::Format::BC3_UNORM_BLOCK:
+            return VK_FORMAT_BC3_UNORM_BLOCK;
+        case vengine::Format::BC3_SRGB_BLOCK:
+            return VK_FORMAT_BC3_SRGB_BLOCK;
+        case vengine::Format::BC5_UNORM:
+            return VK_FORMAT_BC5_UNORM_BLOCK;
+        default:
+            return VK_FORMAT_UNDEFINED;
     }
-
-    return static_cast<VkFormat>(itr->second);
+    return VK_FORMAT_UNDEFINED;
 }
 
 VkDeviceOrHostAddressKHR getBufferDeviceAddress(VkDevice device, VkBuffer buffer)

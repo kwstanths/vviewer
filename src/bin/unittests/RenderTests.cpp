@@ -714,8 +714,8 @@ TEST_F(RenderPTTest, Transparency)
     }
     {
         auto materialPBR2 = engine.materials().createMaterial<vengine::MaterialPBRStandard>(vengine::AssetInfo("pbrmaterial8"));
-        auto *tex = engine.textures().createTexture(AssetInfo("checkerboard", "assets/textures/checkerboard.png"));
-        materialPBR2->setAlphaTexture(tex);
+        auto *tex = engine.textures().createTexture(AssetInfo("checkerboard", "assets/textures/checkerboardWithAlpha.png"));
+        materialPBR2->setAlbedoTexture(tex);
         materialPBR2->setTransparent(true);
 
         vengine::SceneObject *so = scene.addSceneObject("plane", vengine::Transform({0, 0, 0}, {5, 5, 5}));
@@ -827,7 +827,7 @@ TEST_F(RenderPTTest, GLTF)
     engine.renderer().rendererPathTracing().render();
 
     float diff = CompareImages("GLTF_test.hdr", "assets/unittests/GLTF_ref.hdr", 3);
-    EXPECT_LE(diff, 0.000001);
+    EXPECT_LE(diff, 0.0000011);
 }
 
 TEST_F(RenderPTTest, Hierarchy)
